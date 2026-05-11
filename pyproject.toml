@@ -1,0 +1,29 @@
+[project]
+name = "1ai-osint"
+version = "0.1.0"
+description = "AI-Powered OSINT & ZKIT Research Platform"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+dependencies = [
+    "typer>=0.12.0",
+    "pydantic>=2.0",
+    "httpx>=0.25",
+    "langgraph>=0.1.0",
+]
+
+[project.optional-dependencies]
+crypto = [
+    "bip-utils>=2.10.0",
+]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=4.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--cov=src --cov-report=term-missing"
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"

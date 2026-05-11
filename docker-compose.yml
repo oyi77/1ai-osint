@@ -1,0 +1,12 @@
+services:
+  1ai-osint:
+    build: .
+    container_name: 1ai-osint
+    environment:
+      - OMNIROUTE_URL=${OMNIROUTE_URL:-http://omniroute:8000}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+    volumes:
+      - .:/app
+    stdin_open: true
+    tty: true
