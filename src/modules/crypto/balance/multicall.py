@@ -3,7 +3,7 @@
 Uses tryAggregate() to check multiple addresses in a single eth_call,
 dramatically reducing RPC requests and avoiding rate limits.
 
-Reference: https://www.multicall3.com/
+Reference: tokentools.app batchCheckBalance pattern.
 """
 
 from __future__ import annotations
@@ -20,11 +20,13 @@ logger = logging.getLogger(__name__)
 
 _TIMEOUT = 15
 
-# Multicall3 deployed at the same address on all EVM chains
-MULTICALL3 = "0xcA11bde05977b3631167028862bE2a173976CA11"
+# Multicall3 contract addresses per chain (from tokentools.app)
+MULTICALL3: dict[str, str] = {
+    "ethereum": "0x5ba1e12693dc8f9c48aad8770482f4739beed696",
+    "bnb smart chain": "0xff6fd90a470aaa0c1b8a54681746b07acdfedc9b",
+    "polygon": "0xa9fa9a0042e627c769de398f194fd0f301ea1f4f",
+}
 
-# tryAggregate(bool,(address,bytes)[]) selector
-_TRY_AGGREGATE = "bce38bd7"
 # getEthBalance(address) selector
 _GET_ETH_BALANCE = "4d2301cc"
 
@@ -37,53 +39,45 @@ class BatchBalanceResult:
     error: Optional[str] = None
 
 
-def _pad_addr(addr: str) -> str:
-    """Left-pad address to 32 bytes."""
-    return addr.lower().removeprefix("0x").zfill(64)
+def _pad(val: str) -> str:
+    """Pad address to 32 bytes (left-pad with zeros)."""
+    return val.lower().removeprefix("0x").zfill(64)
 
 
-def _pad_uint(val: int) -> str:
-    """Left-pad uint256 to 32 bytes."""
+def _uint(val: int) -> str:
+    """Encode uint256."""
     return hex(val)[2:].zfill(64)
 
 
-def encode_try_aggregate(addresses: list[str]) -> str:
-    """Encode Multicall3.tryAggregate(false, calls) where each call is getEthBalance(addr).
+def build_batch_call(addresses: list[str], mc3_addr: str) -> str:
+    """Build tryAggregate call data matching tokentools.app pattern.
 
-    ABI layout:
-      selector (4 bytes)
-      requireSuccess: bool = false (32 bytes)
-      offset to calls[]: 0x40 (32 bytes)
-      calls[] length: N (32 bytes)
-      call[0..N-1]: each tuple = (address target, offset to bytes, bytes length, bytes data)
+    tryAggregate(true, (address target, bytes calldata)[])
+    where each call = (multicall3, getEthBalance(wallet_addr))
     """
-    data = _TRY_AGGREGATE
-    data += _pad_uint(0)          # requireSuccess = false
-    data += _pad_uint(0x40)       # offset to calls array
+    data = "bce38bd7"                                  # selector
+    data += _uint(1)                                   # requireSuccess = true
+    data += _uint(0x40)                                # offset to calls array
+    data += _uint(len(addresses))                      # array length
 
-    n = len(addresses)
-    data += _pad_uint(n)          # array length
+    # Each tuple: address target (multicall3) + offset to bytes
+    for _ in addresses:
+        data += _pad(mc3_addr)                         # target = Multicall3 contract
+        data += _uint(0x20)                            # offset to bytes = 32
 
-    # Each tuple: address(32) + bytes_offset(32) + bytes_len(32) + bytes_data(32)
-    # bytes_data = getEthBalance selector(4) + address(32) = 36 bytes
-    # So each tuple = 4 * 32 = 128 bytes
-    # Offsets are relative to the start of each tuple
+    # Each calldata: getEthBalance(wallet_address)
     for addr in addresses:
-        data += _pad_addr(MULTICALL3)   # target = Multicall3 contract
-        data += _pad_uint(0x20)         # offset to bytes = 32 (skip address field)
-
-    for addr in addresses:
-        data += _pad_uint(36)           # bytes length = 4 + 32
-        data += _GET_ETH_BALANCE + _pad_addr(addr)  # getEthBalance(address)
+        data += _uint(36)                              # bytes length = 4 + 32
+        data += _GET_ETH_BALANCE + _pad(addr)          # selector + address
 
     return "0x" + data
 
 
-def decode_try_aggregate(hex_data: str, count: int) -> list[BatchBalanceResult]:
-    """Decode tryAggregate return data into balance results.
+def decode_batch_result(hex_data: str, count: int) -> list[BatchBalanceResult]:
+    """Decode tryAggregate return data.
 
-    Return format: (bool success, bytes returnData)[]
-    Each returnData is abi.encode(uint256) for getEthBalance.
+    Format: (bool success, bytes returnData)[]
+    Each returnData = abi.encode(uint256 balance).
     """
     results = []
     clean = hex_data.removeprefix("0x")
@@ -91,8 +85,7 @@ def decode_try_aggregate(hex_data: str, count: int) -> list[BatchBalanceResult]:
     if len(clean) < 128:
         return [BatchBalanceResult(address="", balance_wei=0, error="Empty response")] * count
 
-    # Skip array offset (32) + array length (32)
-    idx = 128
+    idx = 128  # skip offset(32) + length(32)
 
     for _ in range(count):
         if idx + 192 > len(clean):
@@ -100,8 +93,8 @@ def decode_try_aggregate(hex_data: str, count: int) -> list[BatchBalanceResult]:
             continue
 
         success = int(clean[idx:idx+64], 16) == 1
-        idx += 64  # success bool
-        idx += 64  # returnData offset
+        idx += 64   # success
+        idx += 64   # returnData offset
 
         if success:
             data_len = int(clean[idx:idx+64], 16)
@@ -109,17 +102,12 @@ def decode_try_aggregate(hex_data: str, count: int) -> list[BatchBalanceResult]:
             if data_len >= 32 and idx + 64 <= len(clean):
                 balance = int(clean[idx:idx+64], 16)
                 results.append(BatchBalanceResult(address="", balance_wei=balance))
-                # Advance past the actual data (round up to 32-byte boundary)
                 idx += ((data_len + 31) // 32) * 64
             else:
                 results.append(BatchBalanceResult(address="", balance_wei=0, error="No data"))
         else:
-            idx += 64  # skip returnData length even on failure
+            idx += 64
             results.append(BatchBalanceResult(address="", balance_wei=0, error="Call reverted"))
-
-    # Fill in addresses
-    for i, addr_idx in enumerate(range(min(len(results), count))):
-        pass  # addresses are passed separately
 
     return results
 
@@ -131,49 +119,71 @@ async def batch_check_balances(
 ) -> list[BatchBalanceResult]:
     """Check native balances for multiple EVM addresses in one RPC call.
 
-    Args:
-        addresses: List of EVM addresses (0x...).
-        chain: Chain config with rpc_url.
-        client: Optional shared httpx client.
-
-    Returns:
-        List of BatchBalanceResult, one per address.
+    Falls back to individual eth_getBalance if Multicall3 not available for chain.
     """
     if not chain.rpc_url or not addresses:
         return [BatchBalanceResult(address=a, balance_wei=0, error="No RPC URL") for a in addresses]
+
+    mc3_addr = MULTICALL3.get(chain.name.lower())
 
     try:
         _created = client is None
         if _created:
             client = httpx.AsyncClient(timeout=_TIMEOUT)
         try:
-            call_data = encode_try_aggregate(addresses)
-            payload = {
-                "jsonrpc": "2.0",
-                "method": "eth_call",
-                "params": [{"to": MULTICALL3, "data": call_data}, "latest"],
-                "id": 1,
-            }
-            resp = await client.post(chain.rpc_url, json=payload)
-            resp.raise_for_status()
-            result = resp.json()
+            if mc3_addr:
+                call_data = build_batch_call(addresses, mc3_addr)
+                payload = {
+                    "jsonrpc": "2.0",
+                    "method": "eth_call",
+                    "params": [{"to": mc3_addr, "data": call_data}, "latest"],
+                    "id": 1,
+                }
+                resp = await client.post(chain.rpc_url, json=payload)
+                resp.raise_for_status()
+                result = resp.json()
 
-            if "error" in result:
-                raise ValueError(result["error"].get("message", "RPC error"))
+                if "error" in result:
+                    raise ValueError(result["error"].get("message", "RPC error"))
 
-            decoded = decode_try_aggregate(result.get("result", "0x"), len(addresses))
-
-            # Map addresses to results
-            for i, addr in enumerate(addresses):
-                if i < len(decoded):
-                    decoded[i].address = addr
-                else:
-                    decoded.append(BatchBalanceResult(address=addr, balance_wei=0, error="Index out of range"))
-
-            return decoded
+                decoded = decode_batch_result(result.get("result", "0x"), len(addresses))
+                for i, addr in enumerate(addresses):
+                    if i < len(decoded):
+                        decoded[i].address = addr
+                return decoded
+            else:
+                # Fallback: individual eth_getBalance calls
+                return await _individual_balances(addresses, chain, client)
         finally:
             if _created:
                 await client.aclose()
     except Exception as e:
         logger.warning("Multicall failed for %s: %s", chain.name, e)
         return [BatchBalanceResult(address=a, balance_wei=0, error=str(e)) for a in addresses]
+
+
+async def _individual_balances(
+    addresses: list[str],
+    chain: ChainConfig,
+    client: httpx.AsyncClient,
+) -> list[BatchBalanceResult]:
+    """Fallback: check balances individually."""
+    results = []
+    for addr in addresses:
+        try:
+            payload = {
+                "jsonrpc": "2.0",
+                "method": "eth_getBalance",
+                "params": [addr, "latest"],
+                "id": 1,
+            }
+            resp = await client.post(chain.rpc_url, json=payload)
+            resp.raise_for_status()
+            data = resp.json()
+            if "error" in data:
+                results.append(BatchBalanceResult(address=addr, balance_wei=0, error=data["error"]["message"]))
+            else:
+                results.append(BatchBalanceResult(address=addr, balance_wei=int(data["result"], 16)))
+        except Exception as e:
+            results.append(BatchBalanceResult(address=addr, balance_wei=0, error=str(e)))
+    return results
