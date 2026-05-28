@@ -215,15 +215,23 @@ class RandomScanner:
         if self.hit_logger:
             await self.hit_logger.flush()
 
+        # Save persistent stats to SQLite
+        self._save_persistent_stats()
+
         logger.info(
-            "Scanner finished: %d mnemonics, %.1f/sec, %d hits, %d errors",
+            "Scanner finished: %d mnemonics (%d all-time), %.1f/sec, %d hits (%d all-time), %d errors",
             self._stats.mnemonics_generated,
+            self._stats.total_mnemonics_all_time + self._stats.mnemonics_generated,
             self._stats.mnemonics_per_sec,
             self._stats.hits_found,
+            self._stats.total_hits_all_time + self._stats.hits_found,
             self._stats.api_errors,
         )
 
         # Close shared httpx client
+        if self._client:
+            await self._client.aclose()
+            self._client = None
         if self._client:
             await self._client.aclose()
             self._client = None
@@ -242,10 +250,10 @@ class RandomScanner:
                     continue
                 self._seen_mnemonics.add(mnemonic)
 
-                # 2. Derive addresses (CPU-bound — use ProcessPoolExecutor to bypass GIL)
+                # 2. Derive addresses (CPU-bound — offloaded to thread pool)
                 loop = asyncio.get_running_loop()
                 addresses = await loop.run_in_executor(
-                    self._process_pool,
+                    None,
                     derive_from_mnemonic,
                     mnemonic,
                     self.chains,
