@@ -110,7 +110,7 @@ SOLANA = ChainConfig(
     symbol="SOL",
     chain_type=ChainType.SOLANA,
     coin_id="solana",
-    rpc_url="https://mainnet.helius-rpc.com/?api-key=d75efa98-30f8-458c-8030-1ec7f542d97b",
+    rpc_url="https://api.mainnet-beta.solana.com",
     decimals=9,
     bip44_coin_type=501,
     derivation_paths=["m/44'/501'/0'/0'"],
