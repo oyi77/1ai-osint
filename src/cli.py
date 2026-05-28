@@ -13,7 +13,7 @@ app = typer.Typer(
 )
 
 # Valid module names for the scan command
-SCAN_MODULES = ("gitleaks", "data_leaks", "people", "phone", "crypto_passphrase", "crypto_privatekey", "all")
+SCAN_MODULES = ("gitleaks", "data_leaks", "people", "phone", "crypto_passphrase", "crypto_privatekey", "crypto_balance", "all")
 OUTPUT_FORMATS = ("json", "sarif", "pdf")
 
 
@@ -68,6 +68,10 @@ def _get_module(name: str, zkit_salt: str = ""):
         from src.modules.crypto.privatekey.scanner import PrivateKeyScanner
 
         return PrivateKeyScanner(zkit_salt=zkit_salt)
+    elif name in ("crypto_balance", "balance", "wallet"):
+        from src.modules.crypto.balance import CryptoBalanceTool
+
+        return CryptoBalanceTool(zkit_salt=zkit_salt)
     return None
 
 
@@ -309,7 +313,9 @@ def _format_pdf(results: list) -> bytes:
 
 @app.command()
 def scan(
-    target: str = typer.Argument(..., help="Target: URL, path, email, or query"),
+    target: str = typer.Argument(
+        "random", help="Target: URL, path, email, mnemonic, or 'random' for random scan"
+    ),
     module: str = typer.Option(
         "all", help=f"Module to use ({', '.join(SCAN_MODULES)})"
     ),
@@ -320,8 +326,20 @@ def scan(
     zkit: bool = typer.Option(False, "--zkit", help="Enable ZKIT identity tracking"),
     zkit_salt: str = typer.Option("", help="ZKIT salt for privacy-preserving identity hashing"),
     timeout: int = typer.Option(300, help="Scan timeout in seconds"),
+    # crypto_balance specific options
+    scan_mode: str = typer.Option(
+        "", help="Scan mode for crypto_balance: 'targeted' or 'random' (auto-detected if omitted)"
+    ),
+    workers: int = typer.Option(20, help="Number of concurrent workers for random scan"),
+    duration: int = typer.Option(0, help="Duration in seconds for random scan (0 = use iterations)"),
+    account_count: int = typer.Option(1, help="Number of accounts to derive per chain"),
+    min_balance: float = typer.Option(0.0, help="Minimum balance threshold for random scan hits"),
 ):
-    """Run an OSINT scan against a target."""
+    """Run an OSINT scan against a target.
+
+    For crypto_balance module with 'random' target, generates random mnemonics.
+    For crypto_balance with a mnemonic target, derives and checks balances.
+    """
     from src.config import settings
 
     effective_salt = zkit_salt or settings.zkit_salt
@@ -347,7 +365,16 @@ def scan(
     for mod in modules_to_run:
         typer.echo(f"Running {mod.name} on {target}...", err=True)
         try:
-            result = asyncio.run(mod.scan(target, timeout=timeout))
+            # Build kwargs for crypto_balance module
+            extra_kwargs: dict = {"timeout": timeout}
+            if mod.name == "crypto_balance":
+                extra_kwargs["scan_mode"] = scan_mode
+                extra_kwargs["workers"] = workers
+                extra_kwargs["duration"] = duration if duration > 0 else None
+                extra_kwargs["account_count"] = account_count
+                extra_kwargs["min_balance"] = min_balance
+
+            result = asyncio.run(mod.scan(target, **extra_kwargs))
 
             # Apply ZKIT identity tracking if enabled
             if zkit and effective_salt:

@@ -43,6 +43,17 @@ class Settings(BaseSettings):
     # ZKIT
     zkit_salt: str = ""
 
+    # Telegram alerts
+    telegram_bot_token: Optional[str] = None
+    telegram_chat_id: Optional[str] = None
+
+    # Webhook alerts
+    webhook_url: Optional[str] = None
+
+    # Scanner settings
+    scanner_workers: int = 20
+    scanner_mode: str = "targeted"
+
     # Application settings
     log_level: str = "INFO"
     cache_dir: str = ".osint_cache"

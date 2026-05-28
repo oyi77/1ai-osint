@@ -1,0 +1,356 @@
+"""Crypto Balance Checker — derive addresses and check on-chain balances.
+
+Supports BTC, ETH, BSC, Polygon, and SOL. Accepts mnemonic phrases,
+private keys, or raw addresses as input.
+
+Operates in two scan modes:
+- "random": generate random mnemonics and check balances (RandomScanner)
+- "targeted": derive and check known mnemonics / account ranges (targeted_search)
+"""
+
+import asyncio
+import logging
+from datetime import datetime
+from typing import Any, Optional
+
+from src.models import Finding, ScanResult, Severity
+from src.modules.base.base import BaseOSINTTool
+from src.modules.crypto.balance.chains import ALL_CHAINS, CHAIN_MAP, ChainConfig
+from src.modules.crypto.balance.deriver import (
+    DerivedAddress,
+    derive_from_mnemonic,
+    derive_from_privatekey,
+    detect_input_type,
+    is_valid_mnemonic,
+)
+from src.modules.crypto.balance.checker import (
+    BalanceResult,
+    apply_usd_prices,
+    check_balance,
+    get_usd_prices,
+)
+from src.modules.crypto.balance.targeted_search import (
+    AccountRangeScan,
+    FilteredRandomScan,
+    KnownMnemonicLookup,
+    TargetedScanResult,
+    targeted_scan_to_scanresult,
+)
+
+__all__ = ["CryptoBalanceTool"]
+
+logger = logging.getLogger(__name__)
+
+
+class CryptoBalanceTool(BaseOSINTTool):
+    """Derive wallet addresses from mnemonics/keys and check on-chain balances.
+
+    Supports BTC (BIP-44/49/84), ETH, BSC, Polygon, and SOL.
+    Uses free public APIs — no API keys required.
+    """
+
+    name = "crypto_balance"
+    description = "Derive wallet addresses and check on-chain balances (BTC/ETH/BSC/Polygon/SOL)"
+    version = "0.1.0"
+
+    def __init__(
+        self,
+        chains: Optional[list[ChainConfig]] = None,
+        account_count: int = 1,
+        zkit_salt: Optional[str] = None,
+    ):
+        super().__init__(zkit_salt=zkit_salt)
+        self.chains = chains or list(ALL_CHAINS)
+        self.account_count = account_count
+
+    async def search(self, query: str, **kwargs) -> ScanResult:
+        """Search is an alias for scan."""
+        return await self.scan(query, **kwargs)
+
+    async def scan(self, target: str, **kwargs) -> ScanResult:
+        """Scan: derive addresses and check balances.
+
+        Args:
+            target: BIP-39 mnemonic, private key (hex), or blockchain address.
+                   For random scan_mode, this is ignored (pass "random" or empty).
+            **kwargs:
+                account_count (int): Number of address indices to derive per chain.
+                chains (list[str]): Chain names to filter.
+                scan_mode (str): "random" or "targeted" (default: auto-detect).
+                account_range (tuple[int,int]): Account range for targeted mode (default: (0,1)).
+                min_balance (float): Min balance for filtered random scan (default: 0.0).
+                derivation_paths (list[str]): Filter derivation paths for random scan.
+                iterations (int): Number of random mnemonics for filtered random scan (default: 10).
+
+        Returns:
+            ScanResult with one Finding per address/chain combination.
+        """
+        scan_id = self._make_scan_id()
+        started_at = datetime.utcnow()
+        findings: list[Finding] = []
+        errors: list[str] = []
+
+        account_count = kwargs.get("account_count", self.account_count)
+        scan_mode = kwargs.get("scan_mode", "")
+        input_type = detect_input_type(target)
+
+        # --- Targeted scan mode delegation ---
+        # If scan_mode is explicitly "targeted" and input is a mnemonic, use targeted search
+        if scan_mode == "targeted" and input_type == "mnemonic":
+            return await self._run_targeted_scan(target, scan_id, started_at, **kwargs)
+
+        # If scan_mode is explicitly "random", delegate to RandomScanner
+        if scan_mode == "random":
+            return await self._run_random_scan(scan_id, started_at, **kwargs)
+
+        # If input is "random" literal, run random scan
+        if target.strip().lower() == "random":
+            return await self._run_random_scan(scan_id, started_at, **kwargs)
+
+        if input_type == "unknown":
+            return ScanResult(
+                scan_id=scan_id,
+                module=self.name,
+                target=target[:20] + "...",
+                status="error",
+                error="Could not detect input type. Provide a valid mnemonic, private key, or address.",
+                started_at=started_at,
+                completed_at=datetime.utcnow(),
+            )
+
+        # Resolve chain filter from kwargs
+        chain_filter = kwargs.get("chains")
+        active_chains = self.chains
+        if chain_filter:
+            active_chains = [CHAIN_MAP[c.lower()] for c in chain_filter if c.lower() in CHAIN_MAP]
+
+        # Step 1: Derive or resolve addresses
+        addresses: list[DerivedAddress] = []
+        if input_type == "mnemonic":
+            addresses = derive_from_mnemonic(target, chains=active_chains, count=account_count)
+        elif input_type == "private_key":
+            # Try to derive for each chain (ETH-like keys work for ETH/BSC/Polygon)
+            for chain in active_chains:
+                try:
+                    addr = derive_from_privatekey(target, chain=chain)
+                    addresses.append(addr)
+                except Exception as e:
+                    errors.append(f"{chain.name}: {e}")
+        elif input_type in ("btc_address", "evm_address", "sol_address"):
+            # Direct address — determine chain and check balance
+            chain = _chain_for_address_type(input_type, active_chains)
+            if chain:
+                addresses.append(DerivedAddress(
+                    address=target.strip(),
+                    chain=chain.name,
+                    symbol=chain.symbol,
+                    derivation_path="direct",
+                ))
+
+        if not addresses:
+            return ScanResult(
+                scan_id=scan_id,
+                module=self.name,
+                target=target[:20] + "...",
+                status="error",
+                error=f"No addresses derived. Errors: {'; '.join(errors)}" if errors else "No addresses derived.",
+                started_at=started_at,
+                completed_at=datetime.utcnow(),
+            )
+
+        # Step 2: Check balances concurrently
+        balance_tasks = [
+            check_balance(addr.address, _chain_by_name(addr.chain, active_chains) or active_chains[0], addr.derivation_path)
+            for addr in addresses
+        ]
+        balance_results = await asyncio.gather(*balance_tasks, return_exceptions=True)
+
+        # Step 3: Fetch USD prices
+        coin_ids = list({c.coin_id for c in active_chains})
+        prices = await get_usd_prices(coin_ids)
+
+        # Step 4: Apply prices and build findings
+        valid_results: list[BalanceResult] = []
+        for i, result in enumerate(balance_results):
+            if isinstance(result, Exception):
+                errors.append(f"{addresses[i].chain}: {result}")
+                continue
+            valid_results.append(result)
+
+        apply_usd_prices(valid_results, prices)
+
+        for result in valid_results:
+            severity = Severity.INFO
+            if result.balance > 0:
+                severity = Severity.HIGH
+            if result.usd_value > 1000:
+                severity = Severity.CRITICAL
+
+            title = f"{result.chain}: {result.balance:.8f} {result.symbol}"
+            if result.usd_price > 0:
+                title += f" (~${result.usd_value:,.2f})"
+
+            findings.append(Finding(
+                id=self._make_finding_id(),
+                module=self.name,
+                title=title,
+                description=f"Balance for {result.address} on {result.chain}",
+                severity=severity,
+                confidence=1.0,
+                tags=["crypto", "balance", result.symbol.lower(), result.chain.lower()],
+                raw_data={
+                    "address": result.address,
+                    "chain": result.chain,
+                    "symbol": result.symbol,
+                    "balance": result.balance,
+                    "balance_raw": result.balance_raw,
+                    "usd_price": result.usd_price,
+                    "usd_value": result.usd_value,
+                    "derivation_path": result.derivation_path,
+                    "error": result.error,
+                },
+            ))
+
+        status = "ok" if not errors else "partial"
+        return ScanResult(
+            scan_id=scan_id,
+            module=self.name,
+            target=input_type,
+            status=status,
+            findings=findings,
+            metadata={
+                "input_type": input_type,
+                "addresses_checked": len(addresses),
+                "chains_checked": [c.name for c in active_chains],
+                "errors": errors,
+            },
+            started_at=started_at,
+            completed_at=datetime.utcnow(),
+        )
+
+    async def analyze(self, data: Any, **kwargs) -> dict[str, Any]:
+        """Analyze scan results — aggregate balances by chain."""
+        if isinstance(data, ScanResult):
+            findings = data.findings
+        elif isinstance(data, list):
+            findings = data
+        else:
+            return {"error": "Expected ScanResult or list of Findings"}
+
+        by_chain: dict[str, dict] = {}
+        total_usd = 0.0
+
+        for f in findings:
+            chain = f.raw_data.get("chain", "unknown")
+            if chain not in by_chain:
+                by_chain[chain] = {
+                    "balance": 0.0,
+                    "usd_value": 0.0,
+                    "symbol": f.raw_data.get("symbol", ""),
+                    "addresses": [],
+                }
+            by_chain[chain]["balance"] += f.raw_data.get("balance", 0)
+            by_chain[chain]["usd_value"] += f.raw_data.get("usd_value", 0)
+            by_chain[chain]["addresses"].append(f.raw_data.get("address", ""))
+            total_usd += f.raw_data.get("usd_value", 0)
+
+        return {
+            "total_usd_value": total_usd,
+            "by_chain": by_chain,
+            "findings_count": len(findings),
+            "has_funds": total_usd > 0,
+        }
+
+    async def learn(self, feedback: dict[str, Any], **kwargs) -> None:
+        """No-op — future: watch addresses for balance changes."""
+        pass
+
+    async def _run_targeted_scan(
+        self, target: str, scan_id: str, started_at: datetime, **kwargs
+    ) -> ScanResult:
+        """Delegate to targeted search for a known mnemonic."""
+        account_range = kwargs.get("account_range", (0, self.account_count))
+        chain_filter = kwargs.get("chains")
+        active_chains = self.chains
+        if chain_filter:
+            active_chains = [CHAIN_MAP[c.lower()] for c in chain_filter if c.lower() in CHAIN_MAP]
+
+        lookup = KnownMnemonicLookup(
+            mnemonic=target,
+            chains=active_chains,
+            account_range=account_range,
+        )
+        targeted_result = await lookup.execute(scan_id=scan_id)
+        scan_result = targeted_scan_to_scanresult(targeted_result, target_label="targeted")
+        scan_result.started_at = started_at
+        scan_result.completed_at = datetime.utcnow()
+        return scan_result
+
+    async def _run_random_scan(
+        self, scan_id: str, started_at: datetime, **kwargs
+    ) -> ScanResult:
+        """Delegate to RandomScanner for random mnemonic scanning."""
+        from src.modules.crypto.balance.scanner_engine import RandomScanner
+
+        duration = kwargs.get("duration")
+        workers = kwargs.get("workers", 20)
+
+        scanner = RandomScanner(
+            workers=workers,
+            chains=self.chains,
+        )
+        stats = await scanner.run(duration_sec=duration)
+
+        findings: list[Finding] = []
+        findings.append(Finding(
+            id=f"random-scan-{scan_id}",
+            module=self.name,
+            title="Random scan completed",
+            description=(
+                f"Generated {stats.mnemonics_generated} mnemonics at "
+                f"{stats.mnemonics_per_sec:.1f}/sec, "
+                f"{stats.hits_found} hits, {stats.api_errors} errors"
+            ),
+            severity=Severity.HIGH if stats.hits_found > 0 else Severity.INFO,
+            confidence=1.0,
+            tags=["crypto", "random_scan", "summary"],
+            raw_data={
+                "mnemonics_generated": stats.mnemonics_generated,
+                "addresses_checked": stats.addresses_checked,
+                "hits_found": stats.hits_found,
+                "api_errors": stats.api_errors,
+                "elapsed_seconds": stats.elapsed,
+                "mnemonics_per_sec": stats.mnemonics_per_sec,
+            },
+        ))
+
+        return ScanResult(
+            scan_id=scan_id,
+            module=self.name,
+            target="random",
+            status="ok",
+            findings=findings,
+            metadata={
+                "mode": "random",
+                "workers": workers,
+                "duration": duration,
+            },
+            started_at=started_at,
+            completed_at=datetime.utcnow(),
+        )
+
+
+def _chain_for_address_type(input_type: str, chains: list[ChainConfig]) -> Optional[ChainConfig]:
+    """Map address type to a chain config."""
+    mapping = {
+        "btc_address": "bitcoin",
+        "evm_address": "ethereum",
+        "sol_address": "solana",
+    }
+    name = mapping.get(input_type, "")
+    return next((c for c in chains if c.name.lower() == name), None)
+
+
+def _chain_by_name(name: str, chains: list[ChainConfig]) -> Optional[ChainConfig]:
+    """Find a chain by name in a list."""
+    return next((c for c in chains if c.name == name), None)

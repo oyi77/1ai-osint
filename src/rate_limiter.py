@@ -1,5 +1,6 @@
 """Rate limiter for API calls using token bucket algorithm."""
 
+import asyncio
 import json
 import time
 from pathlib import Path
@@ -25,6 +26,9 @@ class RateLimiter:
         self.rate = requests_per_minute / 60.0  # tokens per second
         self.burst = burst
         self._state: dict[str, dict] = {}
+        self._dirty = False
+        self._last_flush = 0.0
+        self._flush_interval = 1.0  # seconds between disk writes
         self._load()
 
     def _load(self) -> None:
@@ -36,8 +40,18 @@ class RateLimiter:
                 self._state = {}
 
     def _save(self) -> None:
-        """Persist state to disk."""
-        self.state_file.write_text(json.dumps(self._state))
+        """Mark state as dirty. Actual disk write is batched."""
+        self._dirty = True
+        now = time.time()
+        if now - self._last_flush >= self._flush_interval:
+            self._flush()
+
+    def _flush(self) -> None:
+        """Force-write dirty state to disk."""
+        if self._dirty:
+            self.state_file.write_text(json.dumps(self._state))
+            self._dirty = False
+            self._last_flush = time.time()
 
     def _get_bucket(self, key: str) -> dict:
         """Get or create a token bucket for the given key."""
@@ -82,6 +96,35 @@ class RateLimiter:
         self._save()
         return wait_time
 
+    async def acquire_async(self, key: str = "default", tokens: int = 1) -> float:
+        """
+        Async version of acquire. Non-blocking sleep when tokens unavailable.
+
+        Args:
+            key: Rate limit key (e.g., API name).
+            tokens: Number of tokens to acquire.
+        Returns:
+            Seconds actually waited (0 = went immediately).
+        """
+        bucket = self._get_bucket(key)
+        self._refill(bucket)
+
+        if bucket["tokens"] >= tokens:
+            bucket["tokens"] -= tokens
+            self._save()
+            return 0.0
+
+        # Calculate wait time and sleep asynchronously
+        deficit = tokens - bucket["tokens"]
+        wait_time = deficit / self.rate
+        self._save()
+        await asyncio.sleep(wait_time)
+        # Refill after wait and consume
+        self._refill(bucket)
+        bucket["tokens"] -= tokens
+        self._save()
+        return wait_time
+
     def wait(self, key: str = "default", tokens: int = 1) -> None:
         """Acquire tokens, sleeping if necessary."""
         wait_time = self.acquire(key, tokens)
@@ -94,10 +137,14 @@ class RateLimiter:
             self._state.pop(key, None)
         else:
             self._state.clear()
-        self._save()
+        self._flush()
 
     def get_remaining(self, key: str = "default") -> float:
         """Get remaining tokens for a key."""
         bucket = self._get_bucket(key)
         self._refill(bucket)
         return bucket["tokens"]
+
+    def close(self) -> None:
+        """Flush any pending state to disk before shutdown."""
+        self._flush()
