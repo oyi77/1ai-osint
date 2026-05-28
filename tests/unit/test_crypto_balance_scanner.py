@@ -374,10 +374,16 @@ class TestRandomScanner:
         assert scanner.chains == [ETHEREUM]
 
     def test_generate_mnemonic(self):
-        mnemonic = str(RandomScanner._generate_mnemonic())
-        words = mnemonic.split()
-        assert len(words) == 12
-        assert all(w.isalpha() for w in words)
+        # Test multiple generations to cover both 12 and 24 word mnemonics
+        word_counts = set()
+        for _ in range(20):
+            mnemonic = str(RandomScanner._generate_mnemonic())
+            words = mnemonic.split()
+            word_counts.add(len(words))
+            assert len(words) in (12, 24)
+            assert all(w.isalpha() for w in words)
+        # Over 20 iterations, should see both 12 and 24 (statistically near-certain)
+        assert 12 in word_counts
 
     async def test_run_with_duration_limit(self):
         scanner = RandomScanner(workers=1, chains=[ETHEREUM])

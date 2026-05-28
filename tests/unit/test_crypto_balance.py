@@ -355,8 +355,11 @@ class TestEndpointRotator:
         rotator.report_failure(url)
         rotator.report_failure(url)
         health = rotator.get_health(url)
+        assert health is not None
         assert health.consecutive_failures == 2
         rotator.report_success(url)
+        health = rotator.get_health(url)
+        assert health is not None
         assert health.consecutive_failures == 0
         assert health.success_count == 1
 
@@ -366,6 +369,7 @@ class TestEndpointRotator:
         for _ in range(3):
             rotator.report_failure(url)
         health = rotator.get_health(url)
+        assert health is not None
         assert health.is_disabled is True
 
     def test_skips_disabled_endpoint(self):
