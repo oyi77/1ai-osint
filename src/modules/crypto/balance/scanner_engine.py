@@ -60,7 +60,7 @@ class RandomScanner:
     def __init__(
         self,
         workers: int = 20,
-        api_concurrency: int = 5,
+        api_concurrency: int = 50,
         chains: Optional[list[ChainConfig]] = None,
         hit_logger: Optional[HitLogger] = None,
     ):
