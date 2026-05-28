@@ -1,12 +1,37 @@
+version: "3.8"
+
 services:
   1ai-osint:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: 1ai-osint
-    environment:
-      - OMNIROUTE_URL=${OMNIROUTE_URL:-http://omniroute:8000}
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
-      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
     volumes:
-      - .:/app
-    stdin_open: true
-    tty: true
+      - ./data:/app/data
+      - ./.env:/app/.env:ro
+    environment:
+      - OMNIROUTE_BASE_URL=http://omniroute:3000/v1
+    depends_on:
+      omniroute:
+        condition: service_started
+    networks:
+      - osint-net
+
+  omniroute:
+    image: omniroute/omniroute:latest
+    container_name: omniroute
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+    volumes:
+      - omniroute-data:/data
+    networks:
+      - osint-net
+
+volumes:
+  omniroute-data:
+
+networks:
+  osint-net:
+    driver: bridge

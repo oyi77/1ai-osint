@@ -1,13 +1,17 @@
-"""Report generator base class."""
+"""Output report generation with ZKIT-compatible formatting."""
 
-from abc import ABC, abstractmethod
-from typing import Any, Dict
+from src.modules.output.report_generator import ReportGenerator, ReportFormat
+from src.modules.output.json_formatter import JSONFormatter
+from src.modules.output.sarif_formatter import SARIFFormatter
+from src.modules.output.pdf_generator import PDFGenerator
+from src.modules.output.zkit_formatter import ZKITFormatter, RedactionAudit
 
-
-class ReportGenerator(ABC):
-    """Base class for all report formatters."""
-
-    @abstractmethod
-    def generate(self, findings: list[Dict]) -> bytes:
-        """Generate report from findings."""
-        ...
+__all__ = [
+    "ReportGenerator",
+    "ReportFormat",
+    "JSONFormatter",
+    "SARIFFormatter",
+    "PDFGenerator",
+    "ZKITFormatter",
+    "RedactionAudit",
+]

@@ -1,28 +1,31 @@
 """Crypto Private Key module: Leaked key detection and validation.
 
-Uses trufflehog for verification and bip-utils for format detection.
+Uses regex-based detection for WIF/hex/Base58/PEM formats
+with optional GitHound subprocess integration.
 """
 
-from osint.base import OSINTTool
+from src.modules.crypto.privatekey.scanner import (
+    PrivateKeyScanner,
+    detect_key_format,
+    scan_file,
+)
+from src.modules.crypto.privatekey.checker import (
+    validate_key,
+    validate_wif,
+    validate_hex_key,
+    validate_base58_key,
+    validate_pem_key,
+    KeyValidationResult,
+)
 
-
-class CryptoPrivateKeyTool(OSINTTool):
-    """Detect leaked crypto private keys in code and repos."""
-
-    name = "crypto_privatekey"
-
-    def search(self, query, **kwargs):
-        """Search for private keys in a target."""
-        raise NotImplementedError
-
-    def scan(self, query, **kwargs):
-        """Scan files/repos for leaked keys."""
-        raise NotImplementedError
-
-    def analyze(self, data, **kwargs):
-        """Context analysis: test key vs real leak."""
-        raise NotImplementedError
-
-    def learn(self, feedback, **kwargs):
-        """Improve detection from false positive feedback."""
-        raise NotImplementedError
+__all__ = [
+    "PrivateKeyScanner",
+    "detect_key_format",
+    "scan_file",
+    "validate_key",
+    "validate_wif",
+    "validate_hex_key",
+    "validate_base58_key",
+    "validate_pem_key",
+    "KeyValidationResult",
+]

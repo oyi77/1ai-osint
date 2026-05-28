@@ -4,26 +4,38 @@ Lightweight SHA-256 hash-based protocol for cross-platform
 identity linking without exposing raw PII.
 """
 
-from osint.base import OSINTTool
+from src.modules.identity_tracking.identity_graph import (
+    IdentityGraph,
+    GraphNode,
+    GraphEdge,
+    NodeType,
+)
+from src.modules.identity_tracking.zkit_engine import (
+    ZKITEngine,
+    CorrelatedCluster,
+    CorrelationConfidence,
+    ZKITOutput,
+    IngestedRecord,
+)
+from src.modules.identity_tracking.correlation import (
+    CrossModuleCorrelator,
+    CorrelationResult,
+    ResolvedEntity,
+    CorrelationSource,
+)
 
-
-class ZKITTool(OSINTTool):
-    """Zero Knowledge Identity Tracker — hash-based entity correlation."""
-
-    name = "identity_tracking"
-
-    def search(self, query, **kwargs):
-        """Search for correlated identities."""
-        raise NotImplementedError
-
-    def scan(self, query, **kwargs):
-        """Build identity graph from input data."""
-        raise NotImplementedError
-
-    def analyze(self, data, **kwargs):
-        """Correlate entities and compute risk scores."""
-        raise NotImplementedError
-
-    def learn(self, feedback, **kwargs):
-        """Improve correlation heuristics from feedback."""
-        raise NotImplementedError
+__all__ = [
+    "IdentityGraph",
+    "GraphNode",
+    "GraphEdge",
+    "NodeType",
+    "ZKITEngine",
+    "CorrelatedCluster",
+    "CorrelationConfidence",
+    "ZKITOutput",
+    "IngestedRecord",
+    "CrossModuleCorrelator",
+    "CorrelationResult",
+    "ResolvedEntity",
+    "CorrelationSource",
+]

@@ -1,25 +1,15 @@
-"""LangGraph + Omniroute AI orchestrator layer."""
+"""AI integration layer for 1ai-osint."""
 
-from osint.base import OSINTTool
+from src.ai.omniroute_client import OmniRouteClient
+from src.ai.analyzers.entity_extractor import EntityExtractor
+from src.ai.analyzers.correlation_engine import CorrelationEngine
+from src.ai.analyzers.risk_scorer import RiskScorer
+from src.ai.orchestrator import AnalysisOrchestrator
 
-
-class LanghGraphOrchestrator(OSINTTool):
-    """AI workflow orchestrator using LangGraph with Omniroute backend."""
-
-    name = "ai_orchestrator"
-
-    def search(self, query, **kwargs):
-        """Route query through AI workflow."""
-        raise NotImplementedError
-
-    def scan(self, query, **kwargs):
-        """Execute full AI-powered scan workflow."""
-        raise NotImplementedError
-
-    def analyze(self, data, **kwargs):
-        """AI reasoning and correlation analysis."""
-        raise NotImplementedError
-
-    def learn(self, feedback, **kwargs):
-        """Improve AI heuristics from feedback."""
-        raise NotImplementedError
+__all__ = [
+    "OmniRouteClient",
+    "EntityExtractor",
+    "CorrelationEngine",
+    "RiskScorer",
+    "AnalysisOrchestrator",
+]

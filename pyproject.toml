@@ -9,6 +9,14 @@ dependencies = [
     "pydantic>=2.0",
     "httpx>=0.25",
     "langgraph>=0.1.0",
+    "openai>=1.0.0",
+    "bip-utils>=2.10.0",
+    "langchain-openai",
+    "pydantic-settings",
+    "gitpython",
+    "sarif-om",
+    "reportlab",
+    "requests",
 ]
 
 [project.optional-dependencies]
@@ -18,11 +26,14 @@ crypto = [
 dev = [
     "pytest>=8.0",
     "pytest-cov>=4.0",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.4.0",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "--cov=src --cov-report=term-missing"
+addopts = "--cov=src --cov-report=term-missing --cov-fail-under=80"
+asyncio_mode = "auto"
 
 [build-system]
 requires = ["setuptools>=68.0"]

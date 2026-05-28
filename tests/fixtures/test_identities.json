@@ -1,0 +1,50 @@
+{
+    "_comment": "Synthetic identity data for ZKIT testing. No real PII.",
+    "identities": [
+        {
+            "raw_email": "alice@example.com",
+            "raw_username": "alice_dev",
+            "raw_phone": "+15551234567",
+            "expected_zkit_hash_prefix": "computed_at_runtime",
+            "salt": "test-salt-2024",
+            "correlation_id": "person-alice",
+            "sources": ["sherlock", "holehe", "hibp"]
+        },
+        {
+            "raw_email": "bob@test.org",
+            "raw_username": "bob_security",
+            "raw_phone": "+15559876543",
+            "expected_zkit_hash_prefix": "computed_at_runtime",
+            "salt": "test-salt-2024",
+            "correlation_id": "person-bob",
+            "sources": ["maigret", "leakcheck"]
+        },
+        {
+            "raw_email": "charlie@demo.net",
+            "raw_username": "charlie_osint",
+            "raw_phone": null,
+            "expected_zkit_hash_prefix": "computed_at_runtime",
+            "salt": "test-salt-2024",
+            "correlation_id": "person-charlie",
+            "sources": ["sherlock"]
+        }
+    ],
+    "correlation_groups": [
+        ["person-alice", "person-bob"],
+        ["person-charlie"]
+    ],
+    "false_positive_samples": [
+        {
+            "email": "test@example.com",
+            "reason": "Known test domain"
+        },
+        {
+            "email": "admin@localhost",
+            "reason": "Localhost domain"
+        },
+        {
+            "username": "example_user",
+            "reason": "Placeholder pattern"
+        }
+    ]
+}
