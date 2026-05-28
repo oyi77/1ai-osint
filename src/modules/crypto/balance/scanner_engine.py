@@ -61,7 +61,7 @@ class RandomScanner:
     def __init__(
         self,
         workers: int = 20,
-        api_concurrency: int = 10,
+        api_concurrency: int = 5,
         chains: Optional[list[ChainConfig]] = None,
         hit_logger: Optional[HitLogger] = None,
     ):
@@ -242,6 +242,8 @@ class RandomScanner:
                         return
                     rotated_cfg = _rotate_chain(chain_cfg)
                     used_url = rotated_cfg.api_url or rotated_cfg.rpc_url or ""
+                    # Rate limit: small delay between API calls to avoid 429s
+                    await asyncio.sleep(0.1)
                     result = await check_balance(addr.address, rotated_cfg, addr.derivation_path)
                     rotator = self._rotators.get(chain_cfg.coin_id)
                     if rotator:

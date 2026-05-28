@@ -22,6 +22,8 @@ ENDPOINT_REGISTRY: dict[str, list[str]] = {
     "bitcoin": [
         "https://blockstream.info/api",
         "https://mempool.space/api",
+        "https://blockchain.info",
+        "https://api.blockcypher.com/v1/btc/main",
     ],
     "ethereum": [
         "https://eth.llamarpc.com",
@@ -36,7 +38,6 @@ ENDPOINT_REGISTRY: dict[str, list[str]] = {
         "https://bsc-rpc.publicnode.com",
     ],
     "matic-network": [
-        "https://polygon-rpc.com",
         "https://rpc.ankr.com/polygon",
         "https://polygon-bor-rpc.publicnode.com",
         "https://1rpc.io/matic",
