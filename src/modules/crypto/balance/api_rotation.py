@@ -21,7 +21,6 @@ _REENABLE_AFTER_SECONDS = 300.0
 ENDPOINT_REGISTRY: dict[str, list[str]] = {
     "bitcoin": [
         "https://mempool.space/api",
-        "https://blockstream.info/api",
     ],
     "ethereum": [
         "https://eth.llamarpc.com",
