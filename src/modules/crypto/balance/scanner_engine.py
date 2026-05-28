@@ -298,11 +298,12 @@ class RandomScanner:
                 used_url = rotated_cfg.api_url or rotated_cfg.rpc_url or ""
 
             try:
-                if chain_cfg.chain_type == ChainType.BITCOIN:
-                    # BTC: individual calls with delay (no batch support)
+                if chain_cfg.chain_type in (ChainType.BITCOIN, ChainType.SOLANA):
+                    # BTC/SOL: individual calls with delay (no batch support)
+                    delay = 0.15 if chain_cfg.chain_type == ChainType.BITCOIN else 0.25
                     for idx, addr in idx_addrs:
                         async with self._api_semaphore:
-                            await asyncio.sleep(0.15)
+                            await asyncio.sleep(delay)
                             result = await check_balance(addr.address, rotated_cfg, addr.derivation_path)
                             if result.error:
                                 self._stats.api_errors += 1

@@ -43,6 +43,7 @@ ENDPOINT_REGISTRY: dict[str, list[str]] = {
     ],
     "solana": [
         "https://api.mainnet-beta.solana.com",
+        "https://solana-mainnet.g.alchemy.com/v2/demo",
         "https://rpc.ankr.com/solana",
     ],
 }
