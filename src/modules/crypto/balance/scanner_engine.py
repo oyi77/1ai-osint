@@ -71,6 +71,9 @@ class RandomScanner:
         self._api_semaphore = asyncio.Semaphore(api_concurrency)
         self._shutdown = False
         self._stats = ScannerStats()
+        # Deduplication: track seen mnemonics and addresses
+        self._seen_mnemonics: set[str] = set()
+        self._seen_addresses: set[str] = set()
         # Per-chain endpoint rotators
         self._rotators: dict[str, EndpointRotator] = {}
         for chain in self.chains:
@@ -244,7 +247,7 @@ class RandomScanner:
                     used_url = rotated_cfg.api_url or rotated_cfg.rpc_url or ""
                     # Rate limit: per-chain delay to avoid 429s
                     # BTC has fewer endpoints and stricter limits
-                    delay = 0.5 if chain_cfg.chain_type == ChainType.BITCOIN else 0.1
+                    delay = 1.0 if chain_cfg.chain_type == ChainType.BITCOIN else 0.2
                     await asyncio.sleep(delay)
                     result = await check_balance(addr.address, rotated_cfg, addr.derivation_path)
                     rotator = self._rotators.get(chain_cfg.coin_id)
