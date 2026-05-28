@@ -5,6 +5,35 @@ from enum import Enum
 from typing import Optional
 
 
+# Fallback endpoint lists for rotation (avoids rate limits)
+BTC_APIS = [
+    "https://blockstream.info/api",
+    "https://mempool.space/api",
+]
+ETH_RPCS = [
+    "https://eth.llamarpc.com",
+    "https://rpc.ankr.com/eth",
+    "https://ethereum-rpc.publicnode.com",
+    "https://1rpc.io/eth",
+]
+BSC_RPCS = [
+    "https://bsc-dataseed.binance.org",
+    "https://bsc-dataseed1.binance.org",
+    "https://rpc.ankr.com/bsc",
+    "https://bsc-rpc.publicnode.com",
+]
+POLYGON_RPCS = [
+    "https://rpc.ankr.com/polygon",
+    "https://polygon-bor-rpc.publicnode.com",
+    "https://1rpc.io/matic",
+]
+SOL_RPCS = [
+    "https://api.mainnet-beta.solana.com",
+    "https://rpc.ankr.com/solana",
+    "https://solana-mainnet.g.alchemy.com/v2/demo",
+]
+
+
 class ChainType(str, Enum):
     """Blockchain type — determines RPC protocol."""
     EVM = "evm"          # ETH, BSC, Polygon — web3 JSON-RPC
@@ -33,7 +62,7 @@ ETHEREUM = ChainConfig(
     symbol="ETH",
     chain_type=ChainType.EVM,
     coin_id="ethereum",
-    rpc_url="https://eth.llamarpc.com",
+    rpc_url="https://rpc.ankr.com/eth",
     decimals=18,
     bip44_coin_type=60,
     derivation_paths=["m/44'/60'/0'/0/0"],
@@ -55,7 +84,7 @@ POLYGON = ChainConfig(
     symbol="MATIC",
     chain_type=ChainType.EVM,
     coin_id="matic-network",
-    rpc_url="https://polygon-rpc.com",
+    rpc_url="https://rpc.ankr.com/polygon",
     decimals=18,
     bip44_coin_type=60,  # Same derivation as ETH
     derivation_paths=["m/44'/60'/0'/0/0"],
@@ -66,7 +95,7 @@ BITCOIN = ChainConfig(
     symbol="BTC",
     chain_type=ChainType.BITCOIN,
     coin_id="bitcoin",
-    api_url="https://blockstream.info/api",
+    api_url="https://mempool.space/api",
     decimals=8,
     bip44_coin_type=0,
     derivation_paths=[

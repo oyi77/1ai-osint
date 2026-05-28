@@ -17,8 +17,9 @@ from typing import Optional
 
 from bip_utils import Bip39MnemonicGenerator, Bip39WordsNum
 
+from src.modules.crypto.balance.api_rotation import ENDPOINT_REGISTRY, EndpointRotator
 from src.modules.crypto.balance.checker import check_balance, get_usd_prices
-from src.modules.crypto.balance.chains import ALL_CHAINS, ChainConfig
+from src.modules.crypto.balance.chains import ALL_CHAINS, ChainConfig, ChainType
 from src.modules.crypto.balance.deriver import (
     DerivedAddress,
     derive_from_mnemonic,
@@ -70,6 +71,12 @@ class RandomScanner:
         self._api_semaphore = asyncio.Semaphore(api_concurrency)
         self._shutdown = False
         self._stats = ScannerStats()
+        # Per-chain endpoint rotators
+        self._rotators: dict[str, EndpointRotator] = {}
+        for chain in self.chains:
+            endpoints = ENDPOINT_REGISTRY.get(chain.coin_id, [])
+            if endpoints:
+                self._rotators[chain.coin_id] = EndpointRotator(endpoints)
 
     async def run(
         self,
@@ -209,8 +216,23 @@ class RandomScanner:
     async def _check_balances(
         self, addresses: list[DerivedAddress]
     ) -> list:
-        """Check balances for a list of addresses with semaphore control."""
+        """Check balances for a list of addresses with semaphore control and endpoint rotation."""
         results = [None] * len(addresses)
+
+        def _rotate_chain(chain_cfg: ChainConfig) -> ChainConfig:
+            """Create a copy of chain config with the next rotated endpoint."""
+            rotator = self._rotators.get(chain_cfg.coin_id)
+            if rotator is None:
+                return chain_cfg
+            url = rotator.next()
+            # Create a copy with the rotated URL
+            import copy
+            rotated = copy.copy(chain_cfg)
+            if chain_cfg.chain_type == ChainType.BITCOIN:
+                rotated.api_url = url
+            else:
+                rotated.rpc_url = url
+            return rotated
 
         async def _check_one(idx: int, addr: DerivedAddress):
             async with self._api_semaphore:
@@ -218,9 +240,16 @@ class RandomScanner:
                     chain_cfg = _find_chain(addr.chain, self.chains)
                     if chain_cfg is None:
                         return
-                    result = await check_balance(addr.address, chain_cfg, addr.derivation_path)
-                    if result.error:
-                        self._stats.api_errors += 1
+                    rotated_cfg = _rotate_chain(chain_cfg)
+                    used_url = rotated_cfg.api_url or rotated_cfg.rpc_url or ""
+                    result = await check_balance(addr.address, rotated_cfg, addr.derivation_path)
+                    rotator = self._rotators.get(chain_cfg.coin_id)
+                    if rotator:
+                        if result.error:
+                            self._stats.api_errors += 1
+                            rotator.report_failure(used_url)
+                        else:
+                            rotator.report_success(used_url)
                     results[idx] = result
                 except Exception as e:
                     self._stats.api_errors += 1

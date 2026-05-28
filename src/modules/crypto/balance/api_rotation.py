@@ -25,18 +25,25 @@ ENDPOINT_REGISTRY: dict[str, list[str]] = {
     ],
     "ethereum": [
         "https://eth.llamarpc.com",
-        "https://eth.public-rpc.com",
-        "https://cloudflare-eth.com",
+        "https://rpc.ankr.com/eth",
+        "https://ethereum-rpc.publicnode.com",
+        "https://1rpc.io/eth",
     ],
     "binancecoin": [
         "https://bsc-dataseed.binance.org",
         "https://bsc-dataseed1.binance.org",
+        "https://rpc.ankr.com/bsc",
+        "https://bsc-rpc.publicnode.com",
     ],
     "matic-network": [
         "https://polygon-rpc.com",
+        "https://rpc.ankr.com/polygon",
+        "https://polygon-bor-rpc.publicnode.com",
+        "https://1rpc.io/matic",
     ],
     "solana": [
         "https://api.mainnet-beta.solana.com",
+        "https://rpc.ankr.com/solana",
     ],
 }
 
