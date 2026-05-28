@@ -377,7 +377,7 @@ class TestRandomScanner:
         # Test multiple generations to cover both 12 and 24 word mnemonics
         word_counts = set()
         for _ in range(20):
-            mnemonic = str(RandomScanner._generate_mnemonic())
+            mnemonic = RandomScanner._generate_mnemonic()
             words = mnemonic.split()
             word_counts.add(len(words))
             assert len(words) in (12, 24)
