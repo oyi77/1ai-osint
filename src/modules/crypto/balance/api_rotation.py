@@ -14,7 +14,7 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 # Thresholds for endpoint health management
-_MAX_CONSECUTIVE_FAILURES = 3
+_MAX_CONSECUTIVE_FAILURES = 10
 _REENABLE_AFTER_SECONDS = 300.0
 
 # Canonical endpoint inventory per chain (keyed by CoinGecko coin_id)

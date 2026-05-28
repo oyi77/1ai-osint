@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional
 
+import httpx
 from bip_utils import Bip39MnemonicGenerator, Bip39WordsNum
 
 from src.modules.crypto.balance.api_rotation import ENDPOINT_REGISTRY, EndpointRotator
@@ -31,12 +32,19 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class ScannerStats:
-    """Runtime statistics for the scanner."""
+    """Runtime statistics for the scanner.
+
+    Includes persistent cumulative totals that survive restarts.
+    """
     mnemonics_generated: int = 0
     addresses_checked: int = 0
     hits_found: int = 0
     api_errors: int = 0
     start_time: float = field(default_factory=time.monotonic)
+    # Persistent cumulative totals (loaded from SQLite on start)
+    total_mnemonics_all_time: int = 0
+    total_hits_all_time: int = 0
+    total_errors_all_time: int = 0
 
     @property
     def elapsed(self) -> float:
@@ -70,6 +78,7 @@ class RandomScanner:
         self._api_semaphore = asyncio.Semaphore(api_concurrency)
         self._shutdown = False
         self._stats = ScannerStats()
+        self._client: Optional[httpx.AsyncClient] = None  # shared HTTP client
         # Deduplication: track seen mnemonics and addresses
         self._seen_mnemonics: set[str] = set()
         self._seen_addresses: set[str] = set()
@@ -79,6 +88,61 @@ class RandomScanner:
             endpoints = ENDPOINT_REGISTRY.get(chain.coin_id, [])
             if endpoints:
                 self._rotators[chain.coin_id] = EndpointRotator(endpoints)
+
+    def _load_persistent_stats(self):
+        """Load cumulative stats from SQLite on startup."""
+        try:
+            import sqlite3
+            db = sqlite3.connect("wallet_hits.db")
+            db.execute("""
+                CREATE TABLE IF NOT EXISTS scanner_stats (
+                    key TEXT PRIMARY KEY,
+                    value INTEGER DEFAULT 0
+                )
+            """)
+            row_m = db.execute("SELECT value FROM scanner_stats WHERE key='total_mnemonics'").fetchone()
+            row_h = db.execute("SELECT value FROM scanner_stats WHERE key='total_hits'").fetchone()
+            row_e = db.execute("SELECT value FROM scanner_stats WHERE key='total_errors'").fetchone()
+            self._stats.total_mnemonics_all_time = row_m[0] if row_m else 0
+            self._stats.total_hits_all_time = row_h[0] if row_h else 0
+            self._stats.total_errors_all_time = row_e[0] if row_e else 0
+            db.close()
+            logger.info(
+                "Loaded persistent stats: %d mnemonics, %d hits, %d errors (all time)",
+                self._stats.total_mnemonics_all_time,
+                self._stats.total_hits_all_time,
+                self._stats.total_errors_all_time,
+            )
+        except Exception as e:
+            logger.debug("Could not load persistent stats: %s", e)
+
+    def _save_persistent_stats(self):
+        """Save cumulative stats to SQLite."""
+        try:
+            import sqlite3
+            db = sqlite3.connect("wallet_hits.db")
+            db.execute("""
+                CREATE TABLE IF NOT EXISTS scanner_stats (
+                    key TEXT PRIMARY KEY,
+                    value INTEGER DEFAULT 0
+                )
+            """)
+            db.execute(
+                "INSERT OR REPLACE INTO scanner_stats (key, value) VALUES (?, ?)",
+                ("total_mnemonics", self._stats.total_mnemonics_all_time + self._stats.mnemonics_generated),
+            )
+            db.execute(
+                "INSERT OR REPLACE INTO scanner_stats (key, value) VALUES (?, ?)",
+                ("total_hits", self._stats.total_hits_all_time + self._stats.hits_found),
+            )
+            db.execute(
+                "INSERT OR REPLACE INTO scanner_stats (key, value) VALUES (?, ?)",
+                ("total_errors", self._stats.total_errors_all_time + self._stats.api_errors),
+            )
+            db.commit()
+            db.close()
+        except Exception as e:
+            logger.debug("Could not save persistent stats: %s", e)
 
     async def run(
         self,
@@ -94,8 +158,16 @@ class RandomScanner:
         Returns:
             Final ScannerStats.
         """
+        # Load persistent cumulative stats from SQLite
         self._stats = ScannerStats()
+        self._load_persistent_stats()
         self._shutdown = False
+
+        # Create shared httpx client with connection pooling
+        self._client = httpx.AsyncClient(
+            timeout=httpx.Timeout(15.0),
+            limits=httpx.Limits(max_connections=100, max_keepalive_connections=50),
+        )
 
         # Install signal handlers for graceful shutdown
         loop = asyncio.get_running_loop()
@@ -151,6 +223,11 @@ class RandomScanner:
             self._stats.api_errors,
         )
 
+        # Close shared httpx client
+        if self._client:
+            await self._client.aclose()
+            self._client = None
+
         return self._stats
 
     async def _worker(self, worker_id: int, stop_event: asyncio.Event) -> None:
@@ -165,10 +242,10 @@ class RandomScanner:
                     continue
                 self._seen_mnemonics.add(mnemonic)
 
-                # 2. Derive addresses (CPU-bound — must use executor)
+                # 2. Derive addresses (CPU-bound — use ProcessPoolExecutor to bypass GIL)
                 loop = asyncio.get_running_loop()
                 addresses = await loop.run_in_executor(
-                    None,
+                    self._process_pool,
                     derive_from_mnemonic,
                     mnemonic,
                     self.chains,
@@ -304,7 +381,7 @@ class RandomScanner:
                     for idx, addr in idx_addrs:
                         async with self._api_semaphore:
                             await asyncio.sleep(delay)
-                            result = await check_balance(addr.address, rotated_cfg, addr.derivation_path)
+                            result = await check_balance(addr.address, rotated_cfg, addr.derivation_path, client=self._client)
                             if result.error:
                                 self._stats.api_errors += 1
                                 if rotator:
@@ -316,7 +393,7 @@ class RandomScanner:
                 else:
                     # EVM/SOL: batch all addresses in one HTTP request
                     addr_list = [a.address for _, a in idx_addrs]
-                    batch_results = await batch_check_balances(addr_list, rotated_cfg)
+                    batch_results = await batch_check_balances(addr_list, rotated_cfg, client=self._client)
                     for (idx, addr), br in zip(idx_addrs, batch_results):
                         if br.error:
                             self._stats.api_errors += 1

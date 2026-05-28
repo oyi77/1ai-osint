@@ -95,7 +95,7 @@ def detect_input_type(target: str) -> str:
         if is_valid_mnemonic(target):
             return "mnemonic"
 
-    # BTC address: starts with 1, 3, or bc1
+    # BTC address: starts with 1, 3, or bc1 (check BEFORE base58 private key)
     if re.match(r"^(1|3|bc1)[a-zA-HJ-NP-Z0-9]{25,62}$", target):
         return "btc_address"
 
@@ -103,18 +103,19 @@ def detect_input_type(target: str) -> str:
     if re.match(r"^0x[0-9a-fA-F]{40}$", target):
         return "evm_address"
 
-    # SOL address: base58, 32-44 chars
-    if re.match(r"^[1-9A-HJ-NP-Za-km-z]{32,44}$", target):
-        return "sol_address"
-
     # Private key: 64 hex chars (with or without 0x)
     clean = target.removeprefix("0x")
     if re.match(r"^[0-9a-fA-F]{64}$", clean):
         return "private_key"
 
     # Solana private key: base58, 87-88 chars (encodes 64 bytes)
-    if re.match(r"^[1-9A-HJ-NP-Za-km-z]{87,88}$", target):
+    # Must NOT start with 1,3,5 (BTC WIF prefix) or start with 0x
+    if re.match(r"^[1-9A-HJ-NP-Za-km-z]{87,88}$", target) and not target.startswith(("1", "3", "5")):
         return "private_key"
+
+    # SOL address: base58, 32-44 chars (checked LAST — overlaps with other base58 formats)
+    if re.match(r"^[1-9A-HJ-NP-Za-km-z]{32,44}$", target):
+        return "sol_address"
 
     return "unknown"
 
