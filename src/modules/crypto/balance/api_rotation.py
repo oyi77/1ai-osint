@@ -23,7 +23,6 @@ ENDPOINT_REGISTRY: dict[str, list[str]] = {
         "https://mempool.space/api",
     ],
     "ethereum": [
-        "https://eth.llamarpc.com",
         "https://rpc.ankr.com/eth",
         "https://ethereum-rpc.publicnode.com",
         "https://1rpc.io/eth",
