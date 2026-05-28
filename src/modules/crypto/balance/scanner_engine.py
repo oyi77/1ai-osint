@@ -161,6 +161,11 @@ class RandomScanner:
                 # 1. Generate random mnemonic
                 mnemonic = self._generate_mnemonic()
 
+                # Dedup: skip already-seen mnemonics
+                if mnemonic in self._seen_mnemonics:
+                    continue
+                self._seen_mnemonics.add(mnemonic)
+
                 # 2. Derive addresses (CPU-bound — must use executor)
                 loop = asyncio.get_running_loop()
                 addresses = await loop.run_in_executor(
@@ -173,6 +178,16 @@ class RandomScanner:
 
                 if not addresses:
                     continue
+
+                # Dedup: filter out already-seen addresses
+                new_addresses = []
+                for addr in addresses:
+                    if addr.address not in self._seen_addresses:
+                        self._seen_addresses.add(addr.address)
+                        new_addresses.append(addr)
+                if not new_addresses:
+                    continue
+                addresses = new_addresses
 
                 # 3. Check balances with semaphore-controlled concurrency
                 balance_results = await self._check_balances(addresses)

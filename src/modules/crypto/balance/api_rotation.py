@@ -40,6 +40,7 @@ ENDPOINT_REGISTRY: dict[str, list[str]] = {
         "https://1rpc.io/matic",
     ],
     "solana": [
+        "https://mainnet.helius-rpc.com/?api-key=d75efa98-30f8-458c-8030-1ec7f542d97b",
         "https://api.mainnet-beta.solana.com",
         "https://rpc.ankr.com/solana",
     ],
