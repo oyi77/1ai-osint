@@ -234,8 +234,10 @@ class RandomScanner:
 
     @staticmethod
     def _generate_mnemonic() -> str:
-        """Generate a random 12-word BIP-39 mnemonic."""
-        return str(Bip39MnemonicGenerator().FromWordsNumber(Bip39WordsNum.WORDS_NUM_12))
+        """Generate a random 12 or 24-word BIP-39 mnemonic."""
+        import random
+        word_count = random.choice([Bip39WordsNum.WORDS_NUM_12, Bip39WordsNum.WORDS_NUM_24])
+        return str(Bip39MnemonicGenerator().FromWordsNumber(word_count))
 
     def _handle_shutdown(self) -> None:
         """Handle SIGINT/SIGTERM for graceful shutdown."""
