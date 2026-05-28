@@ -336,7 +336,7 @@ class TestEndpointHealth:
     def test_reenable_after_cooldown(self):
         import time
         h = EndpointHealth(url="https://rpc1.example.com")
-        h.disabled_at = time.monotonic() - 120  # 120 seconds ago
+        h.disabled_at = time.monotonic() - 310  # 310 seconds ago (cooldown is 300s)
         assert h.is_disabled is False  # cooldown expired, re-enabled
         assert h.consecutive_failures == 0  # reset
 

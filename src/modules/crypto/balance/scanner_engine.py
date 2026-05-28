@@ -242,8 +242,10 @@ class RandomScanner:
                         return
                     rotated_cfg = _rotate_chain(chain_cfg)
                     used_url = rotated_cfg.api_url or rotated_cfg.rpc_url or ""
-                    # Rate limit: small delay between API calls to avoid 429s
-                    await asyncio.sleep(0.1)
+                    # Rate limit: per-chain delay to avoid 429s
+                    # BTC has fewer endpoints and stricter limits
+                    delay = 0.5 if chain_cfg.chain_type == ChainType.BITCOIN else 0.1
+                    await asyncio.sleep(delay)
                     result = await check_balance(addr.address, rotated_cfg, addr.derivation_path)
                     rotator = self._rotators.get(chain_cfg.coin_id)
                     if rotator:
