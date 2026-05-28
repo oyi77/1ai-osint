@@ -270,7 +270,7 @@ class RandomScanner:
                     # BTC: individual calls with delay (no batch support)
                     for idx, addr in idx_addrs:
                         async with self._api_semaphore:
-                            await asyncio.sleep(0.3)
+                            await asyncio.sleep(0.5)
                             result = await check_balance(addr.address, rotated_cfg, addr.derivation_path)
                             if result.error:
                                 self._stats.api_errors += 1
