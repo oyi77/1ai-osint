@@ -1,0 +1,15 @@
+[Unit]
+Description=1ai-osint Crypto Balance Scanner
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/1ai-osint
+ExecStart=/opt/1ai-osint/venv/bin/python run_scanner.py --workers 20
+Restart=always
+RestartSec=10
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
