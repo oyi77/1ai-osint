@@ -217,7 +217,7 @@ class RandomScanner:
         self, addresses: list[DerivedAddress]
     ) -> list:
         """Check balances for a list of addresses with semaphore control and endpoint rotation."""
-        results = [None] * len(addresses)
+        results: list[Optional[object]] = [None] * len(addresses)
 
         def _rotate_chain(chain_cfg: ChainConfig) -> ChainConfig:
             """Create a copy of chain config with the next rotated endpoint."""
