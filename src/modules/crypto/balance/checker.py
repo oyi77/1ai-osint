@@ -50,27 +50,30 @@ class BalanceResult:
 
 async def check_btc_balance(
     address: str,
-    api_url: str = "https://blockstream.info/api",
+    api_url: str = "https://mempool.space/api",
     derivation_path: str = "",
     client: Optional[httpx.AsyncClient] = None,
 ) -> BalanceResult:
-    """Check BTC balance via blockstream.info REST API."""
+    """Check BTC balance via multiple free API formats.
+
+    Supports: mempool.space, blockstream.info, blockchain.info, blockcypher.
+    Auto-detects response format.
+    """
     try:
         _created_client = client is None
         if _created_client:
             client = httpx.AsyncClient(timeout=_TIMEOUT)
         try:
+            # Try standard format first (mempool.space, blockstream.info)
             resp = await client.get(f"{api_url}/address/{address}")
             resp.raise_for_status()
             data = resp.json()
+
+            balance_sat = _parse_btc_balance(data)
         finally:
             if _created_client:
                 await client.aclose()
 
-        # blockstream returns chain_stats and mempool_stats
-        funded = data.get("chain_stats", {}).get("funded_txo_sum", 0)
-        spent = data.get("chain_stats", {}).get("spent_txo_sum", 0)
-        balance_sat = funded - spent
         balance_btc = balance_sat / 1e8
 
         return BalanceResult(
@@ -84,17 +87,60 @@ async def check_btc_balance(
             derivation_path=derivation_path,
         )
     except Exception as e:
-        return BalanceResult(
-            address=address,
-            chain=BITCOIN.name,
-            symbol=BITCOIN.symbol,
-            balance=0.0,
-            balance_raw=0,
-            usd_price=0.0,
-            usd_value=0.0,
-            derivation_path=derivation_path,
-            error=str(e),
-        )
+        # Fallback: try blockchain.info format
+        try:
+            if _created_client:
+                client = httpx.AsyncClient(timeout=_TIMEOUT)
+            resp = await client.get(f"https://blockchain.info/rawaddr/{address}?limit=0")
+            resp.raise_for_status()
+            data = resp.json()
+            balance_sat = data.get("final_balance", 0)
+            balance_btc = balance_sat / 1e8
+            return BalanceResult(
+                address=address,
+                chain=BITCOIN.name,
+                symbol=BITCOIN.symbol,
+                balance=balance_btc,
+                balance_raw=balance_sat,
+                usd_price=0.0, usd_value=0.0,
+                derivation_path=derivation_path,
+            )
+        except Exception:
+            return BalanceResult(
+                address=address,
+                chain=BITCOIN.name,
+                symbol=BITCOIN.symbol,
+                balance=0.0, balance_raw=0,
+                usd_price=0.0, usd_value=0.0,
+                derivation_path=derivation_path,
+                error=str(e),
+            )
+
+
+def _parse_btc_balance(data: dict) -> int:
+    """Parse BTC balance from various API response formats.
+
+    Supports: mempool.space, blockstream.info, blockcypher, blockchain.info
+    """
+    # Format 1: mempool.space / blockstream.info (chain_stats)
+    if "chain_stats" in data:
+        funded = data["chain_stats"].get("funded_txo_sum", 0)
+        spent = data["chain_stats"].get("spent_txo_sum", 0)
+        return funded - spent
+
+    # Format 2: blockcypher (balance in satoshis)
+    if "balance" in data and "unconfirmed_balance" in data:
+        return data["balance"] + data.get("unconfirmed_balance", 0)
+
+    # Format 3: blockchain.info (final_balance)
+    if "final_balance" in data:
+        return data["final_balance"]
+
+    # Format 4: generic balance field
+    if "balance" in data:
+        return int(data["balance"])
+
+    return 0
 
 
 async def check_evm_balance(
