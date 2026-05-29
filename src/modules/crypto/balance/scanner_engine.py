@@ -82,9 +82,11 @@ class RandomScanner:
         self._stats = ScannerStats()
         self._client: Optional[httpx.AsyncClient] = None  # shared HTTP client
         self._sweeper: Optional[Sweeper] = None  # shared sweeper instance
-        # Deduplication: track seen mnemonics and addresses
+        # Deduplication: bounded sets to prevent unbounded memory growth
+        _MAX_DEDUP = 1_000_000
         self._seen_mnemonics: set[str] = set()
         self._seen_addresses: set[str] = set()
+        self._max_dedup = _MAX_DEDUP
         # Per-chain endpoint rotators
         self._rotators: dict[str, EndpointRotator] = {}
         for chain in self.chains:
@@ -265,6 +267,11 @@ class RandomScanner:
 
                 if self._stats.mnemonics_generated % 1000 == 0:
                     self._save_persistent_stats()
+                    # Evict oldest entries if dedup sets exceed limit
+                    if len(self._seen_mnemonics) > self._max_dedup:
+                        self._seen_mnemonics = set(list(self._seen_mnemonics)[self._max_dedup // 2:])
+                    if len(self._seen_addresses) > self._max_dedup:
+                        self._seen_addresses = set(list(self._seen_addresses)[self._max_dedup // 2:])
 
                 if not addresses:
                     continue
