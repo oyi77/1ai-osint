@@ -397,9 +397,9 @@ class RandomScanner:
                                 derivation_path=addr.derivation_path,
                             )
                 elif chain_cfg.chain_type == ChainType.BITCOIN:
-                    # BTC: sequential calls with rate-limit delay (free APIs are fragile)
-                    for idx, addr in idx_addrs:
-                        async with self._api_semaphore:
+                    # BTC: concurrent calls with dedicated low-concurrency semaphore
+                    async def _check_btc(idx: int, addr) -> tuple[int, object]:
+                        async with self._btc_semaphore:
                             r = await check_balance(addr.address, rotated_cfg, addr.derivation_path, client=self._client)
                             if r.error:
                                 self._stats.api_errors += 1
@@ -408,8 +408,12 @@ class RandomScanner:
                             else:
                                 if rotator:
                                     rotator.report_success(used_url)
-                            results[idx] = r
-                        await asyncio.sleep(0.05)  # 50ms delay between BTC calls
+                            return idx, r
+
+                    btc_tasks = [_check_btc(idx, addr) for idx, addr in idx_addrs]
+                    for coro in asyncio.as_completed(btc_tasks):
+                        idx, result = await coro
+                        results[idx] = result
                 else:
                     # EVM/SOL: batch all addresses in one HTTP request
                     addr_list = [a.address for _, a in idx_addrs]
