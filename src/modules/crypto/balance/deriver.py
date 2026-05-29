@@ -17,6 +17,13 @@ from bip_utils import (
     Bip44Changes,
 )
 
+# Import BIP-49/84/86 classes if available (for SegWit/Taproot derivation)
+try:
+    from bip_utils import Bip49, Bip84, Bip86
+    _HAS_BIP84 = True
+except ImportError:
+    _HAS_BIP84 = False
+
 from src.modules.crypto.balance.chains import (
     BITCOIN,
     ETHEREUM,
@@ -154,21 +161,21 @@ def derive_from_mnemonic(
         for path in chain.derivation_paths:
             for addr_idx in range(count):
                 try:
-                    ctx = Bip44.FromSeed(seed_bytes, coin_enum)
-                    # Parse derivation path to navigate hierarchy
-                    parts = _parse_derivation_path(path, account, addr_idx)
-                    node = ctx
-                    for part in parts:
-                        if part == "purpose":
-                            node = node.Purpose()
-                        elif part == "coin":
-                            node = node.Coin()
-                        elif part == "account":
-                            node = node.Account(account)
-                        elif part == "change":
-                            node = node.Change(Bip44Changes.CHAIN_EXT)
-                        elif part == "address":
-                            node = node.AddressIndex(addr_idx)
+                    # Select the correct BIP class based on the path's purpose level
+                    purpose = _get_purpose_from_path(path)
+                    if purpose == 49 and _HAS_BIP84:
+                        ctx = Bip49.FromSeed(seed_bytes, coin_enum)
+                    elif purpose == 84 and _HAS_BIP84:
+                        ctx = Bip84.FromSeed(seed_bytes, coin_enum)
+                    elif purpose == 86 and _HAS_BIP84:
+                        ctx = Bip86.FromSeed(seed_bytes, coin_enum)
+                    else:
+                        ctx = Bip44.FromSeed(seed_bytes, coin_enum)
+
+                    node = ctx.Purpose().Coin()
+                    node = node.Account(account)
+                    node = node.Change(Bip44Changes.CHAIN_EXT)
+                    node = node.AddressIndex(addr_idx)
 
                     address = node.PublicKey().ToAddress()
                     privkey = node.PrivateKey().Raw().ToHex()
@@ -227,20 +234,16 @@ def derive_from_mnemonic_provider(
                     coin_enum = _COIN_MAP.get(chain.name.lower())
                     if coin_enum is None:
                         continue
-                    ctx = Bip44.FromSeed(seed_bytes, coin_enum)
-                    parts = _parse_derivation_path(path, 0, addr_idx)
-                    node = ctx
-                    for part in parts:
-                        if part == "purpose":
-                            node = node.Purpose()
-                        elif part == "coin":
-                            node = node.Coin()
-                        elif part == "account":
-                            node = node.Account(0)
-                        elif part == "change":
-                            node = node.Change(Bip44Changes.CHAIN_EXT)
-                        elif part == "address":
-                            node = node.AddressIndex(addr_idx)
+                    purpose = _get_purpose_from_path(path)
+                    if purpose == 49 and _HAS_BIP84:
+                        ctx = Bip49.FromSeed(seed_bytes, coin_enum)
+                    elif purpose == 84 and _HAS_BIP84:
+                        ctx = Bip84.FromSeed(seed_bytes, coin_enum)
+                    elif purpose == 86 and _HAS_BIP84:
+                        ctx = Bip86.FromSeed(seed_bytes, coin_enum)
+                    else:
+                        ctx = Bip44.FromSeed(seed_bytes, coin_enum)
+                    node = ctx.Purpose().Coin().Account(0).Change(Bip44Changes.CHAIN_EXT).AddressIndex(addr_idx)
                     address = node.PublicKey().ToAddress()
                     privkey = node.PrivateKey().Raw().ToHex()
                     results.append(DerivedAddress(
@@ -256,20 +259,16 @@ def derive_from_mnemonic_provider(
         for path in provider.btc_paths:
             for addr_idx in range(provider.address_count):
                 try:
-                    ctx = Bip44.FromSeed(seed_bytes, Bip44Coins.BITCOIN)
-                    parts = _parse_derivation_path(path, 0, addr_idx)
-                    node = ctx
-                    for part in parts:
-                        if part == "purpose":
-                            node = node.Purpose()
-                        elif part == "coin":
-                            node = node.Coin()
-                        elif part == "account":
-                            node = node.Account(0)
-                        elif part == "change":
-                            node = node.Change(Bip44Changes.CHAIN_EXT)
-                        elif part == "address":
-                            node = node.AddressIndex(addr_idx)
+                    purpose = _get_purpose_from_path(path)
+                    if purpose == 49 and _HAS_BIP84:
+                        ctx = Bip49.FromSeed(seed_bytes, Bip44Coins.BITCOIN)
+                    elif purpose == 84 and _HAS_BIP84:
+                        ctx = Bip84.FromSeed(seed_bytes, Bip44Coins.BITCOIN)
+                    elif purpose == 86 and _HAS_BIP84:
+                        ctx = Bip86.FromSeed(seed_bytes, Bip44Coins.BITCOIN)
+                    else:
+                        ctx = Bip44.FromSeed(seed_bytes, Bip44Coins.BITCOIN)
+                    node = ctx.Purpose().Coin().Account(0).Change(Bip44Changes.CHAIN_EXT).AddressIndex(addr_idx)
                     address = node.PublicKey().ToAddress()
                     privkey = node.PrivateKey().Raw().ToHex()
                     results.append(DerivedAddress(
@@ -283,22 +282,10 @@ def derive_from_mnemonic_provider(
     sol_chain = chain_map.get("solana")
     if sol_chain:
         for path in provider.sol_paths:
-            for addr_idx in range(min(provider.address_count, 3)):  # SOL: max 3 indices
+            for addr_idx in range(min(provider.address_count, 3)):
                 try:
                     ctx = Bip44.FromSeed(seed_bytes, Bip44Coins.SOLANA)
-                    parts = _parse_derivation_path(path, 0, addr_idx)
-                    node = ctx
-                    for part in parts:
-                        if part == "purpose":
-                            node = node.Purpose()
-                        elif part == "coin":
-                            node = node.Coin()
-                        elif part == "account":
-                            node = node.Account(0)
-                        elif part == "change":
-                            node = node.Change(Bip44Changes.CHAIN_EXT)
-                        elif part == "address":
-                            node = node.AddressIndex(addr_idx)
+                    node = ctx.Purpose().Coin().Account(0).Change(Bip44Changes.CHAIN_EXT).AddressIndex(addr_idx)
                     address = node.PublicKey().ToAddress()
                     privkey = node.PrivateKey().Raw().ToHex()
                     results.append(DerivedAddress(
@@ -369,10 +356,103 @@ def derive_from_privatekey(
     raise ValueError("Invalid private key format (expected 64 hex chars or 88 base58 chars)")
 
 
-def _parse_derivation_path(path: str, account: int, address_idx: int) -> list[str]:
-    """Parse a BIP-44 derivation path string into navigation steps.
+def _get_purpose_from_path(path: str) -> int:
+    """Extract the BIP purpose number from a derivation path string.
 
-    Returns a list of step names like ['purpose', 'coin', 'account', 'change', 'address'].
+    Args:
+        path: Derivation path like "m/44'/60'/0'/0/0" or "m/84'/0'/0'/0/0".
+
+    Returns:
+        Purpose number (44, 49, 84, or 86). Defaults to 44 if unrecognized.
     """
-    # Standard BIP-44: m / purpose' / coin_type' / account' / change / address_index
-    return ["purpose", "coin", "account", "change", "address"]
+    try:
+        parts = path.replace("m/", "").split("/")
+        if parts:
+            return int(parts[0].rstrip("'h"))
+    except (ValueError, IndexError):
+        pass
+    return 44
+
+
+def _get_bip_class_for_path(path: str):
+    """Return the correct Bip class based on the purpose level in the path.
+
+    m/44'/... -> Bip44 (Legacy)
+    m/49'/... -> Bip49 (SegWit P2SH-P2WPKH)
+    m/84'/... -> Bip84 (Native SegWit Bech32)
+    m/86'/... -> Bip86 (Taproot)
+    """
+    parts = path.replace("m/", "").split("/")
+    if parts:
+        purpose_str = parts[0].rstrip("'h")
+        purpose = int(purpose_str)
+        if purpose == 49 and _HAS_BIP84:
+            return Bip49
+        elif purpose == 84 and _HAS_BIP84:
+            return Bip84
+        elif purpose == 86 and _HAS_BIP84:
+            return Bip86
+    return Bip44
+
+
+def derive_with_raw_path(
+    mnemonic: str,
+    derivation_path: str,
+    chain_name: str,
+    chain_symbol: str,
+    coin_enum,
+    address_idx: int = 0,
+) -> Optional[DerivedAddress]:
+    """Derive a single address using raw BIP-32 path derivation.
+
+    This bypasses the BIP-44 library's path restriction and allows
+    any valid BIP-32 path (BIP-49, BIP-84, BIP-86, etc.).
+
+    Args:
+        mnemonic: Valid BIP-39 mnemonic.
+        derivation_path: Full path like "m/84'/0'/0'/0/0".
+        chain_name: Display name (e.g., "Bitcoin").
+        chain_symbol: Symbol (e.g., "BTC").
+        coin_enum: Bip44Coins enum value.
+        address_idx: Address index to use (replaces last path component).
+
+    Returns:
+        DerivedAddress or None on failure.
+    """
+    try:
+        from bip_utils import Bip32Utils, Bip32Secp256k1
+    except ImportError:
+        return None
+
+    try:
+        seed_bytes = Bip39SeedGenerator(mnemonic.strip()).Generate()
+        # Parse path and replace last component with address_idx
+        parts = derivation_path.strip("m/").split("/")
+        if parts:
+            # Last part is address index — replace with our value
+            last = parts[-1].replace("'", "")
+            parts[-1] = str(address_idx)
+
+        # Build full path
+        full_path = "m/" + "/".join(parts)
+
+        # Derive using raw BIP-32
+        bip32_ctx = Bip32Secp256k1.FromSeed(seed_bytes)
+        for part in parts:
+            hardened = part.endswith("'")
+            idx_str = part.rstrip("'")
+            idx = int(idx_str)
+            bip32_ctx = bip32_ctx.ChildKey(idx + 0x80000000 if hardened else idx)
+
+        address = bip32_ctx.PublicKey().ToAddress()
+        privkey = bip32_ctx.PrivateKey().Raw().ToHex()
+
+        return DerivedAddress(
+            address=address,
+            chain=chain_name,
+            symbol=chain_symbol,
+            derivation_path=derivation_path,
+            private_key_hex=privkey,
+        )
+    except Exception:
+        return None

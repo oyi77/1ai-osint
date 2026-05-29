@@ -97,8 +97,9 @@ class LeakFinderCoordinator:
                     result.raw_leaks_fetched += len(res)
                     for leak in res:
                         keys = extract_keys(leak.text)
+                        import hashlib as _hashlib
                         for key in keys:
-                            kid = key.key_raw
+                            kid = _hashlib.sha256(key.key_raw.encode("utf-8")).hexdigest()
                             if kid not in self._seen_keys:
                                 self._seen_keys.add(kid)
                                 result.keys_deduplicated += 1
