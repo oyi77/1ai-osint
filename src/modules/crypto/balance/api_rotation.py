@@ -14,14 +14,16 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 # Thresholds for endpoint health management
-_MAX_CONSECUTIVE_FAILURES = 10
-_REENABLE_AFTER_SECONDS = 300.0
+_MAX_CONSECUTIVE_FAILURES = 50
+_REENABLE_AFTER_SECONDS = 60.0
 
 # Canonical endpoint inventory per chain (keyed by CoinGecko coin_id)
 ENDPOINT_REGISTRY: dict[str, list[str]] = {
     "bitcoin": [
         "https://mempool.space/api",
         "https://blockstream.info/api",
+        "https://blockchain.info",
+        "https://api.blockcypher.com/v1/btc/main",
     ],
     "ethereum": [
         "https://rpc.ankr.com/eth",
