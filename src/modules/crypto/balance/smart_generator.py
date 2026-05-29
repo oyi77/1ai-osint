@@ -13,7 +13,6 @@ from __future__ import annotations
 import hashlib
 import logging
 import random
-from typing import Optional
 
 from bip_utils import Bip39Languages, Bip39MnemonicValidator
 
