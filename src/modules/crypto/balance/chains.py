@@ -64,7 +64,11 @@ ETHEREUM = ChainConfig(
     rpc_url="https://ethereum-rpc.publicnode.com",
     decimals=18,
     bip44_coin_type=60,
-    derivation_paths=["m/44'/60'/0'/0/0"],
+    derivation_paths=[
+        "m/44'/60'/0'/0/0",    # Standard BIP-44 (MetaMask, Trust, OKX, Gate.io)
+        "m/44'/60'/0'/0/1",    # Second address (some wallets auto-generate)
+        "m/44'/60'/1'/0/0",    # Account 1 (Binance sometimes uses)
+    ],
 )
 
 BSC = ChainConfig(
@@ -99,8 +103,12 @@ BITCOIN = ChainConfig(
     bip44_coin_type=0,
     derivation_paths=[
         "m/44'/0'/0'/0/0",   # Legacy P2PKH
+        "m/44'/0'/0'/0/1",   # Legacy second address
         "m/49'/0'/0'/0/0",   # SegWit P2SH-P2WPKH
+        "m/49'/0'/0'/0/1",   # SegWit second address
         "m/84'/0'/0'/0/0",   # Native SegWit Bech32
+        "m/84'/0'/0'/0/1",   # Native SegWit second address
+        "m/86'/0'/0'/0/0",   # Taproot (BIP-86, used by OKX/Trust)
     ],
 )
 
@@ -112,7 +120,10 @@ SOLANA = ChainConfig(
     rpc_url="https://api.mainnet-beta.solana.com",
     decimals=9,
     bip44_coin_type=501,
-    derivation_paths=["m/44'/501'/0'/0'"],
+    derivation_paths=[
+        "m/44'/501'/0'/0'",          # Standard (Phantom, Solflare)
+        "m/44'/501'/0'/0'/0'",       # Alternative (some OKX versions)
+    ],
 )
 
 # All supported chains

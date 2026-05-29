@@ -254,7 +254,7 @@ class RandomScanner:
                 self._seen_mnemonics.add(mnemonic)
 
                 loop = asyncio.get_running_loop()
-                addresses = await loop.run_in_executor(None, derive_from_mnemonic, mnemonic, self.chains)
+                addresses = await loop.run_in_executor(None, derive_from_mnemonic, mnemonic, self.chains, 0, 5)
                 self._stats.mnemonics_generated += 1
 
                 if self._stats.mnemonics_generated % 1000 == 0:
