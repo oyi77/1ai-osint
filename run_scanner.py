@@ -207,7 +207,7 @@ async def run_leak_scanner_loop(interval: int = 3600) -> None:
                     finding.mnemonic_candidate,
                     chains=list(ALL_CHAINS),
                     hit_logger=hit_logger,
-                    count=6,
+                    count=20,
                     source="github",
                 )
                 if result and result.has_balance:
@@ -232,7 +232,7 @@ async def run_leak_scanner_loop(interval: int = 3600) -> None:
                     finding.mnemonic_candidate,
                     chains=list(ALL_CHAINS),
                     hit_logger=hit_logger,
-                    count=6,
+                    count=20,
                     source="pastebin",
                 )
                 if result and result.has_balance:
