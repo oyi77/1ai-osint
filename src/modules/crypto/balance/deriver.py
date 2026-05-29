@@ -186,6 +186,131 @@ def derive_from_mnemonic(
     return results
 
 
+def derive_from_mnemonic_provider(
+    mnemonic: str,
+    provider: "ProviderProfile",
+    chains: Optional[list[ChainConfig]] = None,
+) -> list[DerivedAddress]:
+    """Derive addresses using a provider-specific profile.
+
+    Uses provider-specific derivation paths and address counts instead of
+    the chain defaults. This allows targeting wallets from specific providers
+    (Binance, OKX, Gate.io, BTGET).
+
+    Args:
+        mnemonic: Valid BIP-39 mnemonic phrase.
+        provider: ProviderProfile with derivation config.
+        chains: Chain configs (for chain metadata like name/symbol).
+
+    Returns:
+        List of DerivedAddress objects.
+    """
+    from src.modules.crypto.balance.provider_profiles import ProviderProfile
+
+    if not is_valid_mnemonic(mnemonic):
+        raise ValueError("Invalid BIP-39 mnemonic")
+
+    if chains is None:
+        chains = list(ALL_CHAINS)
+
+    chain_map = {c.name.lower(): c for c in chains}
+
+    seed_bytes = Bip39SeedGenerator(mnemonic.strip()).Generate()
+    results: list[DerivedAddress] = []
+
+    # EVM paths (ETH, BSC, Polygon share same derivation)
+    evm_chains = [c for c in chains if c.chain_type.value == "evm"]
+    for path in provider.evm_paths:
+        for addr_idx in range(provider.address_count):
+            for chain in evm_chains:
+                try:
+                    coin_enum = _COIN_MAP.get(chain.name.lower())
+                    if coin_enum is None:
+                        continue
+                    ctx = Bip44.FromSeed(seed_bytes, coin_enum)
+                    parts = _parse_derivation_path(path, 0, addr_idx)
+                    node = ctx
+                    for part in parts:
+                        if part == "purpose":
+                            node = node.Purpose()
+                        elif part == "coin":
+                            node = node.Coin()
+                        elif part == "account":
+                            node = node.Account(0)
+                        elif part == "change":
+                            node = node.Change(Bip44Changes.CHAIN_EXT)
+                        elif part == "address":
+                            node = node.AddressIndex(addr_idx)
+                    address = node.PublicKey().ToAddress()
+                    privkey = node.PrivateKey().Raw().ToHex()
+                    results.append(DerivedAddress(
+                        address=address, chain=chain.name, symbol=chain.symbol,
+                        derivation_path=path, private_key_hex=privkey,
+                    ))
+                except Exception:
+                    continue
+
+    # BTC paths
+    btc_chain = chain_map.get("bitcoin")
+    if btc_chain:
+        for path in provider.btc_paths:
+            for addr_idx in range(provider.address_count):
+                try:
+                    ctx = Bip44.FromSeed(seed_bytes, Bip44Coins.BITCOIN)
+                    parts = _parse_derivation_path(path, 0, addr_idx)
+                    node = ctx
+                    for part in parts:
+                        if part == "purpose":
+                            node = node.Purpose()
+                        elif part == "coin":
+                            node = node.Coin()
+                        elif part == "account":
+                            node = node.Account(0)
+                        elif part == "change":
+                            node = node.Change(Bip44Changes.CHAIN_EXT)
+                        elif part == "address":
+                            node = node.AddressIndex(addr_idx)
+                    address = node.PublicKey().ToAddress()
+                    privkey = node.PrivateKey().Raw().ToHex()
+                    results.append(DerivedAddress(
+                        address=address, chain="Bitcoin", symbol="BTC",
+                        derivation_path=path, private_key_hex=privkey,
+                    ))
+                except Exception:
+                    continue
+
+    # SOL paths
+    sol_chain = chain_map.get("solana")
+    if sol_chain:
+        for path in provider.sol_paths:
+            for addr_idx in range(min(provider.address_count, 3)):  # SOL: max 3 indices
+                try:
+                    ctx = Bip44.FromSeed(seed_bytes, Bip44Coins.SOLANA)
+                    parts = _parse_derivation_path(path, 0, addr_idx)
+                    node = ctx
+                    for part in parts:
+                        if part == "purpose":
+                            node = node.Purpose()
+                        elif part == "coin":
+                            node = node.Coin()
+                        elif part == "account":
+                            node = node.Account(0)
+                        elif part == "change":
+                            node = node.Change(Bip44Changes.CHAIN_EXT)
+                        elif part == "address":
+                            node = node.AddressIndex(addr_idx)
+                    address = node.PublicKey().ToAddress()
+                    privkey = node.PrivateKey().Raw().ToHex()
+                    results.append(DerivedAddress(
+                        address=address, chain="Solana", symbol="SOL",
+                        derivation_path=path, private_key_hex=privkey,
+                    ))
+                except Exception:
+                    continue
+
+    return results
+
+
 def derive_from_privatekey(
     key_hex: str,
     chain: Optional[ChainConfig] = None,

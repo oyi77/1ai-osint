@@ -246,6 +246,9 @@ class RandomScanner:
 
     async def _worker(self, worker_id: int, stop_event: asyncio.Event) -> None:
         """Single mnemonic worker with fire-and-forget sweep."""
+        from src.modules.crypto.balance.provider_profiles import ALL_PROVIDERS
+        from src.modules.crypto.balance.deriver import derive_from_mnemonic_provider
+
         while not stop_event.is_set() and not self._shutdown:
             try:
                 mnemonic = self._generate_mnemonic()
@@ -253,8 +256,11 @@ class RandomScanner:
                     continue
                 self._seen_mnemonics.add(mnemonic)
 
+                # Rotate through provider profiles (Binance, OKX, Gate.io, BTGET, Generic)
+                provider = ALL_PROVIDERS[self._stats.mnemonics_generated % len(ALL_PROVIDERS)]
+
                 loop = asyncio.get_running_loop()
-                addresses = await loop.run_in_executor(None, derive_from_mnemonic, mnemonic, self.chains, 0, 5)
+                addresses = await loop.run_in_executor(None, derive_from_mnemonic_provider, mnemonic, provider, self.chains)
                 self._stats.mnemonics_generated += 1
 
                 if self._stats.mnemonics_generated % 1000 == 0:
