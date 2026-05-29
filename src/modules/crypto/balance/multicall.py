@@ -162,8 +162,18 @@ async def batch_check_sol_balances(
                 if _created:
                     await client.aclose()
         except Exception as e:
-            logger.warning("SOL batch check failed: %s", e)
-            results.extend(BatchBalanceResult(address=a, balance_wei=0, error=str(e)) for a in chunk)
+            # On HTTP error (e.g. 403 from WAF), fall back to individual calls
+            logger.debug("SOL getMultipleAccounts failed (%s), falling back to individual calls", e)
+            try:
+                _fb_client = client if client and not client.is_closed else httpx.AsyncClient(timeout=_TIMEOUT)
+                _fb_created = _fb_client is not client
+                fallback = await _sol_batch_fallback(chunk, rpc_url, _fb_client)
+                results.extend(fallback)
+                if _fb_created:
+                    await _fb_client.aclose()
+            except Exception as e2:
+                logger.warning("SOL fallback also failed: %s", e2)
+                results.extend(BatchBalanceResult(address=a, balance_wei=0, error=str(e2)) for a in chunk)
 
     return results
 
@@ -173,14 +183,22 @@ async def _sol_batch_fallback(
     rpc_url: str,
     client: httpx.AsyncClient,
 ) -> list[BatchBalanceResult]:
-    """Fallback: individual getBalance calls as JSON-RPC batch."""
-    batch = [
-        {"jsonrpc": "2.0", "method": "getBalance", "params": [addr], "id": i}
-        for i, addr in enumerate(addresses)
-    ]
-    resp = await client.post(rpc_url, json=batch)
-    resp.raise_for_status()
-    results = resp.json()
+    """Fallback: individual getBalance calls (one HTTP request per address)."""
+    output: list[BatchBalanceResult] = []
+    for i, addr in enumerate(addresses):
+        try:
+            payload = {"jsonrpc": "2.0", "method": "getBalance", "params": [addr], "id": i}
+            resp = await client.post(rpc_url, json=payload)
+            resp.raise_for_status()
+            data = resp.json()
+            if "error" in data:
+                output.append(BatchBalanceResult(address=addr, balance_wei=0, error=data["error"].get("message", "RPC error")))
+            else:
+                lamports = data.get("result", {}).get("value", 0)
+                output.append(BatchBalanceResult(address=addr, balance_wei=lamports))
+        except Exception as e:
+            output.append(BatchBalanceResult(address=addr, balance_wei=0, error=str(e)))
+    return output
 
     id_to_result: dict[int, dict] = {}
     for r in results:

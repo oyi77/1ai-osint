@@ -87,34 +87,15 @@ async def check_btc_balance(
             derivation_path=derivation_path,
         )
     except Exception as e:
-        # Fallback: try blockchain.info format
-        try:
-            if _created_client:
-                client = httpx.AsyncClient(timeout=_TIMEOUT)
-            resp = await client.get(f"https://blockchain.info/rawaddr/{address}?limit=0")
-            resp.raise_for_status()
-            data = resp.json()
-            balance_sat = data.get("final_balance", 0)
-            balance_btc = balance_sat / 1e8
-            return BalanceResult(
-                address=address,
-                chain=BITCOIN.name,
-                symbol=BITCOIN.symbol,
-                balance=balance_btc,
-                balance_raw=balance_sat,
-                usd_price=0.0, usd_value=0.0,
-                derivation_path=derivation_path,
-            )
-        except Exception:
-            return BalanceResult(
-                address=address,
-                chain=BITCOIN.name,
-                symbol=BITCOIN.symbol,
-                balance=0.0, balance_raw=0,
-                usd_price=0.0, usd_value=0.0,
-                derivation_path=derivation_path,
-                error=str(e),
-            )
+        return BalanceResult(
+            address=address,
+            chain=BITCOIN.name,
+            symbol=BITCOIN.symbol,
+            balance=0.0, balance_raw=0,
+            usd_price=0.0, usd_value=0.0,
+            derivation_path=derivation_path,
+            error=str(e),
+        )
 
 
 def _parse_btc_balance(data: dict) -> int:
