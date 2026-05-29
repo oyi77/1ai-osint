@@ -158,7 +158,8 @@ class LeakFinderCoordinator:
         for leak in raw_leaks:
             try:
                 for key in extract_keys(leak.text):
-                    kid = key.key_raw
+                    import hashlib as _hashlib
+                    kid = _hashlib.sha256(key.key_raw.encode("utf-8")).hexdigest()
                     if kid not in self._seen_keys:
                         self._seen_keys.add(kid)
                         all_keys.append(key)

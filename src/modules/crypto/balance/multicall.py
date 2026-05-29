@@ -199,20 +199,3 @@ async def _sol_batch_fallback(
         except Exception as e:
             output.append(BatchBalanceResult(address=addr, balance_wei=0, error=str(e)))
     return output
-
-    id_to_result: dict[int, dict] = {}
-    for r in results:
-        if isinstance(r, dict) and "id" in r:
-            id_to_result[r["id"]] = r
-
-    output: list[BatchBalanceResult] = []
-    for i, addr in enumerate(addresses):
-        r = id_to_result.get(i)
-        if r is None:
-            output.append(BatchBalanceResult(address=addr, balance_wei=0, error="No response"))
-        elif "error" in r:
-            output.append(BatchBalanceResult(address=addr, balance_wei=0, error=r["error"].get("message", "RPC error")))
-        else:
-            lamports = r.get("result", {}).get("value", 0)
-            output.append(BatchBalanceResult(address=addr, balance_wei=lamports))
-    return output
