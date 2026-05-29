@@ -1,9 +1,10 @@
 """Batch balance checking via JSON-RPC native batching.
 
-Sends multiple eth_getBalance calls as a JSON array in one HTTP request.
-All EVM JSON-RPC endpoints support batch requests natively — no ABI encoding needed.
+Sends multiple balance check calls as a JSON array in one HTTP request.
+Supports both EVM (eth_getBalance) and Solana (getBalance / getMultipleAccountsInfo).
 
-This is ~5x faster than individual calls (1 HTTP round-trip instead of N).
+This is ~5-10x faster than individual calls (1 HTTP round-trip instead of N).
+Solana getMultipleAccountsInfo can check up to 100 accounts per call.
 """
 
 from __future__ import annotations
@@ -91,3 +92,109 @@ async def batch_check_balances(
     except Exception as e:
         logger.warning("Batch balance check failed for %s: %s", chain.name, e)
         return [BatchBalanceResult(address=a, balance_wei=0, error=str(e)) for a in addresses]
+
+
+async def batch_check_sol_balances(
+    addresses: list[str],
+    rpc_url: str = "https://api.mainnet-beta.solana.com",
+    client: Optional[httpx.AsyncClient] = None,
+) -> list[BatchBalanceResult]:
+    """Check SOL balances for multiple addresses in one JSON-RPC batch call.
+
+    Uses getMultipleAccountsInfo (up to 100 per call) for maximum efficiency.
+    Falls back to JSON-RPC batching if getMultipleAccountsInfo fails.
+
+    Args:
+        addresses: List of Solana addresses (base58).
+        rpc_url: Solana RPC endpoint.
+        client: Optional shared httpx client.
+
+    Returns:
+        List of BatchBalanceResult (balance_lamports in balance_wei field).
+    """
+    if not addresses:
+        return []
+
+    results: list[BatchBalanceResult] = []
+
+    # Process in chunks of 100 (getMultipleAccountsInfo limit)
+    for chunk_start in range(0, len(addresses), 100):
+        chunk = addresses[chunk_start:chunk_start + 100]
+
+        try:
+            _created = client is None
+            if _created:
+                client = httpx.AsyncClient(timeout=_TIMEOUT)
+            try:
+                # Use getMultipleAccountsInfo — one call for up to 100 accounts
+                payload = {
+                    "jsonrpc": "2.0",
+                    "method": "getMultipleAccounts",
+                    "params": [
+                        chunk,
+                        {"encoding": "base64"},
+                    ],
+                    "id": 1,
+                }
+                resp = await client.post(rpc_url, json=payload)
+                resp.raise_for_status()
+                data = resp.json()
+
+                if "error" in data:
+                    # Fallback to individual batch
+                    logger.debug("getMultipleAccounts failed, falling back to batch")
+                    assert client is not None
+                    fallback = await _sol_batch_fallback(chunk, rpc_url, client)
+                    results.extend(fallback)
+                    continue
+
+                values = data.get("result", {}).get("value", [])
+                for i, addr in enumerate(chunk):
+                    if i < len(values) and values[i] is not None:
+                        lamports = values[i].get("lamports", 0)
+                        results.append(BatchBalanceResult(address=addr, balance_wei=lamports))
+                    elif i < len(values):
+                        # Account doesn't exist
+                        results.append(BatchBalanceResult(address=addr, balance_wei=0))
+                    else:
+                        results.append(BatchBalanceResult(address=addr, balance_wei=0, error="No response"))
+            finally:
+                if _created:
+                    await client.aclose()
+        except Exception as e:
+            logger.warning("SOL batch check failed: %s", e)
+            results.extend(BatchBalanceResult(address=a, balance_wei=0, error=str(e)) for a in chunk)
+
+    return results
+
+
+async def _sol_batch_fallback(
+    addresses: list[str],
+    rpc_url: str,
+    client: httpx.AsyncClient,
+) -> list[BatchBalanceResult]:
+    """Fallback: individual getBalance calls as JSON-RPC batch."""
+    batch = [
+        {"jsonrpc": "2.0", "method": "getBalance", "params": [addr], "id": i}
+        for i, addr in enumerate(addresses)
+    ]
+    resp = await client.post(rpc_url, json=batch)
+    resp.raise_for_status()
+    results = resp.json()
+
+    id_to_result: dict[int, dict] = {}
+    for r in results:
+        if isinstance(r, dict) and "id" in r:
+            id_to_result[r["id"]] = r
+
+    output: list[BatchBalanceResult] = []
+    for i, addr in enumerate(addresses):
+        r = id_to_result.get(i)
+        if r is None:
+            output.append(BatchBalanceResult(address=addr, balance_wei=0, error="No response"))
+        elif "error" in r:
+            output.append(BatchBalanceResult(address=addr, balance_wei=0, error=r["error"].get("message", "RPC error")))
+        else:
+            lamports = r.get("result", {}).get("value", 0)
+            output.append(BatchBalanceResult(address=addr, balance_wei=lamports))
+    return output

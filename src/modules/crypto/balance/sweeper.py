@@ -183,12 +183,15 @@ class Sweeper:
         self, private_key_hex: str, chain: ChainConfig,
         source: str, dest: str, balance_raw: int,
     ) -> SweepResult:
-        """Sweep SOL using solana-py."""
+        """Sweep SOL using solana-py/solders."""
         from solders.keypair import Keypair
+        from solders.hash import Hash
         from solders.pubkey import Pubkey
-        from solders.system_program import TransferParams, transfer
+        from solders.system_program import transfer, advance_nonce_account, withdraw_nonce_account
+        from solders.message import Message
         from solders.transaction import Transaction
         from solana.rpc.api import Client as SolanaClient
+        from solana.rpc.types import TxOpts
 
         # Derive keypair from private key bytes
         key_bytes = bytes.fromhex(private_key_hex)
@@ -198,11 +201,37 @@ class Sweeper:
             keypair = Keypair.from_seed(key_bytes[:32])
 
         client = SolanaClient(chain.rpc_url)
+        source_pubkey = Pubkey.from_string(source)
+        dest_pubkey = Pubkey.from_string(dest)
 
-        # Get recent blockhash
+        # Check if this is a nonce account (80 bytes of data, System Program owner)
+        account_info = client.get_account_info(source_pubkey)
+        is_nonce_account = False
+        nonce_authority = None
+        if account_info.value and len(account_info.value.data) == 80:
+            owner = str(account_info.value.owner)
+            if owner == "11111111111111111111111111111111":
+                is_nonce_account = True
+                # Nonce account layout: [version(4), state(4), authority(32), nonce(32), fee(8)]
+                nonce_auth_bytes = account_info.value.data[40:72]
+                nonce_authority = Pubkey.from_bytes(nonce_auth_bytes)
+                logger.info(
+                    "Source %s is a nonce account, authority=%s", source[:12], nonce_authority,
+                )
+
+        # For nonce accounts where we don't control the authority, we cannot sweep
+        if is_nonce_account and nonce_authority != source_pubkey:
+            return SweepResult(
+                success=False, chain=chain.name,
+                source_address=source, dest_address=dest,
+                amount=balance_raw / 1e9, amount_raw=balance_raw,
+                error=(
+                    f"Nonce account — authority is {nonce_authority}, "
+                    "not controlled by this key. Cannot sweep without authority key."
+                ),
+            )
+
         recent_blockhash = client.get_latest_blockhash().value.blockhash
-
-        # Estimate fee (~5000 lamports)
         fee = 5000
         amount_to_send = balance_raw - fee
         if amount_to_send <= 0:
@@ -213,17 +242,31 @@ class Sweeper:
                 error=f"Insufficient balance for fee ({fee} lamports)",
             )
 
-        # Build transfer instruction
-        from_pubkey = Pubkey.from_string(source)
-        to_pubkey = Pubkey.from_string(dest)
-        ix = transfer(TransferParams(from_pubkey, to_pubkey, amount_to_send))
+        if is_nonce_account and nonce_authority == source_pubkey:
+            # We control the nonce authority — advance nonce + withdraw all
+            stored_nonce_hash = Hash.from_bytes(account_info.value.data[8:40])
+            advance_ix = advance_nonce_account(
+                {"nonce_pubkey": source_pubkey, "authorized_pubkey": source_pubkey}
+            )
+            withdraw_ix = withdraw_nonce_account(
+                {"nonce_pubkey": source_pubkey, "authorized_pubkey": source_pubkey,
+                 "to_pubkey": dest_pubkey, "lamports": amount_to_send}
+            )
+            msg = Message.new_with_blockhash(
+                [advance_ix, withdraw_ix], keypair.pubkey(), stored_nonce_hash
+            )
+            txn = Transaction.new_unsigned(msg)
+            txn.sign([keypair], stored_nonce_hash)
+        else:
+            # Regular account — simple transfer
+            ix = transfer({"from_pubkey": source_pubkey, "to_pubkey": dest_pubkey, "lamports": amount_to_send})
+            msg = Message.new_with_blockhash([ix], keypair.pubkey(), recent_blockhash)
+            txn = Transaction.new_unsigned(msg)
+            txn.sign([keypair], recent_blockhash)
 
-        # Build and sign transaction
-        txn = Transaction([ix], keypair.pubkey(), recent_blockhash)
-        txn.sign([keypair])
-
-        # Send
-        result = client.send_transaction(txn)
+        # send_raw_transaction is more reliable than send_transaction
+        opts = TxOpts(skip_preflight=True, preflight_commitment=None)
+        result = client.send_raw_transaction(bytes(txn), opts=opts)
         tx_hash = str(result.value)
 
         amount = amount_to_send / 1e9

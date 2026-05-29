@@ -31,6 +31,13 @@ CREATE TABLE IF NOT EXISTS scanned_mnemonics (
     scanned_at TEXT DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_scanned_mnemonics_hash ON scanned_mnemonics(mnemonic_hash);
+CREATE TABLE IF NOT EXISTS scanned_keys (
+    key_hash TEXT PRIMARY KEY,
+    key_type TEXT,
+    source TEXT,
+    scanned_at TEXT DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_scanned_keys_hash ON scanned_keys(key_hash);
 """
 
 
@@ -59,6 +66,7 @@ class ScannerCoordinator:
         self._chains = chains or list(ALL_CHAINS)
         self._rotators: dict[str, EndpointRotator] = {}
         self._seen_mnemonics: set[str] = set()
+        self._seen_keys: set[str] = set()
         self._seen_addresses: set[str] = set()
         self._client: Optional[httpx.AsyncClient] = None
         self._db_path = db_path
@@ -184,6 +192,30 @@ class ScannerCoordinator:
                 self._db.commit()
             except Exception as e:
                 logger.debug("Failed to persist scanned mnemonic: %s", e)
+
+    @staticmethod
+    def hash_key(key: str) -> str:
+        """SHA-256 hash of a private key for dedup storage."""
+        return hashlib.sha256(key.strip().encode("utf-8")).hexdigest()
+
+    def is_key_seen(self, key: str) -> bool:
+        """Check if a private key has already been processed."""
+        h = self.hash_key(key)
+        return h in self._seen_keys
+
+    def mark_key_seen(self, key: str, key_type: str = "unknown", source: str = "unknown") -> None:
+        """Mark a private key as processed (in-memory + persistent SQLite)."""
+        h = self.hash_key(key)
+        self._seen_keys.add(h)
+        if self._db:
+            try:
+                self._db.execute(
+                    "INSERT OR IGNORE INTO scanned_keys (key_hash, key_type, source) VALUES (?, ?, ?)",
+                    (h, key_type, source),
+                )
+                self._db.commit()
+            except Exception as e:
+                logger.debug("Failed to persist scanned key: %s", e)
 
     def is_address_seen(self, address: str) -> bool:
         """Check if an address has already been checked."""

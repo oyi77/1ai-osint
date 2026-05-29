@@ -23,3 +23,21 @@ Thumbs.db
 .osint_rate_limit.json
 .gitleaksignore
 *.log
+
+# Coverage & testing
+.coverage
+.coveragerc
+coverage.json
+htmlcov/
+
+# Environment & secrets
+.env
+*.db
+
+# Build artifacts
+*.egg-info/
+dist/
+build/
+
+# OMC state
+.omc/

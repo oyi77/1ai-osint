@@ -389,12 +389,42 @@ class RandomScanner:
                 used_url = rotated_cfg.api_url or rotated_cfg.rpc_url or ""
 
             try:
-                if chain_cfg.chain_type in (ChainType.BITCOIN, ChainType.SOLANA):
-                    # BTC/SOL: individual calls with delay (no batch support)
-                    delay = 0.15 if chain_cfg.chain_type == ChainType.BITCOIN else 0.25
+                if chain_cfg.chain_type == ChainType.SOLANA:
+                    # SOL: batch via getMultipleAccounts (up to 100 per call)
+                    from src.modules.crypto.balance.multicall import batch_check_sol_balances
+                    addr_list = [a.address for _, a in idx_addrs]
+                    sol_results = await batch_check_sol_balances(
+                        addr_list, rotated_cfg.rpc_url or "", client=self._client,
+                    )
+                    for (idx, addr), br in zip(idx_addrs, sol_results):
+                        if br.error:
+                            self._stats.api_errors += 1
+                            if rotator:
+                                rotator.report_failure(used_url)
+                            from src.modules.crypto.balance.checker import BalanceResult
+                            results[idx] = BalanceResult(
+                                address=addr.address, chain=chain_name,
+                                symbol=chain_cfg.symbol, balance=0.0,
+                                balance_raw=0, usd_price=0.0, usd_value=0.0,
+                                derivation_path=addr.derivation_path, error=br.error,
+                            )
+                        else:
+                            if rotator:
+                                rotator.report_success(used_url)
+                            from src.modules.crypto.balance.checker import BalanceResult
+                            results[idx] = BalanceResult(
+                                address=addr.address, chain=chain_name,
+                                symbol=chain_cfg.symbol,
+                                balance=br.balance_wei / 1e9,
+                                balance_raw=br.balance_wei,
+                                usd_price=0.0, usd_value=0.0,
+                                derivation_path=addr.derivation_path,
+                            )
+                elif chain_cfg.chain_type == ChainType.BITCOIN:
+                    # BTC: individual calls with delay
                     for idx, addr in idx_addrs:
                         async with self._api_semaphore:
-                            await asyncio.sleep(delay)
+                            await asyncio.sleep(0.15)
                             result = await check_balance(addr.address, rotated_cfg, addr.derivation_path, client=self._client)
                             if result.error:
                                 self._stats.api_errors += 1
