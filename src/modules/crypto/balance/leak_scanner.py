@@ -155,69 +155,27 @@ class DorkScanner:
         self,
         mnemonic_candidate: str,
         chains: Optional[list[ChainConfig]] = None,
+        count: int = 6,
     ) -> Optional[LeakFinding]:
         """Validate a mnemonic candidate, check balances, and alert if funded.
+
+        Delegates to the standalone verify_and_alert function.
 
         Args:
             mnemonic_candidate: Potential mnemonic phrase to verify.
             chains: Chains to check. Defaults to all.
+            count: Number of address indices to derive per chain (default 6 for leak-sourced).
 
         Returns:
             LeakFinding with verification results, or None if invalid.
         """
-        if not is_valid_mnemonic(mnemonic_candidate):
-            return None
-
-        chains = chains or list(ALL_CHAINS)
-        finding = LeakFinding(
-            source="dork",
-            source_url="",
-            mnemonic_candidate=mnemonic_candidate,
-            is_valid=True,
-        )
-
-        # Derive and check balances
-        loop = asyncio.get_running_loop()
-        addresses = await loop.run_in_executor(
-            None,
-            derive_from_mnemonic,
+        return await verify_and_alert(
             mnemonic_candidate,
-            chains,
+            chains=chains,
+            hit_logger=self.hit_logger,
+            count=count,
+            source="dork",
         )
-
-        total_balance = 0.0
-        balance_details = {}
-
-        for addr in addresses:
-            chain_cfg = _find_chain(addr.chain, chains)
-            if chain_cfg is None:
-                continue
-            result = await check_balance(addr.address, chain_cfg, addr.derivation_path)
-            if result.balance > 0:
-                total_balance += result.balance
-                balance_details[addr.chain] = {
-                    "address": addr.address,
-                    "balance": result.balance,
-                    "symbol": result.symbol,
-                }
-
-        finding.has_balance = total_balance > 0
-        finding.balance_details = balance_details
-
-        if finding.has_balance and self.hit_logger:
-            mnemonic_hash = HitLogger.hash_mnemonic(mnemonic_candidate)
-            for chain, details in balance_details.items():
-                await self.hit_logger.log_hit(
-                    address=details["address"],
-                    chain=chain,
-                    balance=details["balance"],
-                    usd_value=0.0,
-                    mnemonic_hash=mnemonic_hash,
-                    derivation_path="",
-                    source="dork_scan",
-                )
-
-        return finding
 
 
 class GitHubLeakScanner:
@@ -340,52 +298,24 @@ class GitHubLeakScanner:
         self,
         mnemonic_candidate: str,
         chains: Optional[list[ChainConfig]] = None,
+        count: int = 6,
     ) -> Optional[LeakFinding]:
-        """Validate and check a GitHub-sourced mnemonic candidate."""
-        if not is_valid_mnemonic(mnemonic_candidate):
-            return None
+        """Validate and check a GitHub-sourced mnemonic candidate.
 
-        chains = chains or list(ALL_CHAINS)
-        finding = LeakFinding(
-            source="github",
-            source_url="",
-            mnemonic_candidate=mnemonic_candidate,
-            is_valid=True,
-        )
+        Delegates to the standalone verify_and_alert function.
 
-        loop = asyncio.get_running_loop()
-        addresses = await loop.run_in_executor(
-            None,
-            derive_from_mnemonic,
+        Args:
+            mnemonic_candidate: Potential mnemonic phrase to verify.
+            chains: Chains to check. Defaults to all.
+            count: Number of address indices to derive per chain (default 6 for leak-sourced).
+        """
+        return await verify_and_alert(
             mnemonic_candidate,
-            chains,
+            chains=chains,
+            hit_logger=self.hit_logger,
+            count=count,
+            source="github",
         )
-
-        for addr in addresses:
-            chain_cfg = _find_chain(addr.chain, chains)
-            if chain_cfg is None:
-                continue
-            result = await check_balance(addr.address, chain_cfg, addr.derivation_path)
-            if result.balance > 0:
-                finding.has_balance = True
-                finding.balance_details[addr.chain] = {
-                    "address": addr.address,
-                    "balance": result.balance,
-                    "symbol": result.symbol,
-                }
-                if self.hit_logger:
-                    mnemonic_hash = HitLogger.hash_mnemonic(mnemonic_candidate)
-                    await self.hit_logger.log_hit(
-                        address=addr.address,
-                        chain=addr.chain,
-                        balance=result.balance,
-                        usd_value=result.usd_value,
-                        mnemonic_hash=mnemonic_hash,
-                        derivation_path=addr.derivation_path,
-                        source="github_scan",
-                    )
-
-        return finding
 
 
 class PasteSiteScanner:
@@ -464,58 +394,33 @@ class PasteSiteScanner:
         self,
         mnemonic_candidate: str,
         chains: Optional[list[ChainConfig]] = None,
+        count: int = 6,
     ) -> Optional[LeakFinding]:
-        """Validate and check a paste-sourced mnemonic candidate."""
-        if not is_valid_mnemonic(mnemonic_candidate):
-            return None
+        """Validate and check a paste-sourced mnemonic candidate.
 
-        chains = chains or list(ALL_CHAINS)
-        finding = LeakFinding(
-            source="pastebin",
-            source_url="",
-            mnemonic_candidate=mnemonic_candidate,
-            is_valid=True,
-        )
+        Delegates to the standalone verify_and_alert function.
 
-        loop = asyncio.get_running_loop()
-        addresses = await loop.run_in_executor(
-            None,
-            derive_from_mnemonic,
+        Args:
+            mnemonic_candidate: Potential mnemonic phrase to verify.
+            chains: Chains to check. Defaults to all.
+            count: Number of address indices to derive per chain (default 6 for leak-sourced).
+        """
+        return await verify_and_alert(
             mnemonic_candidate,
-            chains,
+            chains=chains,
+            hit_logger=self.hit_logger,
+            count=count,
+            source="pastebin",
         )
-
-        for addr in addresses:
-            chain_cfg = _find_chain(addr.chain, chains)
-            if chain_cfg is None:
-                continue
-            result = await check_balance(addr.address, chain_cfg, addr.derivation_path)
-            if result.balance > 0:
-                finding.has_balance = True
-                finding.balance_details[addr.chain] = {
-                    "address": addr.address,
-                    "balance": result.balance,
-                    "symbol": result.symbol,
-                }
-                if self.hit_logger:
-                    mnemonic_hash = HitLogger.hash_mnemonic(mnemonic_candidate)
-                    await self.hit_logger.log_hit(
-                        address=addr.address,
-                        chain=addr.chain,
-                        balance=result.balance,
-                        usd_value=result.usd_value,
-                        mnemonic_hash=mnemonic_hash,
-                        derivation_path=addr.derivation_path,
-                        source="pastebin_scan",
-                    )
-
-        return finding
 
 
 async def verify_and_alert(
     mnemonic_candidate: str,
     chains: Optional[list[ChainConfig]] = None,
     hit_logger: Optional[HitLogger] = None,
+    count: int = 1,
+    source: str = "manual",
+    log_source: Optional[str] = None,
 ) -> Optional[LeakFinding]:
     """Standalone verify-and-alert function for any mnemonic candidate.
 
@@ -526,6 +431,9 @@ async def verify_and_alert(
         mnemonic_candidate: The mnemonic phrase to verify.
         chains: Chains to check. Defaults to all.
         hit_logger: Optional logger for recording hits.
+        count: Number of address indices to derive per chain (default 1, use 6 for leak-sourced).
+        source: Source label for the LeakFinding (default "manual").
+        log_source: Source label for hit logging. Defaults to "{source}_scan".
 
     Returns:
         LeakFinding if valid, None if not a valid mnemonic.
@@ -533,9 +441,12 @@ async def verify_and_alert(
     if not is_valid_mnemonic(mnemonic_candidate):
         return None
 
+    if log_source is None:
+        log_source = f"{source}_scan"
+
     chains = chains or list(ALL_CHAINS)
     finding = LeakFinding(
-        source="manual",
+        source=source,
         source_url="",
         mnemonic_candidate=mnemonic_candidate,
         is_valid=True,
@@ -547,6 +458,8 @@ async def verify_and_alert(
         derive_from_mnemonic,
         mnemonic_candidate,
         chains,
+        0,
+        count,
     )
 
     for addr in addresses:
@@ -570,7 +483,7 @@ async def verify_and_alert(
                     usd_value=result.usd_value,
                     mnemonic_hash=mnemonic_hash,
                     derivation_path=addr.derivation_path,
-                    source="leak_scanner",
+                    source=log_source,
                 )
 
     return finding
