@@ -28,6 +28,7 @@ POLYGON_RPCS = [
     "https://1rpc.io/matic",
 ]
 SOL_RPCS = [
+    "https://api.mainnet-beta.solana.com",
     "https://solana-rpc.publicnode.com",
 ]
 
