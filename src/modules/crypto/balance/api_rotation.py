@@ -21,29 +21,33 @@ _REENABLE_AFTER_SECONDS = 60.0
 ENDPOINT_REGISTRY: dict[str, list[str]] = {
     "bitcoin": [
         "https://mempool.space/api",
-        "https://api.blockcypher.com/v1/btc/main",
+        "https://blockstream.info/api",
+        "https://blockchain.info",
     ],
     "ethereum": [
         "https://rpc.ankr.com/eth",
         "https://ethereum-rpc.publicnode.com",
         "https://cloudflare-eth.com",
+        "https://eth.drpc.org",
+        "https://eth-mainnet.public.blastapi.io",
     ],
     "binancecoin": [
         "https://bsc-dataseed.binance.org",
         "https://bsc-dataseed1.binance.org",
+        "https://bsc-dataseed2.binance.org",
         "https://rpc.ankr.com/bsc",
         "https://bsc-rpc.publicnode.com",
+        "https://bsc.drpc.org",
     ],
     "matic-network": [
         "https://rpc.ankr.com/polygon",
         "https://polygon-bor-rpc.publicnode.com",
-        "https://1rpc.io/matic",
+        "https://polygon-rpc.publicnode.com",
+        "https://polygon.drpc.org",
     ],
     "solana": [
         "https://api.mainnet-beta.solana.com",
-        "https://rpc.ankr.com/solana",
         "https://solana-rpc.publicnode.com",
-        "https://solana-mainnet.rpc.extrnode.com",
     ],
 }
 
