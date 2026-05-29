@@ -351,12 +351,17 @@ class RandomScanner:
             if chain_cfg is None:
                 continue
 
-            # Rotate endpoint
+            # Rotate endpoint with rate limiting
             rotator = self._rotators.get(chain_cfg.coin_id)
             rotated_cfg = copy.copy(chain_cfg)
             used_url = ""
             if rotator:
                 url = rotator.next()
+                # Respect per-endpoint rate limit
+                wait = rotator.get_wait_time(url)
+                if wait > 0:
+                    await asyncio.sleep(wait)
+                rotator.record_request(url)
                 if chain_cfg.chain_type == ChainType.BITCOIN:
                     rotated_cfg.api_url = url
                 else:
