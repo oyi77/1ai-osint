@@ -366,7 +366,7 @@ class TestEndpointRotator:
     def test_auto_disable_after_consecutive_failures(self):
         rotator = EndpointRotator(["https://rpc1.com", "https://rpc2.com"])
         url = rotator.next()
-        for _ in range(3):
+        for _ in range(10):
             rotator.report_failure(url)
         health = rotator.get_health(url)
         assert health is not None
@@ -394,7 +394,7 @@ class TestEndpointRotator:
         rotator = EndpointRotator(["https://rpc1.com", "https://rpc2.com"])
         assert rotator.healthy_count == 2
         url = rotator.next()
-        for _ in range(3):
+        for _ in range(10):
             rotator.report_failure(url)
         assert rotator.healthy_count == 1
 

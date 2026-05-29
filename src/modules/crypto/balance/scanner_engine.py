@@ -260,6 +260,10 @@ class RandomScanner:
                 )
                 self._stats.mnemonics_generated += 1
 
+                # Save persistent stats every 1000 mnemonics
+                if self._stats.mnemonics_generated % 1000 == 0:
+                    self._save_persistent_stats()
+
                 if not addresses:
                     continue
 
@@ -332,11 +336,13 @@ class RandomScanner:
                 # 6. Progress reporting (every 100 mnemonics)
                 if self._stats.mnemonics_generated % 100 == 0:
                     logger.info(
-                        "Progress: %d mnemonics, %.1f/sec, %d hits, %d errors",
+                        "Progress: %d mnemonics (%.1f/sec), %d hits, %d errors | All-time: %d mnemonics, %d hits",
                         self._stats.mnemonics_generated,
                         self._stats.mnemonics_per_sec,
                         self._stats.hits_found,
                         self._stats.api_errors,
+                        self._stats.total_mnemonics_all_time + self._stats.mnemonics_generated,
+                        self._stats.total_hits_all_time + self._stats.hits_found,
                     )
 
             except asyncio.CancelledError:

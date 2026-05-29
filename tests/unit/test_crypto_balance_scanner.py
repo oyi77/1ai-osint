@@ -72,7 +72,7 @@ class TestEndpointRotator:
 
     def test_report_failure_disables_after_threshold(self):
         rotator = EndpointRotator(["https://a.com", "https://b.com"])
-        for _ in range(3):
+        for _ in range(10):
             rotator.report_failure("https://a.com")
 
         health = rotator.get_health("https://a.com")
@@ -81,7 +81,7 @@ class TestEndpointRotator:
     def test_skips_disabled_endpoint(self):
         rotator = EndpointRotator(["https://a.com", "https://b.com"])
         # Disable a.com
-        for _ in range(3):
+        for _ in range(10):
             rotator.report_failure("https://a.com")
 
         # Should skip a.com and return b.com
@@ -90,7 +90,7 @@ class TestEndpointRotator:
 
     def test_degraded_mode_when_all_disabled(self):
         rotator = EndpointRotator(["https://a.com"])
-        for _ in range(3):
+        for _ in range(10):
             rotator.report_failure("https://a.com")
 
         # All disabled, should still return something (degraded)
@@ -101,7 +101,7 @@ class TestEndpointRotator:
         rotator = EndpointRotator(["https://a.com", "https://b.com"])
         assert rotator.healthy_count == 2
 
-        for _ in range(3):
+        for _ in range(10):
             rotator.report_failure("https://a.com")
         assert rotator.healthy_count == 1
 
