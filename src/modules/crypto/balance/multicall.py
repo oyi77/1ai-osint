@@ -30,15 +30,18 @@ class BatchBalanceResult:
     error: Optional[str] = None
 
 
+_EVM_CHUNK_SIZE = 25  # Max addresses per JSON-RPC batch call (free endpoint friendly)
+
+
 async def batch_check_balances(
     addresses: list[str],
     chain: ChainConfig,
     client: Optional[httpx.AsyncClient] = None,
 ) -> list[BatchBalanceResult]:
-    """Check native balances for multiple EVM addresses in one JSON-RPC batch call.
+    """Check native balances for multiple EVM addresses in chunked JSON-RPC batch calls.
 
-    Sends N eth_getBalance requests as a JSON array. The RPC server processes
-    all requests and returns all results in one HTTP response.
+    Splits large address lists into chunks of _EVM_CHUNK_SIZE to avoid
+    overwhelming free endpoints with massive batch requests.
 
     Args:
         addresses: List of EVM addresses (0x...).
@@ -51,47 +54,50 @@ async def batch_check_balances(
     if not chain.rpc_url or not addresses:
         return [BatchBalanceResult(address=a, balance_wei=0, error="No RPC URL") for a in addresses]
 
-    # Build batch request: one eth_getBalance per address
-    batch = [
-        {"jsonrpc": "2.0", "method": "eth_getBalance", "params": [addr, "latest"], "id": i}
-        for i, addr in enumerate(addresses)
-    ]
+    all_results: list[BatchBalanceResult] = []
+    _created = client is None
+    if _created:
+        client = httpx.AsyncClient(timeout=_TIMEOUT)
 
     try:
-        _created = client is None
+        # Process in chunks to avoid overwhelming free endpoints
+        for chunk_start in range(0, len(addresses), _EVM_CHUNK_SIZE):
+            chunk = addresses[chunk_start:chunk_start + _EVM_CHUNK_SIZE]
+            batch = [
+                {"jsonrpc": "2.0", "method": "eth_getBalance", "params": [addr, "latest"], "id": i}
+                for i, addr in enumerate(chunk)
+            ]
+
+            try:
+                resp = await client.post(chain.rpc_url, json=batch)
+                resp.raise_for_status()
+                results = resp.json()
+
+                id_to_result: dict[int, dict] = {}
+                for r in results:
+                    if isinstance(r, dict) and "id" in r:
+                        id_to_result[r["id"]] = r
+
+                for i, addr in enumerate(chunk):
+                    r = id_to_result.get(i)
+                    if r is None:
+                        all_results.append(BatchBalanceResult(address=addr, balance_wei=0, error="No response"))
+                    elif "error" in r:
+                        all_results.append(BatchBalanceResult(address=addr, balance_wei=0, error=r["error"].get("message", "RPC error")))
+                    else:
+                        try:
+                            balance = int(r["result"], 16)
+                            all_results.append(BatchBalanceResult(address=addr, balance_wei=balance))
+                        except (ValueError, TypeError) as e:
+                            all_results.append(BatchBalanceResult(address=addr, balance_wei=0, error=str(e)))
+            except Exception as e:
+                logger.warning("EVM batch chunk failed for %s: %s", chain.name, e)
+                all_results.extend(BatchBalanceResult(address=a, balance_wei=0, error=str(e)) for a in chunk)
+    finally:
         if _created:
-            client = httpx.AsyncClient(timeout=_TIMEOUT)
-        try:
-            resp = await client.post(chain.rpc_url, json=batch)
-            resp.raise_for_status()
-            results = resp.json()
+            await client.aclose()
 
-            # Results may be out of order; map by id
-            id_to_result: dict[int, dict] = {}
-            for r in results:
-                if isinstance(r, dict) and "id" in r:
-                    id_to_result[r["id"]] = r
-
-            output: list[BatchBalanceResult] = []
-            for i, addr in enumerate(addresses):
-                r = id_to_result.get(i)
-                if r is None:
-                    output.append(BatchBalanceResult(address=addr, balance_wei=0, error="No response"))
-                elif "error" in r:
-                    output.append(BatchBalanceResult(address=addr, balance_wei=0, error=r["error"].get("message", "RPC error")))
-                else:
-                    try:
-                        balance = int(r["result"], 16)
-                        output.append(BatchBalanceResult(address=addr, balance_wei=balance))
-                    except (ValueError, TypeError) as e:
-                        output.append(BatchBalanceResult(address=addr, balance_wei=0, error=str(e)))
-            return output
-        finally:
-            if _created:
-                await client.aclose()
-    except Exception as e:
-        logger.warning("Batch balance check failed for %s: %s", chain.name, e)
-        return [BatchBalanceResult(address=a, balance_wei=0, error=str(e)) for a in addresses]
+    return all_results
 
 
 async def batch_check_sol_balances(

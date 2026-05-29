@@ -23,6 +23,9 @@ ENDPOINT_REGISTRY: dict[str, list[str]] = {
         "https://mempool.space/api",
         "https://blockstream.info/api",
         "https://blockchain.info",
+        "https://api.blockcypher.com/v1/btc/main",
+        "https://btcscan.org/api",
+        "https://blockonomics.co/api",
     ],
     "ethereum": [
         "https://rpc.ankr.com/eth",
@@ -54,25 +57,51 @@ ENDPOINT_REGISTRY: dict[str, list[str]] = {
 
 @dataclass
 class EndpointHealth:
-    """Health tracking state for a single endpoint."""
+    """Health tracking state for a single endpoint with rate limiting."""
     url: str
     success_count: int = 0
     failure_count: int = 0
     consecutive_failures: int = 0
     disabled_at: Optional[float] = None
+    # Rate limiter: max requests per second
+    max_rps: float = 10.0
+    _last_request_time: float = 0.0
+    _request_count: int = 0
+    _window_start: float = 0.0
 
     @property
     def is_disabled(self) -> bool:
         """Whether this endpoint is currently disabled."""
         if self.disabled_at is None:
             return False
-        # Re-enable after cooldown period
         if time.monotonic() - self.disabled_at >= _REENABLE_AFTER_SECONDS:
             self.disabled_at = None
             self.consecutive_failures = 0
             logger.info("Re-enabled endpoint: %s", self.url)
             return False
         return True
+
+    def wait_if_needed(self) -> float:
+        """Return seconds to wait before next request (0 if no wait needed)."""
+        now = time.monotonic()
+        # Reset window every second
+        if now - self._window_start >= 1.0:
+            self._request_count = 0
+            self._window_start = now
+        # If at rate limit, calculate wait time
+        if self._request_count >= self.max_rps:
+            wait = 1.0 - (now - self._window_start)
+            return max(0, wait)
+        return 0.0
+
+    def record_request(self) -> None:
+        """Record that a request was made (for rate limiting)."""
+        now = time.monotonic()
+        if now - self._window_start >= 1.0:
+            self._request_count = 0
+            self._window_start = now
+        self._request_count += 1
+        self._last_request_time = now
 
 
 class EndpointRotator:
@@ -101,22 +130,47 @@ class EndpointRotator:
     def next(self) -> str:
         """Return the next healthy endpoint via round-robin.
 
-        Skips disabled endpoints. If all endpoints are disabled, returns
-        the next one anyway (degraded mode) to avoid total stall.
+        Skips disabled endpoints and respects per-endpoint rate limits.
+        If all endpoints are disabled, returns the next one anyway (degraded mode).
         """
         n = len(self._url_list)
+        best_url = None
+        best_wait = float("inf")
+
         for _ in range(n):
             url = self._url_list[self._index]
             self._index = (self._index + 1) % n
             health = self._endpoints[url]
-            if not health.is_disabled:
-                return url
+            if health.is_disabled:
+                continue
+            wait = health.wait_if_needed()
+            if wait < best_wait:
+                best_wait = wait
+                best_url = url
+                if wait == 0:
+                    break  # Found an endpoint with no wait — use it immediately
+
+        if best_url is not None:
+            return best_url
 
         # All disabled — return next round-robin pick (degraded mode)
         url = self._url_list[self._index]
         self._index = (self._index + 1) % n
         logger.warning("All endpoints disabled, using degraded endpoint: %s", url)
         return url
+
+    def get_wait_time(self, url: str) -> float:
+        """Return seconds to wait before using this endpoint."""
+        health = self._endpoints.get(url)
+        if health is None:
+            return 0.0
+        return health.wait_if_needed()
+
+    def record_request(self, url: str) -> None:
+        """Record a request was made to this endpoint (for rate limiting)."""
+        health = self._endpoints.get(url)
+        if health:
+            health.record_request()
 
     def report_success(self, url: str) -> None:
         """Record a successful request for the given endpoint."""
