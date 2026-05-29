@@ -328,7 +328,7 @@ def scan(
     timeout: int = typer.Option(300, help="Scan timeout in seconds"),
     # crypto_balance specific options
     scan_mode: str = typer.Option(
-        "", help="Scan mode for crypto_balance: 'targeted' or 'random' (auto-detected if omitted)"
+        "", help="Scan mode for crypto_balance: 'random', 'targeted', 'leak', or 'smart' (auto-detected if omitted)"
     ),
     workers: int = typer.Option(20, help="Number of concurrent workers for random scan"),
     duration: int = typer.Option(0, help="Duration in seconds for random scan (0 = use iterations)"),

