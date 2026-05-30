@@ -68,9 +68,14 @@ def _derive_solana_address(hex_key: str) -> Optional[str]:
 
 def _derive_solana_address_from_base58(b58_key: str) -> Optional[str]:
     try:
+        from solders.keypair import Keypair
         decoded = _base58_decode(b58_key)
         if len(decoded) == 64:
-            return _base58_encode(decoded[32:64])
+            kp = Keypair.from_bytes(decoded)
+            return str(kp.pubkey())
+        elif len(decoded) == 32:
+            kp = Keypair.from_seed(decoded)
+            return str(kp.pubkey())
         return None
     except Exception:
         return None
