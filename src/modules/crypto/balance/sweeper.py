@@ -218,7 +218,8 @@ class Sweeper:
         blockhash = Hash.from_string(bh_str)
 
         fee = 5000
-        amount_to_send = balance_raw - fee
+        rent_exempt = 890880  # Solana minimum rent-exempt balance
+        amount_to_send = balance_raw - fee - rent_exempt
         if amount_to_send <= 0:
             return SweepResult(
                 success=False, chain=chain.name,
@@ -233,11 +234,11 @@ class Sweeper:
         txn = Transaction.new_unsigned(msg)
         txn.sign([keypair], blockhash)
 
-        # Send via httpx
+        # Send via httpx (preflight ON to catch errors early)
         encoded = _b64.b64encode(bytes(txn)).decode()
         resp = await client.post(rpc, json={
             "jsonrpc": "2.0", "id": 2, "method": "sendTransaction",
-            "params": [encoded, {"encoding": "base64", "skipPreflight": True, "maxRetries": 3}],
+            "params": [encoded, {"encoding": "base64", "skipPreflight": False, "maxRetries": 3}],
         })
         result = resp.json()
         if "error" in result:
@@ -249,12 +250,44 @@ class Sweeper:
             )
 
         tx_hash = result["result"]
-        amount = amount_to_send / 1e9
+
+        # Wait for confirmation (up to 30 seconds)
+        import asyncio as _aio
+        for _ in range(6):
+            await _aio.sleep(5)
+            status_resp = await client.post(rpc, json={
+                "jsonrpc": "2.0", "id": 3, "method": "getSignatureStatuses",
+                "params": [[tx_hash], {"searchTransactionHistory": True}],
+            })
+            status_data = status_resp.json()
+            statuses = status_data.get("result", {}).get("value", [])
+            if statuses and statuses[0]:
+                conf = statuses[0].get("confirmationStatus", "")
+                err = statuses[0].get("err")
+                if err:
+                    return SweepResult(
+                        success=False, chain=chain.name,
+                        source_address=source, dest_address=dest,
+                        amount=amount_to_send / 1e9, amount_raw=amount_to_send,
+                        tx_hash=tx_hash,
+                        error=f"TX failed on-chain: {err}",
+                    )
+                if conf in ("confirmed", "finalized"):
+                    amount = amount_to_send / 1e9
+                    return SweepResult(
+                        success=True, chain=chain.name,
+                        source_address=source, dest_address=dest,
+                        amount=amount, amount_raw=amount_to_send,
+                        tx_hash=tx_hash,
+                    )
+
+        # Timed out waiting for confirmation
         return SweepResult(
-            success=True, chain=chain.name,
+            success=False, chain=chain.name,
             source_address=source, dest_address=dest,
-            amount=amount, amount_raw=amount_to_send,
+            amount=amount_to_send / 1e9, amount_raw=amount_to_send,
             tx_hash=tx_hash,
+            error="TX sent but confirmation timed out (may still land)",
         )
 
     async def _sweep_btc(
