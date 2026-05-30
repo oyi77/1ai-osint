@@ -12,7 +12,6 @@ import os
 import signal
 import time
 from dataclasses import dataclass, field
-from datetime import datetime
 from typing import Optional
 
 import httpx
@@ -23,7 +22,6 @@ from src.modules.crypto.balance.checker import check_balance
 from src.modules.crypto.balance.chains import ALL_CHAINS, ChainConfig, ChainType
 from src.modules.crypto.balance.deriver import (
     DerivedAddress,
-    derive_from_mnemonic,
 )
 from src.modules.crypto.balance.hit_logger import HitLogger
 from src.modules.crypto.balance.sweeper import Sweeper

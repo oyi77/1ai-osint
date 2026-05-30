@@ -1,8 +1,7 @@
 """Multi-source data leak aggregation module."""
 
 import asyncio
-import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 from src.models import BreachRecord, Finding, ScanResult, Severity
@@ -78,7 +77,7 @@ class DataLeaksAggregator(BaseOSINTTool):
             query: Email, username, or domain to search
         """
         scan_id = self._make_scan_id()
-        started_at = datetime.utcnow()
+        started_at = datetime.now(timezone.utc)
         breach_records: list[BreachRecord] = []
         findings: list[Finding] = []
         errors: dict[str, str] = {}
@@ -142,7 +141,7 @@ class DataLeaksAggregator(BaseOSINTTool):
                 "deduplicated_records": len(breach_records),
             },
             started_at=started_at,
-            completed_at=datetime.utcnow(),
+            completed_at=datetime.now(timezone.utc),
         )
 
     async def scan(self, target: str, **kwargs) -> ScanResult:

@@ -1,6 +1,7 @@
 """Key extraction engine for raw text."""
 from __future__ import annotations
-import logging, re
+import logging
+import re
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional

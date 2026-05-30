@@ -9,7 +9,6 @@ from collections import Counter
 from pathlib import Path
 from typing import Optional
 
-from bip_utils import Bip39MnemonicValidator
 
 from src.modules.crypto.passphrase.generator import validate_mnemonic
 
@@ -140,7 +139,7 @@ def load_bip39_wordlist(language: str = "english") -> set[str]:
         Set of all valid BIP-39 words for the language.
     """
     try:
-        from bip_utils import Bip39Languages, Bip39WordsFileFinder
+        from bip_utils import Bip39WordsFileFinder
 
         lang_map = {
             "english": "english",

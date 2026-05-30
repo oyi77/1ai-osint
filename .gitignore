@@ -40,4 +40,5 @@ dist/
 build/
 
 # OMC state
-.omc/
+# OMC runtime state
+state/

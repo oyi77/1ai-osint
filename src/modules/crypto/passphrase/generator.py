@@ -4,7 +4,6 @@ Generates standards-compliant mnemonic seed phrases with configurable
 word counts (12, 15, 18, 21, 24 words) and language support.
 """
 
-import secrets
 from typing import Optional
 
 from bip_utils import (

@@ -2,7 +2,7 @@
 
 import asyncio
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 from pydantic import BaseModel, Field
@@ -112,7 +112,7 @@ class PhoneFinderLookup(BaseOSINTTool):
             query: Phone number to look up (E.164 or raw format)
         """
         scan_id = self._make_scan_id()
-        started_at = datetime.utcnow()
+        started_at = datetime.now(timezone.utc)
         errors: dict[str, str] = {}
 
         # Validate E.164
@@ -129,7 +129,7 @@ class PhoneFinderLookup(BaseOSINTTool):
                 error="PhoneInfoga provider not available",
                 metadata={"is_valid_e164": is_valid, "e164_format": e164},
                 started_at=started_at,
-                completed_at=datetime.utcnow(),
+                completed_at=datetime.now(timezone.utc),
             )
 
         # Query provider (use E.164 format if valid, otherwise raw)
@@ -208,7 +208,7 @@ class PhoneFinderLookup(BaseOSINTTool):
                 "e164_format": e164,
             },
             started_at=started_at,
-            completed_at=datetime.utcnow(),
+            completed_at=datetime.now(timezone.utc),
         )
 
     async def scan(self, target: str, **kwargs) -> ScanResult:

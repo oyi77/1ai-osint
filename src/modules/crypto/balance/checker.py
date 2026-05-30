@@ -18,7 +18,6 @@ import httpx
 
 from src.modules.crypto.balance.chains import (
     BITCOIN,
-    ETHEREUM,
     SOLANA,
     ChainConfig,
     ChainType,

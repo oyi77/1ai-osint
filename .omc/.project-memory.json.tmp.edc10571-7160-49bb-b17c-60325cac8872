@@ -1,0 +1,422 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1779970312687,
+  "projectRoot": "/Users/paijo/1ai-osint",
+  "techStack": {
+    "languages": [
+      {
+        "name": "Python",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "pyproject.toml"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "pytest",
+        "version": null,
+        "category": "testing"
+      }
+    ],
+    "packageManager": null,
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": null,
+    "testCommand": "python -m pytest tests/ -q --tb=line --no-header --ignore=tests/benchmarks 2>&1 | tail -3 && git add src/modules/crypto/balance/scanner_engine.py && git commit -m \"perf: ProcessPoolExecutor for derivation (bypass GIL), 4-8 worker processes\" && git push origin main 2>&1",
+    "lintCommand": "ruff check",
+    "devCommand": null,
+    "scripts": {}
+  },
+  "conventions": {
+    "namingStyle": "snake_case",
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "docs",
+      "scripts",
+      "src",
+      "tests"
+    ],
+    "gitBranches": null
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "docs": {
+      "path": "docs",
+      "purpose": "Documentation",
+      "fileCount": 7,
+      "lastAccessed": 1779970312682,
+      "keyFiles": [
+        "BENCHMARK_RESULTS.md",
+        "RESEARCH.md",
+        "RESEARCH_PAPER.md",
+        "SDD.md",
+        "ZENODO_METADATA.md"
+      ]
+    },
+    "notebooks": {
+      "path": "notebooks",
+      "purpose": null,
+      "fileCount": 2,
+      "lastAccessed": 1779970312683,
+      "keyFiles": [
+        "experimental_results.ipynb",
+        "zkit_analysis.ipynb"
+      ]
+    },
+    "scripts": {
+      "path": "scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 1,
+      "lastAccessed": 1779970312684,
+      "keyFiles": [
+        "demo.sh"
+      ]
+    },
+    "src": {
+      "path": "src",
+      "purpose": "Source code",
+      "fileCount": 7,
+      "lastAccessed": 1779970312684,
+      "keyFiles": [
+        "__init__.py",
+        "cache.py",
+        "cli.py",
+        "config.py",
+        "database.py"
+      ]
+    },
+    "tests": {
+      "path": "tests",
+      "purpose": "Test files",
+      "fileCount": 2,
+      "lastAccessed": 1779970312684,
+      "keyFiles": [
+        "__init__.py",
+        "conftest.py"
+      ]
+    },
+    "tests/fixtures": {
+      "path": "tests/fixtures",
+      "purpose": "Test fixtures",
+      "fileCount": 3,
+      "lastAccessed": 1779970312685,
+      "keyFiles": [
+        "mock_api_responses.py",
+        "sample_secrets.json",
+        "test_identities.json"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "src/modules/crypto/balance/scanner_engine.py",
+      "accessCount": 106,
+      "lastAccessed": 1780004708238,
+      "type": "file"
+    },
+    {
+      "path": "",
+      "accessCount": 55,
+      "lastAccessed": 1780004462982,
+      "type": "directory"
+    },
+    {
+      "path": "src/modules/crypto/balance/checker.py",
+      "accessCount": 53,
+      "lastAccessed": 1780004462878,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/crypto/balance/api_rotation.py",
+      "accessCount": 43,
+      "lastAccessed": 1780004454864,
+      "type": "file"
+    },
+    {
+      "path": "tests/unit/test_crypto_balance.py",
+      "accessCount": 40,
+      "lastAccessed": 1779990589846,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/crypto/balance/deriver.py",
+      "accessCount": 33,
+      "lastAccessed": 1780003832719,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/crypto/balance/chains.py",
+      "accessCount": 32,
+      "lastAccessed": 1780003832771,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/crypto/balance/__init__.py",
+      "accessCount": 28,
+      "lastAccessed": 1779981206714,
+      "type": "file"
+    },
+    {
+      "path": "pyproject.toml",
+      "accessCount": 26,
+      "lastAccessed": 1780001692647,
+      "type": "file"
+    },
+    {
+      "path": "src/cli.py",
+      "accessCount": 24,
+      "lastAccessed": 1779980417110,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/crypto/balance/hit_logger.py",
+      "accessCount": 20,
+      "lastAccessed": 1780004388537,
+      "type": "file"
+    },
+    {
+      "path": "src/rate_limiter.py",
+      "accessCount": 18,
+      "lastAccessed": 1779980308146,
+      "type": "file"
+    },
+    {
+      "path": "src/config.py",
+      "accessCount": 17,
+      "lastAccessed": 1779980421054,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/crypto/balance",
+      "accessCount": 15,
+      "lastAccessed": 1780004462938,
+      "type": "directory"
+    },
+    {
+      "path": "src/modules/crypto/balance/leak_scanner.py",
+      "accessCount": 13,
+      "lastAccessed": 1779998005743,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/crypto/balance/targeted_search.py",
+      "accessCount": 12,
+      "lastAccessed": 1779982094472,
+      "type": "file"
+    },
+    {
+      "path": "src/models.py",
+      "accessCount": 11,
+      "lastAccessed": 1779980177221,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/base/base.py",
+      "accessCount": 11,
+      "lastAccessed": 1779980177253,
+      "type": "file"
+    },
+    {
+      "path": "tests/benchmarks/benchmark_derivation.py",
+      "accessCount": 11,
+      "lastAccessed": 1780004475341,
+      "type": "file"
+    },
+    {
+      "path": "src",
+      "accessCount": 9,
+      "lastAccessed": 1780004259908,
+      "type": "directory"
+    },
+    {
+      "path": "src/database.py",
+      "accessCount": 8,
+      "lastAccessed": 1779980102297,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/crypto/passphrase/generator.py",
+      "accessCount": 6,
+      "lastAccessed": 1779980132310,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/__init__.py",
+      "accessCount": 5,
+      "lastAccessed": 1779979176369,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/crypto/passphrase/checker.py",
+      "accessCount": 5,
+      "lastAccessed": 1779980132157,
+      "type": "directory"
+    },
+    {
+      "path": "tests/unit/test_crypto_passphrase.py",
+      "accessCount": 4,
+      "lastAccessed": 1779972329071,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/crypto/privatekey/scanner.py",
+      "accessCount": 4,
+      "lastAccessed": 1779978747454,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/crypto",
+      "accessCount": 4,
+      "lastAccessed": 1780002030498,
+      "type": "directory"
+    },
+    {
+      "path": "tests",
+      "accessCount": 4,
+      "lastAccessed": 1780003837253,
+      "type": "directory"
+    },
+    {
+      "path": "src/ai/orchestrator.py",
+      "accessCount": 2,
+      "lastAccessed": 1779970987416,
+      "type": "file"
+    },
+    {
+      "path": "tests/unit/test_identity_graph.py",
+      "accessCount": 2,
+      "lastAccessed": 1779971051761,
+      "type": "file"
+    },
+    {
+      "path": "src/vendor/chiasmodon/providers/theharvester.py",
+      "accessCount": 2,
+      "lastAccessed": 1779972329367,
+      "type": "file"
+    },
+    {
+      "path": "src/cache.py",
+      "accessCount": 2,
+      "lastAccessed": 1779978085493,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/crypto/privatekey/checker.py",
+      "accessCount": 2,
+      "lastAccessed": 1779978718401,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/base/__init__.py",
+      "accessCount": 2,
+      "lastAccessed": 1779980154522,
+      "type": "file"
+    },
+    {
+      "path": "tests/benchmarks/benchmark_performance.py",
+      "accessCount": 2,
+      "lastAccessed": 1780003653388,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/people_finder/__init__.py",
+      "accessCount": 1,
+      "lastAccessed": 1779970938278,
+      "type": "file"
+    },
+    {
+      "path": "tests/conftest.py",
+      "accessCount": 1,
+      "lastAccessed": 1779970938406,
+      "type": "file"
+    },
+    {
+      "path": "src/ai/__init__.py",
+      "accessCount": 1,
+      "lastAccessed": 1779970938524,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/phone_finder/__init__.py",
+      "accessCount": 1,
+      "lastAccessed": 1779970938584,
+      "type": "file"
+    },
+    {
+      "path": "tests/unit/test_cli.py",
+      "accessCount": 1,
+      "lastAccessed": 1779971019687,
+      "type": "file"
+    },
+    {
+      "path": "tests/unit/test_crypto_privatekey.py",
+      "accessCount": 1,
+      "lastAccessed": 1779971019704,
+      "type": "file"
+    },
+    {
+      "path": "tests/unit/test_zkit_engine.py",
+      "accessCount": 1,
+      "lastAccessed": 1779971019750,
+      "type": "file"
+    },
+    {
+      "path": "tests/unit/test_report_generator.py",
+      "accessCount": 1,
+      "lastAccessed": 1779971019760,
+      "type": "file"
+    },
+    {
+      "path": "src/__init__.py",
+      "accessCount": 1,
+      "lastAccessed": 1779972063476,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/crypto/passphrase/__init__.py",
+      "accessCount": 1,
+      "lastAccessed": 1779973503651,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/crypto/privatekey/__init__.py",
+      "accessCount": 1,
+      "lastAccessed": 1779973503688,
+      "type": "file"
+    },
+    {
+      "path": "PLAN.md",
+      "accessCount": 1,
+      "lastAccessed": 1779973513420,
+      "type": "file"
+    },
+    {
+      "path": ".env.example",
+      "accessCount": 1,
+      "lastAccessed": 1779978091127,
+      "type": "file"
+    },
+    {
+      "path": "tests/benchmarks/__init__.py",
+      "accessCount": 1,
+      "lastAccessed": 1779980053213,
+      "type": "file"
+    },
+    {
+      "path": "tests/unit/test_rate_limiter.py",
+      "accessCount": 1,
+      "lastAccessed": 1779980056533,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}

@@ -6,7 +6,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from src.models import Finding, ScanResult, Identity, BreachRecord
+from src.models import Finding, ScanResult, Identity
 
 
 _DEFAULT_DB_PATH = Path("1ai-osint.db")

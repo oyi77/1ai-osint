@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import hashlib
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Optional
 
@@ -35,7 +35,7 @@ class GraphNode(BaseModel):
 
     def touch(self, source: Optional[str] = None) -> None:
         """Update last_seen timestamp and optionally add a source."""
-        self.last_seen = datetime.utcnow()
+        self.last_seen = datetime.now(timezone.utc)
         if source and source not in self.sources:
             self.sources.append(source)
 
@@ -53,7 +53,7 @@ class GraphEdge(BaseModel):
 
     def touch(self, source: Optional[str] = None, weight_increment: float = 0.0) -> None:
         """Update co-occurrence count, weight, and timestamp."""
-        self.last_seen = datetime.utcnow()
+        self.last_seen = datetime.now(timezone.utc)
         self.co_occurrences += 1
         self.weight = min(self.weight + weight_increment, 1.0)
         if source and source not in self.sources:

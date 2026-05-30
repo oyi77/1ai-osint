@@ -1,7 +1,6 @@
 """Parser for gitleaks JSON output into Finding models."""
 
 import json
-from typing import Any
 
 from src.models import Finding, Severity
 

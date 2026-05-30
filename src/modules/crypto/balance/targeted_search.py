@@ -10,13 +10,12 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import secrets
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from src.models import Finding, ScanResult, Severity
-from src.modules.crypto.balance.chains import ALL_CHAINS, CHAIN_MAP, ChainConfig
+from src.modules.crypto.balance.chains import ALL_CHAINS, ChainConfig
 from src.modules.crypto.balance.checker import (
     BalanceResult,
     apply_usd_prices,
@@ -109,7 +108,7 @@ class KnownMnemonicLookup:
         balance_tasks = [
             check_balance(
                 addr.address,
-                _chain_by_name(addr.chain, self.chains) or self.chains[0],
+                chain_by_name(addr.chain, self.chains) or self.chains[0],
                 addr.derivation_path,
             )
             for addr in addresses
@@ -378,7 +377,7 @@ class FilteredRandomScan:
             balance_tasks = [
                 check_balance(
                     addr.address,
-                    _chain_by_name(addr.chain, self.chains) or self.chains[0],
+                    chain_by_name(addr.chain, self.chains) or self.chains[0],
                     addr.derivation_path,
                 )
                 for addr in addresses
@@ -467,8 +466,8 @@ def targeted_scan_to_scanresult(
             "has_hits": targeted.has_hits,
             "errors": targeted.errors,
         },
-        started_at=datetime.utcnow(),
-        completed_at=datetime.utcnow(),
+        started_at=datetime.now(timezone.utc),
+        completed_at=datetime.now(timezone.utc),
     )
 
 

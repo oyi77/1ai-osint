@@ -2,10 +2,10 @@
 
 import hashlib
 import json
-from datetime import datetime
-from typing import Any, Optional
+from datetime import datetime, timezone
+from typing import Any
 
-from src.models import Finding, ScanResult, Severity
+from src.models import Finding, ScanResult
 
 
 class JSONFormatter:
@@ -98,7 +98,7 @@ class JSONFormatter:
         report = {
             "report_type": "1ai-osint-json",
             "version": "1.0",
-            "generated_at": datetime.utcnow().isoformat(),
+            "generated_at": datetime.now(timezone.utc).isoformat(),
             "zkit_mode": True,
             "scan_count": len(results),
             "total_findings": sum(r.finding_count for r in results),

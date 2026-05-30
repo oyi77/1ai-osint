@@ -9,16 +9,13 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
-from src.models import Finding, ScanResult, BreachRecord, Identity, Severity
+from src.models import Finding, ScanResult, BreachRecord, Identity
 from src.modules.identity_tracking.zkit_engine import (
-    ZKITEngine,
     CorrelatedCluster,
-    ZKITOutput,
-    _PII_FIELDS,
 )
 
 
@@ -146,7 +143,7 @@ class ZKITFormatter:
         report = {
             "report_type": "1ai-osint-zkit",
             "version": "1.0",
-            "generated_at": datetime.utcnow().isoformat(),
+            "generated_at": datetime.now(timezone.utc).isoformat(),
             "zkit_mode": True,
             "privacy_mode": "full",
             "scan_count": len(results),
@@ -181,7 +178,7 @@ class ZKITFormatter:
         report = {
             "report_type": "1ai-osint-zkit-correlated",
             "version": "1.0",
-            "generated_at": datetime.utcnow().isoformat(),
+            "generated_at": datetime.now(timezone.utc).isoformat(),
             "zkit_mode": True,
             "privacy_mode": "full",
             "investigation_id": investigation_id,

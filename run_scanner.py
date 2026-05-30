@@ -22,35 +22,18 @@ from datetime import datetime, timezone
 
 import httpx
 
-# --- Load .env if present ---
-def _load_dotenv(path: str = ".env") -> None:
-    if not os.path.exists(path):
-        return
-    with open(path) as f:
-        for line in f:
-            line = line.strip()
-            if not line or line.startswith("#") or "=" not in line:
-                continue
-            key, _, value = line.partition("=")
-            os.environ.setdefault(key.strip(), value.strip())
+# --- Load environment and configure logging ---
+from dotenv import load_dotenv
+from src.config import setup_logging
 
-_load_dotenv()
+load_dotenv()
+setup_logging()
 
 # --- Config ---
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
 LOG_FILE = os.environ.get("LOG_FILE", "scanner.log")
-
-# --- Logging ---
-logging.basicConfig(
-    level=getattr(logging, LOG_LEVEL.upper(), logging.INFO),
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler(LOG_FILE, mode="a"),
-    ],
-)
 logger = logging.getLogger("scanner")
 
 # --- Corpus persistence (leaked mnemonics → word frequency weights) ---

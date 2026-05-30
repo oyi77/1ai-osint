@@ -1,0 +1,431 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1780061321657,
+  "projectRoot": "/Users/paijo/1ai-osint",
+  "techStack": {
+    "languages": [
+      {
+        "name": "Python",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "pyproject.toml"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "pytest",
+        "version": null,
+        "category": "testing"
+      }
+    ],
+    "packageManager": null,
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": null,
+    "testCommand": "/usr/bin/expect << 'EXPECT_EOF'\nset timeout 60\nspawn ssh -o StrictHostKeyChecking=no openclaw@100.115.194.85 \"cd ~/projects/1ai-osint && source .venv/bin/activate && pip install pytest pytest-cov pytest-asyncio 2>&1 | tail -3 && python3 -m pytest tests/ -x -q 2>&1 | tail -5\"\nexpect {\n    \"password:\" { send \"openclaw\\r\"; exp_continue }\n    eof\n}\nEXPECT_EOF",
+    "lintCommand": "ruff check",
+    "devCommand": null,
+    "scripts": {}
+  },
+  "conventions": {
+    "namingStyle": "snake_case",
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "docs",
+      "scripts",
+      "src",
+      "tests"
+    ],
+    "gitBranches": null
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "__pycache__": {
+      "path": "__pycache__",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1780061321645,
+      "keyFiles": [
+        "run_scanner.cpython-312.pyc"
+      ]
+    },
+    "docs": {
+      "path": "docs",
+      "purpose": "Documentation",
+      "fileCount": 7,
+      "lastAccessed": 1780061321646,
+      "keyFiles": [
+        "BENCHMARK_RESULTS.md",
+        "RESEARCH.md",
+        "RESEARCH_PAPER.md",
+        "SDD.md",
+        "ZENODO_METADATA.md"
+      ]
+    },
+    "notebooks": {
+      "path": "notebooks",
+      "purpose": null,
+      "fileCount": 2,
+      "lastAccessed": 1780061321646,
+      "keyFiles": [
+        "experimental_results.ipynb",
+        "zkit_analysis.ipynb"
+      ]
+    },
+    "scripts": {
+      "path": "scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 1,
+      "lastAccessed": 1780061321646,
+      "keyFiles": [
+        "demo.sh"
+      ]
+    },
+    "src": {
+      "path": "src",
+      "purpose": "Source code",
+      "fileCount": 7,
+      "lastAccessed": 1780061321646,
+      "keyFiles": [
+        "__init__.py",
+        "cache.py",
+        "cli.py",
+        "config.py",
+        "database.py"
+      ]
+    },
+    "tests": {
+      "path": "tests",
+      "purpose": "Test files",
+      "fileCount": 2,
+      "lastAccessed": 1780061321646,
+      "keyFiles": [
+        "__init__.py",
+        "conftest.py"
+      ]
+    },
+    "tests/fixtures": {
+      "path": "tests/fixtures",
+      "purpose": "Test fixtures",
+      "fileCount": 3,
+      "lastAccessed": 1780061321647,
+      "keyFiles": [
+        "mock_api_responses.py",
+        "sample_secrets.json",
+        "test_identities.json"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "src/modules/crypto/balance/leak_scanner.py",
+      "accessCount": 59,
+      "lastAccessed": 1780079823211,
+      "type": "directory"
+    },
+    {
+      "path": "src/modules/crypto/balance/__init__.py",
+      "accessCount": 35,
+      "lastAccessed": 1780073135493,
+      "type": "file"
+    },
+    {
+      "path": "",
+      "accessCount": 33,
+      "lastAccessed": 1780072437381,
+      "type": "directory"
+    },
+    {
+      "path": "src/modules/crypto/balance/sweeper.py",
+      "accessCount": 17,
+      "lastAccessed": 1780071244018,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/crypto/balance/scanner_coordinator.py",
+      "accessCount": 13,
+      "lastAccessed": 1780073273175,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/crypto/balance/multicall.py",
+      "accessCount": 12,
+      "lastAccessed": 1780071244070,
+      "type": "file"
+    },
+    {
+      "path": "src",
+      "accessCount": 11,
+      "lastAccessed": 1780071148707,
+      "type": "directory"
+    },
+    {
+      "path": "src/modules/crypto/privatekey/scanner.py",
+      "accessCount": 10,
+      "lastAccessed": 1780070856595,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/crypto/balance/deriver.py",
+      "accessCount": 9,
+      "lastAccessed": 1780079522197,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/crypto/balance/scanner_engine.py",
+      "accessCount": 7,
+      "lastAccessed": 1780070715027,
+      "type": "file"
+    },
+    {
+      "path": "src/vendor/chiasmodon/leak_telegram/__init__.py",
+      "accessCount": 6,
+      "lastAccessed": 1780070751899,
+      "type": "file"
+    },
+    {
+      "path": "tests",
+      "accessCount": 5,
+      "lastAccessed": 1780071891427,
+      "type": "directory"
+    },
+    {
+      "path": ".env",
+      "accessCount": 3,
+      "lastAccessed": 1780070454774,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/data_leaks/aggregator.py",
+      "accessCount": 3,
+      "lastAccessed": 1780070524234,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/crypto",
+      "accessCount": 3,
+      "lastAccessed": 1780070718438,
+      "type": "directory"
+    },
+    {
+      "path": "src/modules/crypto/balance/chains.py",
+      "accessCount": 3,
+      "lastAccessed": 1780070754717,
+      "type": "file"
+    },
+    {
+      "path": "run_scanner.py",
+      "accessCount": 3,
+      "lastAccessed": 1780070767125,
+      "type": "file"
+    },
+    {
+      "path": "debug4.py",
+      "accessCount": 2,
+      "lastAccessed": 1780064734422,
+      "type": "file"
+    },
+    {
+      "path": "debug6.py",
+      "accessCount": 2,
+      "lastAccessed": 1780064860194,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/data_leaks/breach_checker.py",
+      "accessCount": 2,
+      "lastAccessed": 1780069411452,
+      "type": "file"
+    },
+    {
+      "path": "src/vendor/chiasmodon/base.py",
+      "accessCount": 2,
+      "lastAccessed": 1780069762010,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/crypto/balance/checker.py",
+      "accessCount": 2,
+      "lastAccessed": 1780070728555,
+      "type": "file"
+    },
+    {
+      "path": "tests/unit/test_leak_scanner.py",
+      "accessCount": 2,
+      "lastAccessed": 1780070825811,
+      "type": "file"
+    },
+    {
+      "path": "verify_sol_sweep.py",
+      "accessCount": 1,
+      "lastAccessed": 1780061487875,
+      "type": "file"
+    },
+    {
+      "path": "check_keys.py",
+      "accessCount": 1,
+      "lastAccessed": 1780062112124,
+      "type": "file"
+    },
+    {
+      "path": "sweep_funded.py",
+      "accessCount": 1,
+      "lastAccessed": 1780062429559,
+      "type": "file"
+    },
+    {
+      "path": "sweep_remaining.py",
+      "accessCount": 1,
+      "lastAccessed": 1780063060591,
+      "type": "file"
+    },
+    {
+      "path": "sweep_remaining2.py",
+      "accessCount": 1,
+      "lastAccessed": 1780063107593,
+      "type": "file"
+    },
+    {
+      "path": "sweep_final.py",
+      "accessCount": 1,
+      "lastAccessed": 1780063334145,
+      "type": "file"
+    },
+    {
+      "path": "debug_fee.py",
+      "accessCount": 1,
+      "lastAccessed": 1780063678224,
+      "type": "file"
+    },
+    {
+      "path": "debug_fee2.py",
+      "accessCount": 1,
+      "lastAccessed": 1780063727040,
+      "type": "file"
+    },
+    {
+      "path": "debug3.py",
+      "accessCount": 1,
+      "lastAccessed": 1780063898367,
+      "type": "file"
+    },
+    {
+      "path": "debug5.py",
+      "accessCount": 1,
+      "lastAccessed": 1780064778650,
+      "type": "file"
+    },
+    {
+      "path": "debug7.py",
+      "accessCount": 1,
+      "lastAccessed": 1780064912536,
+      "type": "file"
+    },
+    {
+      "path": "debug_nonce.py",
+      "accessCount": 1,
+      "lastAccessed": 1780065185886,
+      "type": "file"
+    },
+    {
+      "path": "sweep_k21.py",
+      "accessCount": 1,
+      "lastAccessed": 1780065188056,
+      "type": "file"
+    },
+    {
+      "path": "sweep_k20.py",
+      "accessCount": 1,
+      "lastAccessed": 1780067292874,
+      "type": "file"
+    },
+    {
+      "path": "find_nonce_auths.py",
+      "accessCount": 1,
+      "lastAccessed": 1780067893584,
+      "type": "file"
+    },
+    {
+      "path": "trace_nonce_chain.py",
+      "accessCount": 1,
+      "lastAccessed": 1780067980628,
+      "type": "file"
+    },
+    {
+      "path": "search_leaks.py",
+      "accessCount": 1,
+      "lastAccessed": 1780069204049,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/data_leaks",
+      "accessCount": 1,
+      "lastAccessed": 1780069397404,
+      "type": "directory"
+    },
+    {
+      "path": ".env.example",
+      "accessCount": 1,
+      "lastAccessed": 1780069397447,
+      "type": "file"
+    },
+    {
+      "path": "src/vendor",
+      "accessCount": 1,
+      "lastAccessed": 1780069397456,
+      "type": "directory"
+    },
+    {
+      "path": "src/vendor/chiasmodon/__init__.py",
+      "accessCount": 1,
+      "lastAccessed": 1780069411176,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/data_leaks/__init__.py",
+      "accessCount": 1,
+      "lastAccessed": 1780069411288,
+      "type": "file"
+    },
+    {
+      "path": "src/vendor/chiasmodon/chiasmodon/pychiasmodon.py",
+      "accessCount": 1,
+      "lastAccessed": 1780069411333,
+      "type": "file"
+    },
+    {
+      "path": "src/vendor/chiasmodon/leak_aggregator/__init__.py",
+      "accessCount": 1,
+      "lastAccessed": 1780069411376,
+      "type": "file"
+    },
+    {
+      "path": "src/config.py",
+      "accessCount": 1,
+      "lastAccessed": 1780069422818,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/crypto/balance/targeted_search.py",
+      "accessCount": 1,
+      "lastAccessed": 1780069422880,
+      "type": "file"
+    },
+    {
+      "path": "src/vendor/chiasmodon/leak_github/__init__.py",
+      "accessCount": 1,
+      "lastAccessed": 1780070537995,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}

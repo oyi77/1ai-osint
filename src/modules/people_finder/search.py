@@ -1,7 +1,7 @@
 """People finder search module wrapping Sherlock, Maigret, and WhatsMyName."""
 
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 from pydantic import BaseModel, Field
@@ -92,7 +92,7 @@ class PeopleFinderSearch(BaseOSINTTool):
             query: Username to search for
         """
         scan_id = self._make_scan_id()
-        started_at = datetime.utcnow()
+        started_at = datetime.now(timezone.utc)
         providers = self._get_providers()
         errors: dict[str, str] = {}
 
@@ -160,7 +160,7 @@ class PeopleFinderSearch(BaseOSINTTool):
                 "username": query,
             },
             started_at=started_at,
-            completed_at=datetime.utcnow(),
+            completed_at=datetime.now(timezone.utc),
         )
 
     async def scan(self, target: str, **kwargs) -> ScanResult:

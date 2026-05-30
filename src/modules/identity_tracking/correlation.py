@@ -7,22 +7,17 @@ correlations and resolves same-person entities across platforms.
 
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Optional
 
-from src.models import ScanResult, Finding
+from src.models import ScanResult
 from src.modules.identity_tracking.identity_graph import (
-    GraphEdge,
-    GraphNode,
     IdentityGraph,
-    NodeType,
 )
 from src.modules.identity_tracking.zkit_engine import (
     ZKITEngine,
     CorrelatedCluster,
-    CorrelationConfidence,
     ATTRIBUTE_TYPE_MAP,
 )
 

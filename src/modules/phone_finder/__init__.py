@@ -1,8 +1,5 @@
 """Phone Finder module: Phone number OSINT (PhoneInfoga)."""
 
-import asyncio
-import subprocess
-import shutil
 from typing import Any, Optional
 
 import httpx
@@ -36,12 +33,19 @@ class PhoneFinderTool(BaseOSINTTool):
     async def scan(self, target: str, **kwargs) -> ScanResult:
         """Full phone OSINT scan via PhoneInfoga API or NumVerify fallback."""
         scan_id = self._make_scan_id()
-        from datetime import datetime
-        started_at = datetime.utcnow()
+        from datetime import datetime, timezone
+
+        started_at = datetime.now(timezone.utc)
         findings: list[Finding] = []
 
         # Clean phone number
-        phone = target.strip().replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
+        phone = (
+            target.strip()
+            .replace(" ", "")
+            .replace("-", "")
+            .replace("(", "")
+            .replace(")", "")
+        )
         if not phone.startswith("+"):
             phone = f"+{phone}"
 
@@ -55,31 +59,35 @@ class PhoneFinderTool(BaseOSINTTool):
                     data = resp.json()
                     number_info = data.get("number", data)
 
-                    findings.append(Finding(
-                        id=self._make_finding_id(),
-                        module=self.name,
-                        title=f"Phone info: {phone}",
-                        description=f"Phone number {phone} lookup results",
-                        severity=Severity.INFO,
-                        raw_data=number_info,
-                        confidence=0.9,
-                        tags=["phone", "carrier"],
-                    ))
+                    findings.append(
+                        Finding(
+                            id=self._make_finding_id(),
+                            module=self.name,
+                            title=f"Phone info: {phone}",
+                            description=f"Phone number {phone} lookup results",
+                            severity=Severity.INFO,
+                            raw_data=number_info,
+                            confidence=0.9,
+                            tags=["phone", "carrier"],
+                        )
+                    )
 
                     # Check for scam/fraud reports
                     scanner_results = number_info.get("scanners", [])
                     for scanner in scanner_results:
                         if scanner.get("found"):
-                            findings.append(Finding(
-                                id=self._make_finding_id(),
-                                module=self.name,
-                                title=f"Scam report: {phone}",
-                                description=f"Number reported as scam/fraud by {scanner.get('name', 'unknown')}",
-                                severity=Severity.HIGH,
-                                raw_data=scanner,
-                                confidence=0.7,
-                                tags=["phone", "scam", "fraud"],
-                            ))
+                            findings.append(
+                                Finding(
+                                    id=self._make_finding_id(),
+                                    module=self.name,
+                                    title=f"Scam report: {phone}",
+                                    description=f"Number reported as scam/fraud by {scanner.get('name', 'unknown')}",
+                                    severity=Severity.HIGH,
+                                    raw_data=scanner,
+                                    confidence=0.7,
+                                    tags=["phone", "scam", "fraud"],
+                                )
+                            )
 
                     return ScanResult(
                         scan_id=scan_id,
@@ -89,22 +97,24 @@ class PhoneFinderTool(BaseOSINTTool):
                         findings=findings,
                         metadata={"phone": phone, "tool": "phoneinfoga"},
                         started_at=started_at,
-                        completed_at=datetime.utcnow(),
+                        completed_at=datetime.now(timezone.utc),
                     )
         except (httpx.RequestError, httpx.TimeoutException):
             pass  # Fall through to basic validation
 
         # Fallback: basic number validation via NumVerify or similar
-        findings.append(Finding(
-            id=self._make_finding_id(),
-            module=self.name,
-            title=f"Phone number: {phone}",
-            description=f"PhoneInfoga unavailable. Basic record for {phone}",
-            severity=Severity.INFO,
-            raw_data={"phone": phone, "validated": False},
-            confidence=0.3,
-            tags=["phone", "basic"],
-        ))
+        findings.append(
+            Finding(
+                id=self._make_finding_id(),
+                module=self.name,
+                title=f"Phone number: {phone}",
+                description=f"PhoneInfoga unavailable. Basic record for {phone}",
+                severity=Severity.INFO,
+                raw_data={"phone": phone, "validated": False},
+                confidence=0.3,
+                tags=["phone", "basic"],
+            )
+        )
 
         return ScanResult(
             scan_id=scan_id,
@@ -112,9 +122,13 @@ class PhoneFinderTool(BaseOSINTTool):
             target=target,
             status="partial",
             findings=findings,
-            metadata={"phone": phone, "tool": "basic", "note": "PhoneInfoga unavailable"},
+            metadata={
+                "phone": phone,
+                "tool": "basic",
+                "note": "PhoneInfoga unavailable",
+            },
             started_at=started_at,
-            completed_at=datetime.utcnow(),
+            completed_at=datetime.now(timezone.utc),
         )
 
     async def analyze(self, data: Any, **kwargs) -> dict[str, Any]:

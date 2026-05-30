@@ -133,7 +133,6 @@ class Sweeper:
     ) -> SweepResult:
         """Sweep EVM chain (ETH/BSC/Polygon) using web3.py."""
         from web3 import Web3
-        from eth_account import Account
 
         w3 = Web3(Web3.HTTPProvider(chain.rpc_url))
 

@@ -13,7 +13,7 @@ Operates in five scan modes:
 
 import asyncio
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 from src.models import Finding, ScanResult, Severity
@@ -40,7 +40,27 @@ from src.modules.crypto.balance.targeted_search import (
     targeted_scan_to_scanresult,
 )
 
-__all__ = ["CryptoBalanceTool"]
+__all__ = [
+    "CryptoBalanceTool",
+    # Re-exports for convenience
+    "DerivedAddress",
+    "derive_from_mnemonic",
+    "derive_from_privatekey",
+    "detect_input_type",
+    "is_valid_mnemonic",
+    "BalanceResult",
+    "apply_usd_prices",
+    "check_balance",
+    "get_usd_prices",
+    "AccountRangeScan",
+    "FilteredRandomScan",
+    "KnownMnemonicLookup",
+    "TargetedScanResult",
+    "targeted_scan_to_scanresult",
+    "ALL_CHAINS",
+    "CHAIN_MAP",
+    "ChainConfig",
+]
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +73,9 @@ class CryptoBalanceTool(BaseOSINTTool):
     """
 
     name = "crypto_balance"
-    description = "Derive wallet addresses and check on-chain balances (BTC/ETH/BSC/Polygon/SOL)"
+    description = (
+        "Derive wallet addresses and check on-chain balances (BTC/ETH/BSC/Polygon/SOL)"
+    )
     version = "0.1.0"
 
     def __init__(
@@ -89,7 +111,7 @@ class CryptoBalanceTool(BaseOSINTTool):
             ScanResult with one Finding per address/chain combination.
         """
         scan_id = self._make_scan_id()
-        started_at = datetime.utcnow()
+        started_at = datetime.now(timezone.utc)
         findings: list[Finding] = []
         errors: list[str] = []
 
@@ -134,19 +156,23 @@ class CryptoBalanceTool(BaseOSINTTool):
                 status="error",
                 error="Could not detect input type. Provide a valid mnemonic, private key, or address.",
                 started_at=started_at,
-                completed_at=datetime.utcnow(),
+                completed_at=datetime.now(timezone.utc),
             )
 
         # Resolve chain filter from kwargs
         chain_filter = kwargs.get("chains")
         active_chains = self.chains
         if chain_filter:
-            active_chains = [CHAIN_MAP[c.lower()] for c in chain_filter if c.lower() in CHAIN_MAP]
+            active_chains = [
+                CHAIN_MAP[c.lower()] for c in chain_filter if c.lower() in CHAIN_MAP
+            ]
 
         # Step 1: Derive or resolve addresses
         addresses: list[DerivedAddress] = []
         if input_type == "mnemonic":
-            addresses = derive_from_mnemonic(target, chains=active_chains, count=account_count)
+            addresses = derive_from_mnemonic(
+                target, chains=active_chains, count=account_count
+            )
         elif input_type == "private_key":
             # Try to derive for each chain (ETH-like keys work for ETH/BSC/Polygon)
             for chain in active_chains:
@@ -159,12 +185,14 @@ class CryptoBalanceTool(BaseOSINTTool):
             # Direct address — determine chain and check balance
             chain = _chain_for_address_type(input_type, active_chains)
             if chain:
-                addresses.append(DerivedAddress(
-                    address=target.strip(),
-                    chain=chain.name,
-                    symbol=chain.symbol,
-                    derivation_path="direct",
-                ))
+                addresses.append(
+                    DerivedAddress(
+                        address=target.strip(),
+                        chain=chain.name,
+                        symbol=chain.symbol,
+                        derivation_path="direct",
+                    )
+                )
 
         if not addresses:
             return ScanResult(
@@ -172,14 +200,20 @@ class CryptoBalanceTool(BaseOSINTTool):
                 module=self.name,
                 target=target[:20] + "...",
                 status="error",
-                error=f"No addresses derived. Errors: {'; '.join(errors)}" if errors else "No addresses derived.",
+                error=f"No addresses derived. Errors: {'; '.join(errors)}"
+                if errors
+                else "No addresses derived.",
                 started_at=started_at,
-                completed_at=datetime.utcnow(),
+                completed_at=datetime.now(timezone.utc),
             )
 
         # Step 2: Check balances concurrently
         balance_tasks = [
-            check_balance(addr.address, _chain_by_name(addr.chain, active_chains) or active_chains[0], addr.derivation_path)
+            check_balance(
+                addr.address,
+                _chain_by_name(addr.chain, active_chains) or active_chains[0],
+                addr.derivation_path,
+            )
             for addr in addresses
         ]
         balance_results = await asyncio.gather(*balance_tasks, return_exceptions=True)
@@ -209,26 +243,33 @@ class CryptoBalanceTool(BaseOSINTTool):
             if result.usd_price > 0:
                 title += f" (~${result.usd_value:,.2f})"
 
-            findings.append(Finding(
-                id=self._make_finding_id(),
-                module=self.name,
-                title=title,
-                description=f"Balance for {result.address} on {result.chain}",
-                severity=severity,
-                confidence=1.0,
-                tags=["crypto", "balance", result.symbol.lower(), result.chain.lower()],
-                raw_data={
-                    "address": result.address,
-                    "chain": result.chain,
-                    "symbol": result.symbol,
-                    "balance": result.balance,
-                    "balance_raw": result.balance_raw,
-                    "usd_price": result.usd_price,
-                    "usd_value": result.usd_value,
-                    "derivation_path": result.derivation_path,
-                    "error": result.error,
-                },
-            ))
+            findings.append(
+                Finding(
+                    id=self._make_finding_id(),
+                    module=self.name,
+                    title=title,
+                    description=f"Balance for {result.address} on {result.chain}",
+                    severity=severity,
+                    confidence=1.0,
+                    tags=[
+                        "crypto",
+                        "balance",
+                        result.symbol.lower(),
+                        result.chain.lower(),
+                    ],
+                    raw_data={
+                        "address": result.address,
+                        "chain": result.chain,
+                        "symbol": result.symbol,
+                        "balance": result.balance,
+                        "balance_raw": result.balance_raw,
+                        "usd_price": result.usd_price,
+                        "usd_value": result.usd_value,
+                        "derivation_path": result.derivation_path,
+                        "error": result.error,
+                    },
+                )
+            )
 
         status = "ok" if not errors else "partial"
         return ScanResult(
@@ -244,7 +285,7 @@ class CryptoBalanceTool(BaseOSINTTool):
                 "errors": errors,
             },
             started_at=started_at,
-            completed_at=datetime.utcnow(),
+            completed_at=datetime.now(timezone.utc),
         )
 
     async def analyze(self, data: Any, **kwargs) -> dict[str, Any]:
@@ -292,7 +333,9 @@ class CryptoBalanceTool(BaseOSINTTool):
         chain_filter = kwargs.get("chains")
         active_chains = self.chains
         if chain_filter:
-            active_chains = [CHAIN_MAP[c.lower()] for c in chain_filter if c.lower() in CHAIN_MAP]
+            active_chains = [
+                CHAIN_MAP[c.lower()] for c in chain_filter if c.lower() in CHAIN_MAP
+            ]
 
         lookup = KnownMnemonicLookup(
             mnemonic=target,
@@ -300,9 +343,11 @@ class CryptoBalanceTool(BaseOSINTTool):
             account_range=account_range,
         )
         targeted_result = await lookup.execute(scan_id=scan_id)
-        scan_result = targeted_scan_to_scanresult(targeted_result, target_label="targeted")
+        scan_result = targeted_scan_to_scanresult(
+            targeted_result, target_label="targeted"
+        )
         scan_result.started_at = started_at
-        scan_result.completed_at = datetime.utcnow()
+        scan_result.completed_at = datetime.now(timezone.utc)
         return scan_result
 
     async def _run_random_scan(
@@ -321,27 +366,29 @@ class CryptoBalanceTool(BaseOSINTTool):
         stats = await scanner.run(duration_sec=duration)
 
         findings: list[Finding] = []
-        findings.append(Finding(
-            id=f"random-scan-{scan_id}",
-            module=self.name,
-            title="Random scan completed",
-            description=(
-                f"Generated {stats.mnemonics_generated} mnemonics at "
-                f"{stats.mnemonics_per_sec:.1f}/sec, "
-                f"{stats.hits_found} hits, {stats.api_errors} errors"
-            ),
-            severity=Severity.HIGH if stats.hits_found > 0 else Severity.INFO,
-            confidence=1.0,
-            tags=["crypto", "random_scan", "summary"],
-            raw_data={
-                "mnemonics_generated": stats.mnemonics_generated,
-                "addresses_checked": stats.addresses_checked,
-                "hits_found": stats.hits_found,
-                "api_errors": stats.api_errors,
-                "elapsed_seconds": stats.elapsed,
-                "mnemonics_per_sec": stats.mnemonics_per_sec,
-            },
-        ))
+        findings.append(
+            Finding(
+                id=f"random-scan-{scan_id}",
+                module=self.name,
+                title="Random scan completed",
+                description=(
+                    f"Generated {stats.mnemonics_generated} mnemonics at "
+                    f"{stats.mnemonics_per_sec:.1f}/sec, "
+                    f"{stats.hits_found} hits, {stats.api_errors} errors"
+                ),
+                severity=Severity.HIGH if stats.hits_found > 0 else Severity.INFO,
+                confidence=1.0,
+                tags=["crypto", "random_scan", "summary"],
+                raw_data={
+                    "mnemonics_generated": stats.mnemonics_generated,
+                    "addresses_checked": stats.addresses_checked,
+                    "hits_found": stats.hits_found,
+                    "api_errors": stats.api_errors,
+                    "elapsed_seconds": stats.elapsed,
+                    "mnemonics_per_sec": stats.mnemonics_per_sec,
+                },
+            )
+        )
 
         return ScanResult(
             scan_id=scan_id,
@@ -355,7 +402,7 @@ class CryptoBalanceTool(BaseOSINTTool):
                 "duration": duration,
             },
             started_at=started_at,
-            completed_at=datetime.utcnow(),
+            completed_at=datetime.now(timezone.utc),
         )
 
     async def _run_leak_scan(
@@ -382,7 +429,9 @@ class CryptoBalanceTool(BaseOSINTTool):
         await coordinator.start()
 
         github_token = os.environ.get("GITHUB_TOKEN", "")
-        github_scanner = GitHubLeakScanner(github_token=github_token, hit_logger=hit_logger)
+        github_scanner = GitHubLeakScanner(
+            github_token=github_token, hit_logger=hit_logger
+        )
         paste_scanner = PasteSiteScanner(hit_logger=hit_logger)
 
         total_candidates = 0
@@ -397,7 +446,9 @@ class CryptoBalanceTool(BaseOSINTTool):
 
             for finding in github_findings:
                 if not coordinator.is_mnemonic_seen(finding.mnemonic_candidate):
-                    coordinator.mark_mnemonic_seen(finding.mnemonic_candidate, source="leak")
+                    coordinator.mark_mnemonic_seen(
+                        finding.mnemonic_candidate, source="leak"
+                    )
                     result = await verify_and_alert(
                         finding.mnemonic_candidate,
                         chains=self.chains,
@@ -412,7 +463,9 @@ class CryptoBalanceTool(BaseOSINTTool):
 
             for finding in paste_findings:
                 if not coordinator.is_mnemonic_seen(finding.mnemonic_candidate):
-                    coordinator.mark_mnemonic_seen(finding.mnemonic_candidate, source="leak")
+                    coordinator.mark_mnemonic_seen(
+                        finding.mnemonic_candidate, source="leak"
+                    )
                     result = await verify_and_alert(
                         finding.mnemonic_candidate,
                         chains=self.chains,
@@ -427,23 +480,25 @@ class CryptoBalanceTool(BaseOSINTTool):
             await coordinator.stop()
             await hit_logger.close()
 
-        findings.append(Finding(
-            id=f"leak-scan-{scan_id}",
-            module=self.name,
-            title="Leak scan completed",
-            description=(
-                f"Found {total_candidates} mnemonic candidates from GitHub/Pastebin, "
-                f"{total_hits} confirmed hits"
-            ),
-            severity=Severity.HIGH if total_hits > 0 else Severity.INFO,
-            confidence=1.0,
-            tags=["crypto", "leak_scan", "summary"],
-            raw_data={
-                "candidates_found": total_candidates,
-                "hits_confirmed": total_hits,
-                "errors": errors,
-            },
-        ))
+        findings.append(
+            Finding(
+                id=f"leak-scan-{scan_id}",
+                module=self.name,
+                title="Leak scan completed",
+                description=(
+                    f"Found {total_candidates} mnemonic candidates from GitHub/Pastebin, "
+                    f"{total_hits} confirmed hits"
+                ),
+                severity=Severity.HIGH if total_hits > 0 else Severity.INFO,
+                confidence=1.0,
+                tags=["crypto", "leak_scan", "summary"],
+                raw_data={
+                    "candidates_found": total_candidates,
+                    "hits_confirmed": total_hits,
+                    "errors": errors,
+                },
+            )
+        )
 
         return ScanResult(
             scan_id=scan_id,
@@ -457,7 +512,7 @@ class CryptoBalanceTool(BaseOSINTTool):
                 "hits": total_hits,
             },
             started_at=started_at,
-            completed_at=datetime.utcnow(),
+            completed_at=datetime.now(timezone.utc),
         )
 
     async def _run_leak_key_scan(
@@ -469,7 +524,7 @@ class CryptoBalanceTool(BaseOSINTTool):
             verify_and_alert_key,
         )
         from src.modules.crypto.balance.hit_logger import HitLogger
-        from src.modules.crypto.balance.scanner_coordinator import ScannerCoordinator
+
         import os
 
         hit_logger = HitLogger(
@@ -506,23 +561,25 @@ class CryptoBalanceTool(BaseOSINTTool):
         finally:
             await hit_logger.close()
 
-        findings.append(Finding(
-            id=f"leak-key-scan-{scan_id}",
-            module=self.name,
-            title="Private key leak scan completed",
-            description=(
-                f"Found {total_candidates} private key candidates from GitHub/Pastebin, "
-                f"{total_hits} confirmed hits"
-            ),
-            severity=Severity.HIGH if total_hits > 0 else Severity.INFO,
-            confidence=1.0,
-            tags=["crypto", "leak_key_scan", "summary"],
-            raw_data={
-                "candidates_found": total_candidates,
-                "hits_confirmed": total_hits,
-                "errors": errors,
-            },
-        ))
+        findings.append(
+            Finding(
+                id=f"leak-key-scan-{scan_id}",
+                module=self.name,
+                title="Private key leak scan completed",
+                description=(
+                    f"Found {total_candidates} private key candidates from GitHub/Pastebin, "
+                    f"{total_hits} confirmed hits"
+                ),
+                severity=Severity.HIGH if total_hits > 0 else Severity.INFO,
+                confidence=1.0,
+                tags=["crypto", "leak_key_scan", "summary"],
+                raw_data={
+                    "candidates_found": total_candidates,
+                    "hits_confirmed": total_hits,
+                    "errors": errors,
+                },
+            )
+        )
 
         return ScanResult(
             scan_id=scan_id,
@@ -536,7 +593,7 @@ class CryptoBalanceTool(BaseOSINTTool):
                 "hits": total_hits,
             },
             started_at=started_at,
-            completed_at=datetime.utcnow(),
+            completed_at=datetime.now(timezone.utc),
         )
 
     async def _run_leak_telegram_scan(
@@ -545,7 +602,6 @@ class CryptoBalanceTool(BaseOSINTTool):
         """Scan Telegram channels for leaked private keys using Telethon."""
         from src.modules.crypto.balance.leak_scanner_telegram import (
             run_telegram_leak_scan,
-            TelethonLeakScanner,
         )
         from src.modules.crypto.balance.leak_scanner import verify_and_alert_key
         from src.modules.crypto.balance.hit_logger import HitLogger
@@ -592,7 +648,7 @@ class CryptoBalanceTool(BaseOSINTTool):
                 "hits": total_hits,
             },
             started_at=started_at,
-            completed_at=datetime.utcnow(),
+            completed_at=datetime.now(timezone.utc),
         )
 
     async def _run_smart_scan(
@@ -655,31 +711,29 @@ class CryptoBalanceTool(BaseOSINTTool):
                                 source="smart_scan",
                             )
                     except Exception as e:
-                        errors.append(f"{addr.chain}: {e}")
-
+                        errors.append(f"Error checking {addr.address}: {e}")
         except Exception as e:
-            errors.append(str(e))
-        finally:
-            await coordinator.stop()
-            await hit_logger.close()
+            errors.append(f"Smart scan error: {e}")
 
-        findings.append(Finding(
-            id=f"smart-scan-{scan_id}",
-            module=self.name,
-            title="Smart scan completed",
-            description=(
-                f"Generated {total_generated} AI-biased mnemonics, "
-                f"{total_hits} confirmed hits"
-            ),
-            severity=Severity.HIGH if total_hits > 0 else Severity.INFO,
-            confidence=1.0,
-            tags=["crypto", "smart_scan", "summary"],
-            raw_data={
-                "mnemonics_generated": total_generated,
-                "hits_confirmed": total_hits,
-                "errors": errors,
-            },
-        ))
+        findings.append(
+            Finding(
+                id=f"smart-scan-{scan_id}",
+                module=self.name,
+                title="Smart scan completed",
+                description=(
+                    f"Generated {total_generated} AI-biased mnemonics, "
+                    f"{total_hits} confirmed hits"
+                ),
+                severity=Severity.HIGH if total_hits > 0 else Severity.INFO,
+                confidence=1.0,
+                tags=["crypto", "smart_scan", "summary"],
+                raw_data={
+                    "mnemonics_generated": total_generated,
+                    "hits_confirmed": total_hits,
+                    "errors": errors,
+                },
+            )
+        )
 
         return ScanResult(
             scan_id=scan_id,
@@ -694,11 +748,13 @@ class CryptoBalanceTool(BaseOSINTTool):
                 "hits": total_hits,
             },
             started_at=started_at,
-            completed_at=datetime.utcnow(),
+            completed_at=datetime.now(timezone.utc),
         )
 
 
-def _chain_for_address_type(input_type: str, chains: list[ChainConfig]) -> Optional[ChainConfig]:
+def _chain_for_address_type(
+    input_type: str, chains: list[ChainConfig]
+) -> Optional[ChainConfig]:
     """Map address type to a chain config."""
     mapping = {
         "btc_address": "bitcoin",

@@ -7,7 +7,7 @@ WIF, hex, Base58, and PEM formats using subprocess-based detection.
 import json
 import re
 import subprocess
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
@@ -129,7 +129,7 @@ class PrivateKeyScanner(BaseOSINTTool):
             target: Path to repository or directory.
         """
         scan_id = self._make_scan_id()
-        started_at = datetime.utcnow()
+        started_at = datetime.now(timezone.utc)
         findings: list[Finding] = []
 
         target_path = Path(target).resolve()
@@ -141,7 +141,7 @@ class PrivateKeyScanner(BaseOSINTTool):
                 status="error",
                 error=f"Path does not exist: {target}",
                 started_at=started_at,
-                completed_at=datetime.utcnow(),
+                completed_at=datetime.now(timezone.utc),
             )
 
         # Try GitHound if it's a git repo
@@ -161,7 +161,7 @@ class PrivateKeyScanner(BaseOSINTTool):
                 "scanner": "githound" if (target_path / ".git").exists() else "regex",
             },
             started_at=started_at,
-            completed_at=datetime.utcnow(),
+            completed_at=datetime.now(timezone.utc),
         )
 
     async def _scan_with_githound(

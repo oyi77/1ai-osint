@@ -1,13 +1,13 @@
-import argparse
 from typing import Any, Dict
 import os
-import json
-from pathlib import Path
 import logging
+
 from src.vendor.chiasmodon.base import OSINTTool
+
 
 class ChiasmodonTool(OSINTTool):
     """OSINT wrapper for Chiasmodon API."""
+
     name = "chiasmodon"
 
     def __init__(self, token=None):
@@ -16,6 +16,7 @@ class ChiasmodonTool(OSINTTool):
     def search(self, query: str, **kwargs) -> Dict[str, Any]:
         try:
             from src.vendor.chiasmodon.chiasmodon.pychiasmodon import Chiasmodon
+
             client = Chiasmodon(token=self.token, check_token=False, debug=False)
             result = client.search(
                 query=query,
@@ -29,7 +30,9 @@ class ChiasmodonTool(OSINTTool):
                 "tool": self.name,
                 "query": query,
                 "result_count": len(result) if result else 0,
-                "results": [dict(r) if hasattr(r, 'items') else str(r) for r in (result or [])],
+                "results": [
+                    dict(r) if hasattr(r, "items") else str(r) for r in (result or [])
+                ],
             }
         except Exception as e:
             logging.error(f"Chiasmodon search error: {e}")
@@ -47,6 +50,7 @@ class ChiasmodonTool(OSINTTool):
 
 class OSINTAggregatorTool(OSINTTool):
     """Aggregates results from multiple OSINT providers."""
+
     name = "osint_aggregator"
 
     def search(self, query: str, **kwargs) -> Dict[str, Any]:

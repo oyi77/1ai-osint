@@ -2,10 +2,10 @@
 
 import hashlib
 import io
-from datetime import datetime
-from typing import Any, Optional
+from datetime import datetime, timezone
+from typing import Any
 
-from src.models import Finding, ScanResult, Severity
+from src.models import ScanResult, Severity
 
 
 class PDFGenerator:
@@ -31,10 +31,9 @@ class PDFGenerator:
 
     def _build_severity_chart(self, severity_counts: dict[str, int]) -> Any:
         """Build a bar chart image of severity distribution using reportlab."""
-        from reportlab.graphics.shapes import Drawing, Rect, String
+        from reportlab.graphics.shapes import Drawing
         from reportlab.graphics.charts.barcharts import VerticalBarChart
         from reportlab.lib.colors import HexColor
-        from reportlab.lib.units import inch
 
         chart = VerticalBarChart()
         chart.x = 50
@@ -76,7 +75,6 @@ class PDFGenerator:
             Spacer,
             Table,
             TableStyle,
-            PageBreak,
         )
 
         buffer = io.BytesIO()
@@ -94,7 +92,7 @@ class PDFGenerator:
         story.append(Paragraph("1ai-osint Security Report", title_style))
         story.append(
             Paragraph(
-                f"Generated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}",
+                f"Generated: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}",
                 styles["Normal"],
             )
         )

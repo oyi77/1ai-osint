@@ -1,7 +1,7 @@
 """LangGraph state machine orchestrating the AI analysis pipeline."""
 
 import logging
-from typing import Any, Literal, Optional
+from typing import Any, Optional
 
 from langgraph.graph import END, StateGraph
 

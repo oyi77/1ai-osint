@@ -2,8 +2,7 @@
 
 import json
 import subprocess
-import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
@@ -62,7 +61,7 @@ class GitleaksModule(BaseOSINTTool):
             target: Path to git repository directory
         """
         scan_id = self._make_scan_id()
-        started_at = datetime.utcnow()
+        started_at = datetime.now(timezone.utc)
         findings: list[Finding] = []
 
         repo_path = Path(target).resolve()
@@ -74,7 +73,7 @@ class GitleaksModule(BaseOSINTTool):
                 status="error",
                 error=f"Path does not exist: {target}",
                 started_at=started_at,
-                completed_at=datetime.utcnow(),
+                completed_at=datetime.now(timezone.utc),
             )
 
         try:
@@ -102,7 +101,7 @@ class GitleaksModule(BaseOSINTTool):
                     status="error",
                     error=f"gitleaks exited with code {result.returncode}: {result.stderr}",
                     started_at=started_at,
-                    completed_at=datetime.utcnow(),
+                    completed_at=datetime.now(timezone.utc),
                 )
 
             # Parse JSON output
@@ -160,7 +159,7 @@ class GitleaksModule(BaseOSINTTool):
                     "findings_count": len(findings),
                 },
                 started_at=started_at,
-                completed_at=datetime.utcnow(),
+                completed_at=datetime.now(timezone.utc),
             )
 
         except subprocess.TimeoutExpired:
@@ -171,7 +170,7 @@ class GitleaksModule(BaseOSINTTool):
                 status="error",
                 error="gitleaks scan timed out",
                 started_at=started_at,
-                completed_at=datetime.utcnow(),
+                completed_at=datetime.now(timezone.utc),
             )
         except FileNotFoundError:
             return ScanResult(
@@ -181,7 +180,7 @@ class GitleaksModule(BaseOSINTTool):
                 status="error",
                 error=f"gitleaks not found at '{self.gitleaks_path}'. Install with: brew install gitleaks",
                 started_at=started_at,
-                completed_at=datetime.utcnow(),
+                completed_at=datetime.now(timezone.utc),
             )
 
     async def analyze(self, data: Any, **kwargs) -> dict[str, Any]:

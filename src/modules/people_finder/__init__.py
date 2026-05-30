@@ -1,6 +1,5 @@
 """People Finder module: Social media username search (Sherlock/Maigret/WhatsMyName)."""
 
-import asyncio
 import subprocess
 import shutil
 from typing import Any, Optional
@@ -16,7 +15,9 @@ class PeopleFinderTool(BaseOSINTTool):
     """Search for user profiles across social media platforms."""
 
     name = "people_finder"
-    description = "Search for usernames across social media platforms using Sherlock/Maigret"
+    description = (
+        "Search for usernames across social media platforms using Sherlock/Maigret"
+    )
     version = "0.1.0"
 
     def __init__(
@@ -36,8 +37,9 @@ class PeopleFinderTool(BaseOSINTTool):
     async def scan(self, target: str, **kwargs) -> ScanResult:
         """Scan for all matching profiles using sherlock."""
         scan_id = self._make_scan_id()
-        from datetime import datetime
-        started_at = datetime.utcnow()
+        from datetime import datetime, timezone
+
+        started_at = datetime.now(timezone.utc)
         findings: list[Finding] = []
         errors: list[str] = []
 
@@ -51,7 +53,7 @@ class PeopleFinderTool(BaseOSINTTool):
                 status="error",
                 error="Neither sherlock nor maigret found. Install with: pip install sherlock-project",
                 started_at=started_at,
-                completed_at=datetime.utcnow(),
+                completed_at=datetime.now(timezone.utc),
             )
 
         try:
@@ -69,39 +71,53 @@ class PeopleFinderTool(BaseOSINTTool):
 
             if result.stdout.strip():
                 import json
+
                 try:
                     data = json.loads(result.stdout)
                     if isinstance(data, dict):
                         for site, info in data.items():
-                            if isinstance(info, dict) and info.get("status") == "Claimed":
-                                findings.append(Finding(
-                                    id=self._make_finding_id(),
-                                    module=self.name,
-                                    title=f"Profile found: {target} on {site}",
-                                    description=f"Username '{target}' found on {site}",
-                                    severity=Severity.LOW,
-                                    raw_data={"site": site, "url": info.get("url", ""), "username": target},
-                                    confidence=0.8,
-                                    tags=["people", "social", site.lower()],
-                                ))
+                            if (
+                                isinstance(info, dict)
+                                and info.get("status") == "Claimed"
+                            ):
+                                findings.append(
+                                    Finding(
+                                        id=self._make_finding_id(),
+                                        module=self.name,
+                                        title=f"Profile found: {target} on {site}",
+                                        description=f"Username '{target}' found on {site}",
+                                        severity=Severity.LOW,
+                                        raw_data={
+                                            "site": site,
+                                            "url": info.get("url", ""),
+                                            "username": target,
+                                        },
+                                        confidence=0.8,
+                                        tags=["people", "social", site.lower()],
+                                    )
+                                )
                 except json.JSONDecodeError:
                     # Line-based output parsing
                     for line in result.stdout.strip().split("\n"):
                         line = line.strip()
                         if line.startswith("http"):
-                            findings.append(Finding(
-                                id=self._make_finding_id(),
-                                module=self.name,
-                                title=f"Profile found: {target}",
-                                description=line,
-                                severity=Severity.LOW,
-                                raw_data={"url": line, "username": target},
-                                confidence=0.7,
-                                tags=["people", "social"],
-                            ))
+                            findings.append(
+                                Finding(
+                                    id=self._make_finding_id(),
+                                    module=self.name,
+                                    title=f"Profile found: {target}",
+                                    description=line,
+                                    severity=Severity.LOW,
+                                    raw_data={"url": line, "username": target},
+                                    confidence=0.7,
+                                    tags=["people", "social"],
+                                )
+                            )
 
             if result.returncode not in (0, 1):
-                errors.append(f"{tool} exited with code {result.returncode}: {result.stderr}")
+                errors.append(
+                    f"{tool} exited with code {result.returncode}: {result.stderr}"
+                )
 
         except subprocess.TimeoutExpired:
             return ScanResult(
@@ -111,7 +127,7 @@ class PeopleFinderTool(BaseOSINTTool):
                 status="error",
                 error="People finder scan timed out",
                 started_at=started_at,
-                completed_at=datetime.utcnow(),
+                completed_at=datetime.now(timezone.utc),
             )
         except FileNotFoundError:
             return ScanResult(
@@ -121,7 +137,7 @@ class PeopleFinderTool(BaseOSINTTool):
                 status="error",
                 error=f"Tool '{tool}' not found. Install with: pip install sherlock-project",
                 started_at=started_at,
-                completed_at=datetime.utcnow(),
+                completed_at=datetime.now(timezone.utc),
             )
 
         return ScanResult(
@@ -132,7 +148,7 @@ class PeopleFinderTool(BaseOSINTTool):
             findings=findings,
             metadata={"tool": tool, "findings_count": len(findings), "errors": errors},
             started_at=started_at,
-            completed_at=datetime.utcnow(),
+            completed_at=datetime.now(timezone.utc),
         )
 
     async def analyze(self, data: Any, **kwargs) -> dict[str, Any]:

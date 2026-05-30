@@ -2,14 +2,13 @@
 
 import json
 import logging
-from typing import Any, Optional
+from typing import Optional
 
 from src.ai.omniroute_client import OmniRouteClient
 from src.ai.schemas.responses import (
     CorrelationResult,
     EntityExtractionResult,
     ExtractedEntity,
-    EntityType,
 )
 
 logger = logging.getLogger(__name__)

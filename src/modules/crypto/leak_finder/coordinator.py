@@ -1,16 +1,18 @@
 """Leak finder coordinator."""
 from __future__ import annotations
-import asyncio, logging, os
+import asyncio
+import logging
+import os
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Optional
 from src.modules.crypto.balance.chains import ALL_CHAINS, ChainConfig, ChainType
-from src.modules.crypto.balance.checker import BalanceResult, check_btc_balance, check_balance
+from src.modules.crypto.balance.checker import check_btc_balance, check_balance
 from src.modules.crypto.balance.hit_logger import HitLogger
 from src.modules.crypto.balance.multicall import batch_check_balances, batch_check_sol_balances
 from src.modules.crypto.balance.sweeper import Sweeper, SweepResult
 from src.modules.crypto.balance.scanner_coordinator import ScannerCoordinator
-from src.modules.crypto.leak_finder.extractor import ExtractedKey, KeyType, extract_keys
+from src.modules.crypto.leak_finder.extractor import ExtractedKey, extract_keys
 from src.modules.crypto.leak_finder.sources.github_source import GitHubLeakSource, RawLeak
 from src.modules.crypto.leak_finder.sources.paste_source import PasteSource
 from src.modules.crypto.leak_finder.sources.telegram_source import TelegramSource

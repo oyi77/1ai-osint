@@ -1,8 +1,7 @@
 """SARIF 2.1.0 formatter for GitHub Security tab integration."""
 
 import hashlib
-from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from src.models import Finding, ScanResult, Severity
 

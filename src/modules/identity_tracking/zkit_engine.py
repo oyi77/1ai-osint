@@ -11,16 +11,12 @@ from identity_graph.py.
 from __future__ import annotations
 
 import secrets
-from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Any, Optional
 
-from src.models import Finding, ScanResult
 from src.modules.identity_tracking.identity_graph import (
-    GraphEdge,
-    GraphNode,
     IdentityGraph,
     NodeType,
 )

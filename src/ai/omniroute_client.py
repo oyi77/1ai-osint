@@ -2,7 +2,7 @@
 
 import time
 import logging
-from typing import Any, Optional
+from typing import Optional
 
 from openai import OpenAI, APITimeoutError, APIConnectionError, RateLimitError
 

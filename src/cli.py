@@ -1,9 +1,7 @@
 """1ai-osint CLI entry point."""
 
 import asyncio
-import json
 import sys
-from datetime import datetime
 
 import typer
 
@@ -13,7 +11,16 @@ app = typer.Typer(
 )
 
 # Valid module names for the scan command
-SCAN_MODULES = ("gitleaks", "data_leaks", "people", "phone", "crypto_passphrase", "crypto_privatekey", "crypto_balance", "all")
+SCAN_MODULES = (
+    "gitleaks",
+    "data_leaks",
+    "people",
+    "phone",
+    "crypto_passphrase",
+    "crypto_privatekey",
+    "crypto_balance",
+    "all",
+)
 OUTPUT_FORMATS = ("json", "sarif", "pdf")
 
 
@@ -89,8 +96,8 @@ class _PassphraseModule:
     async def scan(self, target: str, **kwargs):
         from src.models import Finding, ScanResult, Severity
 
-        scan_id = f"passphrase-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
-        started_at = datetime.utcnow()
+        scan_id = f"passphrase-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
+        started_at = datetime.now(timezone.utc)
         findings = []
 
         try:
@@ -129,7 +136,7 @@ class _PassphraseModule:
             findings=findings,
             metadata={"word_count": 24},
             started_at=started_at,
-            completed_at=datetime.utcnow(),
+            completed_at=datetime.now(timezone.utc),
         )
 
 
@@ -180,16 +187,16 @@ def _run_zkit_tracking(result, zkit_salt: str):
 
             # Add nodes
             for raw_val, node_type in attrs:
-                graph.add_raw_attribute(
-                    raw_val, node_type, source=result.module
-                )
+                graph.add_raw_attribute(raw_val, node_type, source=result.module)
 
             # Add co-occurrence edges between attributes in the same finding
             for i in range(len(attrs)):
                 for j in range(i + 1, len(attrs)):
                     graph.add_co_occurrence(
-                        attrs[i][0], attrs[i][1],
-                        attrs[j][0], attrs[j][1],
+                        attrs[i][0],
+                        attrs[i][1],
+                        attrs[j][0],
+                        attrs[j][1],
                         source=result.module,
                     )
 
@@ -203,112 +210,9 @@ def _run_zkit_tracking(result, zkit_salt: str):
     return result
 
 
-def _format_sarif(results: list) -> str:
-    """Format scan results as SARIF 2.1.0."""
-    sarif_runs = []
-    all_rules = []
-    all_results = []
+from src.modules.output.sarif import format_sarif as _format_sarif
+from src.modules.output.pdf_export import format_pdf as _format_pdf
 
-    for scan_result in results:
-        for finding in (scan_result.findings or []):
-            rule_id = finding.id
-            severity = finding.severity.value if hasattr(finding.severity, "value") else str(finding.severity)
-
-            # Map to SARIF level
-            level = "none"
-            if severity in ("critical", "high"):
-                level = "error"
-            elif severity == "medium":
-                level = "warning"
-            elif severity == "low":
-                level = "note"
-
-            all_rules.append({
-                "id": rule_id,
-                "shortDescription": {"text": finding.title},
-                "fullDescription": {"text": finding.description},
-                "defaultConfiguration": {"level": level},
-            })
-
-            raw = finding.raw_data or {}
-            all_results.append({
-                "ruleId": rule_id,
-                "level": level,
-                "message": {"text": finding.description},
-                "properties": {
-                    "module": finding.module,
-                    "confidence": finding.confidence,
-                    "tags": finding.tags,
-                },
-            })
-
-    sarif_runs.append({
-        "tool": {
-            "driver": {
-                "name": "1ai-osint",
-                "version": "0.1.0",
-                "rules": all_rules,
-            }
-        },
-        "results": all_results,
-    })
-
-    sarif = {
-        "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/sarif-2.1/schema/sarif-schema-2.1.0.json",
-        "version": "2.1.0",
-        "runs": sarif_runs,
-    }
-    return json.dumps(sarif, indent=2, default=str)
-
-
-def _format_pdf(results: list) -> bytes:
-    """Format scan results as a PDF report."""
-    from reportlab.lib.pagesizes import letter
-    from reportlab.lib.styles import getSampleStyleSheet
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-    from reportlab.lib import colors
-    from io import BytesIO
-
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter)
-    styles = getSampleStyleSheet()
-    elements = []
-
-    elements.append(Paragraph("1ai-osint Scan Report", styles["Title"]))
-    elements.append(Spacer(1, 12))
-    elements.append(Paragraph(f"Generated: {datetime.utcnow().isoformat()}Z", styles["Normal"]))
-    elements.append(Spacer(1, 24))
-
-    for scan_result in results:
-        elements.append(Paragraph(f"Module: {scan_result.module}", styles["Heading2"]))
-        elements.append(Paragraph(f"Target: {scan_result.target}", styles["Normal"]))
-        elements.append(Paragraph(f"Status: {scan_result.status}", styles["Normal"]))
-        elements.append(Paragraph(f"Findings: {scan_result.finding_count}", styles["Normal"]))
-        elements.append(Spacer(1, 12))
-
-        if scan_result.findings:
-            table_data = [["Severity", "Title", "Confidence"]]
-            for f in scan_result.findings:
-                sev = f.severity.value if hasattr(f.severity, "value") else str(f.severity)
-                table_data.append([sev, f.title[:60], f"{f.confidence:.0%}"])
-
-            table = Table(table_data, colWidths=[80, 300, 70])
-            table.setStyle(
-                TableStyle(
-                    [
-                        ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
-                        ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
-                        ("FONTSIZE", (0, 0), (-1, -1), 8),
-                        ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
-                        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.lightgrey]),
-                    ]
-                )
-            )
-            elements.append(table)
-            elements.append(Spacer(1, 24))
-
-    doc.build(elements)
-    return buffer.getvalue()
 
 
 @app.command()
@@ -324,16 +228,25 @@ def scan(
     ),
     ai: bool = typer.Option(False, "--ai", help="Enable AI analysis via orchestrator"),
     zkit: bool = typer.Option(False, "--zkit", help="Enable ZKIT identity tracking"),
-    zkit_salt: str = typer.Option("", help="ZKIT salt for privacy-preserving identity hashing"),
+    zkit_salt: str = typer.Option(
+        "", help="ZKIT salt for privacy-preserving identity hashing"
+    ),
     timeout: int = typer.Option(300, help="Scan timeout in seconds"),
     # crypto_balance specific options
     scan_mode: str = typer.Option(
-        "", help="Scan mode for crypto_balance: 'random', 'targeted', 'leak', or 'smart' (auto-detected if omitted)"
+        "",
+        help="Scan mode for crypto_balance: 'random', 'targeted', 'leak', or 'smart' (auto-detected if omitted)",
     ),
-    workers: int = typer.Option(20, help="Number of concurrent workers for random scan"),
-    duration: int = typer.Option(0, help="Duration in seconds for random scan (0 = use iterations)"),
+    workers: int = typer.Option(
+        20, help="Number of concurrent workers for random scan"
+    ),
+    duration: int = typer.Option(
+        0, help="Duration in seconds for random scan (0 = use iterations)"
+    ),
     account_count: int = typer.Option(1, help="Number of accounts to derive per chain"),
-    min_balance: float = typer.Option(0.0, help="Minimum balance threshold for random scan hits"),
+    min_balance: float = typer.Option(
+        0.0, help="Minimum balance threshold for random scan hits"
+    ),
 ):
     """Run an OSINT scan against a target.
 
@@ -345,7 +258,10 @@ def scan(
     effective_salt = zkit_salt or settings.zkit_salt
 
     if output not in OUTPUT_FORMATS:
-        typer.echo(f"Error: Unknown output format '{output}'. Use: {', '.join(OUTPUT_FORMATS)}", err=True)
+        typer.echo(
+            f"Error: Unknown output format '{output}'. Use: {', '.join(OUTPUT_FORMATS)}",
+            err=True,
+        )
         raise typer.Exit(1)
 
     modules_to_run = []
@@ -415,11 +331,15 @@ def leak_finder(
     ),
     sources: str = typer.Option(
         "github,paste,telegram,tgstat",
-        "--sources", "-s",
+        "--sources",
+        "-s",
         help="Comma-separated list of sources: github, paste, telegram, tgstat",
     ),
     interval: int = typer.Option(
-        300, "--interval", "-i", help="Seconds between runs in continuous mode (default: 300)"
+        300,
+        "--interval",
+        "-i",
+        help="Seconds between runs in continuous mode (default: 300)",
     ),
     github_token: str = typer.Option(
         "", help="GitHub API token for authenticated search (higher rate limits)"
@@ -481,7 +401,9 @@ def leak_finder(
                 )
                 await coordinator.run_continuous(interval_sec=interval)
             else:
-                typer.echo(f"Running leak finder (sources: {', '.join(source_list)})", err=True)
+                typer.echo(
+                    f"Running leak finder (sources: {', '.join(source_list)})", err=True
+                )
                 result = await coordinator.run_once()
                 typer.echo(
                     f"Scan complete:\n"

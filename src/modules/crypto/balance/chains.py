@@ -35,22 +35,24 @@ SOL_RPCS = [
 
 class ChainType(str, Enum):
     """Blockchain type — determines RPC protocol."""
-    EVM = "evm"          # ETH, BSC, Polygon — web3 JSON-RPC
+
+    EVM = "evm"  # ETH, BSC, Polygon — web3 JSON-RPC
     BITCOIN = "bitcoin"  # BTC — REST API
-    SOLANA = "solana"    # SOL — JSON-RPC
+    SOLANA = "solana"  # SOL — JSON-RPC
 
 
 @dataclass
 class ChainConfig:
     """Configuration for a single blockchain."""
+
     name: str
     symbol: str
     chain_type: ChainType
-    coin_id: str                     # CoinGecko API ID
-    rpc_url: Optional[str] = None    # For EVM/Solana
-    api_url: Optional[str] = None    # For BTC (blockstream.info)
+    coin_id: str  # CoinGecko API ID
+    rpc_url: Optional[str] = None  # For EVM/Solana
+    api_url: Optional[str] = None  # For BTC (blockstream.info)
     decimals: int = 18
-    bip44_coin_type: int = 60        # BIP-44 coin type
+    bip44_coin_type: int = 60  # BIP-44 coin type
     derivation_paths: list[str] = field(default_factory=lambda: ["m/44'/60'/0'/0/0"])
 
 
@@ -65,9 +67,9 @@ ETHEREUM = ChainConfig(
     decimals=18,
     bip44_coin_type=60,
     derivation_paths=[
-        "m/44'/60'/0'/0/0",    # Standard BIP-44 (MetaMask, Trust, OKX, Gate.io)
-        "m/44'/60'/0'/0/1",    # Second address (some wallets auto-generate)
-        "m/44'/60'/1'/0/0",    # Account 1 (Binance sometimes uses)
+        "m/44'/60'/0'/0/0",  # Standard BIP-44 (MetaMask, Trust, OKX, Gate.io)
+        "m/44'/60'/0'/0/1",  # Second address (some wallets auto-generate)
+        "m/44'/60'/1'/0/0",  # Account 1 (Binance sometimes uses)
     ],
 )
 
@@ -102,13 +104,13 @@ BITCOIN = ChainConfig(
     decimals=8,
     bip44_coin_type=0,
     derivation_paths=[
-        "m/44'/0'/0'/0/0",   # Legacy P2PKH
-        "m/44'/0'/0'/0/1",   # Legacy second address
-        "m/49'/0'/0'/0/0",   # SegWit P2SH-P2WPKH
-        "m/49'/0'/0'/0/1",   # SegWit second address
-        "m/84'/0'/0'/0/0",   # Native SegWit Bech32
-        "m/84'/0'/0'/0/1",   # Native SegWit second address
-        "m/86'/0'/0'/0/0",   # Taproot (BIP-86, used by OKX/Trust)
+        "m/44'/0'/0'/0/0",  # Legacy P2PKH
+        "m/44'/0'/0'/0/1",  # Legacy second address
+        "m/49'/0'/0'/0/0",  # SegWit P2SH-P2WPKH
+        "m/49'/0'/0'/0/1",  # SegWit second address
+        "m/84'/0'/0'/0/0",  # Native SegWit Bech32
+        "m/84'/0'/0'/0/1",  # Native SegWit second address
+        "m/86'/0'/0'/0/0",  # Taproot (BIP-86, used by OKX/Trust)
     ],
 )
 
@@ -121,8 +123,8 @@ SOLANA = ChainConfig(
     decimals=9,
     bip44_coin_type=501,
     derivation_paths=[
-        "m/44'/501'/0'/0'",          # Standard (Phantom, Solflare)
-        "m/44'/501'/0'/0'/0'",       # Alternative (some OKX versions)
+        "m/44'/501'/0'/0'",  # Standard (Phantom, Solflare)
+        "m/44'/501'/0'/0'/0'",  # Alternative (some OKX versions)
     ],
 )
 
@@ -132,3 +134,8 @@ ALL_CHAINS: list[ChainConfig] = [ETHEREUM, BSC, POLYGON, BITCOIN, SOLANA]
 # Map for quick lookup by name
 CHAIN_MAP: dict[str, ChainConfig] = {c.name.lower(): c for c in ALL_CHAINS}
 CHAIN_MAP.update({c.symbol.lower(): c for c in ALL_CHAINS})
+
+
+def chain_by_name(name: str) -> Optional[ChainConfig]:
+    """Look up a chain by name or symbol (case-insensitive)."""
+    return CHAIN_MAP.get(name.lower())
