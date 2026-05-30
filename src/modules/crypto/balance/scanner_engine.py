@@ -188,7 +188,7 @@ class RandomScanner:
             self._chain_locks[chain.name] = asyncio.Lock()
             self._chain_last_call[chain.name] = 0.0
             if chain.chain_type == ChainType.BITCOIN:
-                self._chain_min_interval[chain.name] = 0.5  # 2 calls/sec for BTC REST
+                self._chain_min_interval[chain.name] = 2.0  # 1 batch/2sec for BTC (7 addresses per batch)
             elif chain.chain_type == ChainType.SOLANA:
                 self._chain_min_interval[chain.name] = 0.25  # 4 calls/sec for SOL
             else:

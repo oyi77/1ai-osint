@@ -22,10 +22,7 @@ ENDPOINT_REGISTRY: dict[str, list[str]] = {
     "bitcoin": [
         "https://mempool.space/api",
         "https://blockstream.info/api",
-        "https://blockchain.info",
-        "https://api.blockcypher.com/v1/btc/main",
         "https://btcscan.org/api",
-        "https://blockonomics.co/api",
     ],
     "ethereum": [
         "https://rpc.ankr.com/eth",
@@ -40,13 +37,13 @@ ENDPOINT_REGISTRY: dict[str, list[str]] = {
         "https://bsc-dataseed2.binance.org",
         "https://rpc.ankr.com/bsc",
         "https://bsc-rpc.publicnode.com",
-        "https://bsc.drpc.org",
     ],
     "matic-network": [
         "https://rpc.ankr.com/polygon",
         "https://polygon-bor-rpc.publicnode.com",
         "https://polygon-rpc.publicnode.com",
         "https://polygon.drpc.org",
+        "https://polygon.llamarpc.com",
     ],
     "solana": [
         "https://api.mainnet-beta.solana.com",
@@ -154,10 +151,21 @@ class EndpointRotator:
         if best_url is not None:
             return best_url
 
-        # All disabled — return next round-robin pick (degraded mode)
-        url = self._url_list[self._index]
+        # All disabled — find the one closest to re-enable
+        now = time.monotonic()
+        best_reattempt_url = None
+        best_time_left = float("inf")
+        for url in self._url_list:
+            health = self._endpoints[url]
+            if health.disabled_at is not None:
+                time_left = _REENABLE_AFTER_SECONDS - (now - health.disabled_at)
+                if time_left < best_time_left:
+                    best_time_left = time_left
+                    best_reattempt_url = url
+        if best_reattempt_url:
+            logger.warning("All endpoints disabled — will re-enable in %.0fs: %s", max(0, best_time_left), best_reattempt_url)
+        url = best_reattempt_url or self._url_list[self._index]
         self._index = (self._index + 1) % n
-        logger.warning("All endpoints disabled, using degraded endpoint: %s", url)
         return url
 
     def get_wait_time(self, url: str) -> float:
@@ -189,6 +197,9 @@ class EndpointRotator:
         """
         health = self._endpoints.get(url)
         if health is None:
+            return
+        # Skip if already disabled — no point counting more failures
+        if health.disabled_at is not None:
             return
         health.failure_count += 1
         health.consecutive_failures += 1
