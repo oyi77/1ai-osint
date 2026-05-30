@@ -394,7 +394,7 @@ class TestRandomScanner:
             )
         ]
         with patch.object(scanner, "_check_balances", new_callable=AsyncMock) as mock_check, \
-             patch("src.modules.crypto.balance.scanner_engine.derive_from_mnemonic", return_value=mock_addrs):
+             patch("src.modules.crypto.balance.deriver.derive_from_mnemonic", return_value=mock_addrs):
             mock_check.return_value = [
                 BalanceResult(
                     address="0x123", chain="Ethereum", symbol="ETH",
@@ -416,7 +416,7 @@ class TestRandomScanner:
             )
         ]
         with patch.object(scanner, "_check_balances", new_callable=AsyncMock) as mock_check, \
-             patch("src.modules.crypto.balance.scanner_engine.derive_from_mnemonic", return_value=mock_addrs):
+             patch("src.modules.crypto.balance.deriver.derive_from_mnemonic", return_value=mock_addrs):
             mock_check.return_value = [
                 BalanceResult(
                     address="0x123", chain="Ethereum", symbol="ETH",
@@ -438,7 +438,7 @@ class TestRandomScanner:
             )
         ]
         with patch.object(scanner, "_check_balances", new_callable=AsyncMock) as mock_check, \
-             patch("src.modules.crypto.balance.scanner_engine.derive_from_mnemonic", return_value=mock_addrs):
+             patch("src.modules.crypto.balance.deriver.derive_from_mnemonic", return_value=mock_addrs):
             mock_check.side_effect = Exception("API down")
             stats = await scanner.run(max_mnemonics=2)
             assert stats.api_errors >= 0  # Errors counted, not crashed

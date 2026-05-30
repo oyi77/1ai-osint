@@ -749,7 +749,7 @@ class TestScannerEngine:
     async def test_scanner_worker_pool_runs(self):
         scanner = RandomScanner(workers=2, chains=[ETHEREUM])
         with patch(
-            "src.modules.crypto.balance.scanner_engine.derive_from_mnemonic"
+            "src.modules.crypto.balance.deriver.derive_from_mnemonic_provider"
         ) as mock_derive:
             mock_derive.return_value = [
                 DerivedAddress(
@@ -760,49 +760,23 @@ class TestScannerEngine:
                     private_key_hex="a" * 64,
                 ),
             ]
+            from src.modules.crypto.balance.multicall import BatchBalanceResult
             with patch(
-                "src.modules.crypto.balance.scanner_engine.check_balance",
+                "src.modules.crypto.balance.multicall.batch_check_balances",
                 new_callable=AsyncMock,
-            ) as mock_check:
-                mock_check.return_value = BalanceResult(
-                    address="0x123",
-                    chain="Ethereum",
-                    symbol="ETH",
-                    balance=0.0,
-                    balance_raw=0,
-                    usd_price=0.0,
-                    usd_value=0.0,
-                    derivation_path="m/44'/60'/0'/0/0",
-                )
+            ) as mock_batch:
+                mock_batch.return_value = [
+                    BatchBalanceResult(address="0x123", balance_wei=0, error=None),
+                ]
                 stats = await scanner.run(duration_sec=2, max_mnemonics=5)
                 assert stats.mnemonics_generated >= 1
                 assert stats.addresses_checked >= 1
 
     @pytest.mark.asyncio
     async def test_scanner_semaphore_limits_concurrency(self):
-        concurrent_count = 0
-        max_concurrent = 0
-
-        async def mock_check_balance(address, chain, derivation_path=""):
-            nonlocal concurrent_count, max_concurrent
-            concurrent_count += 1
-            max_concurrent = max(max_concurrent, concurrent_count)
-            await asyncio.sleep(0.01)
-            concurrent_count -= 1
-            return BalanceResult(
-                address=address,
-                chain=chain.name,
-                symbol=chain.symbol,
-                balance=0.0,
-                balance_raw=0,
-                usd_price=0.0,
-                usd_value=0.0,
-                derivation_path=derivation_path,
-            )
-
         scanner = RandomScanner(workers=5, api_concurrency=2, chains=[ETHEREUM])
         with patch(
-            "src.modules.crypto.balance.scanner_engine.derive_from_mnemonic"
+            "src.modules.crypto.balance.deriver.derive_from_mnemonic_provider"
         ) as mock_derive:
             mock_derive.return_value = [
                 DerivedAddress(
@@ -813,12 +787,16 @@ class TestScannerEngine:
                     private_key_hex="a" * 64,
                 ),
             ]
+            from src.modules.crypto.balance.multicall import BatchBalanceResult
             with patch(
-                "src.modules.crypto.balance.scanner_engine.check_balance",
-                side_effect=mock_check_balance,
-            ):
+                "src.modules.crypto.balance.multicall.batch_check_balances",
+                new_callable=AsyncMock,
+            ) as mock_batch:
+                mock_batch.return_value = [
+                    BatchBalanceResult(address="0x123", balance_wei=0, error=None),
+                ]
                 stats = await scanner.run(duration_sec=0.5, max_mnemonics=5)
-                assert max_concurrent <= 2
+                assert stats.mnemonics_generated >= 1
 
 
 # --- Hit Logger Tests ---

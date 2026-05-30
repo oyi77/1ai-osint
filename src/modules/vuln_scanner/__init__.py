@@ -3,6 +3,7 @@
 import json
 import logging
 import subprocess
+import uuid
 from datetime import datetime, timezone
 from typing import Any
 
@@ -68,6 +69,7 @@ class VulnScannerTool(BaseOSINTTool):
         started_at = datetime.now(timezone.utc)
         findings = self._run_scan(target, mode=mode, timeout=timeout)
         return ScanResult(
+            scan_id=str(uuid.uuid4()),
             module=self.name,
             target=target,
             status="ok",
@@ -173,6 +175,7 @@ class VulnScannerTool(BaseOSINTTool):
                 continue
 
             finding = Finding(
+                id=str(uuid.uuid4()),
                 module=self.name,
                 title=vuln.get("name", vuln.get("vuln_id", "Unknown vulnerability")),
                 description=vuln.get("description", vuln.get("detail", "")),

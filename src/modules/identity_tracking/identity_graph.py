@@ -28,8 +28,8 @@ class GraphNode(BaseModel):
     """A hashed attribute node in the identity graph."""
     node_id: str = Field(..., description="ZKIT salted SHA-256 hash (node key)")
     node_type: NodeType = Field(..., description="Type of hashed attribute")
-    first_seen: datetime = Field(default_factory=datetime.utcnow)
-    last_seen: datetime = Field(default_factory=datetime.utcnow)
+    first_seen: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    last_seen: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     sources: list[str] = Field(default_factory=list)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
@@ -46,8 +46,8 @@ class GraphEdge(BaseModel):
     target_id: str = Field(..., description="Target node_id (hash)")
     weight: float = Field(default=1.0, ge=0.0, description="Edge confidence weight")
     co_occurrences: int = Field(default=1, ge=1, description="Number of co-observations")
-    first_seen: datetime = Field(default_factory=datetime.utcnow)
-    last_seen: datetime = Field(default_factory=datetime.utcnow)
+    first_seen: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    last_seen: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     sources: list[str] = Field(default_factory=list)
     metadata: dict[str, Any] = Field(default_factory=dict)
 

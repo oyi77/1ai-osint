@@ -471,6 +471,6 @@ def targeted_scan_to_scanresult(
     )
 
 
-def _chain_by_name(name: str, chains: list[ChainConfig]) -> Optional[ChainConfig]:
+def chain_by_name(name: str, chains: list[ChainConfig]) -> Optional[ChainConfig]:
     """Find a chain by name in a list."""
     return next((c for c in chains if c.name == name), None)

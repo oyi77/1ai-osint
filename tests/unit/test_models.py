@@ -36,6 +36,10 @@ class TestScanResult:
         )
         assert s.duration_seconds == 0.0
 
+    def test_duration_none_when_not_completed(self):
+        s = ScanResult(scan_id="s1", module="t", target="t")
+        assert s.duration_seconds is None
+
 
 class TestBreachRecord:
     def test_create(self):

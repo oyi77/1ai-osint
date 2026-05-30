@@ -163,7 +163,7 @@ class TestVulnScannerToolBuildCommand:
         tool = VulnScannerTool.__new__(VulnScannerTool)
         tool.binary_path = "scan4all"
         cmd = tool._build_command("example.com", "full")
-        assert "portscan" in cmd
+        assert any("portscan" in arg for arg in cmd)
 
     def test_fingerprint_mode(self):
         tool = VulnScannerTool.__new__(VulnScannerTool)
