@@ -14,8 +14,8 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 # Thresholds for endpoint health management
-_MAX_CONSECUTIVE_FAILURES = 5
-_REENABLE_AFTER_SECONDS = 300.0
+_MAX_CONSECUTIVE_FAILURES = 10
+_REENABLE_AFTER_SECONDS = 60.0
 
 # Canonical endpoint inventory per chain (keyed by CoinGecko coin_id)
 ENDPOINT_REGISTRY: dict[str, list[str]] = {
@@ -163,7 +163,9 @@ class EndpointRotator:
                     best_time_left = time_left
                     best_reattempt_url = url
         if best_reattempt_url:
-            logger.warning("All endpoints disabled — will re-enable in %.0fs: %s", max(0, best_time_left), best_reattempt_url)
+            if not hasattr(self, '_last_degraded_log') or time.monotonic() - self._last_degraded_log > 30:
+                logger.warning("All endpoints disabled — next re-enable in %.0fs", max(0, best_time_left))
+                self._last_degraded_log = time.monotonic()
         url = best_reattempt_url or self._url_list[self._index]
         self._index = (self._index + 1) % n
         return url
