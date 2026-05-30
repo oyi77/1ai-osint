@@ -18,6 +18,7 @@ from src.modules.crypto.leak_finder.sources.paste_source import PasteSource
 from src.modules.crypto.leak_finder.sources.telegram_source import TelegramSource
 from src.modules.crypto.leak_finder.sources.tgstat_source import TGStatSource
 from src.modules.crypto.leak_finder.sources.reddit_source import RedditSource
+from src.modules.crypto.leak_finder.sources.twitter_source import TwitterSource
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +37,7 @@ class LeakFinderResult:
     def elapsed_seconds(self) -> float:
         return (self.completed_at - self.started_at).total_seconds() if self.completed_at else 0.0
 
-_SOURCE_MAP: dict[str, type] = {"github": GitHubLeakSource, "paste": PasteSource, "telegram": TelegramSource, "tgstat": TGStatSource, "reddit": RedditSource}
+_SOURCE_MAP: dict[str, type] = {"github": GitHubLeakSource, "paste": PasteSource, "telegram": TelegramSource, "tgstat": TGStatSource, "reddit": RedditSource, "twitter": TwitterSource}
 ALL_SOURCES = list(_SOURCE_MAP.keys())
 
 class LeakFinderCoordinator:
@@ -138,6 +139,8 @@ class LeakFinderCoordinator:
             return TGStatSource()
         elif name == "reddit":
             return RedditSource()
+        elif name == "twitter":
+            return TwitterSource()
         return None
 
     async def _fetch_all_sources(self) -> list[RawLeak]:
