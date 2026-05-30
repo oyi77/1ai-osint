@@ -23,11 +23,11 @@ from datetime import datetime, timezone
 import httpx
 
 # --- Load environment and configure logging ---
-from dotenv import load_dotenv
-from src.config import setup_logging
-
-load_dotenv()
-setup_logging()
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 # --- Config ---
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
