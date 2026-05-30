@@ -6,7 +6,6 @@ disabling after consecutive failures, and timed re-enablement.
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import time
 from dataclasses import dataclass
@@ -125,7 +124,6 @@ class EndpointRotator:
         self._endpoints = {url: EndpointHealth(url=url) for url in endpoints}
         self._url_list = list(endpoints)
         self._index = 0
-        self._lock = asyncio.Lock()
 
     def next(self) -> str:
         """Return the next healthy endpoint via round-robin.
@@ -191,28 +189,23 @@ class EndpointRotator:
         health.success_count += 1
         health.consecutive_failures = 0
 
-    async def report_failure(self, url: str) -> None:
-        """Record a failed request for the given endpoint.
-
-        After `_MAX_CONSECUTIVE_FAILURES` consecutive failures, the
-        endpoint is disabled for `_REENABLE_AFTER_SECONDS`. Uses a lock
-        to prevent race conditions when multiple workers fail simultaneously.
-        """
-        async with self._lock:
-            health = self._endpoints.get(url)
-            if health is None:
-                return
-            if health.disabled_at is not None:
-                return
-            health.failure_count += 1
-            health.consecutive_failures += 1
-            if health.consecutive_failures >= _MAX_CONSECUTIVE_FAILURES:
-                health.disabled_at = time.monotonic()
-                logger.warning(
-                    "Disabled endpoint %s after %d consecutive failures",
-                    url,
-                    health.consecutive_failures,
-                )
+    def report_failure(self, url: str) -> None:
+        """Record a failed request for the given endpoint."""
+        health = self._endpoints.get(url)
+        if health is None:
+            return
+        # is_disabled handles re-enable after _REENABLE_AFTER_SECONDS
+        if health.is_disabled:
+            return
+        health.failure_count += 1
+        health.consecutive_failures += 1
+        if health.consecutive_failures >= _MAX_CONSECUTIVE_FAILURES:
+            health.disabled_at = time.monotonic()
+            logger.warning(
+                "Disabled endpoint %s after %d consecutive failures",
+                url,
+                health.consecutive_failures,
+            )
 
     def get_health(self, url: str) -> Optional[EndpointHealth]:
         """Return health info for a specific endpoint."""

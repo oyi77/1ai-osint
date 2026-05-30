@@ -439,7 +439,7 @@ class RandomScanner:
                     if br.error:
                         self._stats.api_errors += 1
                         if rotator:
-                            await rotator.report_failure(used_url)
+                            rotator.report_failure(used_url)
                         results[idx] = BalanceResult(
                             address=addr.address, chain=chain_name,
                             symbol=chain_cfg.symbol, balance=0.0,
@@ -464,7 +464,7 @@ class RandomScanner:
                         if r.error:
                             self._stats.api_errors += 1
                             if rotator:
-                                await rotator.report_failure(used_url)
+                                rotator.report_failure(used_url)
                         else:
                             if rotator:
                                 rotator.report_success(used_url)
@@ -482,7 +482,7 @@ class RandomScanner:
                     if br.error:
                         self._stats.api_errors += 1
                         if rotator:
-                            await rotator.report_failure(used_url)
+                            rotator.report_failure(used_url)
                         results[idx] = BalanceResult(
                             address=addr.address, chain=chain_name,
                             symbol=chain_cfg.symbol, balance=0.0,

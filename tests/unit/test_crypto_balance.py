@@ -413,12 +413,11 @@ class TestEndpointRotator:
             "https://rpc3.com",
         }
 
-    @pytest.mark.asyncio
-    async def test_report_success_resets_failures(self):
+    def test_report_success_resets_failures(self):
         rotator = EndpointRotator(["https://rpc1.com"])
         url = rotator.next()
-        await rotator.report_failure(url)
-        await rotator.report_failure(url)
+        rotator.report_failure(url)
+        rotator.report_failure(url)
         health = rotator.get_health(url)
         assert health is not None
         assert health.consecutive_failures == 2
@@ -428,52 +427,47 @@ class TestEndpointRotator:
         assert health.consecutive_failures == 0
         assert health.success_count == 1
 
-    @pytest.mark.asyncio
-    async def test_auto_disable_after_consecutive_failures(self):
+    def test_auto_disable_after_consecutive_failures(self):
         rotator = EndpointRotator(["https://rpc1.com", "https://rpc2.com"])
         url = rotator.next()
         for _ in range(10):
-            await rotator.report_failure(url)
+            rotator.report_failure(url)
         health = rotator.get_health(url)
         assert health is not None
         assert health.is_disabled is True
 
-    @pytest.mark.asyncio
-    async def test_skips_disabled_endpoint(self):
+    def test_skips_disabled_endpoint(self):
         rotator = EndpointRotator(["https://rpc1.com", "https://rpc2.com"])
         url1 = rotator.next()
         for _ in range(10):
-            await rotator.report_failure(url1)
+            rotator.report_failure(url1)
         url2 = rotator.next()
         assert url2 != url1
 
-    @pytest.mark.asyncio
-    async def test_degraded_mode_when_all_disabled(self):
+    def test_degraded_mode_when_all_disabled(self):
         rotator = EndpointRotator(["https://rpc1.com", "https://rpc2.com"])
         for url in rotator.endpoints:
             for _ in range(10):
-                await rotator.report_failure(url)
+                rotator.report_failure(url)
         url = rotator.next()
         assert url in rotator.endpoints
 
-    @pytest.mark.asyncio
-    async def test_healthy_count(self):
+    def test_healthy_count(self):
         rotator = EndpointRotator(["https://rpc1.com", "https://rpc2.com"])
         assert rotator.healthy_count == 2
         url = rotator.next()
         for _ in range(10):
-            await rotator.report_failure(url)
+            rotator.report_failure(url)
         assert rotator.healthy_count == 1
 
     def test_empty_endpoints_raises(self):
         with pytest.raises(ValueError, match="At least one"):
             EndpointRotator([])
 
-    @pytest.mark.asyncio
-    async def test_unknown_report_is_noop(self):
+    def test_unknown_report_is_noop(self):
         rotator = EndpointRotator(["https://rpc1.com"])
         rotator.report_success("https://nonexistent.com")
-        await rotator.report_failure("https://nonexistent.com")
+        rotator.report_failure("https://nonexistent.com")
 
 
 # --- Targeted Search Tests ---
