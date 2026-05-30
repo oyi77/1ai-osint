@@ -27,7 +27,7 @@ ENDPOINT_REGISTRY: dict[str, list[str]] = {
         "https://api.blockcypher.com/v1/btc/main",
     ],
     "ethereum": [
-        "https://rpc.ankr.com/eth",
+        "https://eth.drpc.org",
         "https://ethereum-rpc.publicnode.com",
         "https://cloudflare-eth.com",
         "https://eth.llamarpc.com",
@@ -36,11 +36,11 @@ ENDPOINT_REGISTRY: dict[str, list[str]] = {
         "https://bsc-dataseed.binance.org",
         "https://bsc-dataseed1.binance.org",
         "https://bsc-dataseed2.binance.org",
-        "https://rpc.ankr.com/bsc",
+        "https://bsc-rpc.publicnode.com",
         "https://bsc-rpc.publicnode.com",
     ],
     "matic-network": [
-        "https://rpc.ankr.com/polygon",
+        "https://polygon-bor-rpc.publicnode.com",
         "https://polygon-bor-rpc.publicnode.com",
         "https://polygon-rpc.publicnode.com",
         "https://polygon.llamarpc.com",

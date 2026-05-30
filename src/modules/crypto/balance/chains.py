@@ -12,7 +12,7 @@ BTC_APIS = [
 ]
 ETH_RPCS = [
     "https://eth.llamarpc.com",
-    "https://rpc.ankr.com/eth",
+    "https://eth.drpc.org",
     "https://ethereum-rpc.publicnode.com",
     "https://1rpc.io/eth",
     "https://cloudflare-eth.com",
