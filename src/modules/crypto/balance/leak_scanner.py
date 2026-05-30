@@ -36,6 +36,54 @@ from src.modules.crypto.balance.hit_logger import HitLogger
 
 logger = logging.getLogger(__name__)
 
+# Dedup: track mnemonics already verified (prevents duplicate reports across scan cycles)
+_SEEN_MNEMONICS: set[str] = set()
+_SEEN_MNEMONICS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "seen_mnemonics.json")
+
+
+def _load_seen_mnemonics() -> None:
+    """Load seen-mnemonics set from disk on startup."""
+    global _SEEN_MNEMONICS
+    import json
+    try:
+        path = os.path.normpath(_SEEN_MNEMONICS_FILE)
+        with open(path, "r") as f:
+            data = json.load(f)
+            if isinstance(data, list):
+                _SEEN_MNEMONICS = set(data[-10000:])  # Keep last 10k
+                logger.info("Loaded %d seen mnemonics from disk", len(_SEEN_MNEMONICS))
+    except (FileNotFoundError, json.JSONDecodeError):
+        pass
+
+
+def _save_seen_mnemonics() -> None:
+    """Save seen-mnemonics set to disk."""
+    import json
+    try:
+        path = os.path.normpath(_SEEN_MNEMONICS_FILE)
+        with open(path, "w") as f:
+            json.dump(list(_SEEN_MNEMONICS)[-10000:], f)
+    except Exception as e:
+        logger.debug("Failed to save seen mnemonics: %s", e)
+
+
+def _is_mnemonic_seen(mnemonic: str) -> bool:
+    """Check if mnemonic was already verified (prevents duplicate reports)."""
+    import hashlib
+    h = hashlib.sha256(mnemonic.strip().encode("utf-8")).hexdigest()
+    return h in _SEEN_MNEMONICS
+
+
+def _mark_mnemonic_seen(mnemonic: str) -> None:
+    """Mark mnemonic as verified (prevents duplicate reports)."""
+    import hashlib
+    h = hashlib.sha256(mnemonic.strip().encode("utf-8")).hexdigest()
+    _SEEN_MNEMONICS.add(h)
+    # Persist every 10 new entries
+    if len(_SEEN_MNEMONICS) % 10 == 0:
+        _save_seen_mnemonics()
+
+
 # BIP-39 English wordlist (2048 words) — used for pattern matching
 # Loaded lazily to avoid import overhead
 _BIP39_WORDS: Optional[set[str]] = None
@@ -608,6 +656,12 @@ async def verify_and_alert(
     """
     if not is_valid_mnemonic(mnemonic_candidate):
         return None
+
+    # Dedup: skip already-verified mnemonics (prevents duplicate reports)
+    if _is_mnemonic_seen(mnemonic_candidate):
+        logger.debug("Skipping already-verified mnemonic: %s...", mnemonic_candidate[:20])
+        return None
+    _mark_mnemonic_seen(mnemonic_candidate)
 
     if log_source is None:
         log_source = f"{source}_scan"
