@@ -59,10 +59,11 @@ class TestEndpointRotator:
         assert urls[4] == urls[1]
         assert urls[5] == urls[2]
 
-    def test_report_success_resets_consecutive_failures(self):
+    @pytest.mark.asyncio
+    async def test_report_success_resets_consecutive_failures(self):
         rotator = EndpointRotator(["https://a.com"])
-        rotator.report_failure("https://a.com")
-        rotator.report_failure("https://a.com")
+        await rotator.report_failure("https://a.com")
+        await rotator.report_failure("https://a.com")
         health = rotator.get_health("https://a.com")
         assert health.consecutive_failures == 2
 
@@ -70,49 +71,54 @@ class TestEndpointRotator:
         assert health.consecutive_failures == 0
         assert health.success_count == 1
 
-    def test_report_failure_disables_after_threshold(self):
+    @pytest.mark.asyncio
+    async def test_report_failure_disables_after_threshold(self):
         rotator = EndpointRotator(["https://a.com", "https://b.com"])
         for _ in range(10):
-            rotator.report_failure("https://a.com")
+            await rotator.report_failure("https://a.com")
 
         health = rotator.get_health("https://a.com")
         assert health.is_disabled is True
 
-    def test_skips_disabled_endpoint(self):
+    @pytest.mark.asyncio
+    async def test_skips_disabled_endpoint(self):
         rotator = EndpointRotator(["https://a.com", "https://b.com"])
         # Disable a.com
         for _ in range(10):
-            rotator.report_failure("https://a.com")
+            await rotator.report_failure("https://a.com")
 
         # Should skip a.com and return b.com
         url = rotator.next()
         assert url == "https://b.com"
 
-    def test_degraded_mode_when_all_disabled(self):
+    @pytest.mark.asyncio
+    async def test_degraded_mode_when_all_disabled(self):
         rotator = EndpointRotator(["https://a.com"])
         for _ in range(10):
-            rotator.report_failure("https://a.com")
+            await rotator.report_failure("https://a.com")
 
         # All disabled, should still return something (degraded)
         url = rotator.next()
         assert url == "https://a.com"
 
-    def test_healthy_count(self):
+    @pytest.mark.asyncio
+    async def test_healthy_count(self):
         rotator = EndpointRotator(["https://a.com", "https://b.com"])
         assert rotator.healthy_count == 2
 
         for _ in range(10):
-            rotator.report_failure("https://a.com")
+            await rotator.report_failure("https://a.com")
         assert rotator.healthy_count == 1
 
     def test_endpoints_property(self):
         rotator = EndpointRotator(["https://a.com", "https://b.com"])
         assert rotator.endpoints == ["https://a.com", "https://b.com"]
 
-    def test_report_unknown_url_ignored(self):
+    @pytest.mark.asyncio
+    async def test_report_unknown_url_ignored(self):
         rotator = EndpointRotator(["https://a.com"])
         rotator.report_success("https://unknown.com")  # Should not raise
-        rotator.report_failure("https://unknown.com")  # Should not raise
+        await rotator.report_failure("https://unknown.com")  # Should not raise
 
 
 # --- WalletHit Tests ---

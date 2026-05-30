@@ -373,9 +373,6 @@ class RandomScanner:
         EVM chains (ETH/BSC/Polygon): JSON-RPC batch (N addresses in 1 HTTP request).
         BTC/SOL: individual calls with per-chain delay.
         """
-        import copy
-        from src.modules.crypto.balance.multicall import batch_check_balances
-
         results: list[Optional[object]] = [None] * len(addresses)
 
         # Group addresses by chain
@@ -442,7 +439,7 @@ class RandomScanner:
                     if br.error:
                         self._stats.api_errors += 1
                         if rotator:
-                            rotator.report_failure(used_url)
+                            await rotator.report_failure(used_url)
                         results[idx] = BalanceResult(
                             address=addr.address, chain=chain_name,
                             symbol=chain_cfg.symbol, balance=0.0,
@@ -467,7 +464,7 @@ class RandomScanner:
                         if r.error:
                             self._stats.api_errors += 1
                             if rotator:
-                                rotator.report_failure(used_url)
+                                await rotator.report_failure(used_url)
                         else:
                             if rotator:
                                 rotator.report_success(used_url)
@@ -485,7 +482,7 @@ class RandomScanner:
                     if br.error:
                         self._stats.api_errors += 1
                         if rotator:
-                            rotator.report_failure(used_url)
+                            await rotator.report_failure(used_url)
                         results[idx] = BalanceResult(
                             address=addr.address, chain=chain_name,
                             symbol=chain_cfg.symbol, balance=0.0,

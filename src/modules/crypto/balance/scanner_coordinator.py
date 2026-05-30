@@ -143,14 +143,14 @@ class ScannerCoordinator:
                 )
                 if result.error:
                     if rotator:
-                        rotator.report_failure(used_url)
+                        await rotator.report_failure(used_url)
                 else:
                     if rotator:
                         rotator.report_success(used_url)
                 return result
             except Exception as e:
                 if rotator:
-                    rotator.report_failure(used_url)
+                    await rotator.report_failure(used_url)
                 logger.debug("Balance check error for %s on %s: %s", address[:10], chain.name, e)
                 return BalanceResult(
                     address=address,
