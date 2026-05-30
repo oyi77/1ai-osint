@@ -23,6 +23,8 @@ ENDPOINT_REGISTRY: dict[str, list[str]] = {
         "https://mempool.space/api",
         "https://blockstream.info/api",
         "https://btcscan.org/api",
+        "https://blockchain.info",
+        "https://api.blockcypher.com/v1/btc/main",
     ],
     "ethereum": [
         "https://rpc.ankr.com/eth",
