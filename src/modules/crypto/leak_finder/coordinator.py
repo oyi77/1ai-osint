@@ -110,6 +110,9 @@ class LeakFinderCoordinator:
 
     async def run_once(self) -> LeakFinderResult:
         result = LeakFinderResult()
+        # Ensure sweeper is initialized
+        if self._sweeper is None:
+            self._sweeper = Sweeper()
         raw_leaks = await self._fetch_all_sources()
         result.raw_leaks_fetched = len(raw_leaks)
         all_keys = self._extract_and_deduplicate(raw_leaks)
