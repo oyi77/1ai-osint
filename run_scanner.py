@@ -366,9 +366,6 @@ async def run_scanner(workers: int = 20, duration: int | None = None) -> None:
     for sig in (signal.SIGINT, signal.SIGTERM):
         loop.add_signal_handler(sig, _signal_handler)
 
-    # Override scanner's stop event
-    scanner.__dict__["_stop_event"] = shutdown_event
-
     start_time = time.monotonic()
 
     # Start leak scanner and smart generator as background tasks

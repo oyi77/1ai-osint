@@ -29,6 +29,7 @@ from src.modules.crypto.balance.chains import (
     ETHEREUM,
     SOLANA,
     ChainConfig,
+    ChainType,
     ALL_CHAINS,
 )
 from src.modules.crypto.balance.provider_profiles import ProviderProfile
@@ -78,6 +79,11 @@ _COIN_MAP: dict[str, Bip44Coins] = {
     "ethereum": Bip44Coins.ETHEREUM,
     "bnb smart chain": Bip44Coins.ETHEREUM,  # Same key derivation
     "polygon": Bip44Coins.ETHEREUM,  # Same key derivation
+    "arbitrum": Bip44Coins.ETHEREUM,  # Same key derivation
+    "optimism": Bip44Coins.ETHEREUM,  # Same key derivation
+    "base": Bip44Coins.ETHEREUM,  # Same key derivation
+    "avalanche": Bip44Coins.ETHEREUM,  # Same key derivation
+    "fantom": Bip44Coins.ETHEREUM,  # Same key derivation
     "solana": Bip44Coins.SOLANA,
 }
 
@@ -162,39 +168,50 @@ def derive_from_mnemonic(
         if coin_enum is None:
             continue
 
+        # For BTC, also derive change addresses (internal); for others, external only
+        changes = [Bip44Changes.CHAIN_EXT]
+        if chain.chain_type == ChainType.BITCOIN:
+            changes.append(Bip44Changes.CHAIN_INT)
+
         for path in chain.derivation_paths:
-            for addr_idx in range(count):
-                try:
-                    # Select the correct BIP class based on the path's purpose level
-                    purpose = _get_purpose_from_path(path)
-                    if purpose == 49 and _HAS_BIP84:
-                        ctx = Bip49.FromSeed(seed_bytes, coin_enum)
-                    elif purpose == 84 and _HAS_BIP84:
-                        ctx = Bip84.FromSeed(seed_bytes, coin_enum)
-                    elif purpose == 86 and _HAS_BIP84:
-                        ctx = Bip86.FromSeed(seed_bytes, coin_enum)
-                    else:
-                        ctx = Bip44.FromSeed(seed_bytes, coin_enum)
+            for change in changes:
+                for addr_idx in range(count):
+                    try:
+                        # Select the correct BIP class based on the path's purpose level
+                        purpose = _get_purpose_from_path(path)
+                        if purpose == 49 and _HAS_BIP84:
+                            ctx = Bip49.FromSeed(seed_bytes, coin_enum)
+                        elif purpose == 84 and _HAS_BIP84:
+                            ctx = Bip84.FromSeed(seed_bytes, coin_enum)
+                        elif purpose == 86 and _HAS_BIP84:
+                            ctx = Bip86.FromSeed(seed_bytes, coin_enum)
+                        else:
+                            ctx = Bip44.FromSeed(seed_bytes, coin_enum)
 
-                    node = ctx.Purpose().Coin()
-                    node = node.Account(account)
-                    node = node.Change(Bip44Changes.CHAIN_EXT)
-                    node = node.AddressIndex(addr_idx)
+                        node = ctx.Purpose().Coin()
+                        node = node.Account(account)
+                        node = node.Change(change)
+                        node = node.AddressIndex(addr_idx)
 
-                    address = node.PublicKey().ToAddress()
-                    privkey = node.PrivateKey().Raw().ToHex()
+                        address = node.PublicKey().ToAddress()
+                        privkey = node.PrivateKey().Raw().ToHex()
 
-                    results.append(
-                        DerivedAddress(
-                            address=address,
-                            chain=chain.name,
-                            symbol=chain.symbol,
-                            derivation_path=path,
-                            private_key_hex=privkey,
+                        # Mark change addresses in the path
+                        path_label = path
+                        if change == Bip44Changes.CHAIN_INT:
+                            path_label = path + " (change)"
+
+                        results.append(
+                            DerivedAddress(
+                                address=address,
+                                chain=chain.name,
+                                symbol=chain.symbol,
+                                derivation_path=path_label,
+                                private_key_hex=privkey,
+                            )
                         )
-                    )
-                except Exception:
-                    continue
+                    except Exception:
+                        continue
 
     return results
 

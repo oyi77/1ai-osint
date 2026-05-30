@@ -364,7 +364,7 @@ class TestScannerStats:
 class TestRandomScanner:
     def test_init_defaults(self):
         scanner = RandomScanner()
-        assert scanner.workers == 20
+        assert scanner.workers == 5
         assert scanner.chains is not None
         assert scanner.hit_logger is None
 

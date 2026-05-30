@@ -37,10 +37,8 @@ ENDPOINT_REGISTRY: dict[str, list[str]] = {
         "https://bsc-dataseed1.binance.org",
         "https://bsc-dataseed2.binance.org",
         "https://bsc-rpc.publicnode.com",
-        "https://bsc-rpc.publicnode.com",
     ],
     "matic-network": [
-        "https://polygon-bor-rpc.publicnode.com",
         "https://polygon-bor-rpc.publicnode.com",
         "https://polygon-rpc.publicnode.com",
         "https://polygon.llamarpc.com",

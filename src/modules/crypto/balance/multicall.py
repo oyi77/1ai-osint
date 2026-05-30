@@ -16,7 +16,7 @@ from typing import Optional
 
 import httpx
 
-from src.modules.crypto.balance.chains import ChainConfig
+from src.modules.crypto.balance.chains import ChainConfig, TokenContract
 
 logger = logging.getLogger(__name__)
 
@@ -127,14 +127,15 @@ async def batch_check_sol_balances(
 
     results: list[BatchBalanceResult] = []
 
-    # Process in chunks of 100 (getMultipleAccountsInfo limit)
-    for chunk_start in range(0, len(addresses), 100):
-        chunk = addresses[chunk_start:chunk_start + 100]
+    _created = client is None
+    if _created:
+        client = httpx.AsyncClient(timeout=_TIMEOUT)
 
-        try:
-            _created = client is None
-            if _created:
-                client = httpx.AsyncClient(timeout=_TIMEOUT)
+    try:
+        # Process in chunks of 100 (getMultipleAccountsInfo limit)
+        for chunk_start in range(0, len(addresses), 100):
+            chunk = addresses[chunk_start:chunk_start + 100]
+
             try:
                 # Use getMultipleAccountsInfo — one call for up to 100 accounts
                 payload = {
@@ -153,7 +154,6 @@ async def batch_check_sol_balances(
                 if "error" in data:
                     # Fallback to individual batch
                     logger.debug("getMultipleAccounts failed, falling back to batch")
-                    assert client is not None
                     fallback = await _sol_batch_fallback(chunk, rpc_url, client)
                     results.extend(fallback)
                     continue
@@ -168,22 +168,18 @@ async def batch_check_sol_balances(
                         results.append(BatchBalanceResult(address=addr, balance_wei=0))
                     else:
                         results.append(BatchBalanceResult(address=addr, balance_wei=0, error="No response"))
-            finally:
-                if _created:
-                    await client.aclose()
-        except Exception as e:
-            # On HTTP error (e.g. 403 from WAF), fall back to individual calls
-            logger.debug("SOL getMultipleAccounts failed (%s), falling back to individual calls", e)
-            try:
-                _fb_client = client if client and not client.is_closed else httpx.AsyncClient(timeout=_TIMEOUT)
-                _fb_created = _fb_client is not client
-                fallback = await _sol_batch_fallback(chunk, rpc_url, _fb_client)
-                results.extend(fallback)
-                if _fb_created:
-                    await _fb_client.aclose()
-            except Exception as e2:
-                logger.warning("SOL fallback also failed: %s", e2)
-                results.extend(BatchBalanceResult(address=a, balance_wei=0, error=str(e2)) for a in chunk)
+            except Exception as e:
+                # On HTTP error (e.g. 403 from WAF), fall back to individual calls
+                logger.debug("SOL getMultipleAccounts failed (%s), falling back to individual calls", e)
+                try:
+                    fallback = await _sol_batch_fallback(chunk, rpc_url, client)
+                    results.extend(fallback)
+                except Exception as e2:
+                    logger.warning("SOL fallback also failed: %s", e2)
+                    results.extend(BatchBalanceResult(address=a, balance_wei=0, error=str(e2)) for a in chunk)
+    finally:
+        if _created:
+            await client.aclose()
 
     return results
 
@@ -196,6 +192,8 @@ async def _sol_batch_fallback(
     """Fallback: individual getBalance calls (one HTTP request per address)."""
     output: list[BatchBalanceResult] = []
     for i, addr in enumerate(addresses):
+        if i > 0:
+            await asyncio.sleep(0.05)  # Rate-limit individual calls
         try:
             payload = {"jsonrpc": "2.0", "method": "getBalance", "params": [addr], "id": i}
             resp = await client.post(rpc_url, json=payload)
@@ -209,3 +207,120 @@ async def _sol_batch_fallback(
         except Exception as e:
             output.append(BatchBalanceResult(address=addr, balance_wei=0, error=str(e)))
     return output
+
+
+@dataclass
+class TokenBalanceResult:
+    """Result of a token balance check."""
+    address: str
+    token_symbol: str
+    token_address: str
+    balance_raw: int  # Raw balance in token's smallest unit
+    decimals: int
+    error: Optional[str] = None
+
+    @property
+    def balance(self) -> float:
+        """Human-readable balance."""
+        return self.balance_raw / (10 ** self.decimals) if self.balance_raw > 0 else 0.0
+
+
+def _encode_balance_of(address: str) -> str:
+    """Encode balanceOf(address) call data for ERC-20."""
+    # function selector: 0x70a08231
+    # address padded to 32 bytes
+    addr_clean = address.lower().replace("0x", "")
+    return "0x70a08231" + addr_clean.zfill(64)
+
+
+async def batch_check_token_balances(
+    addresses: list[str],
+    tokens: list[TokenContract],
+    chain: ChainConfig,
+    client: Optional[httpx.AsyncClient] = None,
+) -> list[TokenBalanceResult]:
+    """Check ERC-20 token balances for multiple addresses via eth_call batching.
+
+    Sends one JSON-RPC batch per chunk of addresses, with one eth_call per
+    address × token combination.
+
+    Args:
+        addresses: List of EVM addresses (0x...).
+        tokens: List of token contracts to check.
+        chain: Chain config with rpc_url.
+        client: Optional shared httpx client.
+
+    Returns:
+        List of TokenBalanceResult for each address × token pair with non-zero balance.
+    """
+    if not chain.rpc_url or not addresses or not tokens:
+        return []
+
+    results: list[TokenBalanceResult] = []
+    _created = client is None
+    if _created:
+        client = httpx.AsyncClient(timeout=_TIMEOUT)
+
+    try:
+        # Build eth_call requests for all address × token pairs
+        # Chunk to avoid overwhelming endpoints
+        calls: list[tuple[str, TokenContract, int]] = []  # (address, token, id)
+        call_id = 0
+        for addr in addresses:
+            for token in tokens:
+                calls.append((addr, token, call_id))
+                call_id += 1
+
+        # Process in chunks of 50 calls (same as EVM_CHUNK_SIZE * 2)
+        chunk_size = 50
+        for chunk_start in range(0, len(calls), chunk_size):
+            chunk = calls[chunk_start:chunk_start + chunk_size]
+            batch = []
+            for addr, token, cid in chunk:
+                data = _encode_balance_of(addr)
+                batch.append({
+                    "jsonrpc": "2.0",
+                    "method": "eth_call",
+                    "params": [{"to": token.address, "data": data}, "latest"],
+                    "id": cid,
+                })
+
+            try:
+                resp = await client.post(chain.rpc_url, json=batch)
+                resp.raise_for_status()
+                batch_results = resp.json()
+
+                id_to_result: dict[int, dict] = {}
+                for r in batch_results:
+                    if isinstance(r, dict) and "id" in r:
+                        id_to_result[r["id"]] = r
+
+                for addr, token, cid in chunk:
+                    r = id_to_result.get(cid)
+                    if r is None:
+                        continue  # Skip — no response for this call
+                    if "error" in r:
+                        # Token call failed (contract might not exist on this chain)
+                        continue
+                    try:
+                        hex_result = r.get("result", "0x0")
+                        balance_raw = int(hex_result, 16) if hex_result else 0
+                        if balance_raw > 0:
+                            results.append(TokenBalanceResult(
+                                address=addr,
+                                token_symbol=token.symbol,
+                                token_address=token.address,
+                                balance_raw=balance_raw,
+                                decimals=token.decimals,
+                            ))
+                    except (ValueError, TypeError):
+                        continue
+            except Exception as e:
+                logger.warning("Token batch chunk failed for %s: %s", chain.name, e)
+
+            await asyncio.sleep(0.1)  # Delay between chunks
+    finally:
+        if _created:
+            await client.aclose()
+
+    return results

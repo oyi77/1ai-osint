@@ -21,6 +21,7 @@ from src.modules.crypto.balance.chains import (
     SOLANA,
     ChainConfig,
     ChainType,
+    TokenContract,
 )
 
 logger = logging.getLogger(__name__)
@@ -177,6 +178,75 @@ async def check_evm_balance(
             balance=0.0, balance_raw=0, usd_price=0.0, usd_value=0.0,
             derivation_path=derivation_path, error=str(e),
         )
+
+
+def encode_balance_of(address: str) -> str:
+    """Encode ERC-20 balanceOf(address) call data."""
+    addr_clean = address.lower().replace("0x", "")
+    return "0x70a08231" + addr_clean.zfill(64)
+
+
+async def check_evm_token_balances(
+    address: str,
+    chain: ChainConfig,
+    client: Optional[httpx.AsyncClient] = None,
+) -> list[dict]:
+    """Check ERC-20 token balances for a single address on an EVM chain.
+
+    Returns list of dicts with keys: symbol, balance_raw, decimals, balance.
+    Only includes tokens with non-zero balance.
+    """
+    if not chain.rpc_url or not chain.tokens:
+        return []
+
+    try:
+        _created_client = client is None
+        if _created_client:
+            client = httpx.AsyncClient(timeout=_TIMEOUT)
+        try:
+            results = []
+            batch = []
+            for i, token in enumerate(chain.tokens):
+                data = encode_balance_of(address)
+                batch.append({
+                    "jsonrpc": "2.0",
+                    "method": "eth_call",
+                    "params": [{"to": token.address, "data": data}, "latest"],
+                    "id": i,
+                })
+
+            resp = await client.post(chain.rpc_url, json=batch)
+            resp.raise_for_status()
+            batch_results = resp.json()
+
+            id_to_result: dict[int, dict] = {}
+            for r in batch_results:
+                if isinstance(r, dict) and "id" in r:
+                    id_to_result[r["id"]] = r
+
+            for i, token in enumerate(chain.tokens):
+                r = id_to_result.get(i)
+                if r is None or "error" in r or "result" not in r:
+                    continue
+                try:
+                    balance_raw = int(r["result"], 16)
+                    if balance_raw > 0:
+                        results.append({
+                            "symbol": token.symbol,
+                            "balance_raw": balance_raw,
+                            "decimals": token.decimals,
+                            "balance": balance_raw / (10 ** token.decimals),
+                        })
+                except (ValueError, TypeError):
+                    continue
+
+            return results
+        finally:
+            if _created_client:
+                await client.aclose()
+    except Exception as e:
+        logger.debug("Token balance check failed for %s on %s: %s", address[:10], chain.name, e)
+        return []
 
 
 async def check_sol_balance(

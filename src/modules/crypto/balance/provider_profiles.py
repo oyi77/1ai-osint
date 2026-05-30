@@ -121,5 +121,36 @@ GENERIC = ProviderProfile(
     mnemonic_words=12,
 )
 
+# MetaMask — most popular browser extension wallet
+METAMASK = ProviderProfile(
+    name="MetaMask",
+    evm_paths=[
+        "m/44'/60'/0'/0/0",    # Standard
+        "m/44'/60'/0'/0/1",    # Second address
+        "m/44'/60'/0'/0/2",    # Third address
+    ],
+    btc_paths=[],  # MetaMask doesn't support BTC natively
+    sol_paths=[],  # MetaMask doesn't support SOL natively
+    address_count=3,
+    mnemonic_words=12,
+)
+
+# Coinbase Wallet
+COINBASE = ProviderProfile(
+    name="Coinbase Wallet",
+    evm_paths=[
+        "m/44'/60'/0'/0/0",    # Standard
+    ],
+    btc_paths=[
+        "m/44'/0'/0'/0/0",     # Legacy
+        "m/84'/0'/0'/0/0",     # Native SegWit (Coinbase default)
+    ],
+    sol_paths=[
+        "m/44'/501'/0'/0'",    # Standard Solana
+    ],
+    address_count=5,
+    mnemonic_words=12,
+)
+
 # All providers for comprehensive scanning
-ALL_PROVIDERS: list[ProviderProfile] = [BINANCE, OKX, GATEIO, BTGET, GENERIC]
+ALL_PROVIDERS: list[ProviderProfile] = [BINANCE, OKX, GATEIO, BTGET, METAMASK, COINBASE, GENERIC]

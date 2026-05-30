@@ -91,6 +91,51 @@ class SmartMnemonicGenerator:
         # Statistically unreachable (~1 in 16 chance per candidate, 2048 candidates)
         raise RuntimeError("Failed to generate valid BIP-39 mnemonic (exhausted 2048 candidates)")
 
+    def generate_24(self) -> str:
+        """Generate a single valid BIP-39 24-word mnemonic.
+
+        Algorithm:
+        1. Sample words 1-23 from weighted distribution.
+        2. Compute 253-bit prefix from word indices.
+        3. Iterate candidate 24th words until SHA-256 checksum matches.
+
+        24 words: 256 bits entropy + 8 bits checksum = 264 bits = 24 * 11 bits.
+        The 24th word encodes 3 entropy bits + 8 checksum bits.
+
+        Returns:
+            A space-separated 24-word BIP-39 mnemonic string.
+        """
+        # Step 1: Sample first 23 words from weighted distribution
+        first_23 = random.choices(self._wordlist, weights=self._weights, k=23)
+
+        # Step 2: Build 253-bit prefix (23 words * 11 bits each)
+        entropy_prefix = 0
+        for word in first_23:
+            entropy_prefix = (entropy_prefix << 11) | self._word_index[word]
+
+        # Step 3: Try candidate 24th words until checksum is valid
+        candidates = list(range(2048))
+        random.shuffle(candidates)
+
+        for cand_idx in candidates:
+            # Full 264-bit value: 253 bits prefix + 11 bits for 24th word
+            full_value = (entropy_prefix << 11) | cand_idx
+            # Extract 256-bit entropy (top 256 bits) and 8-bit checksum (bottom 8 bits)
+            entropy_256 = full_value >> 8
+            checksum_bits = full_value & 0xFF
+
+            # Compute expected checksum: first 8 bits of SHA-256(entropy)
+            entropy_bytes = entropy_256.to_bytes(32, byteorder="big")
+            sha = hashlib.sha256(entropy_bytes).digest()
+            expected_checksum = sha[0]
+
+            if checksum_bits == expected_checksum:
+                mnemonic = " ".join(first_23 + [self._wordlist[cand_idx]])
+                if self._validator.IsValid(mnemonic):
+                    return mnemonic
+
+        raise RuntimeError("Failed to generate valid 24-word BIP-39 mnemonic")
+
     def generate_batch(self, count: int) -> list[str]:
         """Generate multiple valid BIP-39 mnemonics.
 
