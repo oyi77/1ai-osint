@@ -14,8 +14,8 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 # Thresholds for endpoint health management
-_MAX_CONSECUTIVE_FAILURES = 10
-_REENABLE_AFTER_SECONDS = 60.0
+_MAX_CONSECUTIVE_FAILURES = 5
+_REENABLE_AFTER_SECONDS = 300.0
 
 # Canonical endpoint inventory per chain (keyed by CoinGecko coin_id)
 ENDPOINT_REGISTRY: dict[str, list[str]] = {
@@ -65,7 +65,7 @@ class EndpointHealth:
     consecutive_failures: int = 0
     disabled_at: Optional[float] = None
     # Rate limiter: max requests per second
-    max_rps: float = 10.0
+    max_rps: float = 5.0
     _last_request_time: float = 0.0
     _request_count: int = 0
     _window_start: float = 0.0

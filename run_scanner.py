@@ -441,7 +441,7 @@ async def run_scanner(workers: int = 20, duration: int | None = None) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="24/7 Crypto Balance Scanner")
-    parser.add_argument("--workers", type=int, default=20, help="Number of async workers (default: 20)")
+    parser.add_argument("--workers", type=int, default=5, help="Number of async workers (default: 5)")
     parser.add_argument("--duration", type=int, default=None, help="Duration in seconds (default: unlimited)")
     args = parser.parse_args()
 

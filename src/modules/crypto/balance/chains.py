@@ -15,6 +15,8 @@ ETH_RPCS = [
     "https://rpc.ankr.com/eth",
     "https://ethereum-rpc.publicnode.com",
     "https://1rpc.io/eth",
+    "https://eth-mainnet.public.blastapi.io",
+    "https://cloudflare-eth.com",
 ]
 BSC_RPCS = [
     "https://bsc-dataseed.binance.org",

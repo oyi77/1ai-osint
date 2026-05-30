@@ -9,6 +9,7 @@ Solana getMultipleAccountsInfo can check up to 100 accounts per call.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from dataclasses import dataclass
 from typing import Optional
@@ -93,6 +94,9 @@ async def batch_check_balances(
             except Exception as e:
                 logger.warning("EVM batch chunk failed for %s: %s", chain.name, e)
                 all_results.extend(BatchBalanceResult(address=a, balance_wei=0, error=str(e)) for a in chunk)
+
+            # Delay between chunks to avoid burst rate limiting
+            await asyncio.sleep(0.1)
     finally:
         if _created:
             await client.aclose()

