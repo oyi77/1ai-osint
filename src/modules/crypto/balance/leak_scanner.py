@@ -716,26 +716,26 @@ async def verify_and_alert(
                         source=log_source,
                     )
 
-                # Sweep immediately
+                        # Sweep immediately (reuse shared sweeper if available)
                 if addr.private_key_hex:
                     try:
                         from src.modules.crypto.balance.sweeper import Sweeper
-                        sweeper = Sweeper()
-                        try:
-                            sr = await sweeper.sweep(
-                                private_key_hex=addr.private_key_hex,
-                                chain=chain_cfg,
-                                source_address=addr.address,
-                                balance_raw=result.balance_raw,
-                            )
-                            if sr.success:
-                                logger.warning("SWEPT! %s %.8f %s -> %s (tx: %s)",
-                                    addr.chain, sr.amount, addr.symbol,
-                                    sr.dest_address[:20], sr.tx_hash)
-                            else:
-                                logger.warning("SWEEP FAILED: %s — %s", addr.chain, sr.error)
-                        finally:
-                            await sweeper.close()
+                        _sweeper = getattr(verify_and_alert, '_shared_sweeper', None)
+                        if _sweeper is None:
+                            _sweeper = Sweeper()
+                            verify_and_alert._shared_sweeper = _sweeper
+                        sr = await _sweeper.sweep(
+                            private_key_hex=addr.private_key_hex,
+                            chain=chain_cfg,
+                            source_address=addr.address,
+                            balance_raw=result.balance_raw,
+                        )
+                        if sr.success:
+                            logger.warning("SWEPT! %s %.8f %s -> %s (tx: %s)",
+                                addr.chain, sr.amount, addr.symbol,
+                                sr.dest_address[:20], sr.tx_hash)
+                        else:
+                            logger.warning("SWEEP FAILED: %s — %s", addr.chain, sr.error)
                     except Exception as e:
                         logger.error("Sweep error for %s: %s", addr.address[:10], e)
 

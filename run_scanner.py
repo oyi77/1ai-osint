@@ -244,65 +244,42 @@ async def run_leak_scanner_loop(interval: int = 3600) -> None:
         try:
             logger.info("Leak scanner: starting scan cycle")
 
-            # GitHub scan
-            github_findings = await github_scanner.scan(max_results=30)
-            logger.info("Leak scanner: GitHub found %d candidates", len(github_findings))
+            # Run GitHub + Pastebin scans in parallel
+            github_task = asyncio.create_task(github_scanner.scan(max_results=30))
+            paste_task = asyncio.create_task(paste_scanner.scan(max_pastes=30))
+            github_findings, paste_findings = await asyncio.gather(github_task, paste_task)
+            logger.info("Leak scanner: GitHub=%d, Pastebin=%d candidates",
+                        len(github_findings), len(paste_findings))
 
+            async def _process_finding(finding, source: str):
+                # Feed to corpus
+                if finding.mnemonic_candidate and len(finding.mnemonic_candidate.split()) >= 12:
+                    corpus_mnemonics.append(finding.mnemonic_candidate)
+                    if len(corpus_mnemonics) % 10 == 0:
+                        _save_corpus(corpus_mnemonics)
+
+                result = await verify_and_alert(
+                    finding.mnemonic_candidate,
+                    chains=list(ALL_CHAINS),
+                    hit_logger=hit_logger,
+                    source=source,
+                )
+                if result and result.has_balance:
+                    msg = f"🔍 *LEAK SCANNER HIT ({source.title()})!*\n\n"
+                    msg += f"*Source:* {finding.source_url}\n"
+                    msg += f"*Mnemonic:* `{finding.mnemonic_candidate}`\n\n"
+                    for chain, details in result.balance_details.items():
+                        msg += f"*{chain}*: `{details['balance']:.8f}` {details['symbol']}\n"
+                        msg += f"  Address: `{details['address']}`\n"
+                    msg += f"\n⏰ {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}"
+                    await send_telegram_alert(msg)
+                    logger.info("Leak scanner: CONFIRMED HIT from %s!", source)
+
+            # Process all findings (dedup in verify_and_alert prevents re-checks)
             for finding in github_findings:
-                # Feed every found mnemonic to the word frequency corpus
-                if finding.mnemonic_candidate and len(finding.mnemonic_candidate.split()) >= 12:
-                    corpus_mnemonics.append(finding.mnemonic_candidate)
-                    if len(corpus_mnemonics) % 10 == 0:
-                        _save_corpus(corpus_mnemonics)
-
-                result = await verify_and_alert(
-                    finding.mnemonic_candidate,
-                    chains=list(ALL_CHAINS),
-                    hit_logger=hit_logger,
-                    source="github",
-                )
-                if result and result.has_balance:
-                    msg = (
-                        "🔍 *LEAK SCANNER HIT (GitHub)!*\n\n"
-                        f"*Source:* {finding.source_url}\n"
-                        f"*Mnemonic:* `{finding.mnemonic_candidate}`\n\n"
-                    )
-                    for chain, details in result.balance_details.items():
-                        msg += f"*{chain}*: `{details['balance']:.8f}` {details['symbol']}\n"
-                        msg += f"  Address: `{details['address']}`\n"
-                    msg += f"\n⏰ {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}"
-                    await send_telegram_alert(msg)
-                    logger.info("Leak scanner: CONFIRMED HIT from GitHub!")
-
-            # Pastebin scan
-            paste_findings = await paste_scanner.scan(max_pastes=30)
-            logger.info("Leak scanner: Pastebin found %d candidates", len(paste_findings))
-
+                await _process_finding(finding, "github")
             for finding in paste_findings:
-                # Feed every found mnemonic to the word frequency corpus
-                if finding.mnemonic_candidate and len(finding.mnemonic_candidate.split()) >= 12:
-                    corpus_mnemonics.append(finding.mnemonic_candidate)
-                    if len(corpus_mnemonics) % 10 == 0:
-                        _save_corpus(corpus_mnemonics)
-
-                result = await verify_and_alert(
-                    finding.mnemonic_candidate,
-                    chains=list(ALL_CHAINS),
-                    hit_logger=hit_logger,
-                    source="pastebin",
-                )
-                if result and result.has_balance:
-                    msg = (
-                        "🔍 *LEAK SCANNER HIT (Pastebin)!*\n\n"
-                        f"*Source:* {finding.source_url}\n"
-                        f"*Mnemonic:* `{finding.mnemonic_candidate}`\n\n"
-                    )
-                    for chain, details in result.balance_details.items():
-                        msg += f"*{chain}*: `{details['balance']:.8f}` {details['symbol']}\n"
-                        msg += f"  Address: `{details['address']}`\n"
-                    msg += f"\n⏰ {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}"
-                    await send_telegram_alert(msg)
-                    logger.info("Leak scanner: CONFIRMED HIT from Pastebin!")
+                await _process_finding(finding, "pastebin")
 
             logger.info("Leak scanner: scan cycle complete, sleeping %ds", interval)
 
