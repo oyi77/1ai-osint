@@ -45,8 +45,11 @@ class LeakFinderCoordinator:
         self._github_token = github_token or os.getenv("GITHUB_TOKEN", "")
         self._db_path = db_path
         self._api_concurrency = api_concurrency
+        from src.modules.crypto.balance.bloom import BloomFilter
         self._seen_keys: set[str] = set()
+        self._seen_keys_bf = BloomFilter(expected_items=100_000, fp_rate=0.001)
         self._seen_addresses: set[str] = set()
+        self._seen_addresses_bf = BloomFilter(expected_items=500_000, fp_rate=0.001)
         self._coordinator: Optional[ScannerCoordinator] = None
         self._running = False
 
@@ -100,6 +103,9 @@ class LeakFinderCoordinator:
                         import hashlib as _hashlib
                         for key in keys:
                             kid = _hashlib.sha256(key.key_raw.encode("utf-8")).hexdigest()
+                            if self._seen_keys_bf.contains(kid):
+                                continue
+                            self._seen_keys_bf.add(kid)
                             if kid not in self._seen_keys:
                                 self._seen_keys.add(kid)
                                 result.keys_deduplicated += 1
@@ -160,6 +166,9 @@ class LeakFinderCoordinator:
                 for key in extract_keys(leak.text):
                     import hashlib as _hashlib
                     kid = _hashlib.sha256(key.key_raw.encode("utf-8")).hexdigest()
+                    if self._seen_keys_bf.contains(kid):
+                        continue
+                    self._seen_keys_bf.add(kid)
                     if kid not in self._seen_keys:
                         self._seen_keys.add(kid)
                         all_keys.append(key)
@@ -177,6 +186,9 @@ class LeakFinderCoordinator:
 
         for key in keys:
             for chain_name, address in key.derived_addresses.items():
+                if self._seen_addresses_bf.contains(address):
+                    continue
+                self._seen_addresses_bf.add(address)
                 if address in self._seen_addresses:
                     continue
                 self._seen_addresses.add(address)

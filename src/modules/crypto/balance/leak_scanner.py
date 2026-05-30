@@ -70,15 +70,29 @@ def _save_seen_mnemonics() -> None:
 def _is_mnemonic_seen(mnemonic: str) -> bool:
     """Check if mnemonic was already verified (prevents duplicate reports)."""
     import hashlib
+    from src.modules.crypto.balance.bloom import BloomFilter
     h = hashlib.sha256(mnemonic.strip().encode("utf-8")).hexdigest()
-    return h in _SEEN_MNEMONICS
+    # Check bloom filter first (fast, bounded memory)
+    if not hasattr(_is_mnemonic_seen, '_bf'):
+        _is_mnemonic_seen._bf = BloomFilter(expected_items=100_000, fp_rate=0.001)
+        # Load existing seen mnemonics into bloom filter
+        for existing in _SEEN_MNEMONICS:
+            _is_mnemonic_seen._bf.add(existing)
+    if _is_mnemonic_seen._bf.contains(h):
+        return True
+    return False
 
 
 def _mark_mnemonic_seen(mnemonic: str) -> None:
     """Mark mnemonic as verified (prevents duplicate reports)."""
     import hashlib
+    from src.modules.crypto.balance.bloom import BloomFilter
     h = hashlib.sha256(mnemonic.strip().encode("utf-8")).hexdigest()
     _SEEN_MNEMONICS.add(h)
+    # Add to bloom filter
+    if not hasattr(_is_mnemonic_seen, '_bf'):
+        _is_mnemonic_seen._bf = BloomFilter(expected_items=100_000, fp_rate=0.001)
+    _is_mnemonic_seen._bf.add(h)
     # Persist every 10 new entries
     if len(_SEEN_MNEMONICS) % 10 == 0:
         _save_seen_mnemonics()

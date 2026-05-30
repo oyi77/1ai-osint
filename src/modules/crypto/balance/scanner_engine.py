@@ -82,11 +82,14 @@ class RandomScanner:
         self._stats = ScannerStats()
         self._client: Optional[httpx.AsyncClient] = None  # shared HTTP client
         self._sweeper: Optional[Sweeper] = None  # shared sweeper instance
-        # Deduplication: bounded sets to prevent unbounded memory growth
-        _MAX_DEDUP = 1_000_000
+        # Deduplication: bloom filter for bounded memory (~1.8MB for 1M items at 0.1% FP)
+        from src.modules.crypto.balance.bloom import BloomFilter
+        self._seen_mnemonics_bf = BloomFilter(expected_items=500_000, fp_rate=0.001)
+        self._seen_addresses_bf = BloomFilter(expected_items=2_000_000, fp_rate=0.001)
+        # Keep small exact set for recent items (high-confidence dedup)
         self._seen_mnemonics: set[str] = set()
         self._seen_addresses: set[str] = set()
-        self._max_dedup = _MAX_DEDUP
+        self._max_exact_dedup = 100_000
         # Per-chain endpoint rotators
         self._rotators: dict[str, EndpointRotator] = {}
         for chain in self.chains:
@@ -254,6 +257,11 @@ class RandomScanner:
         while not stop_event.is_set() and not self._shutdown:
             try:
                 mnemonic = self._generate_mnemonic()
+                # Bloom filter: fast O(1) check, bounded memory, may have false positives
+                if self._seen_mnemonics_bf.contains(mnemonic):
+                    continue
+                self._seen_mnemonics_bf.add(mnemonic)
+                # Exact set: zero false positives for recent items
                 if mnemonic in self._seen_mnemonics:
                     continue
                 self._seen_mnemonics.add(mnemonic)
@@ -267,18 +275,25 @@ class RandomScanner:
 
                 if self._stats.mnemonics_generated % 1000 == 0:
                     self._save_persistent_stats()
-                    # Evict oldest entries if dedup sets exceed limit
-                    if len(self._seen_mnemonics) > self._max_dedup:
-                        self._seen_mnemonics = set(list(self._seen_mnemonics)[self._max_dedup // 2:])
-                    if len(self._seen_addresses) > self._max_dedup:
-                        self._seen_addresses = set(list(self._seen_addresses)[self._max_dedup // 2:])
+                    # Evict oldest exact-set entries when too large
+                    if len(self._seen_mnemonics) > self._max_exact_dedup:
+                        self._seen_mnemonics = set(list(self._seen_mnemonics)[self._max_exact_dedup // 2:])
+                    if len(self._seen_addresses) > self._max_exact_dedup:
+                        self._seen_addresses = set(list(self._seen_addresses)[self._max_exact_dedup // 2:])
 
                 if not addresses:
                     continue
 
-                new_addresses = [a for a in addresses if a.address not in self._seen_addresses]
-                for a in new_addresses:
+                # Bloom filter + exact set for address dedup
+                new_addresses = []
+                for a in addresses:
+                    if self._seen_addresses_bf.contains(a.address):
+                        continue
+                    if a.address in self._seen_addresses:
+                        continue
+                    self._seen_addresses_bf.add(a.address)
                     self._seen_addresses.add(a.address)
+                    new_addresses.append(a)
                 if not new_addresses:
                     continue
 
