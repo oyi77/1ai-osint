@@ -110,6 +110,10 @@ class LeakFinderCoordinator:
                             self._seen_keys_bf.add(kid)
                             if kid not in self._seen_keys:
                                 self._seen_keys.add(kid)
+                                if self._coordinator and self._coordinator.is_mnemonic_seen(key.key_raw):
+                                    continue
+                                if self._coordinator:
+                                    self._coordinator.mark_mnemonic_seen(key.key_raw, source=leak.source_url or "unknown")
                                 result.keys_deduplicated += 1
         result.completed_at = datetime.now(timezone.utc)
         return result
@@ -168,11 +172,18 @@ class LeakFinderCoordinator:
                 for key in extract_keys(leak.text):
                     import hashlib as _hashlib
                     kid = _hashlib.sha256(key.key_raw.encode("utf-8")).hexdigest()
+                    # Fast bloom filter check first
                     if self._seen_keys_bf.contains(kid):
                         continue
                     self._seen_keys_bf.add(kid)
+                    # In-memory exact set
                     if kid not in self._seen_keys:
                         self._seen_keys.add(kid)
+                        # Persistent SQLite dedup via coordinator
+                        if self._coordinator and self._coordinator.is_mnemonic_seen(key.key_raw):
+                            continue
+                        if self._coordinator:
+                            self._coordinator.mark_mnemonic_seen(key.key_raw, source=leak.source_url or "unknown")
                         all_keys.append(key)
             except Exception:
                 pass
