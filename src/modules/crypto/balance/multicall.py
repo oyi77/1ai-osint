@@ -16,6 +16,7 @@ from typing import Optional
 
 import httpx
 
+from src.modules.crypto.balance.checker import encode_balance_of
 from src.modules.crypto.balance.chains import ChainConfig, TokenContract
 
 logger = logging.getLogger(__name__)
@@ -225,14 +226,6 @@ class TokenBalanceResult:
         return self.balance_raw / (10 ** self.decimals) if self.balance_raw > 0 else 0.0
 
 
-def _encode_balance_of(address: str) -> str:
-    """Encode balanceOf(address) call data for ERC-20."""
-    # function selector: 0x70a08231
-    # address padded to 32 bytes
-    addr_clean = address.lower().replace("0x", "")
-    return "0x70a08231" + addr_clean.zfill(64)
-
-
 async def batch_check_token_balances(
     addresses: list[str],
     tokens: list[TokenContract],
@@ -277,7 +270,7 @@ async def batch_check_token_balances(
             chunk = calls[chunk_start:chunk_start + chunk_size]
             batch = []
             for addr, token, cid in chunk:
-                data = _encode_balance_of(addr)
+                data = encode_balance_of(addr)
                 batch.append({
                     "jsonrpc": "2.0",
                     "method": "eth_call",

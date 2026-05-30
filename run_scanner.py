@@ -16,7 +16,6 @@ import json
 import logging
 import os
 import signal
-import sys
 import time
 from datetime import datetime, timezone
 
@@ -209,7 +208,7 @@ async def run_leak_scanner_loop(interval: int = 3600) -> None:
     paste_scanner = PasteSiteScanner(hit_logger=hit_logger)
 
     # Load seen-mnemonics dedup cache (prevents duplicate reports across restarts)
-    from src.modules.crypto.balance.leak_scanner import _load_seen_mnemonics, _save_seen_mnemonics
+    from src.modules.crypto.balance.leak_scanner import _load_seen_mnemonics
     _load_seen_mnemonics()
 
     # Live corpus: load from disk, feed leaked mnemonics, persist periodically

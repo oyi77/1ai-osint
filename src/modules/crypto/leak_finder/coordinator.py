@@ -1,6 +1,7 @@
 """Leak finder coordinator."""
 from __future__ import annotations
 import asyncio
+import hashlib
 import importlib
 import logging
 import os
@@ -8,7 +9,7 @@ import pathlib
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Optional
-from src.modules.crypto.balance.chains import ALL_CHAINS, ChainConfig, ChainType
+from src.modules.crypto.balance.chains import ALL_CHAINS, ChainConfig, ChainType, chain_by_name
 from src.modules.crypto.balance.checker import check_btc_balance, check_balance
 from src.modules.crypto.balance.hit_logger import HitLogger
 from src.modules.crypto.balance.multicall import batch_check_balances, batch_check_sol_balances
@@ -135,9 +136,8 @@ class LeakFinderCoordinator:
                     result.raw_leaks_fetched += len(res)
                     for leak in res:
                         keys = extract_keys(leak.text)
-                        import hashlib as _hashlib
                         for key in keys:
-                            kid = _hashlib.sha256(key.key_raw.encode("utf-8")).hexdigest()
+                            kid = hashlib.sha256(key.key_raw.encode("utf-8")).hexdigest()
                             if self._seen_keys_bf.contains(kid):
                                 continue
                             self._seen_keys_bf.add(kid)
@@ -201,8 +201,7 @@ class LeakFinderCoordinator:
         for leak in raw_leaks:
             try:
                 for key in extract_keys(leak.text):
-                    import hashlib as _hashlib
-                    kid = _hashlib.sha256(key.key_raw.encode("utf-8")).hexdigest()
+                    kid = hashlib.sha256(key.key_raw.encode("utf-8")).hexdigest()
                     # Fast bloom filter check first
                     if self._seen_keys_bf.contains(kid):
                         continue
@@ -236,7 +235,7 @@ class LeakFinderCoordinator:
                 if address in self._seen_addresses:
                     continue
                 self._seen_addresses.add(address)
-                cfg = self._find_chain(chain_name)
+                cfg = chain_by_name(chain_name)
                 if cfg is None:
                     continue
                 if cfg.chain_type == ChainType.EVM:
@@ -249,7 +248,7 @@ class LeakFinderCoordinator:
                     btc_addrs.append((address, key))
 
         if evm_addrs:
-            eth = self._find_chain("Ethereum")
+            eth = chain_by_name("Ethereum")
             if eth:
                 try:
                     results = await batch_check_balances(evm_addrs, eth)
@@ -278,13 +277,6 @@ class LeakFinderCoordinator:
 
         return funded
 
-    def _find_chain(self, name: str) -> Optional[ChainConfig]:
-        nl = name.lower()
-        for c in self._chains:
-            if c.name.lower() == nl or c.symbol.lower() == nl:
-                return c
-        return None
-
     async def _sweep_funded(self, funded_keys: list[ExtractedKey]) -> list[SweepResult]:
         if not self._sweeper:
             return []
@@ -306,7 +298,7 @@ class LeakFinderCoordinator:
                     logger.error("Failed to derive keys from mnemonic: %s", exc)
                     key_map = {}
                 for chain_name, address in key.derived_addresses.items():
-                    cfg = self._find_chain(chain_name)
+                    cfg = chain_by_name(chain_name)
                     if not cfg:
                         continue
                     if chain_name not in key_map:
@@ -322,7 +314,7 @@ class LeakFinderCoordinator:
                         logger.error("Sweep error: %s", exc)
             elif key_hex:
                 for chain_name, address in key.derived_addresses.items():
-                    cfg = self._find_chain(chain_name)
+                    cfg = chain_by_name(chain_name)
                     if not cfg:
                         continue
                     try:

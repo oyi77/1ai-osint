@@ -431,27 +431,6 @@ def _get_purpose_from_path(path: str) -> int:
     return 44
 
 
-def _get_bip_class_for_path(path: str):
-    """Return the correct Bip class based on the purpose level in the path.
-
-    m/44'/... -> Bip44 (Legacy)
-    m/49'/... -> Bip49 (SegWit P2SH-P2WPKH)
-    m/84'/... -> Bip84 (Native SegWit Bech32)
-    m/86'/... -> Bip86 (Taproot)
-    """
-    parts = path.replace("m/", "").split("/")
-    if parts:
-        purpose_str = parts[0].rstrip("'h")
-        purpose = int(purpose_str)
-        if purpose == 49 and _HAS_BIP84:
-            return Bip49
-        elif purpose == 84 and _HAS_BIP84:
-            return Bip84
-        elif purpose == 86 and _HAS_BIP84:
-            return Bip86
-    return Bip44
-
-
 def derive_with_raw_path(
     mnemonic: str,
     derivation_path: str,

@@ -7,7 +7,9 @@ checks balances across multiple chains, and logs hits.
 from __future__ import annotations
 
 import asyncio
+import copy
 import logging
+import random
 import os
 import signal
 import time
@@ -411,7 +413,6 @@ class RandomScanner:
         results: list,
     ) -> list:
         """Check balances for one chain — batched for EVM/SOL, individual for BTC."""
-        import copy
         from src.modules.crypto.balance.multicall import batch_check_balances
 
         rotator = self._rotators.get(chain_cfg.coin_id)
@@ -552,7 +553,6 @@ class RandomScanner:
     @staticmethod
     def _generate_mnemonic() -> str:
         """Generate a random 12 or 24-word BIP-39 mnemonic."""
-        import random
         word_count = random.choice([Bip39WordsNum.WORDS_NUM_12, Bip39WordsNum.WORDS_NUM_24])
         return str(Bip39MnemonicGenerator().FromWordsNumber(word_count))
 

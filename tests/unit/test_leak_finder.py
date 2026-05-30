@@ -158,12 +158,11 @@ class TestLeakFinderCoordinator:
         assert LeakFinderCoordinator()._create_source("nonexistent") is None
 
     def test_find_chain(self):
-        from src.modules.crypto.leak_finder.coordinator import LeakFinderCoordinator
-        c = LeakFinderCoordinator()
-        assert c._find_chain("Ethereum") is not None
-        assert c._find_chain("ETH") is not None
-        assert c._find_chain("Solana") is not None
-        assert c._find_chain("Nonexistent") is None
+        from src.modules.crypto.balance.chains import chain_by_name
+        assert chain_by_name("Ethereum") is not None
+        assert chain_by_name("ETH") is not None
+        assert chain_by_name("Solana") is not None
+        assert chain_by_name("Nonexistent") is None
 
     @pytest.mark.asyncio
     async def test_fetch_all_sources_parallel(self):

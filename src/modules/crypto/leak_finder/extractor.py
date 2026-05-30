@@ -7,22 +7,7 @@ from enum import Enum
 from typing import Optional
 
 logger = logging.getLogger(__name__)
-_BASE58_ALPHABET = b"123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
-
-def _base58_decode(s: str) -> bytes:
-    n = 0
-    for ch in s.encode():
-        n = n * 58 + _BASE58_ALPHABET.index(ch)
-    result = n.to_bytes((n.bit_length() + 7) // 8, "big")
-    return b"\x00" * (len(s) - len(s.lstrip("1"))) + result
-
-def _base58_encode(b: bytes) -> str:
-    n = int.from_bytes(b, "big")
-    result = []
-    while n > 0:
-        n, r = divmod(n, 58)
-        result.append(_BASE58_ALPHABET[r:r + 1].decode())
-    return "1" * (len(b) - len(b.lstrip(b"\x00"))) + "".join(reversed(result))
+from src.modules.crypto.balance.deriver import _base58_decode, _base58_encode
 
 class KeyType(str, Enum):
     HEX_PRIVATE_KEY = "hex_private_key"

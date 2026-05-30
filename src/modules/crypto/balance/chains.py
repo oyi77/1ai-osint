@@ -5,60 +5,6 @@ from enum import Enum
 from typing import Optional
 
 
-# Fallback endpoint lists for rotation (avoids rate limits)
-BTC_APIS = [
-    "https://blockstream.info/api",
-    "https://mempool.space/api",
-]
-ETH_RPCS = [
-    "https://eth.llamarpc.com",
-    "https://eth.drpc.org",
-    "https://ethereum-rpc.publicnode.com",
-    "https://1rpc.io/eth",
-    "https://cloudflare-eth.com",
-]
-BSC_RPCS = [
-    "https://bsc-dataseed.binance.org",
-    "https://bsc-dataseed1.binance.org",
-    "https://rpc.ankr.com/bsc",
-    "https://bsc-rpc.publicnode.com",
-]
-POLYGON_RPCS = [
-    "https://polygon-bor-rpc.publicnode.com",
-    "https://1rpc.io/matic",
-    "https://polygon.llamarpc.com",
-]
-ARBITRUM_RPCS = [
-    "https://arb1.arbitrum.io/rpc",
-    "https://arbitrum.llamarpc.com",
-    "https://arbitrum-one-rpc.publicnode.com",
-]
-OPTIMISM_RPCS = [
-    "https://mainnet.optimism.io",
-    "https://optimism.llamarpc.com",
-    "https://optimism-rpc.publicnode.com",
-]
-BASE_RPCS = [
-    "https://mainnet.base.org",
-    "https://base.llamarpc.com",
-    "https://base-rpc.publicnode.com",
-]
-AVALANCHE_RPCS = [
-    "https://api.avax.network/ext/bc/C/rpc",
-    "https://avalanche-c-chain-rpc.publicnode.com",
-    "https://avax.meowrpc.com",
-]
-FANTOM_RPCS = [
-    "https://rpc.ftm.tools",
-    "https://fantom-rpc.publicnode.com",
-    "https://rpcapi.fantom.network",
-]
-SOL_RPCS = [
-    "https://api.mainnet-beta.solana.com",
-    "https://solana-rpc.publicnode.com",
-]
-
-
 class ChainType(str, Enum):
     """Blockchain type — determines RPC protocol."""
 

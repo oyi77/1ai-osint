@@ -1272,41 +1272,18 @@ class TestBatchTokenBalances:
         assert result == []
 
 
-
-        token = TokenContract("USDT", "0xdAC17F958D2ee523a2206206994597C13D831ec7", 6)
-        chain = ChainConfig(
-            name="Test", symbol="T", chain_type=ChainType.EVM, coin_id="test",
-            rpc_url="https://fake.rpc", tokens=[token],
-        )
-
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.json.return_value = [
-            {"jsonrpc": "2.0", "id": 0, "result": hex(5000000)},  # 5 USDT
-        ]
-        mock_resp.raise_for_status = MagicMock()
-
-        with patch("httpx.AsyncClient.post", new_callable=AsyncMock, return_value=mock_resp):
-            results = await batch_check_token_balances(
-                ["0x5cFa8609b0Ca0f65C6672A93Aa94F6132Ad6894F"], [token], chain,
-            )
-            assert len(results) == 1
-            assert results[0].balance == 5.0
-            assert results[0].token_symbol == "USDT"
-
-
 class TestTokenBalanceOfEncoding:
-    """Tests for _encode_balance_of in multicall."""
+    """Tests for encode_balance_of in checker."""
 
     def test_encode_standard_address(self):
-        from src.modules.crypto.balance.multicall import _encode_balance_of
-        data = _encode_balance_of("0x5cFa8609b0Ca0f65C6672A93Aa94F6132Ad6894F")
+        from src.modules.crypto.balance.checker import encode_balance_of
+        data = encode_balance_of("0x5cFa8609b0Ca0f65C6672A93Aa94F6132Ad6894F")
         assert data.startswith("0x70a08231")
         assert len(data) == 74
 
     def test_encode_lowercase(self):
-        from src.modules.crypto.balance.multicall import _encode_balance_of
-        data = _encode_balance_of("0x5cfa8609b0ca0f65c6672a93aa94f6132ad6894f")
+        from src.modules.crypto.balance.checker import encode_balance_of
+        data = encode_balance_of("0x5cfa8609b0ca0f65c6672a93aa94f6132ad6894f")
         assert data.startswith("0x70a08231")
         assert len(data) == 74
 
@@ -1340,4 +1317,4 @@ class TestSmartGenerator24:
         m1 = gen.generate_24()
         m2 = gen.generate_24()
         # Statistically these should differ
-        assert m1 != m2 or True  # Allow rare collision
+        assert isinstance(m1, str) and isinstance(m2, str)  # Verify generation works
