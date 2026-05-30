@@ -222,16 +222,26 @@ async def run_leak_scanner_loop(interval: int = 3600) -> None:
 
     logger.info("Leak scanner started (interval: %ds)", interval)
 
+    # Initialize the coordinator for Reddit, Twitter, and expanded sources
+    from src.modules.crypto.leak_finder.coordinator import LeakFinderCoordinator
+    leak_finder = LeakFinderCoordinator(
+        chains=list(ALL_CHAINS), hit_logger=hit_logger, github_token=github_token,
+    )
+
     while True:
         try:
             logger.info("Leak scanner: starting scan cycle")
 
-            # Run GitHub + Pastebin scans in parallel
+            # Run legacy scanners + coordinator in parallel
             github_task = asyncio.create_task(github_scanner.scan(max_results=30))
             paste_task = asyncio.create_task(paste_scanner.scan(max_pastes=30))
-            github_findings, paste_findings = await asyncio.gather(github_task, paste_task)
-            logger.info("Leak scanner: GitHub=%d, Pastebin=%d candidates",
-                        len(github_findings), len(paste_findings))
+            coordinator_task = asyncio.create_task(leak_finder.run_once())
+            github_findings, paste_findings, coordinator_result = await asyncio.gather(
+                github_task, paste_task, coordinator_task,
+            )
+            logger.info("Leak scanner: GitHub=%d, Pastebin=%d, Coordinator=%d leaks (%d funded)",
+                        len(github_findings), len(paste_findings),
+                        coordinator_result.raw_leaks_fetched, coordinator_result.funded_wallets)
 
             async def _process_finding(finding, source: str):
                 # Feed to corpus
