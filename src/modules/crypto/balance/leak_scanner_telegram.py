@@ -300,75 +300,6 @@ class TelethonLeakScanner:
         return messages
 
 
-class TGStatScanner:
-    """TGStat API scanner for discovering crypto leak channels.
-
-    Free tier: 100 requests/day.
-    Docs: https://api.tgstat.ru/
-    """
-
-    BASE_URL = "https://api.tgstat.ru"
-
-    def __init__(self, api_token: Optional[str] = None):
-        self.api_token = api_token or os.environ.get("TGSTAT_API_TOKEN", "")
-        self._requests_today = 0
-        self._max_daily = 100
-
-    async def search_channels(
-        self, query: str = "crypto leak", limit: int = 20
-    ) -> list[dict]:
-        """Search TGStat for channels matching query."""
-        if not self.api_token:
-            logger.debug("TGSTAT_API_TOKEN not set, skipping TGStat search")
-            return []
-
-        if self._requests_today >= self._max_daily:
-            logger.warning("TGStat daily limit reached")
-            return []
-
-        import httpx
-
-        try:
-            async with httpx.AsyncClient(timeout=30) as client:
-                resp = await client.get(
-                    f"{self.BASE_URL}/channels/search",
-                    params={"token": self.api_token, "q": query, "limit": limit},
-                )
-                self._requests_today += 1
-                resp.raise_for_status()
-                data = resp.json()
-                return data.get("items", [])
-        except Exception as e:
-            logger.warning("TGStat search failed: %s", e)
-            return []
-
-    async def get_channel_messages(
-        self, channel_id: str, limit: int = 50
-    ) -> list[str]:
-        """Get recent messages from a TGStat channel."""
-        if not self.api_token:
-            return []
-
-        if self._requests_today >= self._max_daily:
-            return []
-
-        import httpx
-
-        try:
-            async with httpx.AsyncClient(timeout=30) as client:
-                resp = await client.get(
-                    f"{self.BASE_URL}/channel/{channel_id}/messages",
-                    params={"token": self.api_token, "limit": limit},
-                )
-                self._requests_today += 1
-                resp.raise_for_status()
-                data = resp.json()
-                return [m.get("text", "") for m in data.get("items", []) if m.get("text")]
-        except Exception as e:
-            logger.debug("TGStat messages failed for %s: %s", channel_id, e)
-            return []
-
-
 async def run_telegram_leak_scan(
     channels: Optional[list[str]] = None,
     auto_discover: bool = True,
@@ -389,11 +320,7 @@ async def run_telegram_leak_scan(
     scanner = TelethonLeakScanner(hit_logger=hit_logger)
 
     if not await scanner.connect():
-        logger.warning("Telegram connection failed, falling back to TGStat")
-        # Try TGStat as fallback
-        tgstat = TGStatScanner()
-        tg_channels = await tgstat.search_channels()
-        logger.info("TGStat found %d channels", len(tg_channels))
+        logger.warning("Telegram connection failed, skipping Telegram scan")
         return []
 
     all_channels = list(channels or [])

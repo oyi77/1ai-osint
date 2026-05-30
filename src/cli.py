@@ -332,10 +332,10 @@ def leak_finder(
         "", "--address", "-a", help="Search for a specific wallet address"
     ),
     sources: str = typer.Option(
-        "github,paste,telegram,tgstat",
+        "github,paste,telegram,reddit,twitter",
         "--sources",
         "-s",
-        help="Comma-separated list of sources: github, paste, telegram, tgstat",
+        help="Comma-separated list of sources: github, paste, telegram, reddit, twitter",
     ),
     interval: int = typer.Option(
         300,
