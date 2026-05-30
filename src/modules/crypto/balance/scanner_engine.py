@@ -175,8 +175,8 @@ class RandomScanner:
 
         # Create shared httpx client with connection pooling
         self._client = httpx.AsyncClient(
-            timeout=httpx.Timeout(15.0),
-            limits=httpx.Limits(max_connections=100, max_keepalive_connections=50),
+            timeout=httpx.Timeout(30.0),
+            limits=httpx.Limits(max_connections=50, max_keepalive_connections=25),
         )
         # Create shared sweeper (reuses the shared HTTP client)
         self._sweeper = Sweeper(client=self._client)

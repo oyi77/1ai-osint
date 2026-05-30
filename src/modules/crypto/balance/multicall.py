@@ -20,7 +20,7 @@ from src.modules.crypto.balance.chains import ChainConfig
 
 logger = logging.getLogger(__name__)
 
-_TIMEOUT = 15
+_TIMEOUT = 30
 
 
 @dataclass
