@@ -1,6 +1,9 @@
-"""Leak finder source adapters."""
-from src.modules.crypto.leak_finder.sources.github_source import GitHubLeakSource, RawLeak
-from src.modules.crypto.leak_finder.sources.paste_source import PasteSource
-from src.modules.crypto.leak_finder.sources.telegram_source import TelegramSource
-from src.modules.crypto.leak_finder.sources.tgstat_source import TGStatSource
-__all__ = ["GitHubLeakSource", "PasteSource", "RawLeak", "TelegramSource", "TGStatSource"]
+"""Leak finder source adapters.
+
+All sources are auto-discovered by the coordinator via _discover_sources().
+To add a new source, create a file named *_source.py with a class ending
+in 'Source' that has a `fetch_raw_leaks()` method. No registration needed.
+"""
+from src.modules.crypto.leak_finder.sources.github_source import RawLeak
+
+__all__ = ["RawLeak"]

