@@ -43,7 +43,16 @@ _BASE58_SOLANA_PATTERN = re.compile(r"(?<![1-9A-HJ-NP-Za-km-z])([2-9A-HJ-NP-Za-k
 _KEY_CONTEXT_PATTERN = re.compile(r"(?i)(private[_\s-]*key|secret[_\s-]*key|priv[_\s-]*key|privkey|priv_key|pvk|signing[_\s-]*key|seed|hex)")
 _CONTEXTUAL_HEX_KEY_RE = re.compile(
     r"(?:private[_\s-]*key|secret[_\s-]*key|priv[_\s-]*key|privkey|priv_key|"
-    r"pvk|signing[_\s-]*key)[\s:=]*[\"']?(?:0x)?([0-9a-fA-F]{64})", re.IGNORECASE)
+    r"pvk|signing[_\s-]*key|wallet[_\s-]*key|bot[_\s-]*key|deployer[_\s-]*key|"
+    r"owner[_\s-]*key|admin[_\s-]*key|funder[_\s-]*key)[\s:=]*[\"']?(?:0x)?([0-9a-fA-F]{64})", re.IGNORECASE)
+
+# JSON-style: "private_key": "0x..." or "secret": "0x..."
+_JSON_KEY_RE = re.compile(
+    r'"(?:private[_-]?key|secret[_-]?key|priv[_-]?key|wallet[_-]?key|mnemonic|seed)"\s*:\s*"([^"]+)"', re.IGNORECASE)
+
+# Env-style: PRIVATE_KEY=0x... or MNEMONIC="word word ..."
+_ENV_KEY_RE = re.compile(
+    r'^(?:PRIVATE[_-]?KEY|SECRET[_-]?KEY|WALLET[_-]?KEY|MNEMONIC|SEED[_-]?PHRASE)=(?:["\'])?([^\s"\'#\n]+)', re.IGNORECASE | re.MULTILINE)
 _MNEMONIC_WORD_RE = re.compile(r"[a-z]{3,8}")
 _BIP39_WORDS: Optional[set[str]] = None
 
@@ -122,6 +131,43 @@ def extract_keys(text: str) -> list[ExtractedKey]:
             addrs["Solana"] = sol
         if addrs:
             results.append(ExtractedKey(key_raw=key_hex, key_type=KeyType.HEX_PRIVATE_KEY, key_hex=norm, derived_addresses=addrs))
+
+    # 1b. JSON-style key-value pairs
+    for m in _JSON_KEY_RE.finditer(text):
+        val = m.group(1).strip()
+        # Check if it's a hex key
+        hex_match = re.match(r"(?:0x)?([0-9a-fA-F]{64})", val)
+        if hex_match:
+            k = hex_match.group(1).lower()
+            if k not in seen:
+                seen.add(k)
+                addrs: dict[str, str] = {}
+                evm = _derive_evm_address(k)
+                if evm:
+                    addrs["Ethereum"] = addrs["BSC"] = addrs["Polygon"] = evm
+                sol = _derive_solana_address(k)
+                if sol:
+                    addrs["Solana"] = sol
+                if addrs:
+                    results.append(ExtractedKey(key_raw=val, key_type=KeyType.HEX_PRIVATE_KEY, key_hex=k, derived_addresses=addrs))
+
+    # 1c. Env-style key=value
+    for m in _ENV_KEY_RE.finditer(text):
+        val = m.group(1).strip()
+        hex_match = re.match(r"(?:0x)?([0-9a-fA-F]{64})", val)
+        if hex_match:
+            k = hex_match.group(1).lower()
+            if k not in seen:
+                seen.add(k)
+                addrs: dict[str, str] = {}
+                evm = _derive_evm_address(k)
+                if evm:
+                    addrs["Ethereum"] = addrs["BSC"] = addrs["Polygon"] = evm
+                sol = _derive_solana_address(k)
+                if sol:
+                    addrs["Solana"] = sol
+                if addrs:
+                    results.append(ExtractedKey(key_raw=val, key_type=KeyType.HEX_PRIVATE_KEY, key_hex=k, derived_addresses=addrs))
 
     # 2. Standalone hex with context
     for m in _HEX_KEY_PATTERN.finditer(text):

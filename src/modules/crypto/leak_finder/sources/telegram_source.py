@@ -19,7 +19,7 @@ class TelegramSource:
         self.max_messages_per_channel = max_messages_per_channel
         self.timeout = timeout
 
-    async def fetch_raw_leaks(self, keywords: Optional[list[str]] = None, max_channels: int = 10) -> list[RawLeak]:
+    async def fetch_raw_leaks(self, keywords: Optional[list[str]] = None, max_channels: int = 50) -> list[RawLeak]:
         try:
             from telethon import TelegramClient
         except ImportError:
@@ -30,7 +30,12 @@ class TelegramSource:
         client = TelegramClient(self.session_name, self.api_id, self.api_hash)
         await client.start()
         leaks: list[RawLeak] = []
-        keywords = keywords or ["crypto leak", "wallet dump", "seed phrase", "private key leak", "mnemonic leak"]
+        keywords = keywords or [
+            "crypto leak", "wallet dump", "seed phrase",
+            "private key leak", "mnemonic leak", "private key dump",
+            "crypto leaked", "wallet leaked", "seed phrase found",
+            "mnemonic found", "private key" "0x", "crypto" "leaked",
+        ]
         try:
             channels = []
             for kw in keywords:

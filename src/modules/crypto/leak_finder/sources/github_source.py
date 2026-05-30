@@ -17,7 +17,36 @@ class RawLeak:
     source_url: str = ""
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
-_QUERIES = ['"PRIVATE_KEY" "0x" hex', '"PRIVATE_KEY=" filetype:env', '"SECRET_KEY=" filetype:env', 'filename:wallet.txt "seed"', 'mnemonic "seed phrase"']
+import random as _random
+
+_QUERIES = [
+    # .env files with private keys
+    '"PRIVATE_KEY=" filetype:env',
+    '"SECRET_KEY=" filetype:env',
+    '"PRIVATE_KEY=" "0x" filetype:env',
+    '"MNEMONIC=" filetype:env',
+    '"WALLET_PRIVATE_KEY" filetype:env',
+    '"BOT_TOKEN" "PRIVATE_KEY" filetype:env',
+    # Wallet exports
+    'filename:keystore.json "ciphertext"',
+    'filename:wallet.json "private"',
+    '"seed phrase" "12 words"',
+    '"bip39 mnemonic" filetype:txt',
+    # Config dumps
+    '"private_key" "rpc" filetype:json',
+    '"mnemonic" "derivation" filetype:txt',
+    '"PRIVATE_KEY" filename:docker-compose.yml',
+    '"MNEMONIC" filename:.env.example',
+    # General
+    '"PRIVATE_KEY" "0x" hex',
+    'mnemonic "seed phrase"',
+    'filename:wallet.txt "seed"',
+    '"private key" "0x" "rpc"',
+    '"seed" "mnemonic" "wallet" filetype:env',
+    '"secret" "private" "key" filetype:env',
+    '"0x" "private" "key" "infura"',
+    '"0x" "private" "key" "alchemy"',
+]
 
 class GitHubLeakSource:
     SEARCH_URL = "https://api.github.com/search/code"
@@ -28,10 +57,13 @@ class GitHubLeakSource:
         self._request_times: list[float] = []
 
     async def fetch_raw_leaks(self, queries: Optional[list[str]] = None, max_per_query: int = 30) -> list[RawLeak]:
-        queries = queries or _QUERIES
+        # Rotate queries: pick a random subset each run to cover more ground over time
+        if queries is None:
+            queries = _random.sample(_QUERIES, min(7, len(_QUERIES)))
         leaks: list[RawLeak] = []
         headers = self._make_headers()
         async with httpx.AsyncClient(timeout=self.timeout) as client:
+            # 1. Code search queries
             for query in queries:
                 await self._rate_limit()
                 try:
@@ -47,6 +79,36 @@ class GitHubLeakSource:
                             leaks.append(RawLeak(text=text, source_name="github", source_url=html_url))
                 except Exception as exc:
                     logger.error("GitHub search error: %s", exc)
+
+            # 2. Gist scanning (not indexed by code search)
+            try:
+                gist_leaks = await self._fetch_recent_gists(client, headers)
+                leaks.extend(gist_leaks)
+            except Exception as exc:
+                logger.error("GitHub gist scan error: %s", exc)
+
+        return leaks
+
+    async def _fetch_recent_gists(self, client: httpx.AsyncClient, headers: dict[str, str]) -> list[RawLeak]:
+        """Fetch recent public gists and scan for keys/mnemonics."""
+        leaks: list[RawLeak] = []
+        await self._rate_limit()
+        resp = await client.get("https://api.github.com/gists/public", params={"per_page": 100}, headers=headers)
+        if resp.status_code != 200:
+            return leaks
+        for gist in resp.json():
+            gist_url = gist.get("html_url", "")
+            for file_info in gist.get("files", {}).values():
+                raw_url = file_info.get("raw_url", "")
+                if not raw_url:
+                    continue
+                await self._rate_limit()
+                try:
+                    fresp = await client.get(raw_url, headers=headers)
+                    if fresp.status_code == 200 and fresp.text.strip():
+                        leaks.append(RawLeak(text=fresp.text, source_name="github_gist", source_url=gist_url))
+                except Exception:
+                    pass
         return leaks
 
     async def search_for_address(self, address: str) -> list[RawLeak]:
