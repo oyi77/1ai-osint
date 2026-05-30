@@ -24,9 +24,34 @@ BSC_RPCS = [
     "https://bsc-rpc.publicnode.com",
 ]
 POLYGON_RPCS = [
-    "https://rpc.ankr.com/polygon",
     "https://polygon-bor-rpc.publicnode.com",
     "https://1rpc.io/matic",
+    "https://polygon.llamarpc.com",
+]
+ARBITRUM_RPCS = [
+    "https://arb1.arbitrum.io/rpc",
+    "https://arbitrum.llamarpc.com",
+    "https://arbitrum-one-rpc.publicnode.com",
+]
+OPTIMISM_RPCS = [
+    "https://mainnet.optimism.io",
+    "https://optimism.llamarpc.com",
+    "https://optimism-rpc.publicnode.com",
+]
+BASE_RPCS = [
+    "https://mainnet.base.org",
+    "https://base.llamarpc.com",
+    "https://base-rpc.publicnode.com",
+]
+AVALANCHE_RPCS = [
+    "https://api.avax.network/ext/bc/C/rpc",
+    "https://avalanche-c-chain-rpc.publicnode.com",
+    "https://avax.meowrpc.com",
+]
+FANTOM_RPCS = [
+    "https://rpc.ftm.tools",
+    "https://fantom-rpc.publicnode.com",
+    "https://rpcapi.fantom.network",
 ]
 SOL_RPCS = [
     "https://api.mainnet-beta.solana.com",
@@ -129,8 +154,68 @@ SOLANA = ChainConfig(
     ],
 )
 
+# --- Additional EVM Chains (same private key as ETH) ---
+
+ARBITRUM = ChainConfig(
+    name="Arbitrum",
+    symbol="ETH",
+    chain_type=ChainType.EVM,
+    coin_id="ethereum",
+    rpc_url="https://arb1.arbitrum.io/rpc",
+    decimals=18,
+    bip44_coin_type=60,
+    derivation_paths=["m/44'/60'/0'/0/0"],
+)
+
+OPTIMISM = ChainConfig(
+    name="Optimism",
+    symbol="ETH",
+    chain_type=ChainType.EVM,
+    coin_id="ethereum",
+    rpc_url="https://mainnet.optimism.io",
+    decimals=18,
+    bip44_coin_type=60,
+    derivation_paths=["m/44'/60'/0'/0/0"],
+)
+
+BASE = ChainConfig(
+    name="Base",
+    symbol="ETH",
+    chain_type=ChainType.EVM,
+    coin_id="ethereum",
+    rpc_url="https://mainnet.base.org",
+    decimals=18,
+    bip44_coin_type=60,
+    derivation_paths=["m/44'/60'/0'/0/0"],
+)
+
+AVALANCHE = ChainConfig(
+    name="Avalanche",
+    symbol="AVAX",
+    chain_type=ChainType.EVM,
+    coin_id="avalanche-2",
+    rpc_url="https://api.avax.network/ext/bc/C/rpc",
+    decimals=18,
+    bip44_coin_type=60,
+    derivation_paths=["m/44'/60'/0'/0/0"],
+)
+
+FANTOM = ChainConfig(
+    name="Fantom",
+    symbol="FTM",
+    chain_type=ChainType.EVM,
+    coin_id="fantom",
+    rpc_url="https://rpc.ftm.tools",
+    decimals=18,
+    bip44_coin_type=60,
+    derivation_paths=["m/44'/60'/0'/0/0"],
+)
+
 # All supported chains
-ALL_CHAINS: list[ChainConfig] = [ETHEREUM, BSC, POLYGON, BITCOIN, SOLANA]
+ALL_CHAINS: list[ChainConfig] = [
+    ETHEREUM, BSC, POLYGON, ARBITRUM, OPTIMISM, BASE, AVALANCHE, FANTOM,
+    BITCOIN, SOLANA,
+]
 
 # Map for quick lookup by name
 CHAIN_MAP: dict[str, ChainConfig] = {c.name.lower(): c for c in ALL_CHAINS}

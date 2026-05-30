@@ -49,6 +49,30 @@ ENDPOINT_REGISTRY: dict[str, list[str]] = {
         "https://api.mainnet-beta.solana.com",
         "https://solana-rpc.publicnode.com",
     ],
+    "arbitrum": [
+        "https://arb1.arbitrum.io/rpc",
+        "https://arbitrum.llamarpc.com",
+        "https://arbitrum-one-rpc.publicnode.com",
+    ],
+    "optimism": [
+        "https://mainnet.optimism.io",
+        "https://optimism.llamarpc.com",
+        "https://optimism-rpc.publicnode.com",
+    ],
+    "base": [
+        "https://mainnet.base.org",
+        "https://base.llamarpc.com",
+        "https://base-rpc.publicnode.com",
+    ],
+    "avalanche": [
+        "https://api.avax.network/ext/bc/C/rpc",
+        "https://avalanche-c-chain-rpc.publicnode.com",
+        "https://avax.meowrpc.com",
+    ],
+    "fantom": [
+        "https://rpc.ftm.tools",
+        "https://fantom-rpc.publicnode.com",
+    ],
 }
 
 

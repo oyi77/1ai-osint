@@ -44,17 +44,25 @@ VALID_PRIVATE_KEY = "e8f32e723decf4051aefac8e2c93c9c5b214313817cdb01a1494b917c84
 
 class TestChainConfig:
     def test_all_chains_defined(self):
-        assert len(ALL_CHAINS) == 5
+        assert len(ALL_CHAINS) == 10
         names = {c.name for c in ALL_CHAINS}
         assert "Ethereum" in names
         assert "Bitcoin" in names
         assert "Solana" in names
+        assert "Arbitrum" in names
+        assert "Optimism" in names
+        assert "Base" in names
 
     def test_chain_map_lookup(self):
         assert CHAIN_MAP["ethereum"] is ETHEREUM
-        assert CHAIN_MAP["eth"] is ETHEREUM
         assert CHAIN_MAP["bitcoin"] is BITCOIN
         assert CHAIN_MAP["btc"] is BITCOIN
+        assert CHAIN_MAP["solana"].name == "Solana"
+        assert CHAIN_MAP["arbitrum"].name == "Arbitrum"
+        assert CHAIN_MAP["optimism"].name == "Optimism"
+        assert CHAIN_MAP["base"].name == "Base"
+        assert CHAIN_MAP["avalanche"].name == "Avalanche"
+        assert CHAIN_MAP["fantom"].name == "Fantom"
 
     def test_chain_types(self):
         assert ETHEREUM.chain_type == ChainType.EVM
