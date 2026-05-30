@@ -199,7 +199,7 @@ class EndpointRotator:
             return
         health.failure_count += 1
         health.consecutive_failures += 1
-        if health.consecutive_failures >= _MAX_CONSECUTIVE_FAILURES:
+        if health.consecutive_failures >= _MAX_CONSECUTIVE_FAILURES and health.disabled_at is None:
             health.disabled_at = time.monotonic()
             logger.warning(
                 "Disabled endpoint %s after %d consecutive failures",
