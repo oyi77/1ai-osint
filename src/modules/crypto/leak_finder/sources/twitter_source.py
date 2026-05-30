@@ -93,8 +93,12 @@ class TwitterSource:
             data = json.loads(stdout.decode())
             if isinstance(data, list):
                 return data
-            if isinstance(data, dict) and "tweets" in data:
-                return data["tweets"]
+            if isinstance(data, dict):
+                # twitter-cli returns {"ok": true, "data": [...]}
+                if "data" in data and isinstance(data["data"], list):
+                    return data["data"]
+                if "tweets" in data:
+                    return data["tweets"]
             return []
         except json.JSONDecodeError:
             # Try line-delimited JSON
