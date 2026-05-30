@@ -14,9 +14,6 @@ class PasteSource:
         ("pastebin", "https://pastebin.com/archive", "https://pastebin.com/raw/{id}"),
         ("dpaste", "https://dpaste.org/archive/", "https://dpaste.org/{id}.txt"),
         ("rentry", "https://rentry.co/", "https://rentry.co/{id}/raw"),
-        ("hastebin", "https://hastebin.com/list", "https://hastebin.com/raw/{id}"),
-        ("ixio", "https://ix.io/newest", "https://ix.io/{id}"),
-        ("clbin", "https://clbin.com/", "https://clbin.com/{id}"),
     ]
     def __init__(self, max_pastes_per_source: int = 50, request_delay: float = 1.0, timeout: float = 30.0):
         self.max_pastes_per_source = max_pastes_per_source
@@ -55,12 +52,6 @@ class PasteSource:
             return self._parse_dpaste_ids(resp.text)
         elif source_name == "rentry":
             return self._parse_rentry_ids(resp.text)
-        elif source_name == "hastebin":
-            return self._parse_hastebin_ids(resp.text)
-        elif source_name == "ixio":
-            return self._parse_ixio_ids(resp.text)
-        elif source_name == "clbin":
-            return self._parse_clbin_ids(resp.text)
         return []
 
     @staticmethod
@@ -91,23 +82,3 @@ class PasteSource:
                     ids.append(slug)
         return list(dict.fromkeys(ids))
 
-    @staticmethod
-    def _parse_hastebin_ids(html: str) -> list[str]:
-        """Parse hastebin document IDs from list page."""
-        ids = re.findall(r'href="/([a-z]+)"', html)
-        excluded = {"about", "faq", "login", "signup", "list", "raw", "download", "edit"}
-        return [pid for pid in dict.fromkeys(ids) if pid.lower() not in excluded]
-
-    @staticmethod
-    def _parse_ixio_ids(html: str) -> list[str]:
-        """Parse ix.io paste IDs from newest page."""
-        ids = re.findall(r'href="/([a-zA-Z0-9]+)"', html)
-        excluded = {"about", "faq", "login", "signup", "newest", "raw", "download"}
-        return [pid for pid in dict.fromkeys(ids) if pid.lower() not in excluded]
-
-    @staticmethod
-    def _parse_clbin_ids(html: str) -> list[str]:
-        """Parse clbin paste IDs."""
-        ids = re.findall(r'href="/([a-zA-Z0-9]+)"', html)
-        excluded = {"about", "faq", "login", "signup", "raw", "download", "recent"}
-        return [pid for pid in dict.fromkeys(ids) if pid.lower() not in excluded]

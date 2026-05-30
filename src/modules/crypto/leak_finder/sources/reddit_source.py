@@ -31,25 +31,23 @@ class RedditSource:
         self._last_request: float = 0.0
 
     async def fetch_raw_leaks(self) -> list[RawLeak]:
+        """Fetch recent Reddit posts via pullpush.io (Reddit's JSON API blocks scrapers)."""
         leaks: list[RawLeak] = []
-        headers = {"User-Agent": "crypto-leak-scanner/1.0"}
+        headers = {"User-Agent": "osint:crypto-leak-scanner:v1.0"}
         async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
             for sub in _SUBREDDITS:
                 try:
                     await self._rate_limit()
-                    url = f"https://www.reddit.com/r/{sub}/new.json?limit={self.max_per_sub}"
+                    url = f"https://api.pullpush.io/reddit/search/submission/?subreddit={sub}&size={self.max_per_sub}"
                     resp = await client.get(url, headers=headers)
                     if resp.status_code != 200:
-                        logger.debug("Reddit r/%s returned %d", sub, resp.status_code)
+                        logger.debug("pullpush r/%s returned %d", sub, resp.status_code)
                         continue
-                    data = resp.json()
-                    for post in data.get("data", {}).get("children", []):
-                        post_data = post.get("data", {})
-                        title = post_data.get("title", "")
-                        selftext = post_data.get("selftext", "")
-                        permalink = post_data.get("permalink", "")
+                    for post in resp.json().get("data", []):
+                        title = post.get("title", "")
+                        selftext = post.get("selftext", "")
+                        permalink = post.get("permalink", "")
                         full_url = f"https://www.reddit.com{permalink}" if permalink else ""
-                        # Combine title + body for extraction
                         combined = f"{title}\n{selftext}".strip()
                         if combined:
                             leaks.append(RawLeak(text=combined, source_name="reddit", source_url=full_url))
