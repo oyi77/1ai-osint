@@ -182,15 +182,14 @@ class Sweeper:
         self, private_key_hex: str, chain: ChainConfig,
         source: str, dest: str, balance_raw: int,
     ) -> SweepResult:
-        """Sweep SOL using solana-py/solders."""
+        """Sweep SOL using solders + httpx (fully async)."""
+        import base64 as _b64
         from solders.keypair import Keypair
         from solders.hash import Hash
         from solders.pubkey import Pubkey
-        from solders.system_program import transfer, advance_nonce_account, withdraw_nonce_account
+        from solders.system_program import transfer
         from solders.message import Message
         from solders.transaction import Transaction
-        from solana.rpc.api import Client as SolanaClient
-        from solana.rpc.types import TxOpts
 
         # Derive keypair from private key bytes
         key_bytes = bytes.fromhex(private_key_hex)
@@ -199,30 +198,20 @@ class Sweeper:
         else:
             keypair = Keypair.from_seed(key_bytes[:32])
 
-        client = SolanaClient(chain.rpc_url)
+        client = await self._get_client()
+        rpc = chain.rpc_url or "https://api.mainnet-beta.solana.com"
+
         source_pubkey = Pubkey.from_string(source)
         dest_pubkey = Pubkey.from_string(dest)
 
-        # Check if this is a nonce account (80 bytes of data, System Program owner)
-        account_info = client.get_account_info(source_pubkey)
-        is_nonce_account = False
-        nonce_authority = None
-        if account_info.value and len(account_info.value.data) == 80:
-            owner = str(account_info.value.owner)
-            if owner == "11111111111111111111111111111111":
-                is_nonce_account = True
-                # Nonce account layout: [version(4), state(4), authority(32), nonce(32), fee(8)]
-                nonce_auth_bytes = account_info.value.data[40:72]
-                nonce_authority = Pubkey.from_bytes(nonce_auth_bytes)
-                logger.info(
-                    "Source %s is a nonce account, authority=%s", source[:12], nonce_authority,
-                )
+        # Get recent blockhash via httpx
+        resp = await client.post(rpc, json={
+            "jsonrpc": "2.0", "id": 1, "method": "getLatestBlockhash",
+            "params": [{"commitment": "finalized"}],
+        })
+        bh_str = resp.json()["result"]["value"]["blockhash"]
+        blockhash = Hash.from_string(bh_str)
 
-        # Nonce accounts: use nonce hash for the transaction, regular blockhash otherwise
-        if is_nonce_account and nonce_authority != source_pubkey:
-            logger.info("Nonce account with different authority — using regular transfer anyway")
-
-        recent_blockhash = client.get_latest_blockhash().value.blockhash
         fee = 5000
         amount_to_send = balance_raw - fee
         if amount_to_send <= 0:
@@ -233,41 +222,33 @@ class Sweeper:
                 error=f"Insufficient balance for fee ({fee} lamports)",
             )
 
-        if is_nonce_account and nonce_authority == source_pubkey:
-            # We control the nonce authority — advance nonce + withdraw all
-            stored_nonce_hash = Hash.from_bytes(account_info.value.data[8:40])
-            advance_ix = advance_nonce_account(
-                {"nonce_pubkey": source_pubkey, "authorized_pubkey": source_pubkey}
-            )
-            withdraw_ix = withdraw_nonce_account(
-                {"nonce_pubkey": source_pubkey, "authorized_pubkey": source_pubkey,
-                 "to_pubkey": dest_pubkey, "lamports": amount_to_send}
-            )
-            msg = Message.new_with_blockhash(
-                [advance_ix, withdraw_ix], keypair.pubkey(), stored_nonce_hash
-            )
-            txn = Transaction.new_unsigned(msg)
-            txn.sign([keypair], stored_nonce_hash)
-        else:
-            # Regular account — simple transfer
-            ix = transfer({"from_pubkey": source_pubkey, "to_pubkey": dest_pubkey, "lamports": amount_to_send})
-            msg = Message.new_with_blockhash([ix], keypair.pubkey(), recent_blockhash)
-            txn = Transaction.new_unsigned(msg)
-            txn.sign([keypair], recent_blockhash)
+        # Regular transfer — works for both nonce and non-nonce accounts
+        ix = transfer({"from_pubkey": source_pubkey, "to_pubkey": dest_pubkey, "lamports": amount_to_send})
+        msg = Message.new_with_blockhash([ix], keypair.pubkey(), blockhash)
+        txn = Transaction.new_unsigned(msg)
+        txn.sign([keypair], blockhash)
 
-        # send_raw_transaction is more reliable than send_transaction
-        opts = TxOpts(skip_preflight=True, preflight_commitment=None)
-        result = client.send_raw_transaction(bytes(txn), opts=opts)
-        tx_hash = str(result.value)
+        # Send via httpx
+        encoded = _b64.b64encode(bytes(txn)).decode()
+        resp = await client.post(rpc, json={
+            "jsonrpc": "2.0", "id": 2, "method": "sendTransaction",
+            "params": [encoded, {"encoding": "base64", "skipPreflight": True, "maxRetries": 3}],
+        })
+        result = resp.json()
+        if "error" in result:
+            return SweepResult(
+                success=False, chain=chain.name,
+                source_address=source, dest_address=dest,
+                amount=amount_to_send / 1e9, amount_raw=amount_to_send,
+                error=f"Send failed: {result['error']}",
+            )
 
+        tx_hash = result["result"]
         amount = amount_to_send / 1e9
         return SweepResult(
-            success=True,
-            chain=chain.name,
-            source_address=source,
-            dest_address=dest,
-            amount=amount,
-            amount_raw=amount_to_send,
+            success=True, chain=chain.name,
+            source_address=source, dest_address=dest,
+            amount=amount, amount_raw=amount_to_send,
             tx_hash=tx_hash,
         )
 
@@ -275,24 +256,59 @@ class Sweeper:
         self, private_key_hex: str, chain: ChainConfig,
         source: str, dest: str, balance_raw: int,
     ) -> SweepResult:
-        """Sweep BTC — requires UTXO-based transaction construction.
+        """Sweep BTC using the `bit` library."""
+        from bit import PrivateKey as BtcPrivateKey
+        import asyncio as _asyncio
 
-        Note: BTC sweeping is complex (UTXO management, fee estimation).
-        For now, this logs the opportunity but does not auto-sweep.
-        Manual sweep recommended for BTC.
-        """
-        amount = balance_raw / 1e8
-        logger.warning(
-            "BTC sweep not auto-implemented (UTXO complexity). "
-            "Source: %s, Dest: %s, Amount: %.8f BTC. Manual sweep recommended.",
-            source, dest, amount,
-        )
+        def _do_btc_sweep():
+            key = BtcPrivateKey.from_hex(private_key_hex)
+            # Get unspents from blockstream API
+            api = chain.api_url or "https://blockstream.info/api"
+            resp = httpx.get(f"{api}/address/{source}/utxo", timeout=_TIMEOUT)
+            if resp.status_code != 200:
+                raise RuntimeError(f"Failed to fetch UTXOs: HTTP {resp.status_code}")
+            utxos = resp.json()
+            if not utxos:
+                raise RuntimeError("No UTXOs found")
+
+            # Get fee estimate
+            try:
+                fee_resp = httpx.get(f"{api}/fee-estimates", timeout=_TIMEOUT)
+                fee_per_byte = fee_resp.json().get("6", 10) if fee_resp.status_code == 200 else 10
+            except Exception:
+                fee_per_byte = 10
+
+            # bit library needs unspents in its format
+            from bit.network.meta import Unspent
+            unspents = [
+                Unspent(
+                    amount=u["value"],
+                    confirmations=0,
+                    script=bytes.fromhex("76a914") + key.address.encode() + bytes.fromhex("88ac"),
+                    txid=u["txid"],
+                    txindex=u["vout"],
+                )
+                for u in utxos
+            ]
+            key.unspents = unspents
+
+            # Send with custom fee
+            total_sat = sum(u["value"] for u in utxos)
+            tx_size_estimate = 148 * len(utxos) + 34 * 2 + 10
+            fee_sat = int(fee_per_byte * tx_size_estimate)
+            amount_sat = total_sat - fee_sat
+            if amount_sat <= 0:
+                raise RuntimeError(f"Insufficient for fee (need ~{fee_sat} sat, have {total_sat})")
+
+            tx_hash = key.send([(dest, amount_sat, "sat")], fee=fee_sat, absolute_fee=True)
+            return tx_hash, amount_sat
+
+        loop = _asyncio.get_event_loop()
+        tx_hash, amount_sat = await loop.run_in_executor(None, _do_btc_sweep)
+
         return SweepResult(
-            success=False,
-            chain=chain.name,
-            source_address=source,
-            dest_address=dest,
-            amount=amount,
-            amount_raw=balance_raw,
-            error="BTC auto-sweep not implemented (UTXO complexity). Manual sweep recommended.",
+            success=True, chain=chain.name,
+            source_address=source, dest_address=dest,
+            amount=amount_sat / 1e8, amount_raw=amount_sat,
+            tx_hash=tx_hash,
         )
