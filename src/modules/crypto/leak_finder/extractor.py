@@ -25,7 +25,7 @@ class ExtractedKey:
 _HEX_KEY_PATTERN = re.compile(r"(?:0x)?(?<![0-9a-fA-F])([0-9a-fA-F]{64})(?![0-9a-fA-F])")
 _WIF_PATTERN = re.compile(r"(?<![1-9A-HJ-NP-Za-km-z])([5KL][1-9A-HJ-NP-Za-km-z]{50,51})(?![1-9A-HJ-NP-Za-km-z])")
 _BASE58_SOLANA_PATTERN = re.compile(r"(?<![1-9A-HJ-NP-Za-km-z])([2-9A-HJ-NP-Za-km-z][1-9A-HJ-NP-Za-km-z]{85,87})(?![1-9A-HJ-NP-Za-km-z])")
-_KEY_CONTEXT_PATTERN = re.compile(r"(?i)(private[_\s-]*key|secret[_\s-]*key|priv[_\s-]*key|privkey|priv_key|pvk|signing[_\s-]*key|seed|hex)")
+_KEY_CONTEXT_PATTERN = re.compile(r"(?i)(private[_\s-]*key|secret[_\s-]*key|priv[_\s-]*key|privkey|priv_key|pvk|signing[_\s-]*key|seed|hex|wallet|account|address|0x[a-fA-F0-9]{40}|keystore|mnemonic|deployer|owner|admin|funder|bot|token|auth|credential|import|export|backup|recovery)")
 _CONTEXTUAL_HEX_KEY_RE = re.compile(
     r"(?:private[_\s-]*key|secret[_\s-]*key|priv[_\s-]*key|privkey|priv_key|"
     r"pvk|signing[_\s-]*key|wallet[_\s-]*key|bot[_\s-]*key|deployer[_\s-]*key|"
