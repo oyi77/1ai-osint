@@ -1791,3 +1791,216 @@ class TestTheHarvesterSourceFull2:
             with patch("src.modules.sources.theharvester_source.asyncio.create_subprocess_exec", side_effect=Exception("fail")):
                 leaks = await source.search_for_address("example.com")
         assert leaks == []
+
+
+# ---------------------------------------------------------------------------
+# DehashedSource
+# ---------------------------------------------------------------------------
+class TestDehashedSource:
+    def _make_source(self):
+        from src.modules.sources.dehashed_source import DehashedSource
+        return DehashedSource(api_key="test_key", request_delay=0.0, timeout=5.0)
+
+    @pytest.mark.asyncio
+    async def test_fetch_raw_leaks_empty(self):
+        source = self._make_source()
+        leaks = await source.fetch_raw_leaks()
+        assert leaks == []
+
+    @pytest.mark.asyncio
+    async def test_search_for_address_no_key(self):
+        from src.modules.sources.dehashed_source import DehashedSource
+        source = DehashedSource(api_key="", request_delay=0.0, timeout=5.0)
+        leaks = await source.search_for_address("test@example.com")
+        assert leaks == []
+
+    @pytest.mark.asyncio
+    async def test_search_for_address_success(self):
+        source = self._make_source()
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.json.return_value = {"entries": [{"email": "test@example.com", "password": "secret"}]}
+        mock_client = AsyncMock()
+        mock_client.get = AsyncMock(return_value=resp)
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+        with patch("src.modules.sources.dehashed_source.httpx.AsyncClient", return_value=mock_client):
+            with patch("src.modules.sources.dehashed_source.asyncio.sleep", new_callable=AsyncMock):
+                with patch("src.modules.sources.dehashed_source.time.monotonic", return_value=0.0):
+                    leaks = await source.search_for_address("test@example.com")
+        assert len(leaks) == 1
+        assert leaks[0].source_name == "dehashed"
+
+
+# ---------------------------------------------------------------------------
+# SnyllaSource
+# ---------------------------------------------------------------------------
+class TestSnyllaSource:
+    def _make_source(self):
+        from src.modules.sources.snylla_source import ScyllaSource
+        return ScyllaSource(api_key="test_key", request_delay=0.0, timeout=5.0)
+
+    @pytest.mark.asyncio
+    async def test_fetch_raw_leaks_empty(self):
+        source = self._make_source()
+        leaks = await source.fetch_raw_leaks()
+        assert leaks == []
+
+    @pytest.mark.asyncio
+    async def test_search_for_address_no_key(self):
+        from src.modules.sources.snylla_source import ScyllaSource
+        source = ScyllaSource(api_key="", request_delay=0.0, timeout=5.0)
+        leaks = await source.search_for_address("test@example.com")
+        assert leaks == []
+
+    @pytest.mark.asyncio
+    async def test_search_for_address_success(self):
+        source = self._make_source()
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.json.return_value = [{"email": "test@example.com", "password": "secret"}]
+        mock_client = AsyncMock()
+        mock_client.get = AsyncMock(return_value=resp)
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+        with patch("src.modules.sources.snylla_source.httpx.AsyncClient", return_value=mock_client):
+            with patch("src.modules.sources.snylla_source.asyncio.sleep", new_callable=AsyncMock):
+                with patch("src.modules.sources.snylla_source.time.monotonic", return_value=0.0):
+                    leaks = await source.search_for_address("test@example.com")
+        assert len(leaks) == 1
+        assert leaks[0].source_name == "scylla"
+
+
+# ---------------------------------------------------------------------------
+# SnusbaseSource
+# ---------------------------------------------------------------------------
+class TestSnusbaseSource:
+    def _make_source(self):
+        from src.modules.sources.snusbase_source import SnusbaseSource
+        return SnusbaseSource(api_key="test_key", request_delay=0.0, timeout=5.0)
+
+    @pytest.mark.asyncio
+    async def test_fetch_raw_leaks_empty(self):
+        source = self._make_source()
+        leaks = await source.fetch_raw_leaks()
+        assert leaks == []
+
+    @pytest.mark.asyncio
+    async def test_search_for_address_no_key(self):
+        from src.modules.sources.snusbase_source import SnusbaseSource
+        source = SnusbaseSource(api_key="", request_delay=0.0, timeout=5.0)
+        leaks = await source.search_for_address("test@example.com")
+        assert leaks == []
+
+    @pytest.mark.asyncio
+    async def test_search_for_address_success(self):
+        source = self._make_source()
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.json.return_value = {"result": {"users": [{"email": "test@example.com"}]}}
+        mock_client = AsyncMock()
+        mock_client.post = AsyncMock(return_value=resp)
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+        with patch("src.modules.sources.snusbase_source.httpx.AsyncClient", return_value=mock_client):
+            with patch("src.modules.sources.snusbase_source.asyncio.sleep", new_callable=AsyncMock):
+                with patch("src.modules.sources.snusbase_source.time.monotonic", return_value=0.0):
+                    leaks = await source.search_for_address("test@example.com")
+        assert len(leaks) == 1
+        assert leaks[0].source_name == "snusbase"
+
+
+# ---------------------------------------------------------------------------
+# HIBPSource
+# ---------------------------------------------------------------------------
+class TestHIBPSource:
+    def _make_source(self):
+        from src.modules.sources.hibp_source import HIBPSource
+        return HIBPSource(api_key="test_key", request_delay=0.0, timeout=5.0)
+
+    @pytest.mark.asyncio
+    async def test_fetch_raw_leaks_empty(self):
+        source = self._make_source()
+        leaks = await source.fetch_raw_leaks()
+        assert leaks == []
+
+    @pytest.mark.asyncio
+    async def test_search_for_address_no_key(self):
+        from src.modules.sources.hibp_source import HIBPSource
+        source = HIBPSource(api_key="", request_delay=0.0, timeout=5.0)
+        leaks = await source.search_for_address("test@example.com")
+        assert leaks == []
+
+    @pytest.mark.asyncio
+    async def test_search_for_address_no_email(self):
+        source = self._make_source()
+        leaks = await source.search_for_address("notanemail")
+        assert leaks == []
+
+    @pytest.mark.asyncio
+    async def test_search_for_address_success(self):
+        source = self._make_source()
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.json.return_value = [{"Name": "LinkedIn", "BreachDate": "2012-05-05", "DataClasses": ["Email", "Password"]}]
+        mock_client = AsyncMock()
+        mock_client.get = AsyncMock(return_value=resp)
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+        with patch("src.modules.sources.hibp_source.httpx.AsyncClient", return_value=mock_client):
+            with patch("src.modules.sources.hibp_source.asyncio.sleep", new_callable=AsyncMock):
+                with patch("src.modules.sources.hibp_source.time.monotonic", return_value=0.0):
+                    leaks = await source.search_for_address("test@example.com")
+        assert len(leaks) == 1
+        assert leaks[0].source_name == "hibp"
+
+    @pytest.mark.asyncio
+    async def test_search_for_address_not_found(self):
+        source = self._make_source()
+        resp = MagicMock()
+        resp.status_code = 404
+        mock_client = AsyncMock()
+        mock_client.get = AsyncMock(return_value=resp)
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+        with patch("src.modules.sources.hibp_source.httpx.AsyncClient", return_value=mock_client):
+            with patch("src.modules.sources.hibp_source.asyncio.sleep", new_callable=AsyncMock):
+                with patch("src.modules.sources.hibp_source.time.monotonic", return_value=0.0):
+                    leaks = await source.search_for_address("clean@example.com")
+        assert leaks == []
+
+
+# ---------------------------------------------------------------------------
+# SpiderFootSource
+# ---------------------------------------------------------------------------
+class TestSpiderFootSource:
+    def _make_source(self):
+        from src.modules.sources.spiderfoot_source import SpiderFootSource
+        return SpiderFootSource(timeout=5.0)
+
+    @pytest.mark.asyncio
+    async def test_fetch_raw_leaks_empty(self):
+        source = self._make_source()
+        leaks = await source.fetch_raw_leaks()
+        assert leaks == []
+
+    @pytest.mark.asyncio
+    async def test_search_for_address_no_binary(self):
+        source = self._make_source()
+        with patch("src.modules.sources.spiderfoot_source.shutil.which", return_value=None):
+            leaks = await source.search_for_address("example.com")
+        assert leaks == []
+
+    @pytest.mark.asyncio
+    async def test_search_for_address_success(self):
+        source = self._make_source()
+        with patch("src.modules.sources.spiderfoot_source.shutil.which", return_value="/usr/bin/spiderfoot"):
+            with patch("src.modules.sources.spiderfoot_source.asyncio.create_subprocess_exec") as mock_exec:
+                mock_proc = MagicMock()
+                mock_proc.communicate = AsyncMock(return_value=(b'[{"element": "example.com", "type": "domain"}]', b""))
+                mock_exec.return_value = mock_proc
+                with patch("src.modules.sources.spiderfoot_source.asyncio.wait_for", new_callable=AsyncMock) as mock_wait:
+                    mock_wait.return_value = (b'[{"element": "example.com", "type": "domain"}]', b"")
+                    leaks = await source.search_for_address("example.com")
+        assert len(leaks) == 1
+        assert leaks[0].source_name == "spiderfoot"
