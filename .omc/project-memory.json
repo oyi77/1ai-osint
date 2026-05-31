@@ -25,7 +25,7 @@
   },
   "build": {
     "buildCommand": null,
-    "testCommand": "rm -f .coverage && python -m pytest tests/unit/ -q --tb=line --no-header 2>&1 | tail -3",
+    "testCommand": "ruff check src/ tests/ --fix 2>&1 && rm -f .coverage && python -m pytest tests/unit/ -q --tb=line --no-header 2>&1 | tail -3",
     "lintCommand": "ruff check",
     "devCommand": null,
     "scripts": {}
@@ -216,15 +216,15 @@
       "type": "directory"
     },
     {
-      "path": "src/modules/crypto/balance/multicall.py",
-      "accessCount": 21,
-      "lastAccessed": 1780169787128,
+      "path": "src/cli.py",
+      "accessCount": 23,
+      "lastAccessed": 1780258635296,
       "type": "file"
     },
     {
-      "path": "src/cli.py",
+      "path": "src/modules/crypto/balance/multicall.py",
       "accessCount": 21,
-      "lastAccessed": 1780257028797,
+      "lastAccessed": 1780169787128,
       "type": "file"
     },
     {

