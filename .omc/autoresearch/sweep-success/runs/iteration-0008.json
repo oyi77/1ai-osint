@@ -1,0 +1,1 @@
+{"iter":8,"time":447.6,"leaks":1553,"keys":10,"addrs":40,"funded":0,"sweeps":0,"wins":0,"pass":false,"analysis":"Keys vary 10-151 per run due to random query rotation. VPS running 24/7 will accumulate more hits over time."}

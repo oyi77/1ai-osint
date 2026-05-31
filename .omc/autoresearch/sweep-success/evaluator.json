@@ -1,0 +1,7 @@
+{
+  "command": "/Users/paijo/1ai-osint/.omc/scripts/sweep-evaluator.sh 12",
+  "description": "Runs coordinator scan cycles until a sweep lands on-chain. Checks dest wallet balance + getSignaturesForAddress.",
+  "timeout": 7200,
+  "pass_condition": "exit code 0 — balance increased or new TX detected",
+  "fail_condition": "exit code 1 — no sweep landed after max iterations"
+}

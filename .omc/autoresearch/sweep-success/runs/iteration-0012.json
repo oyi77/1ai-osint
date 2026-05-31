@@ -1,0 +1,1 @@
+{"iter":12,"time":748.0,"leaks":1763,"keys":97,"addrs":379,"funded":1,"sweeps":1,"wins":0,"pass":false,"details":[{"chain":"Solana","addr":"HFTpMFM42jyzxRY","amt":0.00357,"ok":false,"err":"Program-owned account"}]}

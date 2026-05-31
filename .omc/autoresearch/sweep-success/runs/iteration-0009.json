@@ -1,0 +1,1 @@
+{"iter":9,"time":451.2,"leaks":1837,"keys":12,"addrs":48,"funded":0,"sweeps":0,"wins":0,"pass":false,"analysis":"Keys dropped to 12 (was 151). Telegram session broken (two IPs). Smart generator feedback loop deployed. Need to investigate key extraction regression."}

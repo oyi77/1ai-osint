@@ -1,0 +1,11 @@
+{
+  "iteration": 2,
+  "timestamp": "2026-06-01T02:30:00Z",
+  "change": "Added resolve CLI command: 1ai-osint resolve <input> — full identity resolution across all sources",
+  "result": "PASS",
+  "tests": 1007,
+  "coverage": 80.40,
+  "lint": "PASS",
+  "sources_count": 16,
+  "delta": "+1 CLI command (resolve)"
+}

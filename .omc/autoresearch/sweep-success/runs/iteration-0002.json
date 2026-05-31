@@ -1,0 +1,14 @@
+{
+  "iteration": 2,
+  "change": "Added min balance thresholds: SOL 0.01, EVM 0.0005 ETH, BTC 0.0001",
+  "elapsed_seconds": 250.1,
+  "raw_leaks": 1892,
+  "keys_extracted": 5,
+  "addresses_checked": 20,
+  "funded_wallets": 0,
+  "sweep_count": 0,
+  "sweep_successes": 0,
+  "sweep_details": [],
+  "pass": false,
+  "analysis": "Dust filter working — 0 funded wallets (no dust slipping through). Cycle time halved (250s vs 497s). Need more volume — run more cycles."
+}

@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastScanned": 1780239577250,
+  "lastScanned": 1780149123817,
   "projectRoot": "/Users/paijo/1ai-osint",
   "techStack": {
     "languages": [
@@ -25,7 +25,7 @@
   },
   "build": {
     "buildCommand": null,
-    "testCommand": "python -m pytest tests/unit/ --cov=src/modules/sources --cov-report=term-missing --no-header -q 2>&1 | grep \"0%\" | grep \"source\"",
+    "testCommand": "rm -f /Users/paijo/1ai-osint/.coverage && PYTHONPATH=. python -m pytest tests/ -q --tb=line 2>&1 | tail -3",
     "lintCommand": "ruff check",
     "devCommand": null,
     "scripts": {}
@@ -56,7 +56,7 @@
       "path": "docs",
       "purpose": "Documentation",
       "fileCount": 7,
-      "lastAccessed": 1780239577246,
+      "lastAccessed": 1780149123806,
       "keyFiles": [
         "BENCHMARK_RESULTS.md",
         "RESEARCH.md",
@@ -69,7 +69,7 @@
       "path": "notebooks",
       "purpose": null,
       "fileCount": 2,
-      "lastAccessed": 1780239577246,
+      "lastAccessed": 1780149123807,
       "keyFiles": [
         "experimental_results.ipynb",
         "zkit_analysis.ipynb"
@@ -79,7 +79,7 @@
       "path": "scripts",
       "purpose": "Build/utility scripts",
       "fileCount": 2,
-      "lastAccessed": 1780239577247,
+      "lastAccessed": 1780149123808,
       "keyFiles": [
         "benchmark.py",
         "demo.sh"
@@ -89,7 +89,7 @@
       "path": "src",
       "purpose": "Source code",
       "fileCount": 7,
-      "lastAccessed": 1780239577247,
+      "lastAccessed": 1780149123809,
       "keyFiles": [
         "__init__.py",
         "cache.py",
@@ -102,7 +102,7 @@
       "path": "state",
       "purpose": null,
       "fileCount": 1,
-      "lastAccessed": 1780239577247,
+      "lastAccessed": 1780149123810,
       "keyFiles": [
         "cancel-signal-state.json"
       ]
@@ -111,7 +111,7 @@
       "path": "tests",
       "purpose": "Test files",
       "fileCount": 3,
-      "lastAccessed": 1780239577247,
+      "lastAccessed": 1780149123810,
       "keyFiles": [
         "__init__.py",
         "conftest.py",
@@ -122,7 +122,7 @@
       "path": "tests/fixtures",
       "purpose": "Test fixtures",
       "fileCount": 3,
-      "lastAccessed": 1780239577247,
+      "lastAccessed": 1780149123811,
       "keyFiles": [
         "mock_api_responses.py",
         "sample_secrets.json",
@@ -132,33 +132,21 @@
   },
   "hotPaths": [
     {
-      "path": "src/modules/crypto/leak_finder/coordinator.py",
-      "accessCount": 102,
-      "lastAccessed": 1780249293254,
-      "type": "file"
-    },
-    {
       "path": "tests/unit/test_crypto_balance.py",
-      "accessCount": 96,
-      "lastAccessed": 1780250317119,
+      "accessCount": 66,
+      "lastAccessed": 1780170171736,
       "type": "directory"
     },
     {
+      "path": "src/modules/crypto/leak_finder/coordinator.py",
+      "accessCount": 63,
+      "lastAccessed": 1780217790501,
+      "type": "file"
+    },
+    {
       "path": "src/modules/crypto/balance/sweeper.py",
-      "accessCount": 47,
-      "lastAccessed": 1780219820929,
-      "type": "file"
-    },
-    {
-      "path": "src/modules/crypto/leak_finder/extractor.py",
-      "accessCount": 44,
-      "lastAccessed": 1780249875973,
-      "type": "file"
-    },
-    {
-      "path": "src/modules/crypto/balance/smart_generator.py",
-      "accessCount": 39,
-      "lastAccessed": 1780232159058,
+      "accessCount": 41,
+      "lastAccessed": 1780217646975,
       "type": "file"
     },
     {
@@ -180,39 +168,21 @@
       "type": "directory"
     },
     {
-      "path": "src/modules/crypto/balance/deriver.py",
-      "accessCount": 26,
-      "lastAccessed": 1780243037285,
-      "type": "file"
-    },
-    {
-      "path": "src/modules/crypto/leak_finder/sources/github_source.py",
-      "accessCount": 26,
-      "lastAccessed": 1780248701972,
-      "type": "file"
-    },
-    {
       "path": "src/modules/crypto/balance/chains.py",
       "accessCount": 25,
       "lastAccessed": 1780169926793,
       "type": "file"
     },
     {
-      "path": "",
+      "path": "src/modules/crypto/balance/deriver.py",
       "accessCount": 25,
-      "lastAccessed": 1780243242748,
-      "type": "directory"
-    },
-    {
-      "path": "src/modules/crypto/leak_finder/sources/paste_source.py",
-      "accessCount": 25,
-      "lastAccessed": 1780248678250,
+      "lastAccessed": 1780169926893,
       "type": "file"
     },
     {
       "path": "run_scanner.py",
-      "accessCount": 23,
-      "lastAccessed": 1780241571587,
+      "accessCount": 22,
+      "lastAccessed": 1780172101258,
       "type": "directory"
     },
     {
@@ -222,9 +192,9 @@
       "type": "file"
     },
     {
-      "path": "src/cli.py",
-      "accessCount": 19,
-      "lastAccessed": 1780256187721,
+      "path": "src/modules/crypto/leak_finder/extractor.py",
+      "accessCount": 20,
+      "lastAccessed": 1780215235384,
       "type": "file"
     },
     {
@@ -234,51 +204,9 @@
       "type": "file"
     },
     {
-      "path": "src/modules/crypto/leak_finder/sources/telegram_source.py",
-      "accessCount": 16,
-      "lastAccessed": 1780248678235,
-      "type": "file"
-    },
-    {
-      "path": "tests/unit/test_leak_extractor.py",
-      "accessCount": 16,
-      "lastAccessed": 1780248680171,
-      "type": "directory"
-    },
-    {
-      "path": "src/modules/crypto/leak_finder/sources/reddit_source.py",
+      "path": "src/modules/crypto/leak_finder/sources/github_source.py",
       "accessCount": 15,
-      "lastAccessed": 1780248679273,
-      "type": "file"
-    },
-    {
-      "path": ".env.example",
-      "accessCount": 13,
-      "lastAccessed": 1780246590491,
-      "type": "file"
-    },
-    {
-      "path": "src/modules/crypto/leak_finder/sources/twitter_source.py",
-      "accessCount": 12,
-      "lastAccessed": 1780248678268,
-      "type": "file"
-    },
-    {
-      "path": "src/modules/crypto/leak_finder/sources/__init__.py",
-      "accessCount": 11,
-      "lastAccessed": 1780248702016,
-      "type": "file"
-    },
-    {
-      "path": "src/modules/crypto/balance/hit_logger.py",
-      "accessCount": 11,
-      "lastAccessed": 1780250089661,
-      "type": "file"
-    },
-    {
-      "path": "pyproject.toml",
-      "accessCount": 11,
-      "lastAccessed": 1780254167570,
+      "lastAccessed": 1780215323537,
       "type": "file"
     },
     {
@@ -288,28 +216,22 @@
       "type": "file"
     },
     {
-      "path": "src/modules/crypto/leak_finder/sources/duckduckgo_source.py",
-      "accessCount": 10,
-      "lastAccessed": 1780248678125,
+      "path": "src/modules/crypto/leak_finder/sources/paste_source.py",
+      "accessCount": 9,
+      "lastAccessed": 1780170723300,
       "type": "file"
     },
     {
-      "path": "src/modules/crypto/leak_finder/sources/gitlab_source.py",
-      "accessCount": 10,
-      "lastAccessed": 1780248678787,
+      "path": "src/modules/crypto/balance/smart_generator.py",
+      "accessCount": 8,
+      "lastAccessed": 1780169631609,
       "type": "file"
     },
     {
       "path": "src",
-      "accessCount": 10,
-      "lastAccessed": 1780248701915,
+      "accessCount": 8,
+      "lastAccessed": 1780171977834,
       "type": "directory"
-    },
-    {
-      "path": "src/modules/crypto/leak_finder/sources/bitcointalk_source.py",
-      "accessCount": 9,
-      "lastAccessed": 1780248678714,
-      "type": "file"
     },
     {
       "path": "src/modules/crypto/balance/leak_scanner_telegram.py",
@@ -318,10 +240,34 @@
       "type": "directory"
     },
     {
-      "path": "tests",
+      "path": "src/modules/crypto/leak_finder/sources/reddit_source.py",
+      "accessCount": 8,
+      "lastAccessed": 1780211878108,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/crypto/leak_finder/sources/telegram_source.py",
+      "accessCount": 8,
+      "lastAccessed": 1780214975988,
+      "type": "file"
+    },
+    {
+      "path": ".env.example",
+      "accessCount": 7,
+      "lastAccessed": 1780173565889,
+      "type": "file"
+    },
+    {
+      "path": "",
       "accessCount": 6,
-      "lastAccessed": 1780243260139,
+      "lastAccessed": 1780167646216,
       "type": "directory"
+    },
+    {
+      "path": "src/modules/crypto/leak_finder/sources/twitter_source.py",
+      "accessCount": 6,
+      "lastAccessed": 1780173404295,
+      "type": "file"
     },
     {
       "path": "sweep_direct.py",
@@ -330,9 +276,21 @@
       "type": "file"
     },
     {
-      "path": "tests/unit/test_leak_finder.py",
+      "path": "src/cli.py",
       "accessCount": 5,
-      "lastAccessed": 1780242130200,
+      "lastAccessed": 1780172013488,
+      "type": "file"
+    },
+    {
+      "path": "tests/unit/test_leak_finder.py",
+      "accessCount": 4,
+      "lastAccessed": 1780170105731,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/crypto/leak_finder/sources/gitlab_source.py",
+      "accessCount": 4,
+      "lastAccessed": 1780211816468,
       "type": "file"
     },
     {
@@ -342,21 +300,27 @@
       "type": "file"
     },
     {
+      "path": "tests",
+      "accessCount": 3,
+      "lastAccessed": 1780164154019,
+      "type": "directory"
+    },
+    {
+      "path": "src/modules/crypto/leak_finder/sources/__init__.py",
+      "accessCount": 3,
+      "lastAccessed": 1780169374610,
+      "type": "file"
+    },
+    {
       "path": "src/modules/crypto/leak_finder/sources/tgstat_source.py",
       "accessCount": 3,
       "lastAccessed": 1780171235134,
       "type": "file"
     },
     {
-      "path": "AGENTS.md",
+      "path": "src/modules/crypto/leak_finder/sources/bitcointalk_source.py",
       "accessCount": 3,
-      "lastAccessed": 1780241394744,
-      "type": "file"
-    },
-    {
-      "path": "scanner.service",
-      "accessCount": 3,
-      "lastAccessed": 1780241536697,
+      "lastAccessed": 1780211839115,
       "type": "file"
     },
     {
@@ -384,9 +348,9 @@
       "type": "file"
     },
     {
-      "path": "src/modules/crypto/balance/ai_analyzer.py",
+      "path": "src/modules/crypto/leak_finder/sources/duckduckgo_source.py",
       "accessCount": 2,
-      "lastAccessed": 1780229712417,
+      "lastAccessed": 1780211838545,
       "type": "file"
     },
     {
@@ -402,9 +366,27 @@
       "type": "file"
     },
     {
+      "path": "pyproject.toml",
+      "accessCount": 1,
+      "lastAccessed": 1780164067267,
+      "type": "file"
+    },
+    {
       "path": "src/modules/crypto/balance/bloom.py",
       "accessCount": 1,
       "lastAccessed": 1780164145865,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/crypto/balance/ai_analyzer.py",
+      "accessCount": 1,
+      "lastAccessed": 1780164422120,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/crypto/balance/hit_logger.py",
+      "accessCount": 1,
+      "lastAccessed": 1780164425902,
       "type": "file"
     },
     {
@@ -414,22 +396,10 @@
       "type": "file"
     },
     {
-      "path": "src/AGENTS.md",
+      "path": "tests/unit/test_leak_extractor.py",
       "accessCount": 1,
-      "lastAccessed": 1780239872355,
-      "type": "file"
-    },
-    {
-      "path": "tests/AGENTS.md",
-      "accessCount": 1,
-      "lastAccessed": 1780239872539,
-      "type": "file"
-    },
-    {
-      "path": "docs/AGENTS.md",
-      "accessCount": 1,
-      "lastAccessed": 1780239872720,
-      "type": "file"
+      "lastAccessed": 1780184345109,
+      "type": "directory"
     }
   ],
   "userDirectives": []

@@ -1,0 +1,14 @@
+{
+  "iteration": 3,
+  "change": "Test mnemonic filter + dust filter + freshness sort",
+  "elapsed_seconds": 273.1,
+  "raw_leaks": 1647,
+  "keys_extracted": 4,
+  "addresses_checked": 16,
+  "funded_wallets": 0,
+  "sweep_count": 0,
+  "sweep_successes": 0,
+  "sweep_details": [],
+  "pass": false,
+  "analysis": "Fewer keys (4 vs 25) — test mnemonic filter working. No funded wallets this cycle. Telegram 'database is locked' error needs fixing."
+}
