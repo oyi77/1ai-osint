@@ -27,7 +27,11 @@ class TelegramSource:
             return []
         if not self.api_id or not self.api_hash:
             return []
-        client = TelegramClient(self.session_name, self.api_id, self.api_hash)
+        # Use a unique session file to avoid IP conflicts between local and VPS
+        import hashlib
+        session_id = hashlib.md5(f"{self.api_id}:{self.api_hash}".encode()).hexdigest()[:8]
+        session_name = f"leak_finder_{session_id}"
+        client = TelegramClient(session_name, self.api_id, self.api_hash)
         try:
             await asyncio.wait_for(client.start(), timeout=30)
         except Exception as exc:
