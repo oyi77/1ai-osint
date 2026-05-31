@@ -31,9 +31,13 @@ class TelegramSource:
         import hashlib
         session_id = hashlib.md5(f"{self.api_id}:{self.api_hash}".encode()).hexdigest()[:8]
         session_name = f"leak_finder_{session_id}"
+        bot_token = os.getenv("TELEGRAM_BOT_TOKEN", "")
         client = TelegramClient(session_name, self.api_id, self.api_hash)
         try:
-            await asyncio.wait_for(client.start(), timeout=30)
+            if bot_token:
+                await asyncio.wait_for(client.start(bot_token=bot_token), timeout=30)
+            else:
+                await asyncio.wait_for(client.start(), timeout=30)
         except Exception as exc:
             logger.warning("Telegram connection failed: %s", exc)
             try:
