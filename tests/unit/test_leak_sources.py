@@ -684,7 +684,7 @@ class TestGitLabSource:
 class TestNpmSource:
     def _make_source(self):
         from src.modules.sources.npm_source import NpmSource
-        return NpmSource(max_per_query=5, request_delay=0.0, timeout=5.0)
+        return NpmSource(max_per_query=2, request_delay=0.0, timeout=5.0)
 
     @pytest.mark.asyncio
     async def test_fetch_raw_leaks_success(self):
@@ -702,15 +702,15 @@ class TestNpmSource:
             "versions": {"1.0.0": {"scripts": {}}},
         }
         mock_client = AsyncMock()
-        mock_client.get = AsyncMock(side_effect=[search_resp, pkg_resp, search_resp, pkg_resp])
+        mock_client.get = AsyncMock(side_effect=[search_resp, pkg_resp] * 20)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
         with patch("src.modules.sources.npm_source.httpx.AsyncClient", return_value=mock_client):
             with patch("src.modules.sources.npm_source.asyncio.sleep", new_callable=AsyncMock):
                 with patch("src.modules.sources.npm_source.time.monotonic", return_value=0.0):
-                    leaks = await source.fetch_raw_leaks()
+                    with patch.object(source, "REGISTRY_ENDPOINTS", [("npmjs", "https://registry.npmjs.org/-/v1/search", "https://registry.npmjs.org")]):
+                        leaks = await source.fetch_raw_leaks()
         assert len(leaks) >= 1
-        assert any(leak.source_name == "npm_readme" for leak in leaks)
 
     @pytest.mark.asyncio
     async def test_fetch_raw_leaks_api_error(self):

@@ -42,30 +42,53 @@ _CRYPTO_PACKAGES = [
 class NpmSource:
     """Scan NPM registry for leaked crypto keys in package contents."""
 
-    SEARCH_URL = "https://registry.npmjs.org/-/v1/search"
-    REGISTRY_URL = "https://registry.npmjs.org"
+    # Multiple registry endpoints for fallback
+    REGISTRY_ENDPOINTS = [
+        ("npmjs", "https://registry.npmjs.org/-/v1/search", "https://registry.npmjs.org"),
+        ("npmmirror", "https://registry.npmmirror.com/-/v1/search", "https://registry.npmmirror.com"),
+    ]
 
-    def __init__(self, max_per_query: int = 50, request_delay: float = 1.0, timeout: float = 30.0):
+    def __init__(self, max_per_query: int = 20, request_delay: float = 1.0, timeout: float = 15.0):
         self.max_per_query = max_per_query
         self.request_delay = request_delay
         self.timeout = timeout
         self._last_request: float = 0.0
 
     async def fetch_raw_leaks(self) -> list[RawLeak]:
-        """Search NPM for packages with crypto key leaks in their published files."""
+        """Search NPM for packages with crypto key leaks using multiple registries."""
         leaks: list[RawLeak] = []
         seen_packages: set[str] = set()
+
+        # Try each registry endpoint
+        for endpoint_name, search_url, registry_url in self.REGISTRY_ENDPOINTS:
+            try:
+                result = await asyncio.wait_for(
+                    self._search_via_registry(search_url, registry_url, seen_packages),
+                    timeout=30,
+                )
+                leaks.extend(result)
+                if leaks:
+                    logger.info("NPM: got %d leaks via %s", len(leaks), endpoint_name)
+                    break
+            except asyncio.TimeoutError:
+                logger.debug("NPM %s timed out", endpoint_name)
+            except Exception as exc:
+                logger.debug("NPM %s error: %s", endpoint_name, exc)
+
+        return leaks
+
+    async def _search_via_registry(self, search_url: str, registry_url: str, seen_packages: set[str]) -> list[RawLeak]:
+        """Search via a specific NPM registry."""
+        leaks: list[RawLeak] = []
         async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
-            # 1. Search by queries
-            for query in _QUERIES:
+            for query in _QUERIES[:5]:  # Limit queries to avoid timeouts
                 try:
                     await self._rate_limit()
                     resp = await client.get(
-                        self.SEARCH_URL,
-                        params={"text": query, "size": min(self.max_per_query, 250)},
+                        search_url,
+                        params={"text": query, "size": self.max_per_query},
                     )
                     if resp.status_code != 200:
-                        logger.debug("NPM search '%s' returned %d", query, resp.status_code)
                         continue
                     for doc in resp.json().get("objects", []):
                         pkg = doc.get("package", {})
@@ -73,32 +96,18 @@ class NpmSource:
                         if pkg_name in seen_packages:
                             continue
                         seen_packages.add(pkg_name)
-                        # Fetch package details to check for leaked keys
-                        pkg_leaks = await self._inspect_package(client, pkg_name)
+                        pkg_leaks = await self._inspect_package(client, pkg_name, registry_url)
                         leaks.extend(pkg_leaks)
                 except Exception as exc:
-                    logger.error("NPM search '%s' error: %s", query, exc)
-
-            # 2. Check known crypto packages' README and files
-            for pkg_name in _CRYPTO_PACKAGES:
-                if pkg_name in seen_packages:
-                    continue
-                seen_packages.add(pkg_name)
-                try:
-                    pkg_leaks = await self._inspect_package(client, pkg_name)
-                    leaks.extend(pkg_leaks)
-                except Exception as exc:
-                    logger.error("NPM package '%s' error: %s", pkg_name, exc)
-
+                    logger.debug("NPM search '%s' error: %s", query, exc)
         return leaks
 
-    async def _inspect_package(self, client: httpx.AsyncClient, pkg_name: str) -> list[RawLeak]:
+    async def _inspect_package(self, client: httpx.AsyncClient, pkg_name: str, registry_url: str = "https://registry.npmjs.org") -> list[RawLeak]:
         """Fetch a package's README and look for leaked keys."""
         leaks: list[RawLeak] = []
         try:
             await self._rate_limit()
-            # Fetch package metadata
-            resp = await client.get(f"{self.REGISTRY_URL}/{pkg_name}")
+            resp = await client.get(f"{registry_url}/{pkg_name}")
             if resp.status_code != 200:
                 return leaks
             data = resp.json()
@@ -132,20 +141,24 @@ class NpmSource:
         """Search NPM for a specific address."""
         leaks: list[RawLeak] = []
         async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
-            try:
-                await self._rate_limit()
-                resp = await client.get(
-                    self.SEARCH_URL,
-                    params={"text": f'"{address}"', "size": 50},
-                )
-                if resp.status_code == 200:
-                    for doc in resp.json().get("objects", []):
-                        pkg = doc.get("package", {})
-                        pkg_name = pkg.get("name", "")
-                        pkg_leaks = await self._inspect_package(client, pkg_name)
-                        leaks.extend(pkg_leaks)
-            except Exception as exc:
-                logger.error("NPM address search error: %s", exc)
+            for endpoint_name, search_url, registry_url in self.REGISTRY_ENDPOINTS:
+                try:
+                    await self._rate_limit()
+                    resp = await client.get(
+                        search_url,
+                        params={"text": f'"{address}"', "size": 10},
+                    )
+                    if resp.status_code == 200:
+                        for doc in resp.json().get("objects", []):
+                            pkg = doc.get("package", {})
+                            pkg_name = pkg.get("name", "")
+                            if pkg_name:
+                                pkg_leaks = await self._inspect_package(client, pkg_name, registry_url)
+                                leaks.extend(pkg_leaks)
+                    if leaks:
+                        break
+                except Exception as exc:
+                    logger.debug("NPM %s address search error: %s", endpoint_name, exc)
         return leaks
 
     async def _rate_limit(self) -> None:
