@@ -370,7 +370,10 @@ def leak_finder(
         ALL_SOURCES,
     )
 
-    source_list = [s.strip() for s in sources.split(",") if s.strip()]
+    if sources.strip().lower() == "all":
+        source_list = list(ALL_SOURCES)
+    else:
+        source_list = [s.strip() for s in sources.split(",") if s.strip()]
     invalid = [s for s in source_list if s not in ALL_SOURCES]
     if invalid:
         typer.echo(
