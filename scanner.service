@@ -6,10 +6,17 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/opt/1ai-osint
-ExecStart=/opt/1ai-osint/venv/bin/python run_scanner.py --workers 20
+ExecStart=/opt/1ai-osint/venv/bin/python run_scanner.py --workers 5
 Restart=always
 RestartSec=10
 Environment=PYTHONUNBUFFERED=1
+
+# Resource limits to prevent VPS hangs
+CPUQuota=50%
+MemoryMax=512M
+MemoryHigh=384M
+IOWeight=50
+Nice=10
 
 [Install]
 WantedBy=multi-user.target
