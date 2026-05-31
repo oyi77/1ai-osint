@@ -109,6 +109,21 @@ class Sweeper:
                 error="Zero balance, nothing to sweep",
             )
 
+        # Skip dust balances that can't cover fees
+        _MIN_BALANCE = {
+            ChainType.SOLANA: 10000,      # 0.00001 SOL
+            ChainType.EVM: 5000000000000000,  # 0.005 ETH
+            ChainType.BITCOIN: 1000,       # 0.00001 BTC
+        }
+        min_bal = _MIN_BALANCE.get(chain.chain_type, 0)
+        if balance_raw < min_bal:
+            return SweepResult(
+                success=False, chain=chain.name,
+                source_address=source_address, dest_address=dest,
+                amount=balance_raw / (10 ** chain.decimals), amount_raw=balance_raw,
+                error=f"Dust balance ({balance_raw / (10 ** chain.decimals):.9f} {chain.symbol}), below minimum sweep threshold",
+            )
+
         try:
             if chain.chain_type == ChainType.EVM:
                 return await self._sweep_evm(private_key_hex, chain, source_address, dest, balance_raw)
