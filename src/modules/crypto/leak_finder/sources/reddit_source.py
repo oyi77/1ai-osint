@@ -31,10 +31,12 @@ class RedditSource:
         self._last_request: float = 0.0
 
     async def fetch_raw_leaks(self) -> list[RawLeak]:
-        """Fetch recent Reddit posts via pullpush.io (Reddit's JSON API blocks scrapers)."""
+        """Fetch Reddit posts via pullpush.io — both by subreddit and by keyword search."""
         leaks: list[RawLeak] = []
         headers = {"User-Agent": "osint:crypto-leak-scanner:v1.0"}
+        seen_urls: set[str] = set()
         async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+            # 1. Scan specific subreddits
             for sub in _SUBREDDITS:
                 try:
                     await self._rate_limit()
@@ -44,15 +46,36 @@ class RedditSource:
                         logger.debug("pullpush r/%s returned %d", sub, resp.status_code)
                         continue
                     for post in resp.json().get("data", []):
-                        title = post.get("title", "")
-                        selftext = post.get("selftext", "")
-                        permalink = post.get("permalink", "")
-                        full_url = f"https://www.reddit.com{permalink}" if permalink else ""
-                        combined = f"{title}\n{selftext}".strip()
+                        full_url = f"https://www.reddit.com{post.get('permalink', '')}"
+                        if full_url in seen_urls:
+                            continue
+                        seen_urls.add(full_url)
+                        combined = f"{post.get('title', '')}\n{post.get('selftext', '')}".strip()
                         if combined:
                             leaks.append(RawLeak(text=combined, source_name="reddit", source_url=full_url))
                 except Exception as exc:
                     logger.error("Reddit r/%s error: %s", sub, exc)
+
+            # 2. Keyword search across all Reddit
+            _KEYWORDS = ["seed phrase leak", "private key wallet", "mnemonic leaked", "crypto wallet dump"]
+            for kw in _KEYWORDS:
+                try:
+                    await self._rate_limit()
+                    url = f"https://api.pullpush.io/reddit/search/submission/?q={kw.replace(' ', '+')}&size=25"
+                    resp = await client.get(url, headers=headers)
+                    if resp.status_code != 200:
+                        continue
+                    for post in resp.json().get("data", []):
+                        full_url = f"https://www.reddit.com{post.get('permalink', '')}"
+                        if full_url in seen_urls:
+                            continue
+                        seen_urls.add(full_url)
+                        combined = f"{post.get('title', '')}\n{post.get('selftext', '')}".strip()
+                        if combined:
+                            leaks.append(RawLeak(text=combined, source_name="reddit", source_url=full_url))
+                except Exception as exc:
+                    logger.error("Reddit keyword '%s' error: %s", kw, exc)
+
         return leaks
 
     async def search_for_address(self, address: str) -> list[RawLeak]:

@@ -46,6 +46,25 @@ _QUERIES = [
     '"secret" "private" "key" filetype:env',
     '"0x" "private" "key" "infura"',
     '"0x" "private" "key" "alchemy"',
+    # Solana-specific
+    '"PRIVATE_KEY" base58 solana',
+    '"phantom" "private" "key" filetype:env',
+    '"solana" "private" "key" "rpc"',
+    # Hardhat/Foundry deployments
+    '"DEPLOYER_PRIVATE_KEY" filetype:env',
+    '"PRIVATE_KEY_DEPLOYER" filetype:env',
+    # Bot/trading configs
+    '"TRADING_BOT" "PRIVATE_KEY" filetype:env',
+    '"SNIPER" "PRIVATE_KEY" filetype:env',
+    '"flashbot" "private" "key"',
+    # Wallet seed exports
+    '"seed phrase" "do not share"',
+    '"recovery phrase" "private"',
+    '"mnemonic phrase" filetype:env',
+    # .env.development / .env.local
+    'filename:.env.development "PRIVATE_KEY"',
+    'filename:.env.local "SECRET"',
+    'filename:.env.production "PRIVATE_KEY"',
 ]
 
 class GitHubLeakSource:
