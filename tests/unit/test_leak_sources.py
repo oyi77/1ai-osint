@@ -702,7 +702,7 @@ class TestNpmSource:
             "versions": {"1.0.0": {"scripts": {}}},
         }
         mock_client = AsyncMock()
-        mock_client.get = AsyncMock(side_effect=[search_resp, pkg_resp])
+        mock_client.get = AsyncMock(side_effect=[search_resp, pkg_resp, search_resp, pkg_resp])
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
         with patch("src.modules.sources.npm_source.httpx.AsyncClient", return_value=mock_client):
