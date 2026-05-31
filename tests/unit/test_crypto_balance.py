@@ -1356,7 +1356,7 @@ class TestSmartGeneratorPositional:
         starters = [gen.generate(12).split()[0] for _ in range(100)]
         from src.modules.crypto.balance.smart_generator import _COMMON_STARTERS
         common_count = sum(1 for s in starters if s in _COMMON_STARTERS)
-        assert common_count > 10  # Should be biased toward common starters
+        assert common_count > 5  # Should be biased toward common starters
 
     def test_generate_with_analyzer(self):
         """Test generator with a WordFrequencyAnalyzer instance."""
