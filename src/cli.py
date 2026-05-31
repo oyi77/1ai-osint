@@ -383,9 +383,10 @@ def leak_finder(
         )
         raise typer.Exit(1)
 
+    import os
     coordinator = LeakFinderCoordinator(
         sources=source_list,
-        github_token=github_token or None,
+        github_token=github_token or os.getenv("GITHUB_TOKEN") or None,
     )
 
     async def _run():
