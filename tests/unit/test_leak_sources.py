@@ -1530,3 +1530,242 @@ class TestAmassSourceFull:
         assert leaks[0].source_name == "amass"
 
 
+
+
+# ---------------------------------------------------------------------------
+# H8mailSource
+# ---------------------------------------------------------------------------
+class TestH8mailSource:
+    def _make_source(self):
+        from src.modules.sources.h8mail_source import H8mailSource
+        return H8mailSource(timeout=5.0)
+
+    @pytest.mark.asyncio
+    async def test_fetch_raw_leaks_empty(self):
+        source = self._make_source()
+        leaks = await source.fetch_raw_leaks()
+        assert leaks == []
+
+    @pytest.mark.asyncio
+    async def test_search_for_address_no_email(self):
+        source = self._make_source()
+        leaks = await source.search_for_address("notanemail")
+        assert leaks == []
+
+    @pytest.mark.asyncio
+    async def test_search_for_address_no_binary(self):
+        source = self._make_source()
+        with patch("src.modules.sources.h8mail_source.shutil.which", return_value=None):
+            leaks = await source.search_for_address("test@example.com")
+        assert leaks == []
+
+
+# ---------------------------------------------------------------------------
+# ExiftoolSource
+# ---------------------------------------------------------------------------
+class TestExiftoolSource:
+    def _make_source(self):
+        from src.modules.sources.exiftool_source import ExiftoolSource
+        return ExiftoolSource(timeout=5.0)
+
+    @pytest.mark.asyncio
+    async def test_fetch_raw_leaks_empty(self):
+        source = self._make_source()
+        leaks = await source.fetch_raw_leaks()
+        assert leaks == []
+
+    @pytest.mark.asyncio
+    async def test_search_for_address_no_binary(self):
+        source = self._make_source()
+        with patch("src.modules.sources.exiftool_source.shutil.which", return_value=None):
+            leaks = await source.search_for_address("/path/to/file.jpg")
+        assert leaks == []
+
+
+# ---------------------------------------------------------------------------
+# SocialSource
+# ---------------------------------------------------------------------------
+class TestSocialSource:
+    def _make_source(self):
+        from src.modules.sources.social_source import SocialSource
+        return SocialSource(request_delay=0.0, timeout=5.0)
+
+    @pytest.mark.asyncio
+    async def test_fetch_raw_leaks_empty(self):
+        source = self._make_source()
+        leaks = await source.fetch_raw_leaks()
+        assert leaks == []
+
+    @pytest.mark.asyncio
+    async def test_search_for_address_success(self):
+        source = self._make_source()
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.json.return_value = {"login": "testuser", "id": 12345}
+        mock_client = AsyncMock()
+        mock_client.get = AsyncMock(return_value=resp)
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+        with patch("src.modules.sources.social_source.httpx.AsyncClient", return_value=mock_client):
+            with patch("src.modules.sources.social_source.asyncio.sleep", new_callable=AsyncMock):
+                with patch("src.modules.sources.social_source.time.monotonic", return_value=0.0):
+                    leaks = await source.search_for_address("testuser")
+        assert len(leaks) >= 1
+
+
+# ---------------------------------------------------------------------------
+# IntelxSource
+# ---------------------------------------------------------------------------
+class TestIntelxSource:
+    def _make_source(self):
+        from src.modules.sources.intelx_source import IntelxSource
+        return IntelxSource(api_key="test_key", request_delay=0.0, timeout=5.0)
+
+    @pytest.mark.asyncio
+    async def test_fetch_raw_leaks_empty(self):
+        source = self._make_source()
+        leaks = await source.fetch_raw_leaks()
+        assert leaks == []
+
+    @pytest.mark.asyncio
+    async def test_search_for_address_no_key(self):
+        from src.modules.sources.intelx_source import IntelxSource
+        source = IntelxSource(api_key="", request_delay=0.0, timeout=5.0)
+        leaks = await source.search_for_address("test@example.com")
+        assert leaks == []
+
+
+# ---------------------------------------------------------------------------
+# LeakcheckSource
+# ---------------------------------------------------------------------------
+class TestLeakcheckSource:
+    def _make_source(self):
+        from src.modules.sources.leakcheck_source import LeakcheckSource
+        return LeakcheckSource(api_key="test_key", request_delay=0.0, timeout=5.0)
+
+    @pytest.mark.asyncio
+    async def test_fetch_raw_leaks_empty(self):
+        source = self._make_source()
+        leaks = await source.fetch_raw_leaks()
+        assert leaks == []
+
+    @pytest.mark.asyncio
+    async def test_search_for_address_no_key(self):
+        from src.modules.sources.leakcheck_source import LeakcheckSource
+        source = LeakcheckSource(api_key="", request_delay=0.0, timeout=5.0)
+        leaks = await source.search_for_address("test@example.com")
+        assert leaks == []
+
+
+# ---------------------------------------------------------------------------
+# Additional subprocess sources
+# ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
+# IntelxSource (additional)
+# ---------------------------------------------------------------------------
+class TestIntelxSourceFull:
+    @pytest.mark.asyncio
+    async def test_search_for_address_success(self):
+        from src.modules.sources.intelx_source import IntelxSource
+        source = IntelxSource(api_key="test_key", request_delay=0.0, timeout=5.0)
+        search_resp = MagicMock()
+        search_resp.status_code = 200
+        search_resp.json.return_value = {"id": "abc123"}
+        result_resp = MagicMock()
+        result_resp.status_code = 200
+        result_resp.json.return_value = {"records": [{"value": "test@example.com"}]}
+        mock_client = AsyncMock()
+        mock_client.post = AsyncMock(return_value=search_resp)
+        mock_client.get = AsyncMock(return_value=result_resp)
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+        with patch("src.modules.sources.intelx_source.httpx.AsyncClient", return_value=mock_client):
+            with patch("src.modules.sources.intelx_source.asyncio.sleep", new_callable=AsyncMock):
+                with patch("src.modules.sources.intelx_source.time.monotonic", return_value=0.0):
+                    leaks = await source.search_for_address("test@example.com")
+        assert len(leaks) == 1
+        assert leaks[0].source_name == "intelx"
+
+
+# ---------------------------------------------------------------------------
+# LeakcheckSource (additional)
+# ---------------------------------------------------------------------------
+class TestLeakcheckSourceFull:
+    @pytest.mark.asyncio
+    async def test_search_for_address_success(self):
+        from src.modules.sources.leakcheck_source import LeakcheckSource
+        source = LeakcheckSource(api_key="test_key", request_delay=0.0, timeout=5.0)
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.json.return_value = {"found": 2, "sources": [{"name": "breach1"}]}
+        mock_client = AsyncMock()
+        mock_client.get = AsyncMock(return_value=resp)
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+        with patch("src.modules.sources.leakcheck_source.httpx.AsyncClient", return_value=mock_client):
+            with patch("src.modules.sources.leakcheck_source.asyncio.sleep", new_callable=AsyncMock):
+                with patch("src.modules.sources.leakcheck_source.time.monotonic", return_value=0.0):
+                    leaks = await source.search_for_address("test@example.com")
+        assert len(leaks) == 1
+        assert leaks[0].source_name == "leakcheck"
+
+
+# ---------------------------------------------------------------------------
+# H8mailSource (additional)
+# ---------------------------------------------------------------------------
+class TestH8mailSourceFull:
+    @pytest.mark.asyncio
+    async def test_search_for_address_success(self):
+        from src.modules.sources.h8mail_source import H8mailSource
+        source = H8mailSource(timeout=5.0)
+        mock_proc = MagicMock()
+        mock_proc.communicate = AsyncMock(return_value=(b'[{"email": "test@example.com", "password": "secret"}]', b""))
+        with patch("src.modules.sources.h8mail_source.shutil.which", return_value="/usr/bin/h8mail"):
+            with patch("src.modules.sources.h8mail_source.asyncio.create_subprocess_exec", return_value=mock_proc):
+                with patch("src.modules.sources.h8mail_source.asyncio.wait_for", new_callable=AsyncMock) as mock_wait:
+                    mock_wait.return_value = (b'[{"email": "test@example.com", "password": "secret"}]', b"")
+                    leaks = await source.search_for_address("test@example.com")
+        assert len(leaks) == 1
+        assert leaks[0].source_name == "h8mail"
+
+
+# ---------------------------------------------------------------------------
+# ExiftoolSource (additional)
+# ---------------------------------------------------------------------------
+class TestExiftoolSourceFull:
+    @pytest.mark.asyncio
+    async def test_search_for_address_success(self):
+        from src.modules.sources.exiftool_source import ExiftoolSource
+        source = ExiftoolSource(timeout=5.0)
+        with patch("src.modules.sources.exiftool_source.shutil.which", return_value="/usr/bin/exiftool"):
+            with patch("src.modules.sources.exiftool_source.asyncio.create_subprocess_exec") as mock_exec:
+                mock_proc = MagicMock()
+                mock_proc.communicate = AsyncMock(return_value=(b'[{"SourceFile": "test.jpg", "GPS": "lat,lon"}]', b""))
+                mock_exec.return_value = mock_proc
+                with patch("src.modules.sources.exiftool_source.asyncio.wait_for", new_callable=AsyncMock) as mock_wait:
+                    mock_wait.return_value = (b'[{"SourceFile": "test.jpg", "GPS": "lat,lon"}]', b"")
+                    leaks = await source.search_for_address("/path/to/file.jpg")
+        assert len(leaks) == 1
+        assert leaks[0].source_name == "exiftool"
+
+
+# ---------------------------------------------------------------------------
+# PhoneInfogaSource (additional)
+# ---------------------------------------------------------------------------
+class TestPhoneInfogaSourceFull:
+    @pytest.mark.asyncio
+    async def test_search_for_address_success(self):
+        from src.modules.sources.phoneinfoga_source import PhoneInfogaSource
+        source = PhoneInfogaSource(timeout=5.0)
+        with patch("src.modules.sources.phoneinfoga_source.shutil.which", return_value="/usr/bin/phoneinfoga"):
+            with patch("src.modules.sources.phoneinfoga_source.asyncio.create_subprocess_exec") as mock_exec:
+                mock_proc = MagicMock()
+                mock_proc.communicate = AsyncMock(return_value=(b'{"valid": true, "country": "US"}', b""))
+                mock_exec.return_value = mock_proc
+                with patch("src.modules.sources.phoneinfoga_source.asyncio.wait_for", new_callable=AsyncMock) as mock_wait:
+                    mock_wait.return_value = (b'{"valid": true, "country": "US"}', b"")
+                    leaks = await source.search_for_address("+1234567890")
+        assert len(leaks) == 1
+        assert leaks[0].source_name == "phoneinfoga"

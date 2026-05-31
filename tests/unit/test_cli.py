@@ -199,3 +199,70 @@ class TestResolveCommand:
         assert result.exit_code == 0
         assert "Resolve an identity" in result.output
 
+
+
+class TestMonitorCommand:
+    def test_monitor_help(self):
+        from typer.testing import CliRunner
+        from src.cli import app
+        runner = CliRunner()
+        result = runner.invoke(app, ["monitor", "--help"])
+        assert result.exit_code == 0
+        assert "Continuously monitor" in result.output
+
+
+class TestResolveCommandFull:
+    @patch("src.modules.sources.discover_sources")
+    @patch("src.modules.crypto.leak_finder.extractor.extract_keys")
+    def test_resolve_basic(self, mock_extract, mock_discover):
+        from typer.testing import CliRunner
+        from src.cli import app
+        from src.modules.sources.base import RawLeak
+
+        mock_source = MagicMock()
+        mock_source.search_for_address = AsyncMock(return_value=[
+            RawLeak(text="test leak", source_name="test", source_url="https://test.com"),
+        ])
+        mock_discover.return_value = {"test": MagicMock(return_value=mock_source)}
+        mock_extract.return_value = []
+
+        runner = CliRunner()
+        result = runner.invoke(app, ["resolve", "test@email.com", "--sources", "test"])
+        assert result.exit_code == 0
+
+
+class TestMonitorCommandFull:
+    def test_monitor_help(self):
+        from typer.testing import CliRunner
+        from src.cli import app
+        runner = CliRunner()
+        result = runner.invoke(app, ["monitor", "--help"])
+        assert result.exit_code == 0
+        assert "monitor" in result.output.lower()
+
+
+class TestLeakFinderCommandFull:
+    def test_leak_finder_help(self):
+        from typer.testing import CliRunner
+        from src.cli import app
+        runner = CliRunner()
+        result = runner.invoke(app, ["leak-finder", "--help"])
+        assert result.exit_code == 0
+
+
+class TestScanCommandFull:
+    def test_scan_help(self):
+        from typer.testing import CliRunner
+        from src.cli import app
+        runner = CliRunner()
+        result = runner.invoke(app, ["scan", "--help"])
+        assert result.exit_code == 0
+
+
+class TestModulesCommandFull:
+    def test_modules_command(self):
+        from typer.testing import CliRunner
+        from src.cli import app
+        runner = CliRunner()
+        result = runner.invoke(app, ["modules"])
+        assert result.exit_code == 0
