@@ -65,6 +65,24 @@ _QUERIES = [
     'filename:.env.development "PRIVATE_KEY"',
     'filename:.env.local "SECRET"',
     'filename:.env.production "PRIVATE_KEY"',
+    # Wallet software exports
+    '"private_key" filename:keystore',
+    '"private_key" filename:export',
+    '"seed" filename:backup',
+    '"mnemonic" filename:backup',
+    # Raw hex keys in code
+    '"0x" "private" filetype:sol',
+    '"0x" "private" filetype:js',
+    '"0x" "private" filetype:py',
+    '"0x" "private" filetype:ts',
+    # Trust Wallet / MetaMask exports
+    '"trust wallet" "private"',
+    '"metamask" "private" "key"',
+    '"phantom" "private" "key"',
+    # Bot configs with keys
+    '"mev" "private" "key" filetype:env',
+    '"arbitrage" "private" "key"',
+    '"flashloan" "private" "key"',
 ]
 
 class GitHubLeakSource:
