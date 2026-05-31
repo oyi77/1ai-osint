@@ -164,7 +164,7 @@ def extract_keys(text: str) -> list[ExtractedKey]:
         k = m.group(1).lower()
         if k in seen:
             continue
-        start = max(0, m.start() - 60)
+        start = max(0, m.start() - 200)
         if not (m.group(0).startswith("0x") or bool(_KEY_CONTEXT_PATTERN.search(text[start:m.start()]))):
             continue
         seen.add(k)
