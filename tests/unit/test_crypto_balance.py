@@ -1324,23 +1324,160 @@ class TestEncodeBalanceOfStandalone:
         assert len(result) == 74
 
 
+class TestSmartGeneratorPositional:
+    """Tests for positional/bigram smart generator features."""
+
+    def test_generate_12_valid(self):
+        gen = SmartMnemonicGenerator()
+        m = gen.generate(12)
+        assert len(m.split()) == 12
+        assert is_valid_mnemonic(m)
+
+    def test_generate_batch(self):
+        gen = SmartMnemonicGenerator()
+        batch = gen.generate_batch(5, 12)
+        assert len(batch) == 5
+        assert all(len(m.split()) == 12 for m in batch)
+        assert all(is_valid_mnemonic(m) for m in batch)
+
+    def test_bigram_patterns_loaded(self):
+        from src.modules.crypto.balance.smart_generator import _BIGRAM_PATTERNS
+        assert "abandon" in _BIGRAM_PATTERNS
+        assert len(_BIGRAM_PATTERNS["abandon"]) >= 3
+
+    def test_common_starters_loaded(self):
+        from src.modules.crypto.balance.smart_generator import _COMMON_STARTERS
+        assert "abandon" in _COMMON_STARTERS
+        assert "ability" in _COMMON_STARTERS
+
+    def test_starter_bias(self):
+        """Generate many mnemonics and check starters appear more than random."""
+        gen = SmartMnemonicGenerator()
+        starters = [gen.generate(12).split()[0] for _ in range(100)]
+        from src.modules.crypto.balance.smart_generator import _COMMON_STARTERS
+        common_count = sum(1 for s in starters if s in _COMMON_STARTERS)
+        assert common_count > 10  # Should be biased toward common starters
+
+    def test_generate_with_analyzer(self):
+        """Test generator with a WordFrequencyAnalyzer instance."""
+        from src.modules.crypto.balance.ai_analyzer import WordFrequencyAnalyzer
+        analyzer = WordFrequencyAnalyzer()
+        gen = SmartMnemonicGenerator(analyzer)
+        m = gen.generate(12)
+        assert len(m.split()) == 12
+        assert is_valid_mnemonic(m)
+
+    def test_generate_default_no_analyzer(self):
+        """Test generator with no analyzer (default)."""
+        gen = SmartMnemonicGenerator()
+        m = gen.generate(12)
+        assert len(m.split()) == 12
+        assert is_valid_mnemonic(m)
+
+    def test_wordlist_has_2048(self):
+        gen = SmartMnemonicGenerator()
+        assert len(gen._wordlist) == 2048
+
+    def test_word_index_complete(self):
+        gen = SmartMnemonicGenerator()
+        assert len(gen._word_index) == 2048
+        assert "abandon" in gen._word_index
+        assert "zoo" in gen._word_index
+
+    def test_starter_weights(self):
+        gen = SmartMnemonicGenerator()
+        # _get_positional_weights boosts common starters at position 0
+        w0 = gen._get_positional_weights(0)
+        abandon_idx = gen._word_index["abandon"]
+        zoo_idx = gen._word_index["zoo"]
+        assert w0[abandon_idx] > w0[zoo_idx]
+
+    def test_generate_12_uses_bigrams(self):
+        """Test that 12-word generation produces valid mnemonics with bigram support."""
+        gen = SmartMnemonicGenerator()
+        for _ in range(20):
+            m = gen.generate(12)
+            assert len(m.split()) == 12
+            assert is_valid_mnemonic(m)
+
+    def test_generate_24_valid(self):
+        gen = SmartMnemonicGenerator()
+        for _ in range(5):
+            m = gen.generate(24)
+            assert len(m.split()) == 24
+            assert is_valid_mnemonic(m)
+
+    def test_generate_15_valid(self):
+        gen = SmartMnemonicGenerator()
+        m = gen.generate(15)
+        assert len(m.split()) == 15
+        assert is_valid_mnemonic(m)
+
+    def test_generate_18_valid(self):
+        gen = SmartMnemonicGenerator()
+        m = gen.generate(18)
+        assert len(m.split()) == 18
+        assert is_valid_mnemonic(m)
+
+    def test_generate_21_valid(self):
+        gen = SmartMnemonicGenerator()
+        m = gen.generate(21)
+        assert len(m.split()) == 21
+        assert is_valid_mnemonic(m)
+
+    def test_generate_batch_12(self):
+        gen = SmartMnemonicGenerator()
+        batch = gen.generate_batch(5, 12)
+        assert len(batch) == 5
+        assert all(len(m.split()) == 12 for m in batch)
+
+    def test_generate_batch_24(self):
+        gen = SmartMnemonicGenerator()
+        batch = gen.generate_batch(3, 24)
+        assert len(batch) == 3
+        assert all(len(m.split()) == 24 for m in batch)
+
+
 class TestSmartGenerator24:
     """Tests for 24-word mnemonic generation."""
 
     def test_generate_24(self):
-        from src.modules.crypto.balance.ai_analyzer import WordFrequencyAnalyzer
-        analyzer = WordFrequencyAnalyzer()
-        gen = SmartMnemonicGenerator(analyzer)
-        mnemonic = gen.generate_24()
+        gen = SmartMnemonicGenerator()
+        mnemonic = gen.generate(24)
         words = mnemonic.split()
         assert len(words) == 24
         assert is_valid_mnemonic(mnemonic)
 
     def test_generate_24_different_each_time(self):
-        from src.modules.crypto.balance.ai_analyzer import WordFrequencyAnalyzer
-        analyzer = WordFrequencyAnalyzer()
-        gen = SmartMnemonicGenerator(analyzer)
-        m1 = gen.generate_24()
-        m2 = gen.generate_24()
+        gen = SmartMnemonicGenerator()
+        m1 = gen.generate(24)
+        m2 = gen.generate(24)
         # Statistically these should differ
         assert isinstance(m1, str) and isinstance(m2, str)  # Verify generation works
+
+    def test_hit_pattern_feedback(self):
+        import os
+        # Clean state file to avoid loading stale patterns
+        if os.path.exists("state/hit_patterns.json"):
+            os.remove("state/hit_patterns.json")
+        gen = SmartMnemonicGenerator()
+        mnemonic = gen.generate(12)
+        gen.add_hit_pattern(mnemonic)
+        assert len(gen._hit_patterns) == 1
+        assert len(gen._hit_weights) > 0
+
+    def test_mutate_hit_pattern(self):
+        gen = SmartMnemonicGenerator()
+        mnemonic = gen.generate(12)
+        gen.add_hit_pattern(mnemonic)
+        mutated = gen._mutate_hit_pattern(12)
+        assert mutated is None or isinstance(mutated, str)
+
+    def test_generate_with_hit_pattern_bias(self):
+        gen = SmartMnemonicGenerator()
+        for _ in range(5):
+            m = gen.generate(12)
+            gen.add_hit_pattern(m)
+        result = gen.generate(12)
+        assert len(result.split()) == 12
+        assert is_valid_mnemonic(result)
