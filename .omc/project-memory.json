@@ -25,7 +25,7 @@
   },
   "build": {
     "buildCommand": null,
-    "testCommand": "python -m pytest tests/unit/ --cov=src/modules/sources --cov-report=term-missing --no-header -q 2>&1 | grep \"0%\" | grep \"source\"",
+    "testCommand": "rm -f .coverage && python -m pytest tests/unit/ -q --tb=line --no-header 2>&1 | tail -3",
     "lintCommand": "ruff check",
     "devCommand": null,
     "scripts": {}

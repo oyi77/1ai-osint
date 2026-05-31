@@ -1,36 +1,57 @@
 version: "3.8"
 
 services:
-  1ai-osint:
+  # Main OSINT scanner — leak finder + balance checker
+  scanner:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: 1ai-osint
+    container_name: 1ai-osint-scanner
+    restart: unless-stopped
+    env_file: .env
     volumes:
       - ./data:/app/data
-      - ./.env:/app/.env:ro
-    environment:
-      - OMNIROUTE_BASE_URL=http://omniroute:3000/v1
-    depends_on:
-      omniroute:
-        condition: service_started
+      - ./state:/app/state
+    command: ["leak-finder", "--continuous", "--interval", "300"]
     networks:
       - osint-net
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: "1.0"
 
-  omniroute:
-    image: omniroute/omniroute:latest
-    container_name: omniroute
-    ports:
-      - "3000:3000"
-    environment:
-      - PORT=3000
+  # Identity resolver — on-demand identity resolution
+  resolver:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: 1ai-osint-resolver
+    restart: unless-stopped
+    env_file: .env
     volumes:
-      - omniroute-data:/data
+      - ./data:/app/data
+    command: ["resolve", "--help"]
     networks:
       - osint-net
+    profiles:
+      - on-demand
+
+  # SQLite database (shared state)
+  # For distributed: replace with PostgreSQL
+  # postgres:
+  #   image: postgres:16-alpine
+  #   environment:
+  #     POSTGRES_DB: osint
+  #     POSTGRES_USER: osint
+  #     POSTGRES_PASSWORD: ${DB_PASSWORD:-osint}
+  #   volumes:
+  #     - pg-data:/var/lib/postgresql/data
+  #   networks:
+  #     - osint-net
 
 volumes:
-  omniroute-data:
+  # pg-data:
 
 networks:
   osint-net:

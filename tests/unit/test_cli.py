@@ -188,3 +188,14 @@ class TestFormatSarif:
         assert len(sarif["runs"]) == 1
         assert len(sarif["runs"][0]["results"]) == 1
         assert sarif["runs"][0]["results"][0]["ruleId"] == "f1"
+
+
+class TestResolveCommand:
+    def test_resolve_help(self):
+        from typer.testing import CliRunner
+        from src.cli import app
+        runner = CliRunner()
+        result = runner.invoke(app, ["resolve", "--help"])
+        assert result.exit_code == 0
+        assert "Resolve an identity" in result.output
+
