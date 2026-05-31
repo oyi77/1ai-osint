@@ -1,6 +1,7 @@
 """Tests for all 8 leak_finder source adapters."""
 import asyncio
 import json
+import os
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -2275,12 +2276,12 @@ class TestIPInfoSource:
 
 
 # ---------------------------------------------------------------------------
-# WigleSource
+# WiGLESource
 # ---------------------------------------------------------------------------
-class TestWigleSource:
+class TestWiGLESource:
     def _make_source(self):
-        from src.modules.sources.wigle_source import WigleSource
-        return WigleSource(api_key="test_key", request_delay=0.0, timeout=5.0)
+        from src.modules.sources.wigle_source import WiGLESource
+        return WiGLESource(api_key="test_key", request_delay=0.0, timeout=5.0)
 
     @pytest.mark.asyncio
     async def test_fetch_raw_leaks_empty(self):
@@ -2290,8 +2291,8 @@ class TestWigleSource:
 
     @pytest.mark.asyncio
     async def test_search_for_address_no_key(self):
-        from src.modules.sources.wigle_source import WigleSource
-        source = WigleSource(api_key="", request_delay=0.0, timeout=5.0)
+        from src.modules.sources.wigle_source import WiGLESource
+        source = WiGLESource(api_key="", request_delay=0.0, timeout=5.0)
         leaks = await source.search_for_address("MyNetwork")
         assert leaks == []
 
@@ -2330,9 +2331,11 @@ class TestPulsediveSource:
     @pytest.mark.asyncio
     async def test_search_for_address_no_key(self):
         from src.modules.sources.pulsedive_source import PulsediveSource
-        source = PulsediveSource(api_key="", request_delay=0.0, timeout=5.0)
-        leaks = await source.search_for_address("evil.com")
-        assert leaks == []
+        with patch.dict(os.environ, {"PULSEDIVE_API_KEY": ""}, clear=False):
+            source = PulsediveSource(api_key="", request_delay=0.0, timeout=5.0)
+            source.api_key = ""
+            leaks = await source.search_for_address("evil.com")
+            assert leaks == []
 
     @pytest.mark.asyncio
     async def test_search_for_address_success(self):
@@ -2382,3 +2385,123 @@ class TestURLhausSource:
                     leaks = await source.search_for_address("evil.com")
         assert len(leaks) == 1
         assert leaks[0].source_name == "urlhaus"
+
+
+# ---------------------------------------------------------------------------
+# MaltegoSource
+# ---------------------------------------------------------------------------
+class TestMaltegoSource:
+    def _make_source(self):
+        from src.modules.sources.maltego_source import MaltegoSource
+        return MaltegoSource(request_delay=0.0, timeout=5.0)
+
+    @pytest.mark.asyncio
+    async def test_fetch_raw_leaks_empty(self):
+        source = self._make_source()
+        leaks = await source.fetch_raw_leaks()
+        assert leaks == []
+
+    @pytest.mark.asyncio
+    async def test_search_for_address_success(self):
+        source = self._make_source()
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.json.return_value = {"results": [{"type": "domain", "value": "example.com"}]}
+        mock_client = AsyncMock()
+        mock_client.get = AsyncMock(return_value=resp)
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+        with patch("src.modules.sources.maltego_source.httpx.AsyncClient", return_value=mock_client):
+            with patch("src.modules.sources.maltego_source.asyncio.sleep", new_callable=AsyncMock):
+                with patch("src.modules.sources.maltego_source.time.monotonic", return_value=0.0):
+                    leaks = await source.search_for_address("example.com")
+        assert len(leaks) == 1
+        assert leaks[0].source_name == "maltego"
+
+
+# ---------------------------------------------------------------------------
+# ReconNgSource
+# ---------------------------------------------------------------------------
+class TestReconNgSource:
+    def _make_source(self):
+        from src.modules.sources.recon_ng_source import ReconNgSource
+        return ReconNgSource(timeout=5.0)
+
+    @pytest.mark.asyncio
+    async def test_fetch_raw_leaks_empty(self):
+        source = self._make_source()
+        leaks = await source.fetch_raw_leaks()
+        assert leaks == []
+
+    @pytest.mark.asyncio
+    async def test_search_for_address_no_binary(self):
+        source = self._make_source()
+        with patch("src.modules.sources.recon_ng_source.shutil.which", return_value=None):
+            leaks = await source.search_for_address("example.com")
+        assert leaks == []
+
+
+# ---------------------------------------------------------------------------
+# SubfinderSource
+# ---------------------------------------------------------------------------
+class TestSubfinderSource:
+    def _make_source(self):
+        from src.modules.sources.subfinder_source import SubfinderSource
+        return SubfinderSource(timeout=5.0)
+
+    @pytest.mark.asyncio
+    async def test_fetch_raw_leaks_empty(self):
+        source = self._make_source()
+        leaks = await source.fetch_raw_leaks()
+        assert leaks == []
+
+    @pytest.mark.asyncio
+    async def test_search_for_address_no_binary(self):
+        source = self._make_source()
+        with patch("src.modules.sources.subfinder_source.shutil.which", return_value=None):
+            leaks = await source.search_for_address("example.com")
+        assert leaks == []
+
+
+# ---------------------------------------------------------------------------
+# HttpxSource
+# ---------------------------------------------------------------------------
+class TestHttpxSource:
+    def _make_source(self):
+        from src.modules.sources.httpx_source import HttpxSource
+        return HttpxSource(timeout=5.0)
+
+    @pytest.mark.asyncio
+    async def test_fetch_raw_leaks_empty(self):
+        source = self._make_source()
+        leaks = await source.fetch_raw_leaks()
+        assert leaks == []
+
+    @pytest.mark.asyncio
+    async def test_search_for_address_no_binary(self):
+        source = self._make_source()
+        with patch("src.modules.sources.httpx_source.shutil.which", return_value=None):
+            leaks = await source.search_for_address("example.com")
+        assert leaks == []
+
+
+# ---------------------------------------------------------------------------
+# NmapSource
+# ---------------------------------------------------------------------------
+class TestNmapSource:
+    def _make_source(self):
+        from src.modules.sources.nmap_source import NmapSource
+        return NmapSource(timeout=5.0)
+
+    @pytest.mark.asyncio
+    async def test_fetch_raw_leaks_empty(self):
+        source = self._make_source()
+        leaks = await source.fetch_raw_leaks()
+        assert leaks == []
+
+    @pytest.mark.asyncio
+    async def test_search_for_address_no_binary(self):
+        source = self._make_source()
+        with patch("src.modules.sources.nmap_source.shutil.which", return_value=None):
+            leaks = await source.search_for_address("example.com")
+        assert leaks == []
