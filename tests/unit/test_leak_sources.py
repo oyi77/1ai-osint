@@ -1769,3 +1769,25 @@ class TestPhoneInfogaSourceFull:
                     leaks = await source.search_for_address("+1234567890")
         assert len(leaks) == 1
         assert leaks[0].source_name == "phoneinfoga"
+
+
+class TestTheHarvesterSourceFull2:
+    @pytest.mark.asyncio
+    async def test_search_for_address_timeout(self):
+        from src.modules.sources.theharvester_source import TheHarvesterSource
+        source = TheHarvesterSource(timeout=0.1)
+        mock_proc = AsyncMock()
+        mock_proc.communicate = AsyncMock(side_effect=asyncio.TimeoutError())
+        with patch("src.modules.sources.theharvester_source.shutil.which", return_value="/usr/bin/theHarvester"):
+            with patch("src.modules.sources.theharvester_source.asyncio.create_subprocess_exec", return_value=mock_proc):
+                leaks = await source.search_for_address("example.com")
+        assert leaks == []
+
+    @pytest.mark.asyncio
+    async def test_search_for_address_exception(self):
+        from src.modules.sources.theharvester_source import TheHarvesterSource
+        source = TheHarvesterSource(timeout=5.0)
+        with patch("src.modules.sources.theharvester_source.shutil.which", return_value="/usr/bin/theHarvester"):
+            with patch("src.modules.sources.theharvester_source.asyncio.create_subprocess_exec", side_effect=Exception("fail")):
+                leaks = await source.search_for_address("example.com")
+        assert leaks == []
