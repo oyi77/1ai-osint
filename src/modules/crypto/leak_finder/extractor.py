@@ -200,6 +200,11 @@ def extract_keys(text: str) -> list[ExtractedKey]:
             results.append(ExtractedKey(key_raw=b58, key_type=KeyType.BASE58_SOLANA, key_hex=decoded.hex() if len(decoded) == 64 else None, derived_addresses={"Solana": sol}))
 
     # 5. BIP-39 mnemonics
+    _TEST_MNEMONICS = {
+        "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+        "test test test test test test test test test test test junk",
+        "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+    }
     bip39 = _load_bip39_words()
     if bip39:
         words = _MNEMONIC_WORD_RE.findall(text.lower())
@@ -209,7 +214,7 @@ def extract_keys(text: str) -> list[ExtractedKey]:
                 if not all(w in bip39 for w in cands):
                     continue
                 candidate = " ".join(cands)
-                if candidate in seen:
+                if candidate in seen or candidate in _TEST_MNEMONICS:
                     continue
                 if _validate_mnemonic(candidate):
                     seen.add(candidate)
