@@ -28,7 +28,15 @@ class TelegramSource:
         if not self.api_id or not self.api_hash:
             return []
         client = TelegramClient(self.session_name, self.api_id, self.api_hash)
-        await client.start()
+        try:
+            await asyncio.wait_for(client.start(), timeout=30)
+        except Exception as exc:
+            logger.warning("Telegram connection failed: %s", exc)
+            try:
+                await client.disconnect()
+            except Exception:
+                pass
+            return []
         leaks: list[RawLeak] = []
         keywords = keywords or [
             "crypto leak", "wallet dump", "seed phrase",
