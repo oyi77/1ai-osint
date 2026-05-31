@@ -7,8 +7,6 @@ from src.modules.crypto.passphrase.generator import (
     generate_with_details,
     mnemonic_to_seed,
     validate_mnemonic,
-    VALID_WORD_COUNTS,
-    VALID_LANGUAGES,
     MnemonicGenerationError,
 )
 from src.modules.crypto.passphrase.checker import (
@@ -272,13 +270,12 @@ class TestLoadBip39Wordlist:
         }):
             with patch("src.modules.crypto.passphrase.checker.Bip39WordsFileFinder", create=True):
                 # Patch at the function level
-                with patch.object(checker_mod, "load_bip39_wordlist") as mock_fn:
+                with patch.object(checker_mod, "load_bip39_wordlist"):
                     # Override to actually test the function body
                     pass
 
         # Direct test: import the internals and call with mocked bip_utils
         from unittest.mock import patch as P
-        import importlib
 
         mock_lang_enum = MagicMock()
         mock_finder_cls = MagicMock()

@@ -1,6 +1,6 @@
 """Tests for the crypto balance checker module."""
 
-import asyncio
+
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
 
@@ -382,7 +382,7 @@ class TestCryptoBalanceTool:
 
 # --- API Rotation Tests ---
 
-from src.modules.crypto.balance.api_rotation import EndpointRotator, EndpointHealth
+from src.modules.crypto.balance.api_rotation import EndpointRotator, EndpointHealth  # noqa: E402
 
 
 class TestEndpointHealth:
@@ -486,7 +486,7 @@ class TestEndpointRotator:
 
 # --- Targeted Search Tests ---
 
-from src.modules.crypto.balance.targeted_search import (
+from src.modules.crypto.balance.targeted_search import (  # noqa: E402
     KnownMnemonicLookup,
     AccountRangeScan,
     FilteredRandomScan,
@@ -695,7 +695,7 @@ class TestTargetedScanResult:
 
 # --- Scanner Engine Tests ---
 
-from src.modules.crypto.balance.scanner_engine import RandomScanner, ScannerStats
+from src.modules.crypto.balance.scanner_engine import RandomScanner, ScannerStats  # noqa: E402
 
 
 class TestScannerEngine:
@@ -813,7 +813,7 @@ class TestScannerEngine:
 
 # --- Hit Logger Tests ---
 
-from src.modules.crypto.balance.hit_logger import HitLogger
+from src.modules.crypto.balance.hit_logger import HitLogger  # noqa: E402
 
 
 class TestHitLogger:
@@ -821,7 +821,8 @@ class TestHitLogger:
 
     @pytest.mark.asyncio
     async def test_log_hit_strips_private_key(self):
-        import tempfile, os
+        import tempfile
+        import os
 
         with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
             db_path = f.name
@@ -849,7 +850,8 @@ class TestHitLogger:
 
     @pytest.mark.asyncio
     async def test_batch_flush(self):
-        import tempfile, os
+        import tempfile
+        import os
 
         with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
             db_path = f.name
@@ -874,7 +876,8 @@ class TestHitLogger:
 
     @pytest.mark.asyncio
     async def test_auto_flush_at_batch_size(self):
-        import tempfile, os
+        import tempfile
+        import os
 
         with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
             db_path = f.name
@@ -896,7 +899,8 @@ class TestHitLogger:
 
     @pytest.mark.asyncio
     async def test_telegram_alert_mock(self):
-        import tempfile, os
+        import tempfile
+        import os
 
         with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
             db_path = f.name
@@ -917,7 +921,8 @@ class TestHitLogger:
 
     @pytest.mark.asyncio
     async def test_no_alert_for_zero_balance(self):
-        import tempfile, os
+        import tempfile
+        import os
 
         with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
             db_path = f.name
@@ -1033,7 +1038,8 @@ class TestEndToEnd:
 
     @pytest.mark.asyncio
     async def test_hit_logger_e2e_with_alert(self):
-        import tempfile, os
+        import tempfile
+        import os
 
         with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
             db_path = f.name
@@ -1066,8 +1072,7 @@ class TestEndToEnd:
 
 # --- Sweeper Tests ---
 
-from src.modules.crypto.balance.sweeper import Sweeper, DESTINATION_WALLETS, SweepResult
-from src.modules.crypto.balance.chains import ETHEREUM, SOLANA, BITCOIN
+from src.modules.crypto.balance.sweeper import Sweeper, DESTINATION_WALLETS  # noqa: E402
 
 
 class TestSweeper:

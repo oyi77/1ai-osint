@@ -7,12 +7,10 @@ from unittest.mock import MagicMock, patch
 import pytest
 from pathlib import Path
 
-from src.models import Finding, ScanResult, Severity
 from src.modules.crypto.privatekey.scanner import (
     PrivateKeyScanner,
     detect_key_format,
     scan_file,
-    _SEVERITY_MAP,
 )
 from src.modules.crypto.privatekey.checker import (
     validate_key,
@@ -20,7 +18,6 @@ from src.modules.crypto.privatekey.checker import (
     validate_hex_key,
     validate_base58_key,
     validate_pem_key,
-    KeyValidationResult,
     _base58_decode,
 )
 
@@ -513,7 +510,7 @@ class TestBase58Decode:
         assert decoded == b"\x00"
 
     def test_decode_roundtrip(self):
-        original = b"\x00\x01\x02\x03"
+        # original bytes removed (unused)
         # Encode manually would be needed for full roundtrip
         # Just test that decode doesn't crash on valid base58
         decoded = _base58_decode("111234")

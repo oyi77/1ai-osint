@@ -121,7 +121,7 @@ class TestGetModule:
     def test_returns_gitleaks(self, mock_cls):
         with patch("src.modules.gitleaks.scanner.GitleaksModule", create=True):
             from src.cli import _get_module
-            mod = _get_module("gitleaks")
+            _get_module("gitleaks")
             # Should return something (the import succeeds or fails gracefully)
 
     def test_passphrase_module_scan(self):

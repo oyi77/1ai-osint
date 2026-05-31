@@ -2,22 +2,14 @@
 from __future__ import annotations
 import asyncio
 import logging
+import random as _random
 import time
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
 from typing import Optional
 import httpx
 
+from src.modules.sources.base import RawLeak
+
 logger = logging.getLogger(__name__)
-
-@dataclass
-class RawLeak:
-    text: str
-    source_name: str
-    source_url: str = ""
-    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-
-import random as _random
 
 _QUERIES = [
     # .env files with private keys

@@ -13,7 +13,6 @@ from src.modules.crypto.balance.deriver import (
     derive_from_mnemonic,
     derive_from_privatekey,
     detect_input_type,
-    is_valid_mnemonic,
 )
 from src.modules.crypto.balance.checker import (
     BalanceResult,
@@ -27,6 +26,24 @@ from src.modules.crypto.balance.targeted_search import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _chain_for_address_type(input_type: str, chains: list[ChainConfig]) -> Optional[ChainConfig]:
+    """Determine chain from address type."""
+    mapping = {
+        "btc_address": "Bitcoin",
+        "evm_address": "Ethereum",
+        "sol_address": "Solana",
+    }
+    name = mapping.get(input_type)
+    if name:
+        return next((c for c in chains if c.name == name), None)
+    return None
+
+
+def _chain_by_name(name: str, chains: list[ChainConfig]) -> Optional[ChainConfig]:
+    """Find chain config by name."""
+    return next((c for c in chains if c.name == name), None)
 
 
 class CryptoBalanceTool(BaseOSINTTool):
@@ -668,3 +685,34 @@ class CryptoBalanceTool(BaseOSINTTool):
                             await hit_logger.log_hit(
                                 address=addr.address,
                                 chain=addr.chain,
+                                balance=result.balance,
+                                mnemonic_hash=mnemonic_hash,
+                                derivation_path=addr.derivation_path,
+                                source="smart",
+                            )
+                            findings.append(Finding(
+                                id=f"smart-{mnemonic_hash[:12]}",
+                                module="crypto.balance",
+                                severity=Severity.HIGH,
+                                title="Funded wallet found via smart generation",
+                                description=f"Balance: {result.balance} on {addr.chain}",
+                                raw_data={"mnemonic_hash": mnemonic_hash, "chain": addr.chain},
+                            ))
+                    except Exception as e:
+                        errors.append(f"{addr.chain}/{addr.address}: {e}")
+
+        finally:
+            await coordinator.stop()
+            await hit_logger.close()
+
+        return ScanResult(
+            scan_id="smart-scan",
+            module="crypto.balance",
+            target="smart-generator",
+            findings=findings,
+            metadata={
+                "total_generated": total_generated,
+                "total_hits": total_hits,
+                "errors": errors,
+            },
+        )

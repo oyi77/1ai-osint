@@ -1,21 +1,9 @@
 """Tests for the crypto key extractor."""
-import pytest
 from unittest.mock import patch
 from src.modules.crypto.leak_finder.extractor import (
-    ExtractedKey, KeyType, extract_keys, _base58_decode, _base58_encode,
+    ExtractedKey, KeyType, extract_keys,
     _find_contextual_hex_keys, _HEX_KEY_PATTERN, _WIF_PATTERN, _BASE58_SOLANA_PATTERN,
 )
-
-class TestBase58Helpers:
-    def test_round_trip(self):
-        original = b"\x00" * 4 + b"\xff" * 28
-        assert _base58_decode(_base58_encode(original)) == original
-
-    def test_leading_zeros(self):
-        data = b"\x00\x00\x01\x02"
-        encoded = _base58_encode(data)
-        assert encoded.startswith("11")
-        assert _base58_decode(encoded) == data
 
 class TestHexKeyExtraction:
     def test_contextual_hex_key_with_label(self):

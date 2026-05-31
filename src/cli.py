@@ -7,6 +7,9 @@ from datetime import datetime, timezone
 
 import typer
 
+from src.modules.output.sarif import format_sarif as _format_sarif
+from src.modules.output.pdf_export import format_pdf as _format_pdf
+
 app = typer.Typer(
     help="1ai-osint -- AI-Powered OSINT & ZKIT Research Platform",
     add_completion=False,
@@ -211,9 +214,6 @@ def _run_zkit_tracking(result, zkit_salt: str):
 
     return result
 
-
-from src.modules.output.sarif import format_sarif as _format_sarif
-from src.modules.output.pdf_export import format_pdf as _format_pdf
 
 
 

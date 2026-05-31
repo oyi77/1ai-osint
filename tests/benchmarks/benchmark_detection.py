@@ -13,9 +13,9 @@ from __future__ import annotations
 
 import pytest
 
-from src.models import BreachRecord, Finding, Severity
+from src.models import BreachRecord, Severity
 from src.modules.data_leaks.breach_checker import BreachChecker
-from src.modules.identity_tracking.identity_graph import IdentityGraph, NodeType
+from src.modules.identity_tracking.identity_graph import IdentityGraph
 from src.modules.identity_tracking.zkit_engine import (
     CorrelationConfidence,
     ZKITEngine,
@@ -184,7 +184,7 @@ class TestBreachDetectionAccuracy:
         )
 
         # Report metrics (always passes; this is for benchmarking)
-        print(f"\n=== Breach Severity Detection Metrics ===")
+        print("\n=== Breach Severity Detection Metrics ===")
         print(f"  TP={tp} FP={fp} FN={fn} TN={tn}")
         print(f"  Precision: {precision:.3f}")
         print(f"  Recall:    {recall:.3f}")
@@ -231,7 +231,7 @@ class TestCorrelationDetectionAccuracy:
         self.engine.build_graph(hashed)
 
         components = self.engine.correlate()
-        clusters = self.engine.score_components(components)
+        clusters = self.engine.score_components(components)  # noqa: F841
 
         # All entity_1 records share attributes, so they should be in one component
         assert len(components) >= 1, "Should produce at least one component"
@@ -255,7 +255,7 @@ class TestCorrelationDetectionAccuracy:
         self.engine.build_graph(hashed)
 
         components = self.engine.correlate()
-        clusters = self.engine.score_components(components)
+        clusters = self.engine.score_components(components)  # noqa: F841
 
         # entity_1 records are linked (alice@example.com appears twice, alice_dev appears twice)
         # entity_2 records are linked (bob@test.org appears twice)
@@ -282,7 +282,7 @@ class TestCorrelationDetectionAccuracy:
 
         precision, recall, f1 = _cluster_purity_f1(components, gt_groups)
 
-        print(f"\n=== ZKIT Correlation Metrics ===")
+        print("\n=== ZKIT Correlation Metrics ===")
         print(f"  Clusters:  {len(components)}")
         print(f"  Precision: {precision:.3f}")
         print(f"  Recall:    {recall:.3f}")
@@ -354,7 +354,7 @@ class TestPrivacyDetectionAccuracy:
             else 0.0
         )
 
-        print(f"\n=== PII Detection Metrics ===")
+        print("\n=== PII Detection Metrics ===")
         print(f"  Detected:  {detected}/{len(pii_fields)}")
         print(f"  Precision: {precision:.3f}")
         print(f"  Recall:    {recall:.3f}")

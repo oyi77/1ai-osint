@@ -6,8 +6,9 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
 
+from src.modules.crypto.balance.deriver import _base58_decode
+
 logger = logging.getLogger(__name__)
-from src.modules.crypto.balance.deriver import _base58_decode, _base58_encode
 
 class KeyType(str, Enum):
     HEX_PRIVATE_KEY = "hex_private_key"

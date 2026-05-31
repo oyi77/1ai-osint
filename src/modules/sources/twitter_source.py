@@ -9,7 +9,7 @@ import json
 import logging
 import shutil
 from typing import Optional
-from src.modules.crypto.leak_finder.sources.github_source import RawLeak
+from src.modules.sources.base import RawLeak
 
 logger = logging.getLogger(__name__)
 

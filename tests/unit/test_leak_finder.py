@@ -3,7 +3,7 @@ import pytest
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 from src.modules.crypto.leak_finder.extractor import ExtractedKey, KeyType
-from src.modules.crypto.leak_finder.sources.github_source import GitHubLeakSource, RawLeak
+from src.modules.sources.github_source import GitHubLeakSource, RawLeak
 
 class TestRawLeak:
     def test_creation(self):
@@ -48,7 +48,7 @@ class TestGitHubLeakSource:
         mock_client.get = AsyncMock(side_effect=[mock_search, mock_raw])
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.crypto.leak_finder.sources.github_source.httpx.AsyncClient", return_value=mock_client):
+        with patch("src.modules.sources.github_source.httpx.AsyncClient", return_value=mock_client):
             leaks = await source.fetch_raw_leaks(queries=['test'], max_per_query=1)
         assert len(leaks) == 1
         assert leaks[0].source_name == "github"
@@ -63,14 +63,14 @@ class TestGitHubLeakSource:
         mock_client.get = AsyncMock(return_value=mock_403)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.crypto.leak_finder.sources.github_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.crypto.leak_finder.sources.github_source.asyncio.sleep", new_callable=AsyncMock):
+        with patch("src.modules.sources.github_source.httpx.AsyncClient", return_value=mock_client):
+            with patch("src.modules.sources.github_source.asyncio.sleep", new_callable=AsyncMock):
                 leaks = await source.fetch_raw_leaks(queries=["test"], max_per_query=1)
         assert len(leaks) == 0
 
 class TestPasteSource:
     def test_parse_pastebin_ids(self):
-        from src.modules.crypto.leak_finder.sources.paste_source import PasteSource
+        from src.modules.sources.paste_source import PasteSource
         html = '<a href="/abc123DEF">Paste 1</a><a href="/archive">Archive</a><a href="/login">Login</a>'
         ids = PasteSource._parse_pastebin_ids(html)
         assert "abc123DEF" in ids
@@ -78,7 +78,7 @@ class TestPasteSource:
 
 class TestTelegramSource:
     def test_extract_flood_wait(self):
-        from src.modules.crypto.leak_finder.sources.telegram_source import TelegramSource
+        from src.modules.sources.telegram_source import TelegramSource
         assert TelegramSource._extract_flood_wait("A wait of 30 seconds is required") == 30
         assert TelegramSource._extract_flood_wait("unknown error") == 60
 

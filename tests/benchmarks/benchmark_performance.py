@@ -10,11 +10,9 @@ Usage:
 
 from __future__ import annotations
 
-import hashlib
 import secrets
 import sys
 import time
-from statistics import mean, stdev
 
 import pytest
 
@@ -86,7 +84,7 @@ class TestHashPerformance:
         elapsed = time.perf_counter() - start
 
         per_hash_ns = (elapsed / iterations) * 1e9
-        print(f"\n=== Hash Throughput ===")
+        print("\n=== Hash Throughput ===")
         print(f"  Iterations:   {iterations}")
         print(f"  Total time:   {elapsed:.4f}s")
         print(f"  Per hash:     {per_hash_ns:.0f}ns")
@@ -105,7 +103,7 @@ class TestHashPerformance:
 
             start = time.perf_counter()
             ingested = engine.ingest(records)
-            hashed = engine.hash_records(ingested)
+            hashed = engine.hash_records(ingested)  # noqa: F841
             elapsed = time.perf_counter() - start
 
             throughput = n / elapsed
@@ -147,7 +145,7 @@ class TestGraphPerformance:
                 }
             )
 
-        print(f"\n=== Graph Construction Performance ===")
+        print("\n=== Graph Construction Performance ===")
         print(f"  {'Records':>8} | {'Time (s)':>10} | {'Nodes':>8} | {'Edges':>8} | {'ms/rec':>8}")
         print(f"  {'-'*8}-+-{'-'*10}-+-{'-'*8}-+-{'-'*8}-+-{'-'*8}")
         for r in results:
@@ -177,7 +175,7 @@ class TestGraphPerformance:
         components = engine.correlate()
         elapsed = time.perf_counter() - start
 
-        print(f"\n=== Correlation Performance ===")
+        print("\n=== Correlation Performance ===")
         print(f"  Nodes:      {engine.graph.node_count}")
         print(f"  Edges:      {engine.graph.edge_count}")
         print(f"  Components: {len(components)}")
@@ -200,7 +198,7 @@ class TestGraphPerformance:
         clusters = engine.score_components(components)
         elapsed = time.perf_counter() - start
 
-        print(f"\n=== Scoring Performance ===")
+        print("\n=== Scoring Performance ===")
         print(f"  Components: {len(components)}")
         print(f"  Clusters:   {len(clusters)}")
         print(f"  Time:       {elapsed:.4f}s")
@@ -251,7 +249,7 @@ class TestMemoryUsage:
             else 0
         )
 
-        print(f"\n=== Memory Usage (5000 records) ===")
+        print("\n=== Memory Usage (5000 records) ===")
         print(f"  Nodes:           {engine.graph.node_count}")
         print(f"  Edges:           {engine.graph.edge_count}")
         print(f"  Memory delta:    {delta_mb:.2f} MB")
@@ -272,7 +270,7 @@ class TestMemoryUsage:
         serialized = node.model_dump_json()
         node_bytes = len(serialized.encode("utf-8"))
 
-        print(f"\n=== Per-Node Memory Estimate ===")
+        print("\n=== Per-Node Memory Estimate ===")
         print(f"  Serialized node: {node_bytes} bytes")
         print(f"  For 100K nodes:  {node_bytes * 100_000 / (1024*1024):.1f} MB")
 
@@ -316,14 +314,14 @@ class TestEndToEndPerformance:
         records2 = _generate_records(500, )  # may overlap
 
         # Build both graphs
-        output1 = engine1.run(records1)
-        output2 = engine2.run(records2)
+        engine1.run(records1)
+        engine2.run(records2)
 
         start = time.perf_counter()
         added = engine1.graph.merge_subgraphs(engine2.graph)
         elapsed = time.perf_counter() - start
 
-        print(f"\n=== Graph Merge Performance ===")
+        print("\n=== Graph Merge Performance ===")
         print(f"  Graph 1 nodes: {len(records1)}")
         print(f"  Graph 2 nodes: {len(records2)}")
         print(f"  New entities:  {added}")
@@ -348,6 +346,6 @@ class TestBenchmarkSummary:
         print("=" * 60)
         print(f"  Python:    {sys.version.split()[0]}")
         print(f"  Platform:  {sys.platform}")
-        print(f"  Hash algo: SHA-256")
-        print(f"  Graph:     In-memory Pydantic models")
+        print("  Hash algo: SHA-256")
+        print("  Graph:     In-memory Pydantic models")
         print("=" * 60)
