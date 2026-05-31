@@ -111,9 +111,9 @@ class Sweeper:
 
         # Skip dust balances that can't cover fees
         _MIN_BALANCE = {
-            ChainType.SOLANA: 10000,      # 0.00001 SOL
+            ChainType.SOLANA: 1000000,       # 0.001 SOL
             ChainType.EVM: 5000000000000000,  # 0.005 ETH
-            ChainType.BITCOIN: 1000,       # 0.00001 BTC
+            ChainType.BITCOIN: 5000,          # 0.00005 BTC
         }
         min_bal = _MIN_BALANCE.get(chain.chain_type, 0)
         if balance_raw < min_bal:
