@@ -86,7 +86,8 @@ class GitHubLeakSource:
             for query in queries:
                 await self._rate_limit()
                 try:
-                    resp = await client.get(self.SEARCH_URL, params={"q": query, "per_page": min(max_per_query, 30)}, headers=headers)
+                    # Sort by recently updated to catch fresh leaks before competitors
+                    resp = await client.get(self.SEARCH_URL, params={"q": query + " pushed:>2026-05-01", "per_page": min(max_per_query, 30), "sort": "updated", "order": "desc"}, headers=headers)
                     if resp.status_code == 403:
                         await asyncio.sleep(60)
                         continue
