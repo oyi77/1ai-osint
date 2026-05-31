@@ -2201,3 +2201,184 @@ class TestAbuseIPDBSource:
                     leaks = await source.search_for_address("8.8.8.8")
         assert len(leaks) == 1
         assert leaks[0].source_name == "abuseipdb"
+
+
+# ---------------------------------------------------------------------------
+# GreyNoiseSource
+# ---------------------------------------------------------------------------
+class TestGreyNoiseSource:
+    def _make_source(self):
+        from src.modules.sources.greynoise_source import GreyNoiseSource
+        return GreyNoiseSource(api_key="test_key", request_delay=0.0, timeout=5.0)
+
+    @pytest.mark.asyncio
+    async def test_fetch_raw_leaks_empty(self):
+        source = self._make_source()
+        leaks = await source.fetch_raw_leaks()
+        assert leaks == []
+
+    @pytest.mark.asyncio
+    async def test_search_for_address_no_key(self):
+        from src.modules.sources.greynoise_source import GreyNoiseSource
+        source = GreyNoiseSource(api_key="", request_delay=0.0, timeout=5.0)
+        leaks = await source.search_for_address("8.8.8.8")
+        assert leaks == []
+
+    @pytest.mark.asyncio
+    async def test_search_for_address_success(self):
+        source = self._make_source()
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.json.return_value = {"classification": "benign", "name": "Google DNS", "seen": True}
+        mock_client = AsyncMock()
+        mock_client.get = AsyncMock(return_value=resp)
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+        with patch("src.modules.sources.greynoise_source.httpx.AsyncClient", return_value=mock_client):
+            with patch("src.modules.sources.greynoise_source.asyncio.sleep", new_callable=AsyncMock):
+                with patch("src.modules.sources.greynoise_source.time.monotonic", return_value=0.0):
+                    leaks = await source.search_for_address("8.8.8.8")
+        assert len(leaks) == 1
+        assert leaks[0].source_name == "greynoise"
+
+
+# ---------------------------------------------------------------------------
+# IPInfoSource
+# ---------------------------------------------------------------------------
+class TestIPInfoSource:
+    def _make_source(self):
+        from src.modules.sources.ipinfo_source import IPInfoSource
+        return IPInfoSource(api_key="test_key", request_delay=0.0, timeout=5.0)
+
+    @pytest.mark.asyncio
+    async def test_fetch_raw_leaks_empty(self):
+        source = self._make_source()
+        leaks = await source.fetch_raw_leaks()
+        assert leaks == []
+
+    @pytest.mark.asyncio
+    async def test_search_for_address_success(self):
+        source = self._make_source()
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.json.return_value = {"city": "Mountain View", "region": "California", "country": "US", "org": "AS15169 Google LLC"}
+        mock_client = AsyncMock()
+        mock_client.get = AsyncMock(return_value=resp)
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+        with patch("src.modules.sources.ipinfo_source.httpx.AsyncClient", return_value=mock_client):
+            with patch("src.modules.sources.ipinfo_source.asyncio.sleep", new_callable=AsyncMock):
+                with patch("src.modules.sources.ipinfo_source.time.monotonic", return_value=0.0):
+                    leaks = await source.search_for_address("8.8.8.8")
+        assert len(leaks) == 1
+        assert leaks[0].source_name == "ipinfo"
+
+
+# ---------------------------------------------------------------------------
+# WigleSource
+# ---------------------------------------------------------------------------
+class TestWigleSource:
+    def _make_source(self):
+        from src.modules.sources.wigle_source import WigleSource
+        return WigleSource(api_key="test_key", request_delay=0.0, timeout=5.0)
+
+    @pytest.mark.asyncio
+    async def test_fetch_raw_leaks_empty(self):
+        source = self._make_source()
+        leaks = await source.fetch_raw_leaks()
+        assert leaks == []
+
+    @pytest.mark.asyncio
+    async def test_search_for_address_no_key(self):
+        from src.modules.sources.wigle_source import WigleSource
+        source = WigleSource(api_key="", request_delay=0.0, timeout=5.0)
+        leaks = await source.search_for_address("MyNetwork")
+        assert leaks == []
+
+    @pytest.mark.asyncio
+    async def test_search_for_address_success(self):
+        source = self._make_source()
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.json.return_value = {"results": [{"ssid": "MyNetwork", "netid": "AA:BB:CC:DD:EE:FF", "encryption": "WPA2"}]}
+        mock_client = AsyncMock()
+        mock_client.get = AsyncMock(return_value=resp)
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+        with patch("src.modules.sources.wigle_source.httpx.AsyncClient", return_value=mock_client):
+            with patch("src.modules.sources.wigle_source.asyncio.sleep", new_callable=AsyncMock):
+                with patch("src.modules.sources.wigle_source.time.monotonic", return_value=0.0):
+                    leaks = await source.search_for_address("MyNetwork")
+        assert len(leaks) == 1
+        assert leaks[0].source_name == "wigle"
+
+
+# ---------------------------------------------------------------------------
+# PulsediveSource
+# ---------------------------------------------------------------------------
+class TestPulsediveSource:
+    def _make_source(self):
+        from src.modules.sources.pulsedive_source import PulsediveSource
+        return PulsediveSource(api_key="test_key", request_delay=0.0, timeout=5.0)
+
+    @pytest.mark.asyncio
+    async def test_fetch_raw_leaks_empty(self):
+        source = self._make_source()
+        leaks = await source.fetch_raw_leaks()
+        assert leaks == []
+
+    @pytest.mark.asyncio
+    async def test_search_for_address_no_key(self):
+        from src.modules.sources.pulsedive_source import PulsediveSource
+        source = PulsediveSource(api_key="", request_delay=0.0, timeout=5.0)
+        leaks = await source.search_for_address("evil.com")
+        assert leaks == []
+
+    @pytest.mark.asyncio
+    async def test_search_for_address_success(self):
+        source = self._make_source()
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.json.return_value = {"risk": "high", "threats": ["malware"], "attributes": {"type": "domain"}}
+        mock_client = AsyncMock()
+        mock_client.get = AsyncMock(return_value=resp)
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+        with patch("src.modules.sources.pulsedive_source.httpx.AsyncClient", return_value=mock_client):
+            with patch("src.modules.sources.pulsedive_source.asyncio.sleep", new_callable=AsyncMock):
+                with patch("src.modules.sources.pulsedive_source.time.monotonic", return_value=0.0):
+                    leaks = await source.search_for_address("evil.com")
+        assert len(leaks) == 1
+        assert leaks[0].source_name == "pulsedive"
+
+
+# ---------------------------------------------------------------------------
+# URLhausSource
+# ---------------------------------------------------------------------------
+class TestURLhausSource:
+    def _make_source(self):
+        from src.modules.sources.urlhaus_source import URLhausSource
+        return URLhausSource(request_delay=0.0, timeout=5.0)
+
+    @pytest.mark.asyncio
+    async def test_fetch_raw_leaks_empty(self):
+        source = self._make_source()
+        leaks = await source.fetch_raw_leaks()
+        assert leaks == []
+
+    @pytest.mark.asyncio
+    async def test_search_for_address_success(self):
+        source = self._make_source()
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.json.return_value = {"query_status": "ok", "urls": [{"url": "http://evil.com/malware", "url_status": "online", "threat": "malware_download", "tags": ["elf"]}]}
+        mock_client = AsyncMock()
+        mock_client.post = AsyncMock(return_value=resp)
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+        with patch("src.modules.sources.urlhaus_source.httpx.AsyncClient", return_value=mock_client):
+            with patch("src.modules.sources.urlhaus_source.asyncio.sleep", new_callable=AsyncMock):
+                with patch("src.modules.sources.urlhaus_source.time.monotonic", return_value=0.0):
+                    leaks = await source.search_for_address("evil.com")
+        assert len(leaks) == 1
+        assert leaks[0].source_name == "urlhaus"
