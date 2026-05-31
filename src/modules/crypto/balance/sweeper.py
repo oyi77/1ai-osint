@@ -128,6 +128,14 @@ class Sweeper:
             if chain.chain_type == ChainType.EVM:
                 return await self._sweep_evm(private_key_hex, chain, source_address, dest, balance_raw)
             elif chain.chain_type == ChainType.SOLANA:
+                # Check if account is system-owned before sweep
+                if not await self._is_solana_system_account(source_address, chain):
+                    return SweepResult(
+                        success=False, chain=chain.name,
+                        source_address=source_address, dest_address=dest,
+                        amount=balance_raw / 1e9, amount_raw=balance_raw,
+                        error="Program-owned account (not System Program) — cannot sweep",
+                    )
                 return await self._sweep_sol(private_key_hex, chain, source_address, dest, balance_raw)
             elif chain.chain_type == ChainType.BITCOIN:
                 return await self._sweep_btc(private_key_hex, chain, source_address, dest, balance_raw)
@@ -197,6 +205,27 @@ class Sweeper:
             amount_raw=amount_to_send,
             tx_hash=tx_hash.hex(),
         )
+
+    async def _is_solana_system_account(self, address: str, chain: ChainConfig) -> bool:
+        """Check if a Solana account is owned by the System Program."""
+        import httpx
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                payload = {
+                    "jsonrpc": "2.0", "id": 1,
+                    "method": "getAccountInfo",
+                    "params": [address, {"encoding": "base64"}],
+                }
+                resp = await client.post(chain.rpc_url, json=payload)
+                data = resp.json()
+                value = data.get("result", {}).get("value")
+                if value is None:
+                    return False  # Account doesn't exist
+                owner = value.get("owner", "")
+                # System Program = 11111111111111111111111111111111
+                return owner == "11111111111111111111111111111111"
+        except Exception:
+            return True  # Assume system-owned on error (let sweep attempt)
 
     async def _sweep_sol(
         self, private_key_hex: str, chain: ChainConfig,

@@ -1096,6 +1096,32 @@ class TestSweeper:
         assert not r.success
         assert "Zero balance" in r.error
 
+    @pytest.mark.asyncio
+    async def test_is_solana_system_account_mocked(self):
+        s = Sweeper()
+        mock_client = MagicMock()
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {"result": {"value": {"owner": "11111111111111111111111111111111"}}}
+        mock_client.post = AsyncMock(return_value=mock_resp)
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+        with patch("httpx.AsyncClient", return_value=mock_client):
+            result = await s._is_solana_system_account("testaddr", SOLANA)
+            assert result is True
+
+    @pytest.mark.asyncio
+    async def test_is_solana_program_owned_mocked(self):
+        s = Sweeper()
+        mock_client = MagicMock()
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {"result": {"value": {"owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"}}}
+        mock_client.post = AsyncMock(return_value=mock_resp)
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+        with patch("httpx.AsyncClient", return_value=mock_client):
+            result = await s._is_solana_system_account("testaddr", SOLANA)
+            assert result is False
+
 
 class TestTokenContracts:
     """Tests for ERC-20 token contract configuration."""
