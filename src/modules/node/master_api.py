@@ -165,3 +165,17 @@ async def get_nodes():
     """List all nodes and their status."""
     heartbeats = await db.get_all_heartbeats()
     return {"status": "ok", "nodes": heartbeats}
+
+
+@app.post("/api/commands")
+async def enqueue_command(req: CommandRequest):
+    """Enqueue a command for a node."""
+    await db.enqueue_command(req.node_id, req.command, req.payload)
+    return {"status": "ok", "node_id": req.node_id, "command": req.command}
+
+
+@app.get("/api/commands/{node_id}")
+async def claim_commands(node_id: str):
+    """Claim pending commands for a node."""
+    commands = await db.claim_commands(node_id)
+    return {"status": "ok", "commands": commands}

