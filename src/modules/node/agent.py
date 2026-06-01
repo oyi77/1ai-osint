@@ -1,6 +1,7 @@
-"""Node agent — runs on each worker node, communicates with master via Telegram."""
+"""Node agent — runs on each worker node, communicates with master via Telegram + HTTP API."""
 from __future__ import annotations
 import asyncio
+import hashlib
 import logging
 import socket
 import subprocess
@@ -24,20 +25,21 @@ class NodeAgent:
         node_id: str,
         telegram_token: str,
         master_chat_id: str,
+        master_api_url: str = "http://localhost:8420",
         role: str = "worker",
         heartbeat_interval: int = 30,
-        api_port: int = 8420,
     ):
         self.node_id = node_id
         self.telegram_token = telegram_token
         self.master_chat_id = master_chat_id
+        self.master_api_url = master_api_url.rstrip("/")
         self.role = role
         self.heartbeat_interval = heartbeat_interval
-        self.api_port = api_port
         self._start_time = time.monotonic()
         self._scan_count = 0
         self._scanner_process: Optional[asyncio.subprocess.Process] = None
         self._running = False
+        self._seen_keys: set[str] = set()
 
     async def start(self):
         """Register with master and start heartbeat loop."""
@@ -193,12 +195,98 @@ class NodeAgent:
             return {"status": "error", "error": str(exc)}
 
     async def report_result(self, result: dict[str, Any]):
-        """Report scan results to master."""
+        """Report scan results to master via Telegram."""
         await self._send_to_master(NodeMessage(
             msg_type=MessageType.RESULT,
             node_id=self.node_id,
             payload=result,
         ))
+
+    # ── HTTP API sync methods ───────────────────────────────────────────────
+
+    async def sync_seen_keys(self) -> set[str]:
+        """Download seen keys from master API."""
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                resp = await client.get(f"{self.master_api_url}/api/seen")
+                if resp.status_code == 200:
+                    data = resp.json()
+                    bloom = data.get("bloom", "")
+                    if bloom:
+                        self._seen_keys = set(bloom.split("|"))
+                        logger.info("Synced %d seen keys from master", len(self._seen_keys))
+        except Exception as exc:
+            logger.debug("Failed to sync seen keys: %s", exc)
+        return self._seen_keys
+
+    async def report_keys_api(self, keys: list[dict[str, str]]) -> int:
+        """Report found keys to master API."""
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                resp = await client.post(f"{self.master_api_url}/api/keys", json={
+                    "node_id": self.node_id,
+                    "keys": keys,
+                })
+                if resp.status_code == 200:
+                    recorded = resp.json().get("recorded", 0)
+                    logger.info("Reported %d keys to master (%d new)", len(keys), recorded)
+                    return recorded
+        except Exception as exc:
+            logger.debug("Failed to report keys: %s", exc)
+        return 0
+
+    async def acquire_sweep_lock(self, address: str, ttl: int = 300) -> bool:
+        """Acquire sweep lock from master API."""
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                resp = await client.post(f"{self.master_api_url}/api/locks", json={
+                    "address": address,
+                    "node_id": self.node_id,
+                    "ttl_seconds": ttl,
+                })
+                return resp.status_code == 200
+        except Exception as exc:
+            logger.debug("Failed to acquire lock: %s", exc)
+            return False
+
+    async def report_sweep_api(self, address: str, sweep_tx: str):
+        """Report sweep result to master API."""
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                await client.post(f"{self.master_api_url}/api/sweep", json={
+                    "address": address,
+                    "node_id": self.node_id,
+                    "sweep_tx": sweep_tx,
+                })
+        except Exception as exc:
+            logger.debug("Failed to report sweep: %s", exc)
+
+    async def heartbeat_api(self):
+        """Send heartbeat to master API."""
+        try:
+            import psutil
+            mem = psutil.virtual_memory()
+            async with httpx.AsyncClient(timeout=10) as client:
+                await client.post(f"{self.master_api_url}/api/heartbeat", json={
+                    "node_id": self.node_id,
+                    "status": {
+                        "hostname": socket.gethostname(),
+                        "ip": self._get_ip(),
+                        "version": self._get_version(),
+                        "scanner_running": self._scanner_process is not None and self._scanner_process.returncode is None,
+                        "scan_count": self._scan_count,
+                        "uptime_sec": time.monotonic() - self._start_time,
+                        "memory_mb": mem.used / (1024 * 1024),
+                        "cpu_percent": psutil.cpu_percent(interval=0.1),
+                    },
+                })
+        except Exception as exc:
+            logger.debug("Failed to send heartbeat: %s", exc)
+
+    def is_key_seen(self, key_raw: str) -> bool:
+        """Check if a key has already been seen locally."""
+        key_hash = hashlib.sha256(key_raw.encode()).hexdigest()[:32]
+        return key_hash in self._seen_keys
 
     def _get_status(self) -> NodeStatus:
         """Get current node status."""
