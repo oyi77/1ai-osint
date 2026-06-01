@@ -1,7 +1,6 @@
 """Tests for all 8 leak_finder source adapters."""
 import asyncio
 import json
-import os
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
