@@ -33,6 +33,9 @@ def _register_builtins():
         ("phone_finder", "src.modules.phone_finder", "PhoneFinderTool"),
         ("crypto_privatekey", "src.modules.crypto.privatekey.scanner", "PrivateKeyScanner"),
         ("crypto_balance", "src.modules.crypto.balance", "CryptoBalanceTool"),
+        ("domain_recon", "src.modules.domain_recon", "DomainReconTool"),
+        ("email_osint", "src.modules.email_osint", "EmailOSINTTool"),
+        ("social_osint", "src.modules.social_osint", "SocialOSINTTool"),
     ]
 
     for name, module_path, class_name in modules_to_register:

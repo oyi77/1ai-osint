@@ -25,6 +25,9 @@ SCAN_MODULES = (
     "crypto_passphrase",
     "crypto_privatekey",
     "crypto_balance",
+    "domain",
+    "email",
+    "social",
     "all",
 )
 OUTPUT_FORMATS = ("json", "sarif", "pdf")
@@ -85,6 +88,18 @@ def _get_module(name: str, zkit_salt: str = ""):
         from src.modules.crypto.balance import CryptoBalanceTool
 
         return CryptoBalanceTool(zkit_salt=zkit_salt)
+    elif name in ("domain", "domain_recon"):
+        from src.modules.domain_recon import DomainReconTool
+
+        return DomainReconTool(zkit_salt=zkit_salt)
+    elif name in ("email", "email_osint"):
+        from src.modules.email_osint import EmailOSINTTool
+
+        return EmailOSINTTool(zkit_salt=zkit_salt)
+    elif name in ("social", "social_osint"):
+        from src.modules.social_osint import SocialOSINTTool
+
+        return SocialOSINTTool(zkit_salt=zkit_salt)
     return None
 
 
