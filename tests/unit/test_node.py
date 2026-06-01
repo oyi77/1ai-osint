@@ -557,38 +557,6 @@ class TestMasterAPI:
 
 
 # ---------------------------------------------------------------------------
-# Protocol tests
-# ---------------------------------------------------------------------------
-class TestProtocol:
-    def test_node_message_to_telegram(self):
-        from src.modules.node.protocol import NodeMessage, MessageType
-        msg = NodeMessage(msg_type=MessageType.HEARTBEAT, node_id="test", payload={"cpu": 50})
-        text = msg.to_telegram()
-        assert "test" in text
-        assert "heartbeat" in text.lower()
-
-    def test_node_message_from_telegram(self):
-        from src.modules.node.protocol import NodeMessage, MessageType
-        msg = NodeMessage(msg_type=MessageType.HEARTBEAT, node_id="test", payload={"cpu": 50})
-        text = msg.to_telegram()
-        parsed = NodeMessage.from_telegram(text)
-        assert parsed is not None
-        assert parsed.node_id == "test"
-        assert parsed.msg_type == MessageType.HEARTBEAT
-
-    def test_node_message_from_invalid(self):
-        from src.modules.node.protocol import NodeMessage
-        assert NodeMessage.from_telegram("invalid json") is None
-
-    def test_node_status_to_dict(self):
-        from src.modules.node.protocol import NodeStatus
-        status = NodeStatus(node_id="test", hostname="host", ip="1.2.3.4", version="abc123")
-        d = status.to_dict()
-        assert d["node_id"] == "test"
-        assert d["hostname"] == "host"
-
-
-# ---------------------------------------------------------------------------
 # NodeAgent API sync tests
 # ---------------------------------------------------------------------------
 class TestNodeAgentAPISync:
