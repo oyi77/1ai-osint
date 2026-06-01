@@ -2331,11 +2331,19 @@ class TestPulsediveSource:
     @pytest.mark.asyncio
     async def test_search_for_address_no_key(self):
         from src.modules.sources.pulsedive_source import PulsediveSource
-        with patch.dict(os.environ, {"PULSEDIVE_API_KEY": ""}, clear=False):
-            source = PulsediveSource(api_key="", request_delay=0.0, timeout=5.0)
-            source.api_key = ""
-            leaks = await source.search_for_address("evil.com")
-            assert leaks == []
+        source = PulsediveSource(api_key="", request_delay=0.0, timeout=5.0)
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.json.return_value = {"risk": "low", "threats": []}
+        mock_client = AsyncMock()
+        mock_client.get = AsyncMock(return_value=resp)
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+        with patch("src.modules.sources.pulsedive_source.httpx.AsyncClient", return_value=mock_client):
+            with patch("src.modules.sources.pulsedive_source.asyncio.sleep", new_callable=AsyncMock):
+                with patch("src.modules.sources.pulsedive_source.time.monotonic", return_value=0.0):
+                    leaks = await source.search_for_address("evil.com")
+        assert len(leaks) == 1
 
     @pytest.mark.asyncio
     async def test_search_for_address_success(self):
@@ -2503,5 +2511,27 @@ class TestNmapSource:
     async def test_search_for_address_no_binary(self):
         source = self._make_source()
         with patch("src.modules.sources.nmap_source.shutil.which", return_value=None):
+            leaks = await source.search_for_address("example.com")
+        assert leaks == []
+
+
+# ---------------------------------------------------------------------------
+# BbotSource
+# ---------------------------------------------------------------------------
+class TestBbotSource:
+    def _make_source(self):
+        from src.modules.sources.bbot_source import BbotSource
+        return BbotSource(timeout=5.0)
+
+    @pytest.mark.asyncio
+    async def test_fetch_raw_leaks_empty(self):
+        source = self._make_source()
+        leaks = await source.fetch_raw_leaks()
+        assert leaks == []
+
+    @pytest.mark.asyncio
+    async def test_search_for_address_no_binary(self):
+        source = self._make_source()
+        with patch("src.modules.sources.bbot_source.shutil.which", return_value=None):
             leaks = await source.search_for_address("example.com")
         assert leaks == []
