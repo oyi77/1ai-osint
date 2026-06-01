@@ -2534,3 +2534,70 @@ class TestBbotSource:
         with patch("src.modules.sources.bbot_source.shutil.which", return_value=None):
             leaks = await source.search_for_address("example.com")
         assert leaks == []
+
+
+# ---------------------------------------------------------------------------
+# NmapSource, SubfinderSource, HttpxSource, ReconNgSource (subprocess mock)
+# ---------------------------------------------------------------------------
+class TestNmapSourceFull:
+    @pytest.mark.asyncio
+    async def test_search_success(self):
+        from src.modules.sources.nmap_source import NmapSource
+        source = NmapSource(timeout=5.0)
+        mock_proc = MagicMock()
+        mock_proc.communicate = AsyncMock(return_value=(b'<nmaprun>results</nmaprun>', b""))
+        with patch("src.modules.sources.nmap_source.shutil.which", return_value="/usr/bin/nmap"):
+            with patch("src.modules.sources.nmap_source.asyncio.create_subprocess_exec", return_value=mock_proc):
+                with patch("src.modules.sources.nmap_source.asyncio.wait_for", new_callable=AsyncMock) as mock_wait:
+                    mock_wait.return_value = (b'<nmaprun>results</nmaprun>', b"")
+                    leaks = await source.search_for_address("example.com")
+        assert len(leaks) >= 1
+        assert leaks[0].source_name == "nmap"
+
+
+class TestSubfinderSourceFull:
+    @pytest.mark.asyncio
+    async def test_search_success(self):
+        from src.modules.sources.subfinder_source import SubfinderSource
+        source = SubfinderSource(timeout=5.0)
+        mock_proc = MagicMock()
+        mock_proc.communicate = AsyncMock(return_value=(b"sub1.example.com\nsub2.example.com", b""))
+        with patch("src.modules.sources.subfinder_source.shutil.which", return_value="/usr/bin/subfinder"):
+            with patch("src.modules.sources.subfinder_source.asyncio.create_subprocess_exec", return_value=mock_proc):
+                with patch("src.modules.sources.subfinder_source.asyncio.wait_for", new_callable=AsyncMock) as mock_wait:
+                    mock_wait.return_value = (b"sub1.example.com\nsub2.example.com", b"")
+                    leaks = await source.search_for_address("example.com")
+        assert len(leaks) >= 1
+        assert leaks[0].source_name == "subfinder"
+
+
+class TestHttpxSourceFull:
+    @pytest.mark.asyncio
+    async def test_search_success(self):
+        from src.modules.sources.httpx_source import HttpxSource
+        source = HttpxSource(timeout=5.0)
+        mock_proc = MagicMock()
+        mock_proc.communicate = AsyncMock(return_value=(b'[{"url": "https://example.com", "status": 200}]', b""))
+        with patch("src.modules.sources.httpx_source.shutil.which", return_value="/usr/bin/httpx"):
+            with patch("src.modules.sources.httpx_source.asyncio.create_subprocess_exec", return_value=mock_proc):
+                with patch("src.modules.sources.httpx_source.asyncio.wait_for", new_callable=AsyncMock) as mock_wait:
+                    mock_wait.return_value = (b'[{"url": "https://example.com", "status": 200}]', b"")
+                    leaks = await source.search_for_address("example.com")
+        assert len(leaks) >= 1
+        assert leaks[0].source_name == "httpx"
+
+
+class TestReconNgSourceFull:
+    @pytest.mark.asyncio
+    async def test_search_success(self):
+        from src.modules.sources.recon_ng_source import ReconNgSource
+        source = ReconNgSource(timeout=5.0)
+        mock_proc = MagicMock()
+        mock_proc.communicate = AsyncMock(return_value=(b'[{"host": "example.com", "ip": "1.2.3.4"}]', b""))
+        with patch("src.modules.sources.recon_ng_source.shutil.which", return_value="/usr/bin/recon-ng"):
+            with patch("src.modules.sources.recon_ng_source.asyncio.create_subprocess_exec", return_value=mock_proc):
+                with patch("src.modules.sources.recon_ng_source.asyncio.wait_for", new_callable=AsyncMock) as mock_wait:
+                    mock_wait.return_value = (b'[{"host": "example.com", "ip": "1.2.3.4"}]', b"")
+                    leaks = await source.search_for_address("example.com")
+        assert len(leaks) >= 1
+        assert leaks[0].source_name == "recon_ng"
