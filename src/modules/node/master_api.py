@@ -41,6 +41,12 @@ class ConfigRequest(BaseModel):
     sources: list[str]
 
 
+class CommandRequest(BaseModel):
+    node_id: str
+    command: str
+    payload: dict = {}
+
+
 # ── App ─────────────────────────────────────────────────────────────────────
 
 @asynccontextmanager
@@ -116,9 +122,13 @@ async def get_sources(node_id: str):
     sources = await db.get_assigned_sources(node_id)
     if not sources:
         # Auto-assign all sources if not assigned yet
-        from src.modules.sources import ALL_SOURCES
-        await db.assign_sources(node_id, list(ALL_SOURCES))
-        sources = list(ALL_SOURCES)
+        try:
+            from src.modules.sources import ALL_SOURCES
+            await db.assign_sources(node_id, list(ALL_SOURCES))
+            sources = list(ALL_SOURCES)
+        except Exception:
+            # Fallback: return empty list if source discovery fails
+            sources = []
     return {"status": "ok", "node_id": node_id, "sources": sources}
 
 
