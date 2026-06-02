@@ -83,20 +83,45 @@ def extract_identifiers(text: str, source: str) -> list[Identifier]:
 
 
 def extract_usernames_from_profiles(findings: list) -> list[Identifier]:
-    """Extract usernames from social media profile findings."""
+    """Extract usernames and confirmed profiles from social OSINT findings."""
     identifiers: list[Identifier] = []
+    seen: set[str] = set()
+
     for finding in findings:
         raw = finding.raw_data or {}
-        platforms = raw.get("platforms", [])
-        for p in platforms:
-            if p.get("exists"):
-                url = p.get("url", "")
-                if url:
+        uname = raw.get("username")
+        if isinstance(uname, str) and uname.strip():
+            key = f"user:{uname.lower()}"
+            if key not in seen:
+                seen.add(key)
+                from src.modules.deep_scan.name_pivots import slugify_username
+
+                handle = slugify_username(uname) if " " in uname else uname.strip()
+                if handle:
                     identifiers.append(Identifier(
-                        value=url, id_type=IdentifierType.SOCIAL_PROFILE, source=finding.module,
-                        metadata={"platform": p.get("platform", "")},
+                        value=handle,
+                        id_type=IdentifierType.USERNAME,
+                        source=finding.module,
+                        confidence=0.9,
                     ))
+
     return identifiers
+
+
+def username_from_profile_url(url: str) -> str | None:
+    """Extract handle from a canonical social profile URL."""
+    if not url or "://" not in url:
+        return None
+    path = url.split("://", 1)[-1].split("/", 1)
+    if len(path) < 2:
+        return None
+    tail = path[1].strip("/").split("/")
+    if not tail:
+        return None
+    handle = tail[-1].lstrip("@")
+    if handle and " " not in handle and len(handle) <= 50:
+        return handle
+    return None
 
 
 def _is_valid_nik(nik: str) -> bool:

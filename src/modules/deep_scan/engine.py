@@ -54,11 +54,44 @@ class DeepScanEngine:
         max_identifiers: int = 500,
         timeout_per_module: float = 60.0,
         modules: Optional[list[str]] = None,
+        *,
+        fast: bool = False,
+        max_concurrency: int = 24,
+        max_pivot_handles: int = 5,
+        max_targets_per_iteration: int = 25,
+        profile_config: Any = None,
     ):
+        if profile_config is not None:
+            max_iterations = profile_config.max_iterations
+            timeout_per_module = profile_config.timeout_per_module
+            max_identifiers = profile_config.max_identifiers
+            max_pivot_handles = profile_config.max_pivot_handles
+            max_targets_per_iteration = profile_config.max_targets_per_iteration
+            max_concurrency = profile_config.max_concurrency
+            fast = profile_config.fast_mode
+            modules = list(profile_config.modules)
+        elif fast:
+            from src.modules.deep_scan.profiles import fast_module_list, fast_scan_defaults
+
+            defaults = fast_scan_defaults()
+            max_iterations = min(max_iterations, int(defaults["max_iterations"]))
+            timeout_per_module = min(timeout_per_module, float(defaults["timeout_per_module"]))
+            max_identifiers = min(max_identifiers, int(defaults["max_identifiers"]))
+            max_pivot_handles = int(defaults["max_pivot_handles"])
+            max_targets_per_iteration = int(defaults["max_targets_per_iteration"])
+            max_concurrency = int(defaults["max_concurrency"])
+            if modules is None:
+                modules = fast_module_list()
+
         self.max_iterations = max_iterations
         self.max_identifiers = max_identifiers
         self.timeout_per_module = timeout_per_module
         self.modules = modules
+        self.fast = fast
+        self.max_pivot_handles = max_pivot_handles
+        self.max_targets_per_iteration = max_targets_per_iteration
+        self._sem = asyncio.Semaphore(max_concurrency)
+        self._scanned_pairs: set[tuple[str, str]] = set()
 
     async def scan(self, target: str) -> DeepScanResult:
         """Run a deep scan on a target identifier."""
@@ -73,10 +106,28 @@ class DeepScanEngine:
         initial = self._detect_identifier(target, "input")
         if initial:
             result.identifiers.append(initial)
+            if initial.id_type == IdentifierType.NAME:
+                from src.modules.deep_scan.name_pivots import username_candidates_from_name
 
-        # Phase 1: Initial scan with the raw target
-        logger.info("Deep scan starting: %s", target)
-        await self._run_iteration(result, {target})
+                pivots = username_candidates_from_name(target)[: self.max_pivot_handles]
+                for handle, confidence in pivots:
+                    self._add_identifier(
+                        result,
+                        Identifier(
+                            value=handle,
+                            id_type=IdentifierType.USERNAME,
+                            source="name_pivot",
+                            confidence=confidence,
+                        ),
+                    )
+
+        # Phase 1: scan raw target plus name-derived username pivots
+        initial_targets = self._cap_targets(
+            self._initial_targets(target, result),
+        )
+
+        logger.info("Deep scan starting: %s (%d initial targets)", target, len(initial_targets))
+        await self._run_iteration(result, initial_targets)
 
         # Phase 2: Recursive scanning with discovered identifiers
         seen_targets: set[str] = {target.lower()}
@@ -86,7 +137,7 @@ class DeepScanEngine:
                 break
 
             # Collect new identifiers to scan
-            new_targets = self._get_new_targets(result, seen_targets)
+            new_targets = self._cap_targets(self._get_new_targets(result, seen_targets))
             if not new_targets:
                 logger.info("No new identifiers found at iteration %d — stopping", iteration)
                 break
@@ -144,9 +195,10 @@ class DeepScanEngine:
                     source_inst = source_cls()
                     relevant_targets = self._filter_targets_for_module(mod_name, targets, result)
                     for target in relevant_targets:
-                        tasks.append(
-                            self._scan_source_adapter(mod_name, source_inst, target, result)
-                        )
+                        if self._should_scan(mod_name, target):
+                            tasks.append(
+                                self._scan_source_adapter(mod_name, source_inst, target, result)
+                            )
                 continue
 
             mod = _get_module(mod_name)
@@ -159,7 +211,8 @@ class DeepScanEngine:
                 continue
 
             for target in relevant_targets:
-                tasks.append(self._scan_module(mod_name, mod, target, result))
+                if self._should_scan(mod_name, target):
+                    tasks.append(self._scan_module(mod_name, mod, target, result))
 
         if tasks:
             await asyncio.gather(*tasks, return_exceptions=True)
@@ -181,10 +234,16 @@ class DeepScanEngine:
         self, mod_name: str, mod: Any, target: str, result: DeepScanResult,
     ) -> None:
         """Run a single module scan."""
+        scan_kwargs: dict[str, Any] = {}
+        if mod_name == "people_finder":
+            scan_kwargs["timeout"] = int(self.timeout_per_module)
+
         try:
-            scan_result = await asyncio.wait_for(
-                mod.scan(target), timeout=self.timeout_per_module,
-            )
+            async with self._sem:
+                scan_result = await asyncio.wait_for(
+                    mod.scan(target, **scan_kwargs),
+                    timeout=self.timeout_per_module,
+                )
             if isinstance(scan_result, ScanResult):
                 result.scan_results.append(scan_result)
                 for finding in scan_result.findings:
@@ -200,10 +259,12 @@ class DeepScanEngine:
         """Run a breach/leak source via the source adapter."""
         try:
             from src.modules.deep_scan.source_adapter import run_source_scan
-            scan_result = await asyncio.wait_for(
-                run_source_scan(source_name, target, source_inst),
-                timeout=self.timeout_per_module,
-            )
+
+            async with self._sem:
+                scan_result = await asyncio.wait_for(
+                    run_source_scan(source_name, target, source_inst),
+                    timeout=self.timeout_per_module,
+                )
             if isinstance(scan_result, ScanResult):
                 result.scan_results.append(scan_result)
                 for finding in scan_result.findings:
@@ -215,14 +276,24 @@ class DeepScanEngine:
 
     def _get_new_targets(self, result: DeepScanResult, seen: set[str]) -> set[str]:
         """Extract new targets from discovered identifiers."""
+        from src.modules.deep_scan.extractor import username_from_profile_url
+
         targets: set[str] = set()
         for ident in result.identifiers:
-            if ident.value.lower() in seen:
-                continue
-            # Skip low-confidence identifiers
             if ident.confidence < 0.3:
                 continue
-            targets.add(ident.value)
+            value = ident.value.strip()
+            if ident.id_type == IdentifierType.SOCIAL_PROFILE and "://" in value:
+                parsed = username_from_profile_url(value)
+                if parsed:
+                    value = parsed
+                else:
+                    continue
+            if value.lower().startswith(("http://", "https://")):
+                continue
+            if value.lower() in seen:
+                continue
+            targets.add(value)
         return targets
 
     def _filter_targets_for_module(
@@ -264,6 +335,35 @@ class DeepScanEngine:
         if self.modules:
             return self.modules
         return list(_MODULE_INPUTS.keys())
+
+    def _should_scan(self, mod_name: str, target: str) -> bool:
+        """Skip duplicate module+target work within one scan."""
+        key = (mod_name, target.strip().lower())
+        if key in self._scanned_pairs:
+            return False
+        self._scanned_pairs.add(key)
+        return True
+
+    def _initial_targets(self, target: str, result: DeepScanResult) -> set[str]:
+        out: set[str] = {target}
+        for ident in result.identifiers:
+            if ident.id_type == IdentifierType.USERNAME and ident.confidence >= 0.65:
+                out.add(ident.value)
+        return out
+
+    def _cap_targets(self, targets: set[str]) -> set[str]:
+        if len(targets) <= self.max_targets_per_iteration:
+            return targets
+        # Prefer emails and handles over raw display names
+        ranked = sorted(
+            targets,
+            key=lambda t: (
+                0 if "@" in t else 1,
+                0 if " " not in t else 2,
+                len(t),
+            ),
+        )
+        return set(ranked[: self.max_targets_per_iteration])
 
     @staticmethod
     def _detect_identifier(value: str, source: str) -> Optional[Identifier]:
