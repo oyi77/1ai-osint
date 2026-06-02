@@ -42,6 +42,18 @@ def version():
 
 
 @app.command()
+def doctor():
+    """Check environment: Python, sherlock, breach API keys, providers."""
+    from src.doctor import format_doctor_report, run_doctor
+
+    results = run_doctor()
+    typer.echo(format_doctor_report(results))
+    hard_fail = [r for r in results if not r.ok and not r.name.startswith("breach:")]
+    if hard_fail:
+        raise typer.Exit(code=1)
+
+
+@app.command()
 def modules():
     """List all available OSINT modules."""
     from src.modules import list_modules
@@ -69,9 +81,9 @@ def _get_module(name: str, zkit_salt: str = ""):
 
         return DataLeaksAggregator(zkit_salt=zkit_salt)
     elif name in ("people", "people_finder", "social"):
-        from src.modules.people_finder import PeopleFinderTool
+        from src.modules.people_finder.search import PeopleFinderSearch
 
-        return PeopleFinderTool(zkit_salt=zkit_salt)
+        return PeopleFinderSearch(zkit_salt=zkit_salt)
     elif name in ("phone", "phone_finder"):
         from src.modules.phone_finder import PhoneFinderTool
 
@@ -100,6 +112,10 @@ def _get_module(name: str, zkit_salt: str = ""):
         from src.modules.social_osint import SocialOSINTTool
 
         return SocialOSINTTool(zkit_salt=zkit_salt)
+    elif name in ("vuln", "vuln_scanner"):
+        from src.modules.vuln_scanner import VulnScannerTool
+
+        return VulnScannerTool()
     return None
 
 
@@ -795,17 +811,44 @@ def deep_scan(
     output_file: str = typer.Option("", "--output", "-o", help="Output file path"),
     max_iterations: int = typer.Option(5, help="Max recursive scan iterations"),
     timeout: int = typer.Option(30, help="Timeout per module in seconds"),
+    fast: bool = typer.Option(
+        False,
+        "--fast",
+        help="Shortcut for --profile fast",
+    ),
+    profile: str = typer.Option(
+        "standard",
+        "--profile",
+        "-p",
+        help="Collection profile: fast, standard, deep, agency (see docs/INTEL_STANDARD.md)",
+    ),
 ):
     """Deep scan — recursive identity investigation across all modules."""
     from src.modules.deep_scan.engine import DeepScanEngine
     from src.modules.deep_scan.report_generator import generate_intel_report
     from src.modules.deep_scan.exports import export_report
+    from src.modules.deep_scan.scan_profiles import resolve_scan_profile
 
     async def _deep_scan():
-        typer.echo(f"Deep scanning: {target}", err=True)
+        profile_name = "fast" if fast else profile
+        try:
+            prof = resolve_scan_profile(profile_name)
+        except ValueError as exc:
+            typer.echo(str(exc), err=True)
+            raise typer.Exit(code=1) from exc
+
+        typer.echo(f"Deep scanning [profile={prof.name}]: {target}", err=True)
+        eff_timeout = float(timeout) if timeout != 30 else prof.timeout_per_module
         engine = DeepScanEngine(
-            max_iterations=max_iterations,
-            timeout_per_module=timeout,
+            max_iterations=min(max_iterations, prof.max_iterations),
+            timeout_per_module=eff_timeout,
+            modules=list(prof.modules),
+            profile_config=prof,
+        )
+        typer.echo(
+            f"Profile: {len(engine._get_active_modules())} modules, "
+            f"{engine.max_iterations} iterations, {engine.timeout_per_module}s/module cap",
+            err=True,
         )
         result = await engine.scan(target)
 
@@ -815,11 +858,24 @@ def deep_scan(
         intel = generate_intel_report(result)
         typer.echo(f"Intel report: {len(intel.evidence)} evidence, risk={intel.risk.level.value}", err=True)
 
-        outfile = output_file or f"deep_scan_{target.replace(' ', '_').replace('@', '_at_')}.{report_format}"
-        exported = export_report(intel, fmt=report_format)
-        with open(outfile, "w") as f:
-            f.write(exported)
-        typer.echo(f"Report saved to: {outfile}", err=True)
+        base = output_file or f"deep_scan_{target.replace(' ', '_').replace('@', '_at_')}"
+        for ext in (".html", ".json", ".stix"):
+            if base.lower().endswith(ext):
+                base = base[: -len(ext)]
+                break
+        html_path = f"{base}.html"
+        json_path = f"{base}.json"
+        with open(html_path, "w") as f:
+            f.write(export_report(intel, fmt="html"))
+        with open(json_path, "w") as f:
+            f.write(export_report(intel, fmt="json"))
+        typer.echo(f"HTML report: {html_path}", err=True)
+        typer.echo(f"JSON report: {json_path}", err=True)
+        if report_format == "stix":
+            stix_path = f"{base}.stix.json"
+            with open(stix_path, "w") as f:
+                f.write(export_report(intel, fmt="stix"))
+            typer.echo(f"STIX bundle: {stix_path}", err=True)
 
     asyncio.run(_deep_scan())
 
