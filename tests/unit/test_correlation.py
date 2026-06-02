@@ -2,12 +2,10 @@
 
 import pytest
 
-from src.models import Finding, ScanResult, BreachRecord, Identity, Severity
+from src.models import Finding, ScanResult, BreachRecord, Severity
 from src.modules.identity_tracking.correlation import (
     CrossModuleCorrelator,
     CorrelationResult,
-    CorrelationSource,
-    ResolvedEntity,
 )
 from src.modules.identity_tracking.identity_graph import IdentityGraph, NodeType
 

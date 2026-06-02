@@ -21,7 +21,6 @@ from src.modules.crypto.balance.chains import (
     SOLANA,
     ChainConfig,
     ChainType,
-    TokenContract,
 )
 
 logger = logging.getLogger(__name__)

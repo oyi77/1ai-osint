@@ -1,11 +1,10 @@
 """Tests for the targeted search module: known mnemonic, account range, and filtered random scan."""
 
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, patch
 
-from src.modules.crypto.balance.chains import ETHEREUM, BITCOIN, SOLANA, ALL_CHAINS
+from src.modules.crypto.balance.chains import ETHEREUM, ALL_CHAINS
 from src.modules.crypto.balance.checker import BalanceResult
-from src.modules.crypto.balance.deriver import DerivedAddress
 from src.modules.crypto.balance.targeted_search import (
     AccountRangeScan,
     FilteredRandomScan,

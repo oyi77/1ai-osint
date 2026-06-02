@@ -1,8 +1,6 @@
 """Tests for database module."""
 
-import pytest
-from src.database import Database
-from src.models import ScanResult, Finding, Identity, Severity
+from src.models import ScanResult, Finding, Severity
 
 
 class TestDatabase:

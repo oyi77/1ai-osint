@@ -1,7 +1,6 @@
 """Tests for cache module."""
 
 import time
-import pytest
 from src.cache import Cache
 
 

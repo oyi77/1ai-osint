@@ -1,7 +1,6 @@
 """Tests for data leaks aggregation module."""
 
 import pytest
-from unittest.mock import patch, MagicMock, AsyncMock
 
 from src.modules.data_leaks.aggregator import DataLeaksAggregator
 from src.modules.data_leaks.breach_checker import BreachChecker
@@ -124,7 +123,7 @@ class TestDataLeaksAggregator:
 
     @pytest.mark.asyncio
     async def test_analyze(self, aggregator, sample_breach):
-        from src.models import ScanResult, Finding
+        from src.models import ScanResult
         scan = ScanResult(
             scan_id="test",
             module="data_leaks",

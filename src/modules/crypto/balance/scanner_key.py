@@ -12,7 +12,6 @@ import httpx
 
 from src.modules.crypto.balance._leak_shared import (
     LeakFinding,
-    verify_and_alert_key,
 )
 from src.modules.crypto.balance.hit_logger import HitLogger
 

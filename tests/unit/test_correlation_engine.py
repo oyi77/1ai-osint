@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from src.ai.analyzers.correlation_engine import CorrelationEngine
-from src.ai.schemas.responses import CorrelationResult, EntityExtractionResult, EntityType, ExtractedEntity
+from src.ai.schemas.responses import EntityExtractionResult, EntityType, ExtractedEntity
 
 
 @pytest.fixture

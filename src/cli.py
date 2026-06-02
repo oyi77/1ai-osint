@@ -740,5 +740,114 @@ def master(
     asyncio.run(_run_master())
 
 
+@app.command()
+def report(
+    target: str = typer.Argument(..., help="Target to generate report for"),
+    output: str = typer.Option("html", help="Output format: html, json"),
+    module: str = typer.Option("all", help="Module to scan first, or 'all'"),
+):
+    """Generate a comprehensive OSINT report for a target."""
+    from src.modules.report_engine import ReportEngine
+    from src.modules.report_engine.html_template import render_html
+
+    async def _report():
+        typer.echo(f"Generating report for: {target}", err=True)
+
+        # Run scan first
+        effective_salt = ""
+        results = []
+        if module == "all":
+            for name in ("data_leaks", "people", "phone", "social_osint", "email_osint", "domain_recon"):
+                mod = _get_module(name, effective_salt)
+                if mod:
+                    try:
+                        result = await mod.scan(target)
+                        results.append(result)
+                        typer.echo(f"  {name}: {result.finding_count} findings", err=True)
+                    except Exception as exc:
+                        typer.echo(f"  {name}: error - {exc}", err=True)
+        else:
+            mod = _get_module(module, effective_salt)
+            if mod:
+                result = await mod.scan(target)
+                results.append(result)
+
+        # Generate report
+        engine = ReportEngine()
+        report_data = engine.from_scan_results(target, results)
+
+        if output == "html":
+            html = render_html(report_data)
+            outfile = f"report_{target.replace(' ', '_').replace('@', '_at_')}.html"
+            with open(outfile, "w") as f:
+                f.write(html)
+            typer.echo(f"Report saved to: {outfile}", err=True)
+        else:
+            typer.echo(json.dumps(report_data.to_dict(), indent=2, default=str))
+
+    asyncio.run(_report())
+
+
+@app.command()
+def deep_scan(
+    target: str = typer.Argument(..., help="Target to investigate (name, email, username, phone, NIK)"),
+    output: str = typer.Option("html", help="Output format: html, json"),
+    max_iterations: int = typer.Option(5, help="Max recursive scan iterations"),
+    timeout: int = typer.Option(30, help="Timeout per module in seconds"),
+):
+    """Deep scan — recursive identity investigation across all modules."""
+    from src.modules.deep_scan.engine import DeepScanEngine
+    from src.modules.report_engine import ReportEngine
+    from src.modules.report_engine.html_template import render_html
+
+    async def _deep_scan():
+        typer.echo(f"Deep scanning: {target}", err=True)
+        engine = DeepScanEngine(
+            max_iterations=max_iterations,
+            timeout_per_module=timeout,
+        )
+        result = await engine.scan(target)
+
+        typer.echo(f"Results: {result.identifier_count} identifiers, {result.finding_count} findings, {result.iterations} iterations, {result.duration_sec:.1f}s", err=True)
+
+        # Generate report from deep scan results
+        report_engine = ReportEngine()
+        report_data = report_engine.from_scan_results(target, result.scan_results)
+
+        if output == "html":
+            html = render_html(report_data)
+            outfile = f"deep_scan_{target.replace(' ', '_').replace('@', '_at_')}.html"
+            with open(outfile, "w") as f:
+                f.write(html)
+            typer.echo(f"Report saved to: {outfile}", err=True)
+        else:
+            typer.echo(json.dumps(result.to_dict(), indent=2, default=str))
+
+    asyncio.run(_deep_scan())
+
+
+@app.command()
+def report_from_file(
+    report_file: str = typer.Argument(..., help="Path to JSON report file"),
+    output: str = typer.Option("html", help="Output format: html, json"),
+):
+    """Generate report from an existing JSON report file."""
+    from src.modules.report_engine import ReportEngine
+    from src.modules.report_engine.html_template import render_html
+
+    engine = ReportEngine()
+    with open(report_file) as f:
+        report_data = engine.parse_report_json(f.read())
+
+    if output == "html":
+        html = render_html(report_data)
+        outfile = report_file.replace(".json", ".html")
+        with open(outfile, "w") as f:
+            f.write(html)
+        typer.echo(f"Report saved to: {outfile}")
+    else:
+        typer.echo(json.dumps(report_data.to_dict(), indent=2, default=str))
+
+
 if __name__ == "__main__":
     app()

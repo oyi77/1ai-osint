@@ -2,7 +2,7 @@
 
 import pytest
 
-from src.ai.analyzers.risk_scorer import RiskScorer, RiskScore, RiskBreakdown
+from src.ai.analyzers.risk_scorer import RiskScorer
 from src.models import Finding, ScanResult, Severity
 
 

@@ -2,7 +2,6 @@
 
 import json
 import pytest
-from unittest.mock import patch, MagicMock
 
 from src.modules.gitleaks.scanner import GitleaksModule
 from src.modules.gitleaks.parser import parse_gitleaks_json

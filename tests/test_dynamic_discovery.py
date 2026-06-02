@@ -3,9 +3,7 @@
 Mocks bip_utils to test the discovery loop without needing C libraries.
 """
 
-import asyncio
 import unittest
-from unittest.mock import AsyncMock, MagicMock, patch
 
 
 class TestDynamicDiscovery(unittest.TestCase):

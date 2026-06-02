@@ -1,7 +1,6 @@
 """Tests for the output/report generator module."""
 
 import json
-from pathlib import Path
 
 import pytest
 

@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.models import Finding, Severity
+from src.models import Severity
 from src.modules.vuln_scanner import VulnScannerTool, SUPPORTED_MODES, _mode_tag
 
 

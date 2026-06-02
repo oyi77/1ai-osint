@@ -12,9 +12,9 @@ from src.modules.crypto.balance.api_rotation import (
     _REENABLE_AFTER_SECONDS,
 )
 from src.modules.crypto.balance.checker import BalanceResult
-from src.modules.crypto.balance.chains import BITCOIN, ETHEREUM, SOLANA
+from src.modules.crypto.balance.chains import ETHEREUM
 from src.modules.crypto.balance.deriver import DerivedAddress
-from src.modules.crypto.balance.hit_logger import HitLogger, WalletHit
+from src.modules.crypto.balance.hit_logger import HitLogger
 from src.modules.crypto.balance.scanner_engine import RandomScanner, ScannerStats
 
 
@@ -122,7 +122,6 @@ class TestWalletHit:
     """Test the kwargs-based log_hit API (no WalletHit dataclass needed)."""
 
     def test_log_hit_stores_fields(self, tmp_path):
-        import asyncio
 
         async def _run():
             db_path = str(tmp_path / "test_fields.db")
@@ -146,7 +145,6 @@ class TestWalletHit:
         asyncio.run(_run())
 
     def test_log_hit_with_optional_fields(self, tmp_path):
-        import asyncio
 
         async def _run():
             db_path = str(tmp_path / "test_opt.db")

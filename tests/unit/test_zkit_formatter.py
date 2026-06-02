@@ -7,8 +7,6 @@ import pytest
 from src.models import Finding, ScanResult, BreachRecord, Identity, Severity
 from src.modules.output.zkit_formatter import (
     ZKITFormatter,
-    RedactionAudit,
-    RedactionAuditEntry,
 )
 from src.modules.identity_tracking.zkit_engine import CorrelatedCluster, CorrelationConfidence
 

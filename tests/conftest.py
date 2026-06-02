@@ -1,7 +1,5 @@
 """Shared test fixtures for 1ai-osint."""
 
-import json
-import tempfile
 from pathlib import Path
 from typing import Generator
 

@@ -53,7 +53,7 @@ def test_derivation_throughput() -> None:
         strategy = "need multiprocessing"
 
     print(f"\n{'=' * 60}")
-    print(f"  Derivation Throughput Benchmark")
+    print("  Derivation Throughput Benchmark")
     print(f"{'=' * 60}")
     print(f"  Chains:        {', '.join(c.symbol for c in ALL_CHAINS)}")
     print(f"  Iterations:    {ITERATIONS}")
@@ -139,7 +139,7 @@ def test_api_throughput() -> None:
     eth_stats = asyncio.run(_benchmark_eth_api())
 
     print(f"\n{'=' * 60}")
-    print(f"  API Throughput Benchmark")
+    print("  API Throughput Benchmark")
     print(f"{'=' * 60}")
     for stats in [btc_stats, eth_stats]:
         print(f"\n  Endpoint:   {stats['endpoint']}")

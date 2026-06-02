@@ -1,6 +1,5 @@
 """Tests for Pydantic models."""
 
-import pytest
 from datetime import datetime
 from src.models import Finding, ScanResult, BreachRecord, Identity, Severity
 

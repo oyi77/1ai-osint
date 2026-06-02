@@ -1,12 +1,12 @@
 """Tests for entity extractor module."""
 
 import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
 from src.ai.analyzers.entity_extractor import EntityExtractor
-from src.ai.schemas.responses import EntityExtractionResult, EntityType
+from src.ai.schemas.responses import EntityType
 
 
 @pytest.fixture

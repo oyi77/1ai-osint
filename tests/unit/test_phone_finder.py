@@ -3,7 +3,7 @@
 import pytest
 from unittest.mock import patch, MagicMock
 
-from src.modules.phone_finder.lookup import PhoneFinderLookup, PhoneInfo
+from src.modules.phone_finder.lookup import PhoneFinderLookup
 
 
 @pytest.fixture

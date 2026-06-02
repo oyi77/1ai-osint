@@ -4,12 +4,10 @@ import hashlib
 
 import pytest
 
-from src.modules.identity_tracking.identity_graph import IdentityGraph, NodeType
+from src.modules.identity_tracking.identity_graph import NodeType
 from src.modules.identity_tracking.zkit_engine import (
-    ATTRIBUTE_TYPE_MAP,
     CorrelatedCluster,
     CorrelationConfidence,
-    IngestedRecord,
     ZKITEngine,
     ZKITOutput,
     _normalize_attribute,

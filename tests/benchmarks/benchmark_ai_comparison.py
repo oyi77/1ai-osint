@@ -7,14 +7,10 @@ rule-based processing.
 
 from __future__ import annotations
 
-import time
-from dataclasses import dataclass, field
-from typing import Any, Optional
-from unittest.mock import AsyncMock, MagicMock, patch
+from typing import Any
 
-import pytest
 
-from src.models import Finding, ScanResult, Severity
+from src.models import Finding, Severity
 
 
 # ---------------------------------------------------------------------------

@@ -1,6 +1,5 @@
 """Tests for rate limiter module."""
 
-import pytest
 from src.rate_limiter import RateLimiter
 
 

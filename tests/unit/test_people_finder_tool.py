@@ -2,8 +2,7 @@
 
 import pytest
 import json
-from unittest.mock import patch, MagicMock, AsyncMock
-from datetime import datetime
+from unittest.mock import patch, MagicMock
 
 from src.modules.people_finder import PeopleFinderTool
 from src.models import Finding, ScanResult, Severity

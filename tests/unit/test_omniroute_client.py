@@ -1,7 +1,7 @@
 """Tests for OmniRouteClient."""
 
 import pytest
-from unittest.mock import patch, MagicMock, PropertyMock
+from unittest.mock import patch, MagicMock
 
 from openai import APITimeoutError, APIConnectionError, RateLimitError
 
