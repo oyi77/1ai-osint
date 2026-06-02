@@ -1,6 +1,7 @@
 """People finder search module wrapping Sherlock, Maigret, and WhatsMyName."""
 
 import asyncio
+import shutil
 from datetime import datetime, timezone
 from typing import Any, Optional
 
@@ -54,26 +55,29 @@ class PeopleFinderSearch(BaseOSINTTool):
     def _get_providers(self) -> dict[str, Any]:
         """Get available social media search providers."""
         available = {}
-        try:
-            from src.vendor.chiasmodon.providers.sherlock import SherlockProvider
+        if shutil.which("sherlock"):
+            try:
+                from src.vendor.chiasmodon.providers.sherlock import SherlockProvider
 
-            available["sherlock"] = SherlockProvider()
-        except ImportError:
-            pass
-        try:
-            from src.vendor.chiasmodon.providers.maigret import MaigretProvider
+                available["sherlock"] = SherlockProvider()
+            except ImportError:
+                pass
+        if shutil.which("maigret"):
+            try:
+                from src.vendor.chiasmodon.providers.maigret import MaigretProvider
 
-            available["maigret"] = MaigretProvider()
-        except ImportError:
-            pass
-        try:
-            from src.vendor.chiasmodon.providers.whatsmyname import (
-                WhatsMyNameProvider,
-            )
+                available["maigret"] = MaigretProvider()
+            except ImportError:
+                pass
+        if shutil.which("whatsmyname"):
+            try:
+                from src.vendor.chiasmodon.providers.whatsmyname import (
+                    WhatsMyNameProvider,
+                )
 
-            available["whatsmyname"] = WhatsMyNameProvider()
-        except ImportError:
-            pass
+                available["whatsmyname"] = WhatsMyNameProvider()
+            except ImportError:
+                pass
 
         if self._requested_providers:
             return {
@@ -91,6 +95,11 @@ class PeopleFinderSearch(BaseOSINTTool):
         Args:
             query: Username to search for
         """
+        from src.modules.deep_scan.name_pivots import primary_username_for_name
+
+        if " " in query.strip():
+            query = primary_username_for_name(query)
+
         scan_id = self._make_scan_id()
         started_at = datetime.now(timezone.utc)
         providers = self._get_providers()

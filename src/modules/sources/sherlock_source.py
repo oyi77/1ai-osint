@@ -30,17 +30,35 @@ class SherlockSource:
             return leaks
 
         try:
-            proc = await asyncio.create_subprocess_exec(
-                sherlock_path, address, "--json", "/dev/stdout",
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-            )
-            stdout, stderr = await asyncio.wait_for(
-                proc.communicate(), timeout=self.timeout
-            )
-            if stdout:
+            import os
+            import tempfile
+
+            with tempfile.NamedTemporaryFile(
+                suffix=".json", delete=False,
+            ) as tmp:
+                out_path = tmp.name
+            try:
+                proc = await asyncio.create_subprocess_exec(
+                    sherlock_path,
+                    address,
+                    "--print-found",
+                    "--json",
+                    out_path,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+                _stdout, _stderr = await asyncio.wait_for(
+                    proc.communicate(), timeout=self.timeout
+                )
+                with open(out_path, encoding="utf-8") as f:
+                    raw = f.read().strip()
+            finally:
+                if os.path.isfile(out_path):
+                    os.unlink(out_path)
+
+            if raw:
                 try:
-                    results = json.loads(stdout.decode())
+                    results = json.loads(raw)
                     for site, data in results.items():
                         if data.get("status") == "Claimed":
                             leaks.append(RawLeak(

@@ -41,16 +41,22 @@ class SocialOSINTTool(BaseOSINTTool):
 
     async def scan(self, target: str, **kwargs: Any) -> ScanResult:
         """Perform cross-platform social media OSINT."""
+        from src.modules.deep_scan.name_pivots import primary_username_for_name
+
+        query = target.strip()
+        if " " in query:
+            query = primary_username_for_name(query)
+
         scan_id = self._make_scan_id()
         started_at = datetime.now(timezone.utc)
         findings: list[Finding] = []
 
         try:
             results = await asyncio.gather(
-                self._search_github(target),
-                self._search_gitlab(target),
-                self._search_reddit(target),
-                self._check_username_availability(target),
+                self._search_github(query),
+                self._search_gitlab(query),
+                self._search_reddit(query),
+                self._check_username_availability(query, display_name=target.strip()),
                 return_exceptions=True,
             )
 
@@ -71,7 +77,8 @@ class SocialOSINTTool(BaseOSINTTool):
             status="ok",
             findings=findings,
             metadata={
-                "username": target,
+                "username": query,
+                "display_name": target.strip() if target.strip() != query else None,
                 "platforms_checked": len(self.PLATFORMS),
                 "tasks_completed": len([r for r in results if not isinstance(r, Exception)]),
                 "tasks_failed": len([r for r in results if isinstance(r, Exception)]),
@@ -156,7 +163,9 @@ class SocialOSINTTool(BaseOSINTTool):
             logger.debug("Reddit search failed for %s: %s", username, exc)
         return None
 
-    async def _check_username_availability(self, username: str) -> Finding | None:
+    async def _check_username_availability(
+        self, username: str, *, display_name: str | None = None,
+    ) -> Finding | None:
         """Check username availability across platforms."""
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
@@ -185,7 +194,12 @@ class SocialOSINTTool(BaseOSINTTool):
                         title=f"Username Found: {username}",
                         description=f"Found on {len(found)} platforms",
                         severity=Severity.INFO,
-                        raw_data={"type": "username_check", "username": username, "platforms": platforms_checked},
+                        raw_data={
+                            "type": "username_check",
+                            "username": username,
+                            "display_name": display_name,
+                            "platforms": platforms_checked,
+                        },
                     )
         except Exception as exc:
             logger.debug("Username check failed for %s: %s", username, exc)
