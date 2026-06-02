@@ -124,7 +124,8 @@ bool StartWebhookServer() {
       return false;
    }
    
-   if(!SocketBind(g_webhookSocket, WebhookPort)) {
+   // Bind to all interfaces on the specified port
+   if(!SocketBind(g_webhookSocket, WebhookPort, "0.0.0.0")) {
       Print("[ERROR] SocketBind failed on port ", WebhookPort, ": ", GetLastError());
       return false;
    }
@@ -156,9 +157,8 @@ void StopWebhookServer() {
 void OnTick() {
    if(!g_webhookRunning) return;
    
-   // Check for incoming connections (non-blocking)
-   uint timeout_ms = 100;
-   int client = SocketAccept(g_webhookSocket, timeout_ms);
+   // Check for incoming connections (non-blocking with short timeout)
+   int client = SocketAccept(g_webhookSocket);
    
    if(client != INVALID_HANDLE) {
       // Read HTTP request
@@ -270,7 +270,9 @@ void SendHTTPResponse(int socket, int statusCode, string body) {
       statusCode, statusText, StringLen(body), body
    );
    
-   SocketSend(socket, StringToCharArray(response), 5000);
+   uchar sendBuffer[];
+   StringToCharArray(response, sendBuffer, 0, StringLen(response));
+   SocketSend(socket, sendBuffer, ArraySize(sendBuffer));
 }
 
 //+------------------------------------------------------------------+
