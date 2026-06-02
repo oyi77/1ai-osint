@@ -1,0 +1,490 @@
+"""Intel report generator — transforms DeepScanResult → IntelReport.
+
+Pure function over the result data. Reads raw_data captured at the source
+level (url, http_status, snippet) and builds:
+  - per-evidence provenance with source reliability rating
+  - deterministic confidence breakdown per identifier
+  - rule-based risk matrix
+  - chronological timeline
+  - identity graph (identifier↔platform links)
+  - pivot suggestions (what to investigate next)
+"""
+
+from __future__ import annotations
+
+import re
+import uuid
+from collections import Counter
+from datetime import datetime, timezone
+from typing import Any
+
+from src.modules.deep_scan.models_report import (
+    ConfidenceBreakdown,
+    EvidenceItem,
+    IdentityEdge,
+    IdentityGraph,
+    IdentityNode,
+    IntelReport,
+    PivotSuggestion,
+    RiskAssessment,
+    RiskFactor,
+    RiskLevel,
+    TimelineEntry,
+)
+from src.modules.deep_scan import Identifier, IdentifierType
+
+
+# Risk rules — checked in order
+_RISK_RULES: list[tuple[str, str, str, float, RiskLevel]] = [
+    # (rule_id, condition_check_fn_name, description, weight, level_if_triggered)
+    ("nik_plus_name_plus_phone", "_has_nik_name_phone", "NIK + name + phone combined (full PII exposure)", 0.7, RiskLevel.CRITICAL),
+    ("nik_present", "_has_nik", "Indonesian NIK (national ID) found", 0.5, RiskLevel.HIGH),
+    ("crypto_mixer", "_has_mixer_tagged_crypto", "Crypto address tagged as mixer (sanctioned risk)", 0.9, RiskLevel.CRITICAL),
+    ("seed_phrase_leak", "_has_seed_phrase", "Seed phrase / private key exposed", 1.0, RiskLevel.CRITICAL),
+    ("password_leak", "_has_password", "Plaintext password discovered", 0.8, RiskLevel.CRITICAL),
+    ("multi_platform_corroboration", "_has_3plus_platforms", "Username confirmed on 3+ platforms (high visibility)", 0.3, RiskLevel.MEDIUM),
+    ("phone_present", "_has_phone", "Phone number exposed", 0.3, RiskLevel.MEDIUM),
+    ("email_present", "_has_email", "Email exposed", 0.2, RiskLevel.LOW),
+]
+
+
+# ---------------------------------------------------------------------------
+# Generator
+# ---------------------------------------------------------------------------
+def generate_intel_report(result: Any) -> IntelReport:
+    """Build a full IntelReport from a DeepScanResult."""
+    report = IntelReport(
+        report_id=f"intel-{uuid.uuid4().hex[:12]}",
+        target=result.target,
+        started_at=result.started_at,
+        completed_at=result.completed_at,
+        duration_sec=result.duration_sec,
+        iterations=result.iterations,
+    )
+
+    evidence = _extract_evidence(result)
+    report.evidence = evidence
+    report.modules_run = sorted({e.source for e in evidence if e.source != "input"})
+
+    # Per-identifier confidence breakdown
+    report.confidence_by_identifier = _compute_confidence(result, evidence)
+
+    # Risk matrix
+    report.risk = _assess_risk(result, evidence)
+
+    # Timeline
+    report.timeline = _build_timeline(result, evidence)
+
+    # Identity graph
+    report.identity_graph = _build_graph(result, evidence)
+
+    # Pivots
+    report.pivots = _suggest_pivots(result, evidence)
+
+    # Summary + warnings
+    report.summary = _summarize(result, evidence, report.risk)
+    report.warnings = _collect_warnings(result, evidence)
+
+    return report
+
+
+# ---------------------------------------------------------------------------
+# Evidence extraction
+# ---------------------------------------------------------------------------
+def _extract_evidence(result: Any) -> list[EvidenceItem]:
+    """Walk all findings and pull out per-observation evidence from raw_data."""
+    evidence: list[EvidenceItem] = []
+    seen: set[tuple[str, str, str]] = set()
+
+    for finding in result.findings:
+        rd = finding.raw_data or {}
+        ident_value = None
+        ident_type = None
+
+        # Username/identifier from raw_data
+        if "username" in rd:
+            ident_value = str(rd["username"])
+            ident_type = "username"
+        elif "email" in rd:
+            ident_value = str(rd["email"])
+            ident_type = "email"
+        elif "phone" in rd:
+            ident_value = str(rd["phone"])
+            ident_type = "phone"
+        elif "address" in rd:
+            ident_value = str(rd["address"])
+            ident_type = rd.get("chain", "crypto")
+        elif "domain" in rd:
+            ident_value = str(rd["domain"])
+            ident_type = "domain"
+        elif "nik" in rd:
+            ident_value = str(rd["nik"])
+            ident_type = "nik"
+
+        source = finding.module or "unknown"
+        reliability = rate_source(source)
+
+        # Walk platform lists (e.g., social_osint)
+        if "platforms" in rd and isinstance(rd["platforms"], list):
+            for plat in rd["platforms"]:
+                if not isinstance(plat, dict):
+                    continue
+                platform = plat.get("platform", "?")
+                url = plat.get("url") or _build_platform_url(platform, ident_value or finding.title)
+                status = plat.get("status")
+                exists = plat.get("exists")
+                ev_key = (str(url), source, platform)
+                if ev_key in seen:
+                    continue
+                seen.add(ev_key)
+                evidence.append(EvidenceItem(
+                    id=f"ev-{uuid.uuid4().hex[:8]}",
+                    identifier_value=ident_value or platform,
+                    identifier_type=ident_type or "platform",
+                    source=source,
+                    source_reliability=reliability,
+                    url=url,
+                    http_status=int(status) if isinstance(status, (int, float)) else None,
+                    snippet=f"Status {status} (exists={exists})" if status is not None else None,
+                    raw_data=plat,
+                    confidence=0.9 if exists else 0.2,
+                    notes=platform,
+                ))
+
+        # Generic single-evidence finding
+        elif ident_value:
+            ev_key = (ident_value, source, ident_type)
+            if ev_key in seen:
+                continue
+            seen.add(ev_key)
+            evidence.append(EvidenceItem(
+                id=f"ev-{uuid.uuid4().hex[:8]}",
+                identifier_value=ident_value,
+                identifier_type=ident_type,
+                source=source,
+                source_reliability=reliability,
+                url=rd.get("url"),
+                snippet=rd.get("snippet") or finding.description,
+                raw_data=rd,
+                confidence=0.7,
+            ))
+
+    return evidence
+
+
+def _build_platform_url(platform: str, value: str) -> str:
+    """Reconstruct canonical platform URL when source didn't return one."""
+    if not value:
+        return ""
+    p = (platform or "").lower()
+    v = str(value).strip()
+    urls = {
+        "github": f"https://github.com/{v}",
+        "gitlab": f"https://gitlab.com/{v}",
+        "twitter": f"https://twitter.com/{v}",
+        "instagram": f"https://instagram.com/{v}",
+        "reddit": f"https://reddit.com/user/{v}",
+        "linkedin": f"https://linkedin.com/in/{v}",
+        "tiktok": f"https://tiktok.com/@{v}",
+        "facebook": f"https://facebook.com/{v}",
+        "youtube": f"https://youtube.com/@{v}",
+    }
+    return urls.get(p, "")
+
+
+# ---------------------------------------------------------------------------
+# Confidence breakdown
+# ---------------------------------------------------------------------------
+def _compute_confidence(result: Any, evidence: list[EvidenceItem]) -> dict[str, ConfidenceBreakdown]:
+    by_value: dict[str, ConfidenceBreakdown] = {}
+
+    # Group evidence by identifier value
+    for ev in evidence:
+        key = ev.identifier_value
+        if not key:
+            continue
+        cb = by_value.setdefault(key, ConfidenceBreakdown())
+        cb.existence = max(cb.existence, ev.confidence)
+        cb.temporal = max(cb.temporal, 0.7)  # freshly captured
+
+    # Count cross-module corroboration
+    sources_per_value: Counter = Counter()
+    for ev in evidence:
+        sources_per_value[ev.identifier_value] += 1
+
+    total_modules = max(1, len({ev.source for ev in evidence}))
+    for value, count in sources_per_value.items():
+        cb = by_value[value]
+        cb.cross_module = min(1.0, count / max(1, total_modules))
+        # Uniqueness heuristic: emails/phones more unique than usernames
+        if "@" in value:
+            cb.uniqueness = 0.9
+        elif re.match(r"^\+?\d[\d\-\s]{6,}$", value):
+            cb.uniqueness = 0.8
+        elif re.match(r"^0x[a-fA-F0-9]{40}$", value):
+            cb.uniqueness = 1.0
+        else:
+            cb.uniqueness = 0.4
+        cb.compute()
+
+    return by_value
+
+
+# ---------------------------------------------------------------------------
+# Risk
+# ---------------------------------------------------------------------------
+def _assess_risk(result: Any, evidence: list[EvidenceItem]) -> RiskAssessment:
+    assessment = RiskAssessment()
+
+    # Build identifier-value set for risk rules
+    values = {ev.identifier_value for ev in evidence if ev.identifier_value}
+    has_value = lambda predicate: any(predicate(v) for v in values)
+
+    factors: list[RiskFactor] = []
+
+    for rule_id, fn_name, desc, weight, level in _RISK_RULES:
+        check = globals().get(fn_name, lambda vs: False)
+        triggered = bool(check(values))
+        factors.append(RiskFactor(
+            rule=rule_id,
+            description=desc,
+            weight=weight,
+            triggered=triggered,
+        ))
+
+    assessment.factors = factors
+
+    # Compute risk score and level
+    triggered = [f for f in factors if f.triggered]
+    score = min(1.0, sum(f.weight for f in triggered))
+    assessment.score = score
+
+    if score >= 0.7:
+        assessment.level = RiskLevel.CRITICAL
+    elif score >= 0.5:
+        assessment.level = RiskLevel.HIGH
+    elif score >= 0.25:
+        assessment.level = RiskLevel.MEDIUM
+    elif score > 0:
+        assessment.level = RiskLevel.LOW
+    else:
+        assessment.level = RiskLevel.NONE
+
+    # Reasoning
+    if triggered:
+        assessment.reasoning = "; ".join(f.description for f in triggered)
+    else:
+        assessment.reasoning = "No high-risk indicators detected"
+
+    return assessment
+
+
+# --- Risk condition functions ---
+def _has_nik_name_phone(values: set) -> bool:
+    has_nik = any(re.match(r"^\d{16}$", v.replace(" ", "")) for v in values)
+    has_phone = any(re.match(r"^\+?\d[\d\-\s]{6,}$", v) for v in values)
+    has_name = any(" " in v and v.replace(" ", "").isalpha() for v in values)
+    return has_nik and has_phone and has_name
+
+
+def _has_nik(values: set) -> bool:
+    return any(re.match(r"^\d{16}$", v.replace(" ", "")) for v in values)
+
+
+def _has_mixer_tagged_crypto(values: set) -> bool:
+    # Source would tag this; we can't infer from address alone
+    return False
+
+
+def _has_seed_phrase(values: set) -> bool:
+    return any("seed" in v.lower() or "mnemonic" in v.lower() for v in values)
+
+
+def _has_password(values: set) -> bool:
+    return any("password" in v.lower() or "passwd" in v.lower() for v in values)
+
+
+def _has_3plus_platforms(values: set) -> bool:
+    return len(values) >= 3
+
+
+def _has_phone(values: set) -> bool:
+    return any(re.match(r"^\+?\d[\d\-\s]{6,}$", v) for v in values)
+
+
+def _has_email(values: set) -> bool:
+    return any("@" in v and "." in v for v in values)
+
+
+# ---------------------------------------------------------------------------
+# Timeline
+# ---------------------------------------------------------------------------
+def _build_timeline(result: Any, evidence: list[EvidenceItem]) -> list[TimelineEntry]:
+    entries: list[TimelineEntry] = []
+    seen: set[tuple] = set()
+
+    # Sort evidence by captured_at
+    sorted_ev = sorted(evidence, key=lambda e: e.captured_at)
+    for ev in sorted_ev:
+        key = (ev.captured_at, ev.source, ev.identifier_value)
+        if key in seen:
+            continue
+        seen.add(key)
+        entries.append(TimelineEntry(
+            timestamp=ev.captured_at,
+            source=ev.source,
+            event="evidence_captured",
+            detail=f"{ev.identifier_type}={ev.identifier_value} on {ev.source}" + (f" ({ev.url})" if ev.url else ""),
+            confidence=ev.confidence,
+        ))
+
+    return entries
+
+
+# ---------------------------------------------------------------------------
+# Identity graph
+# ---------------------------------------------------------------------------
+def _build_graph(result: Any, evidence: list[EvidenceItem]) -> IdentityGraph:
+    graph = IdentityGraph()
+
+    # Central node: target
+    target_id = "target"
+    graph.nodes.append(IdentityNode(
+        id=target_id, label=result.target, type="name", weight=1.0,
+    ))
+
+    seen_node_ids: set[str] = set()
+    for ident in result.identifiers:
+        node_id = f"ident-{ident.id_type.value}-{ident.value}"
+        if node_id in seen_node_ids:
+            continue
+        seen_node_ids.add(node_id)
+        graph.nodes.append(IdentityNode(
+            id=node_id,
+            label=ident.value if len(ident.value) <= 30 else ident.value[:27] + "...",
+            type=ident.id_type.value,
+            weight=ident.confidence,
+            metadata=ident.metadata or {},
+        ))
+        graph.edges.append(IdentityEdge(
+            source_id=target_id,
+            target_id=node_id,
+            relationship="linked_to",
+            weight=ident.confidence,
+        ))
+
+    # Platform nodes + edges from evidence
+    for ev in evidence:
+        if not ev.url:
+            continue
+        plat_id = f"plat-{ev.notes or ev.source}"
+        if plat_id not in seen_node_ids:
+            seen_node_ids.add(plat_id)
+            graph.nodes.append(IdentityNode(
+                id=plat_id,
+                label=ev.notes or ev.source,
+                type="social",
+                weight=0.5,
+            ))
+
+        # Find which identifier this evidence is about
+        ident_id = None
+        for ident in result.identifiers:
+            if ident.value == ev.identifier_value:
+                ident_id = f"ident-{ident.id_type.value}-{ident.value}"
+                break
+        if not ident_id:
+            ident_id = target_id
+
+        graph.edges.append(IdentityEdge(
+            source_id=ident_id,
+            target_id=plat_id,
+            relationship="found_on",
+            weight=ev.confidence,
+            evidence_ids=[ev.id],
+        ))
+
+    return graph
+
+
+# ---------------------------------------------------------------------------
+# Pivots
+# ---------------------------------------------------------------------------
+def _suggest_pivots(result: Any, evidence: list[EvidenceItem]) -> list[PivotSuggestion]:
+    pivots: list[PivotSuggestion] = []
+    seen: set[tuple[str, str]] = set()
+
+    def _add(target_type: str, value: str, rationale: str, priority: int, sources: list[str]):
+        key = (target_type, value)
+        if key in seen or not value:
+            return
+        seen.add(key)
+        pivots.append(PivotSuggestion(
+            target_type=target_type,
+            target_value=value,
+            rationale=rationale,
+            priority=priority,
+            expected_sources=sources,
+        ))
+
+    for ident in result.identifiers:
+        if ident.id_type == IdentifierType.USERNAME:
+            _add("email", _guess_email(ident.value, result.target),
+                 f"Username '{ident.value}' likely has a Gravatar or GitHub email",
+                 priority=2, sources=["github", "gravatar", "hunter"])
+            _add("phone", f"Username {ident.value} on phone lookup",
+                 f"Username '{ident.value}' may have associated phone",
+                 priority=3, sources=["truecaller", "leakcheck"])
+        elif ident.id_type == IdentifierType.EMAIL:
+            user = ident.value.split("@")[0]
+            _add("username", user,
+                 f"Extract local-part '{user}' for username search",
+                 priority=1, sources=["github", "twitter", "instagram"])
+            _add("domain", ident.value.split("@", 1)[1],
+                 f"Investigate domain {ident.value.split('@', 1)[1]}",
+                 priority=2, sources=["whois", "domain_recon"])
+        elif ident.id_type == IdentifierType.PHONE:
+            _add("email", f"phone:{ident.value}",
+                 f"Run reverse phone lookup for {ident.value}",
+                 priority=2, sources=["leakcheck", "dehashed"])
+        elif ident.id_type == IdentifierType.CRYPTO_ADDRESS:
+            _add("username", f"address:{ident.value[:10]}",
+                 f"Track funding source for {ident.value[:10]}...",
+                 priority=1, sources=["etherscan", "blockchain_info"])
+
+    return pivots
+
+
+def _guess_email(username: str, target: str) -> str:
+    user = re.sub(r"[^a-zA-Z0-9._-]", "", username.lower().replace(" ", ""))
+    if user:
+        return f"{user}@"
+    return ""
+
+
+# ---------------------------------------------------------------------------
+# Summary + warnings
+# ---------------------------------------------------------------------------
+def _summarize(result: Any, evidence: list[EvidenceItem], risk: RiskAssessment) -> str:
+    n_evidence = len(evidence)
+    n_platforms = len({e.notes for e in evidence if e.notes})
+    n_modules = len({e.source for e in evidence if e.source != "input"})
+    parts = [
+        f"Scan of '{result.target}' completed in {result.duration_sec:.1f}s "
+        f"across {n_modules} module(s) and {result.iterations} iteration(s).",
+        f"Collected {n_evidence} evidence item(s) from {n_platforms} distinct platform(s).",
+        f"Overall risk: {risk.level.value.upper()} (score {risk.score:.2f}).",
+    ]
+    return " ".join(parts)
+
+
+def _collect_warnings(result: Any, evidence: list[EvidenceItem]) -> list[str]:
+    warnings: list[str] = []
+    if result.errors:
+        warnings.append(f"{len(result.errors)} module error(s) — see timeline")
+    if not evidence:
+        warnings.append("No evidence collected — all sources returned 0 results")
+    low_conf = [e for e in evidence if e.confidence < 0.3]
+    if low_conf:
+        warnings.append(f"{len(low_conf)} low-confidence evidence item(s) — verify manually")
+    return warnings
