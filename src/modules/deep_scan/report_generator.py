@@ -181,7 +181,7 @@ def _build_platform_url(platform: str, value: str) -> str:
     if not value:
         return ""
     p = (platform or "").lower()
-    v = str(value).strip()
+    v = _slugify(value)
     urls = {
         "github": f"https://github.com/{v}",
         "gitlab": f"https://gitlab.com/{v}",
@@ -194,6 +194,11 @@ def _build_platform_url(platform: str, value: str) -> str:
         "youtube": f"https://youtube.com/@{v}",
     }
     return urls.get(p, "")
+
+
+def _slugify(value: str) -> str:
+    """Normalize a value for URL use: lowercase, remove spaces, strip special chars."""
+    return re.sub(r"[^a-zA-Z0-9._-]", "", value.lower().replace(" ", ""))
 
 
 # ---------------------------------------------------------------------------

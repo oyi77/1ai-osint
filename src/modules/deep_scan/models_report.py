@@ -28,7 +28,7 @@ def rate_source(source: str) -> str:
             break
     if s in {"github", "gitlab", "linkedin"}:
         return "B"
-    if s in {"twitter", "instagram", "facebook", "reddit", "telegram", "youtube", "tiktok", "pinterest"}:
+    if s in {"twitter", "instagram", "facebook", "reddit", "telegram", "youtube", "tiktok", "pinterest", "social"}:
         return "C"
     if s in {"google", "bing", "duckduckgo", "yandex", "leak_lookup", "leak_aggregator", "dehashed", "leakcheck"}:
         return "D"
@@ -66,7 +66,9 @@ class ConfidenceBreakdown(BaseModel):
 
     @property
     def total(self) -> float:
-        return round(self.existence + self.uniqueness + self.cross_module + self.temporal, 3)
+        """Weighted formula: 0.40·existence + 0.20·uniqueness + 0.25·cross_module + 0.15·temporal."""
+        raw = 0.40 * self.existence + 0.20 * self.uniqueness + 0.25 * self.cross_module + 0.15 * self.temporal
+        return round(raw, 3)
 
     @property
     def grade(self) -> str:

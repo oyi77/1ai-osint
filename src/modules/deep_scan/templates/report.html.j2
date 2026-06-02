@@ -93,7 +93,7 @@
       <span style="background:{% if 200 <= ev.http_status < 300 %}#22c55e{% else %}#ef4444{% endif %};color:white;padding:2px 6px;border-radius:4px;font-size:11px">{{ ev.http_status }}</span>
       {% endif %}
     </td>
-    <td><a href="{{ ev.url }}" target="_blank">{{ ev.url[:50] if ev.url else '' }}</a></td>
+    <td><a href="{{ ev.url if ev.url else '#' }}" target="_blank">{{ ev.url[:50] if ev.url and ev.url != 'None' else '' }}</a></td>
     <td>{{ "%.0f"|format(ev.confidence * 100) }}%</td>
   </tr>
   {% endfor %}
