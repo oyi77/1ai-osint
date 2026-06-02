@@ -111,12 +111,22 @@ class TestSocialProvider:
 class TestCLIProviders:
     """Test CLI-wrapping providers with mocked subprocess."""
 
+    @patch("os.unlink")
+    @patch("os.path.isfile", return_value=True)
+    @patch("builtins.open", create=True)
+    @patch("tempfile.NamedTemporaryFile")
     @patch("subprocess.run")
-    def test_sherlock_success(self, mock_run):
+    def test_sherlock_success(self, mock_run, mock_tmp, mock_open, _isfile, _unlink):
         from src.vendor.chiasmodon.providers.sherlock import SherlockProvider
-        mock_run.return_value = MagicMock(returncode=0, stdout='{"twitter": "https://twitter.com/user"}', stderr="")
+
+        mock_tmp.return_value.__enter__.return_value.name = "/tmp/out.json"
+        mock_open.return_value.__enter__.return_value.read.return_value = (
+            '{"twitter": {"status": "Claimed", "url": "https://twitter.com/user"}}'
+        )
+        mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
         result = SherlockProvider().search("user")
         assert isinstance(result, dict)
+        assert "twitter" in result
 
     @patch("subprocess.run")
     def test_maigret_success(self, mock_run):

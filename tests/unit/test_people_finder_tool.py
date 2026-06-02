@@ -2,7 +2,8 @@
 
 import pytest
 import json
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, AsyncMock
+from datetime import datetime, timezone
 
 from src.modules.people_finder import PeopleFinderTool
 from src.models import Finding, ScanResult, Severity
@@ -51,34 +52,48 @@ class TestPeopleFinderToolBasics:
 class TestPeopleFinderToolScan:
     @pytest.mark.asyncio
     async def test_scan_no_tool_available(self, tool):
-        with patch("shutil.which", return_value=None):
+        with patch.object(tool._search, "_get_providers", return_value={}):
             result = await tool.scan("testuser")
 
-        assert result.status == "error"
+        assert result.status == "ok"
         assert result.module == "people_finder"
-        assert result.target == "testuser"
-        assert "sherlock" in result.error.lower()
+        assert result.finding_count == 0
 
     @pytest.mark.asyncio
-    async def test_scan_with_sherlock_json_output(self, tool, mock_subprocess_result):
-        with patch("shutil.which", return_value="/usr/bin/sherlock"), \
-             patch("subprocess.run", return_value=mock_subprocess_result):
+    async def test_scan_with_sherlock_json_output(self, tool):
+        mock_sr = ScanResult(
+            scan_id="t", module="people_finder", target="testuser", status="ok",
+            findings=[
+                Finding(id="f1", module="people_finder", title="Profile: GitHub/testuser",
+                        description="", severity=Severity.INFO, raw_data={"platform": "GitHub"}),
+                Finding(id="f2", module="people_finder", title="Profile: Twitter/testuser",
+                        description="", severity=Severity.INFO, raw_data={"platform": "Twitter"}),
+            ],
+            started_at=datetime.now(timezone.utc),
+            completed_at=datetime.now(timezone.utc),
+        )
+        with patch.object(tool._search, "scan", new_callable=AsyncMock, return_value=mock_sr):
             result = await tool.scan("testuser", timeout=30)
 
         assert result.status == "ok"
         assert result.finding_count == 2
-        assert any("GitHub" in f.title for f in result.findings)
-        assert any("Twitter" in f.title for f in result.findings)
 
     @pytest.mark.asyncio
     async def test_scan_with_line_output(self, tool):
-        mock_result = MagicMock()
-        mock_result.stdout = "https://github.com/testuser\nhttps://twitter.com/testuser"
-        mock_result.stderr = ""
-        mock_result.returncode = 0
-
-        with patch("shutil.which", return_value="/usr/bin/sherlock"), \
-             patch("subprocess.run", return_value=mock_result):
+        mock_sr = ScanResult(
+            scan_id="t", module="people_finder", target="testuser", status="ok",
+            findings=[
+                Finding(id="f1", module="people_finder", title="Profile found",
+                        description="https://github.com/testuser", severity=Severity.INFO,
+                        raw_data={"url": "https://github.com/testuser"}),
+                Finding(id="f2", module="people_finder", title="Profile found",
+                        description="https://twitter.com/testuser", severity=Severity.INFO,
+                        raw_data={"url": "https://twitter.com/testuser"}),
+            ],
+            started_at=datetime.now(timezone.utc),
+            completed_at=datetime.now(timezone.utc),
+        )
+        with patch.object(tool._search, "scan", new_callable=AsyncMock, return_value=mock_sr):
             result = await tool.scan("testuser", timeout=30)
 
         assert result.status == "ok"
@@ -86,9 +101,13 @@ class TestPeopleFinderToolScan:
 
     @pytest.mark.asyncio
     async def test_scan_timeout(self, tool):
-        import subprocess
-        with patch("shutil.which", return_value="/usr/bin/sherlock"), \
-             patch("subprocess.run", side_effect=subprocess.TimeoutExpired(cmd="sherlock", timeout=120)):
+        mock_sr = ScanResult(
+            scan_id="t", module="people_finder", target="testuser", status="error",
+            error="People finder scan timed out",
+            started_at=datetime.now(timezone.utc),
+            completed_at=datetime.now(timezone.utc),
+        )
+        with patch.object(tool._search, "scan", new_callable=AsyncMock, return_value=mock_sr):
             result = await tool.scan("testuser")
 
         assert result.status == "error"
@@ -96,8 +115,13 @@ class TestPeopleFinderToolScan:
 
     @pytest.mark.asyncio
     async def test_scan_file_not_found(self, tool):
-        with patch("shutil.which", return_value="/usr/bin/sherlock"), \
-             patch("subprocess.run", side_effect=FileNotFoundError):
+        mock_sr = ScanResult(
+            scan_id="t", module="people_finder", target="testuser", status="error",
+            error="sherlock not found",
+            started_at=datetime.now(timezone.utc),
+            completed_at=datetime.now(timezone.utc),
+        )
+        with patch.object(tool._search, "scan", new_callable=AsyncMock, return_value=mock_sr):
             result = await tool.scan("testuser")
 
         assert result.status == "error"
@@ -105,44 +129,43 @@ class TestPeopleFinderToolScan:
 
     @pytest.mark.asyncio
     async def test_scan_partial_on_bad_returncode(self, tool):
-        mock_result = MagicMock()
-        mock_result.stdout = json.dumps({
-            "GitHub": {"url": "https://github.com/testuser", "status": "Claimed"},
-        })
-        mock_result.stderr = "some warning"
-        mock_result.returncode = 2
-
-        with patch("shutil.which", return_value="/usr/bin/sherlock"), \
-             patch("subprocess.run", return_value=mock_result):
+        mock_sr = ScanResult(
+            scan_id="t", module="people_finder", target="testuser", status="partial",
+            findings=[Finding(id="f1", module="people_finder", title="GitHub", description="",
+                              severity=Severity.INFO, raw_data={})],
+            started_at=datetime.now(timezone.utc),
+            completed_at=datetime.now(timezone.utc),
+        )
+        with patch.object(tool._search, "scan", new_callable=AsyncMock, return_value=mock_sr):
             result = await tool.scan("testuser")
 
         assert result.status == "partial"
 
     @pytest.mark.asyncio
-    async def test_search_delegates_to_scan(self, tool, mock_subprocess_result):
-        with patch("shutil.which", return_value="/usr/bin/sherlock"), \
-             patch("subprocess.run", return_value=mock_subprocess_result):
+    async def test_search_delegates_to_scan(self, tool):
+        mock_sr = ScanResult(
+            scan_id="t", module="people_finder", target="testuser", status="ok",
+            findings=[Finding(id="f1", module="people_finder", title="x", description="",
+                              severity=Severity.INFO, raw_data={})],
+            started_at=datetime.now(timezone.utc),
+            completed_at=datetime.now(timezone.utc),
+        )
+        with patch.object(tool._search, "scan", new_callable=AsyncMock, return_value=mock_sr):
             result = await tool.search("testuser", timeout=30)
 
         assert result.module == "people_finder"
         assert result.finding_count > 0
 
     @pytest.mark.asyncio
-    async def test_scan_uses_maigret_cmd(self, tool):
-        mock_result = MagicMock()
-        mock_result.stdout = json.dumps({
-            "GitHub": {"url": "https://github.com/testuser", "status": "Claimed"},
-        })
-        mock_result.stderr = ""
-        mock_result.returncode = 0
-
-        with patch("shutil.which", side_effect=lambda x: "/usr/bin/maigret" if x == "maigret" else None), \
-             patch("subprocess.run", return_value=mock_result) as mock_run:
-            result = await tool.scan("testuser", timeout=30)
-
-        assert result.status == "ok"
-        cmd = mock_run.call_args[0][0]
-        assert "maigret" in cmd[0]
+    async def test_scan_delegates_to_search_engine(self, tool):
+        with patch.object(tool._search, "scan", new_callable=AsyncMock) as mock_scan:
+            mock_scan.return_value = ScanResult(
+                scan_id="t", module="people_finder", target="u", status="ok",
+                started_at=datetime.now(timezone.utc),
+                completed_at=datetime.now(timezone.utc),
+            )
+            await tool.scan("testuser")
+            mock_scan.assert_awaited_once()
 
 
 class TestPeopleFinderToolAnalyze:

@@ -105,6 +105,59 @@ class TestExtractor:
         assert len(emails) == 1
 
 
+class TestDeepScanProfiles:
+    def test_fast_module_list_core(self):
+        from src.modules.deep_scan.profiles import FAST_CORE_MODULES, fast_module_list
+
+        mods = fast_module_list()
+        for core in FAST_CORE_MODULES:
+            assert core in mods
+
+    def test_fast_engine_defaults(self):
+        from src.modules.deep_scan.engine import DeepScanEngine
+
+        engine = DeepScanEngine(fast=True)
+        assert engine.fast is True
+        assert engine.max_iterations <= 2
+        assert engine.timeout_per_module <= 15
+        assert engine.max_pivot_handles == 2
+        assert "social_osint" in engine._get_active_modules()
+
+    def test_should_scan_dedupes(self):
+        from src.modules.deep_scan.engine import DeepScanEngine
+
+        engine = DeepScanEngine(fast=True)
+        assert engine._should_scan("social_osint", "user1") is True
+        assert engine._should_scan("social_osint", "user1") is False
+
+    def test_cap_targets_prefers_email(self):
+        from src.modules.deep_scan.engine import DeepScanEngine
+
+        engine = DeepScanEngine(max_targets_per_iteration=2)
+        capped = engine._cap_targets({"Long Display Name", "a@b.com", "handle"})
+        assert "a@b.com" in capped
+        assert len(capped) == 2
+
+
+class TestNamePivots:
+    def test_slugify(self):
+        from src.modules.deep_scan.name_pivots import slugify_username
+
+        assert slugify_username("Fikri Izzuddin") == "fikriizzuddin"
+
+    def test_candidates_from_name(self):
+        from src.modules.deep_scan.name_pivots import username_candidates_from_name
+
+        handles = [h for h, _ in username_candidates_from_name("Fikri Izzuddin")]
+        assert "fikriizzuddin" in handles
+        assert "fikri_izzuddin" in handles
+
+    def test_primary_username(self):
+        from src.modules.deep_scan.name_pivots import primary_username_for_name
+
+        assert primary_username_for_name("Fikri Izzuddin") == "fikriizzuddin"
+
+
 class TestNikParser:
     def test_valid_nik(self):
         assert _is_valid_nik("3502150606950001") is True
@@ -605,10 +658,15 @@ class TestDeepScanEngineExtended:
 
     def test_extract_usernames_from_profiles(self):
         finding = MagicMock()
-        finding.raw_data = {"platforms": [
-            {"exists": True, "url": "https://twitter.com/user1", "platform": "twitter"},
-            {"exists": False, "url": "", "platform": "github"},
-        ]}
+        finding.module = "social_osint"
+        finding.raw_data = {
+            "username": "fikriizzuddin",
+            "platforms": [
+                {"exists": True, "url": "https://twitter.com/user1", "platform": "twitter"},
+                {"exists": False, "url": "", "platform": "github"},
+            ],
+        }
         ids = extract_usernames_from_profiles([finding])
-        assert len(ids) == 1
-        assert ids[0].metadata["platform"] == "twitter"
+        usernames = [i for i in ids if i.id_type == IdentifierType.USERNAME]
+        assert len(usernames) == 1
+        assert usernames[0].value == "fikriizzuddin"

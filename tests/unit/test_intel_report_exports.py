@@ -8,16 +8,7 @@ import pytest
 
 from src.modules.deep_scan import DeepScanResult, Identifier, IdentifierType
 from src.modules.deep_scan.models_report import (
-    EvidenceItem,
-    IdentityEdge,
-    IdentityGraph,
-    IdentityNode,
     IntelReport,
-    PivotSuggestion,
-    RiskAssessment,
-    RiskFactor,
-    RiskLevel,
-    TimelineEntry,
 )
 from src.modules.deep_scan.report_generator import generate_intel_report
 from src.modules.deep_scan.exports import export_report, export_json, export_stix, export_html
@@ -145,7 +136,7 @@ class TestHtmlExport:
     def test_has_required_sections(self):
         report = _sample_report()
         result = export_html(report)
-        for section in ("Risk Factors", "Identity Graph", "Evidence", "Timeline", "Pivot Suggestions"):
+        for section in ("Operational Intelligence Brief", "BLUF", "Key judgments", "Digital presence"):
             assert section in result, f"Missing section: {section}"
 
     def test_contains_evidence_urls(self):

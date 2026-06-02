@@ -1,18 +1,13 @@
 """Unit tests for intel report generator — deterministic confidence, risk, graph, pivots."""
 from __future__ import annotations
 
-import json
 from datetime import datetime, timezone
 from unittest.mock import MagicMock
 
-import pytest
 
 from src.modules.deep_scan import DeepScanResult, Identifier, IdentifierType
 from src.modules.deep_scan.models_report import (
-    ConfidenceBreakdown,
-    EvidenceItem,
     IntelReport,
-    RiskAssessment,
     RiskLevel,
 )
 from src.modules.deep_scan.report_generator import generate_intel_report
