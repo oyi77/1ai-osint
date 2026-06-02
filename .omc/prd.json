@@ -1,0 +1,73 @@
+{
+  "title": "Real-Time Tracking + Meta→Shopee Attribution",
+  "stories": [
+    {
+      "id": "US-001",
+      "title": "WebSocket server + real-time metrics push",
+      "priority": 1,
+      "passes": false,
+      "acceptanceCriteria": [
+        "WebSocket server listens on /ws/realtime",
+        "GET /api/realtime/metrics returns current campaign metrics",
+        "WebSocket client receives metric_update messages within 30s",
+        "Existing 786 tests still pass"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "UTM auto-tagging on ad creation",
+      "priority": 2,
+      "passes": false,
+      "acceptanceCriteria": [
+        "New ad destination URL auto-appends utm_source=meta&utm_medium=paid&utm_campaign={id}&utm_content={ad_id}",
+        "ad_utm_map table stores mapping",
+        "Unit test verifies UTM injection"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Shopee attribution service",
+      "priority": 3,
+      "passes": false,
+      "acceptanceCriteria": [
+        "GET /api/attribution/dashboard returns per-campaign ad_spend vs shopee_revenue",
+        "Shopee orders matched to ads via UTM",
+        "attributions table stores matches",
+        "Integration test verifies order→ad matching"
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "CAPI integration",
+      "priority": 4,
+      "passes": false,
+      "acceptanceCriteria": [
+        "CAPI Purchase event sent to Meta on attribution match",
+        "capi_events table logs sent events",
+        "Dedup: same order_id not sent twice"
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "Alerts + auto-actions",
+      "priority": 5,
+      "passes": false,
+      "acceptanceCriteria": [
+        "ROAS < threshold triggers Telegram alert",
+        "CPA > limit triggers auto-pause via MetaAdsAPI",
+        "alert_rules table stores configurable thresholds"
+      ]
+    },
+    {
+      "id": "US-006",
+      "title": "Dashboard UI",
+      "priority": 6,
+      "passes": false,
+      "acceptanceCriteria": [
+        "Real-time dashboard shows live metric cards per campaign",
+        "Attribution table shows campaign → ad → Shopee orders",
+        "WebSocket connection updates cards without page refresh"
+      ]
+    }
+  ]
+}

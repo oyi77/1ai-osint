@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "lastScanned": 1780358653413,
-  "projectRoot": "/Users/paijo/1ai-osint",
+  "lastScanned": 1780396025096,
+  "projectRoot": "/home/openclaw/projects",
   "techStack": {
     "languages": [
       {
@@ -25,13 +25,13 @@
   },
   "build": {
     "buildCommand": null,
-    "testCommand": "rm -f .coverage && python -m pytest tests/ -q --tb=short --no-header -o \"addopts=\" -p no:cov 2>&1 | tail -3",
+    "testCommand": "pytest",
     "lintCommand": "ruff check",
     "devCommand": null,
     "scripts": {}
   },
   "conventions": {
-    "namingStyle": "snake_case",
+    "namingStyle": null,
     "importStyle": null,
     "testPattern": null,
     "fileOrganization": null
@@ -40,437 +40,1104 @@
     "isMonorepo": false,
     "workspaces": [],
     "mainDirectories": [
-      "docs",
-      "scripts",
-      "src",
-      "tests"
+      "docs"
     ],
     "gitBranches": {
-      "defaultBranch": "main",
+      "defaultBranch": "master",
       "branchingStrategy": null
     }
   },
-  "customNotes": [],
+  "customNotes": [
+    {
+      "timestamp": 1779780717410,
+      "source": "manual",
+      "category": "architecture",
+      "content": "Codebase consolidation complete: Converted all sync Web3 calls in 1ai-dex-trader (transaction_builder.py, utils.py, crazy_grinder.py) to async via aw3._run_sync pattern. Added eth_wait_for_transaction_receipt to AsyncWeb3. Created shared risk/exchange config models (RiskConfig, ExchangeConnectionConfig, TradingModeConfig) in trading_bot/utils/shared_config.py. Audited signals_trading_bot - full config unification not practical across different stacks."
+    },
+    {
+      "timestamp": 1780234760510,
+      "source": "manual",
+      "category": "project",
+      "content": "1ai-career: Renamed oyi77/ai-job-apply → oyi77/1ai-career (private). FastAPI+React+Gemini job search platform. 106 files renamed, SEO/AEO/GEO README, 6 CI workflows. Deploy needs Docker secrets. career-ops integration pending. Black/isort formatting version-sensitive — pin versions in CI."
+    },
+    {
+      "timestamp": 1780241871790,
+      "source": "manual",
+      "category": "architecture",
+      "content": "1ai-career: ATS providers ported from career-ops JS to Python. src/providers/ has ats_base (ABC), ats_ashby, ats_greenhouse, ats_lever, ats_registry, scanner, evaluator. API: /api/v1/jobs/ats/scan, /detect, /evaluate. Verified: 370 jobs from Anthropic via Greenhouse live. Providers separated from src/services/ to avoid cascade import from __init__.py."
+    },
+    {
+      "timestamp": 1780244376739,
+      "source": "manual",
+      "category": "project",
+      "content": "1ai-career quality sweep 2026-05-31: ruff 290→0, black clean, frontend build OK. Backend: 520 pass/61 pre-existing failures. CI blocked by GitHub Actions billing. career-ops ATS providers integrated (370 jobs live). Deep interview spec created for codebase perfection."
+    },
+    {
+      "timestamp": 1780246476535,
+      "source": "manual",
+      "category": "project",
+      "content": "1ai-career quality sweep COMPLETE 2026-05-31: ruff 88→0, black clean, backend 660/660 tests pass, frontend 189/189 pass, frontend build OK. Storybook excluded from test:run (needs Chromium). Per-file-ignores for vendor + re-exports. Installed bip_utils, langgraph. CI blocked by GitHub billing."
+    },
+    {
+      "timestamp": 1780246596751,
+      "source": "manual",
+      "category": "project",
+      "content": "1ai-career quality sweep 2026-05-31: ruff 88→0 (per-file-ignores vendor/re-exports), black clean (py313 target), 660 backend tests pass (installed bip_utils langgraph), 189 frontend tests pass (excluded storybook from default runner), frontend build OK. PRD 5/7 pass. CI blocked by GitHub billing."
+    }
+  ],
   "directoryMap": {
-    "1ai_osint.egg-info": {
-      "path": "1ai_osint.egg-info",
+    "1affiliate": {
+      "path": "1affiliate",
       "purpose": null,
-      "fileCount": 6,
-      "lastAccessed": 1780358653408,
+      "fileCount": 4,
+      "lastAccessed": 1780396025061,
       "keyFiles": [
-        "PKG-INFO",
-        "SOURCES.txt",
-        "dependency_links.txt",
-        "entry_points.txt",
-        "requires.txt"
+        "AGENTS.md",
+        "README.md",
+        "build_all.bat"
       ]
     },
-    "build": {
-      "path": "build",
-      "purpose": "Build output",
+    "1ai": {
+      "path": "1ai",
+      "purpose": null,
+      "fileCount": 27,
+      "lastAccessed": 1780396025066,
+      "keyFiles": [
+        "AGENTS.md",
+        "EXECUTION_SUMMARY.md",
+        "PERPLEXITY_IMPLEMENTATION_GUIDE.md",
+        "PERPLEXITY_INTEGRATION_PHASE1.md",
+        "PHASE_1_SUMMARY.md"
+      ]
+    },
+    "1ai-ads": {
+      "path": "1ai-ads",
+      "purpose": null,
+      "fileCount": 28,
+      "lastAccessed": 1780396025066,
+      "keyFiles": [
+        "1ai-ads-cli.js",
+        "AGENTS.md",
+        "CONSOLIDATION_PLAN.md",
+        "FREE_ADS_LIBRARY.md",
+        "IMPLEMENTATION_SUMMARY.md"
+      ]
+    },
+    "1ai-berkahkarya-website": {
+      "path": "1ai-berkahkarya-website",
+      "purpose": null,
+      "fileCount": 24,
+      "lastAccessed": 1780396025068,
+      "keyFiles": [
+        "DEPLOYMENT_STATUS_REPORT.md",
+        "EBOOK_SUAMI_SEJATI_SETUP.md",
+        "FINAL_ACTION_REQUIRED.md",
+        "MANUAL_DEPLOY_STEPS.md",
+        "NETLIFY_ENV_SETUP.md"
+      ]
+    },
+    "1ai-career": {
+      "path": "1ai-career",
+      "purpose": null,
+      "fileCount": 22,
+      "lastAccessed": 1780396025068,
+      "keyFiles": [
+        "AGENTS.md",
+        "E2E_TESTING_GUIDE.md",
+        "Makefile",
+        "README.md",
+        "ai-todo.md"
+      ]
+    },
+    "1ai-content": {
+      "path": "1ai-content",
+      "purpose": null,
+      "fileCount": 23,
+      "lastAccessed": 1780396025069,
+      "keyFiles": [
+        "AGENTS.md",
+        "CHANGELOG.md",
+        "CLAUDE.md",
+        "CONTRIBUTING.md",
+        "Dockerfile"
+      ]
+    },
+    "1ai-dex-trader": {
+      "path": "1ai-dex-trader",
+      "purpose": null,
+      "fileCount": 6,
+      "lastAccessed": 1780396025070,
+      "keyFiles": [
+        "README.md",
+        "app.py",
+        "requirements.txt",
+        "run-me.bat",
+        "run-me.sh"
+      ]
+    },
+    "1ai-ebook": {
+      "path": "1ai-ebook",
+      "purpose": null,
+      "fileCount": 26,
+      "lastAccessed": 1780396025070,
+      "keyFiles": [
+        "AGENTS.md",
+        "ANALYSIS_COMPLETE.txt",
+        "CLAUDE.md",
+        "Dockerfile",
+        "README.md"
+      ]
+    },
+    "1ai-hub": {
+      "path": "1ai-hub",
+      "purpose": null,
+      "fileCount": 34,
+      "lastAccessed": 1780396025071,
+      "keyFiles": [
+        "AGENTS.md",
+        "CONTRIBUTING.md",
+        "Dockerfile",
+        "LICENSE",
+        "Makefile"
+      ]
+    },
+    "1ai-joki-engine": {
+      "path": "1ai-joki-engine",
+      "purpose": null,
+      "fileCount": 20,
+      "lastAccessed": 1780396025071,
+      "keyFiles": [
+        "AGENTS.md",
+        "Dockerfile",
+        "Dockerfile.test",
+        "README.md",
+        "docker-compose.override.yml"
+      ]
+    },
+    "1ai-osint": {
+      "path": "1ai-osint",
+      "purpose": null,
+      "fileCount": 14,
+      "lastAccessed": 1780396025072,
+      "keyFiles": [
+        "Dockerfile",
+        "PLAN.md",
+        "README.md",
+        "cov.json",
+        "docker-compose.yml"
+      ]
+    },
+    "1ai-phonefarm": {
+      "path": "1ai-phonefarm",
+      "purpose": null,
+      "fileCount": 34,
+      "lastAccessed": 1780396025073,
+      "keyFiles": [
+        "AGENTS.md",
+        "BUG_REPORT_REMOTE_CONTROL.md",
+        "CLAUDE.md",
+        "Dockerfile",
+        "MIGRATION_PLAN.md"
+      ]
+    },
+    "1ai-poly-trader": {
+      "path": "1ai-poly-trader",
+      "purpose": null,
+      "fileCount": 35,
+      "lastAccessed": 1780396025073,
+      "keyFiles": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        "Dockerfile",
+        "Procfile",
+        "README.md"
+      ]
+    },
+    "1ai-poly-trader-videos": {
+      "path": "1ai-poly-trader-videos",
+      "purpose": null,
       "fileCount": 0,
-      "lastAccessed": 1780358653409,
+      "lastAccessed": 1780396025074,
       "keyFiles": []
     },
-    "dist": {
-      "path": "dist",
-      "purpose": "Distribution/build output",
-      "fileCount": 2,
-      "lastAccessed": 1780358653409,
+    "1ai-reach": {
+      "path": "1ai-reach",
+      "purpose": null,
+      "fileCount": 9,
+      "lastAccessed": 1780396025075,
       "keyFiles": [
-        "1ai_osint-0.1.0-py3-none-any.whl",
-        "1ai_osint-0.1.0.tar.gz"
+        "AGENTS.md",
+        "README.md",
+        "agent_control.py",
+        "pyproject.toml",
+        "requirements.txt"
+      ]
+    },
+    "1ai-skills": {
+      "path": "1ai-skills",
+      "purpose": null,
+      "fileCount": 10,
+      "lastAccessed": 1780396025075,
+      "keyFiles": [
+        "AGENTS.md",
+        "CONTRIBUTING.md",
+        "QUICK_START.md",
+        "README.md",
+        "SKILLS.json"
+      ]
+    },
+    "1ai-social": {
+      "path": "1ai-social",
+      "purpose": null,
+      "fileCount": 32,
+      "lastAccessed": 1780396025076,
+      "keyFiles": [
+        "AGENTS.md",
+        "API_SERVER.md",
+        "CODEBASE_AUDIT_REPORT.md",
+        "COMPREHENSIVE_PLAN.md",
+        "Dockerfile"
+      ]
+    },
+    "1ai-trade-bot": {
+      "path": "1ai-trade-bot",
+      "purpose": null,
+      "fileCount": 2,
+      "lastAccessed": 1780396025076,
+      "keyFiles": [
+        "README.md",
+        "__init__.py"
+      ]
+    },
+    "1ai-workspace": {
+      "path": "1ai-workspace",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1780396025076,
+      "keyFiles": []
+    },
+    "1proxy": {
+      "path": "1proxy",
+      "purpose": null,
+      "fileCount": 9,
+      "lastAccessed": 1780396025077,
+      "keyFiles": [
+        "AGENTS.md",
+        "README.md",
+        "docker-compose.prod.yml",
+        "docker-compose.yml",
+        "railway.json"
+      ]
+    },
+    "1sub": {
+      "path": "1sub",
+      "purpose": null,
+      "fileCount": 22,
+      "lastAccessed": 1780396025077,
+      "keyFiles": [
+        "1panel.env.example",
+        "AGENTS.md",
+        "CHANGELOG.md",
+        "Makefile",
+        "README.md"
+      ]
+    },
+    "AI-studio-Pro": {
+      "path": "AI-studio-Pro",
+      "purpose": null,
+      "fileCount": 12,
+      "lastAccessed": 1780396025077,
+      "keyFiles": [
+        "AGENTS.md",
+        "PRODUCT_BRIEF.md",
+        "README.md",
+        "index.html",
+        "metadata.json"
+      ]
+    },
+    "OmniRoute": {
+      "path": "OmniRoute",
+      "purpose": null,
+      "fileCount": 50,
+      "lastAccessed": 1780396025078,
+      "keyFiles": [
+        "AGENTS.md",
+        "CHANGELOG.md",
+        "CLAUDE.md",
+        "CODE_OF_CONDUCT.md",
+        "CONTRIBUTING.md"
+      ]
+    },
+    "OpenMedallion-Dataset": {
+      "path": "OpenMedallion-Dataset",
+      "purpose": null,
+      "fileCount": 57,
+      "lastAccessed": 1780396025078,
+      "keyFiles": [
+        "LICENSE",
+        "README.md",
+        "analyst_recommendations.parquet",
+        "binance_klines_1d.parquet",
+        "commodities_expanded.parquet"
+      ]
+    },
+    "TikTokDownloader": {
+      "path": "TikTokDownloader",
+      "purpose": null,
+      "fileCount": 11,
+      "lastAccessed": 1780396025078,
+      "keyFiles": [
+        "Dockerfile",
+        "README.md",
+        "README_EN.md",
+        "license",
+        "main.py"
+      ]
+    },
+    "berkah-website": {
+      "path": "berkah-website",
+      "purpose": null,
+      "fileCount": 19,
+      "lastAccessed": 1780396025078,
+      "keyFiles": [
+        "AGENTS.md",
+        "README.md",
+        "lp1.html",
+        "lp2.html",
+        "lp3.html"
+      ]
+    },
+    "berkahkarya-affiliate-pipeline": {
+      "path": "berkahkarya-affiliate-pipeline",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1780396025078,
+      "keyFiles": [
+        "README.md"
+      ]
+    },
+    "berkahkarya-ai": {
+      "path": "berkahkarya-ai",
+      "purpose": null,
+      "fileCount": 2,
+      "lastAccessed": 1780396025079,
+      "keyFiles": [
+        "AGENTS.md",
+        "README.md"
+      ]
+    },
+    "cf-router": {
+      "path": "cf-router",
+      "purpose": null,
+      "fileCount": 24,
+      "lastAccessed": 1780396025079,
+      "keyFiles": [
+        "AGENTS.md",
+        "Dockerfile",
+        "README.md",
+        "access.log",
+        "apps.yaml"
+      ]
+    },
+    "deriv-digit-match-bot": {
+      "path": "deriv-digit-match-bot",
+      "purpose": null,
+      "fileCount": 3,
+      "lastAccessed": 1780396025079,
+      "keyFiles": [
+        "AGENTS.md",
+        "README.md"
       ]
     },
     "docs": {
       "path": "docs",
       "purpose": "Documentation",
       "fileCount": 8,
-      "lastAccessed": 1780358653410,
+      "lastAccessed": 1780396025081,
       "keyFiles": [
-        "AGENTS.md",
         "BENCHMARK_RESULTS.md",
+        "Omniroute_MAIBA.md",
         "RESEARCH.md",
         "RESEARCH_PAPER.md",
         "SDD.md"
       ]
     },
-    "notebooks": {
-      "path": "notebooks",
+    "dotfiles": {
+      "path": "dotfiles",
       "purpose": null,
-      "fileCount": 3,
-      "lastAccessed": 1780358653410,
+      "fileCount": 1,
+      "lastAccessed": 1780396025081,
       "keyFiles": [
-        "AGENTS.md",
-        "experimental_results.ipynb",
-        "zkit_analysis.ipynb"
+        "AGENTS.md"
       ]
     },
-    "scripts": {
-      "path": "scripts",
-      "purpose": "Build/utility scripts",
-      "fileCount": 4,
-      "lastAccessed": 1780358653410,
+    "hackingtool": {
+      "path": "hackingtool",
+      "purpose": null,
+      "fileCount": 17,
+      "lastAccessed": 1780396025081,
       "keyFiles": [
-        "AGENTS.md",
-        "benchmark.py",
-        "demo.sh",
-        "install-node.sh"
-      ]
-    },
-    "src": {
-      "path": "src",
-      "purpose": "Source code",
-      "fileCount": 8,
-      "lastAccessed": 1780358653410,
-      "keyFiles": [
-        "AGENTS.md",
-        "__init__.py",
-        "cache.py",
-        "cli.py",
+        "Dockerfile",
+        "LICENSE",
+        "README.md",
+        "README_template.md",
         "config.py"
       ]
     },
-    "state": {
-      "path": "state",
+    "jendralbot-ai": {
+      "path": "jendralbot-ai",
       "purpose": null,
       "fileCount": 2,
-      "lastAccessed": 1780358653410,
-      "keyFiles": [
-        "cancel-signal-state.json",
-        "hit_patterns.json"
-      ]
-    },
-    "tests": {
-      "path": "tests",
-      "purpose": "Test files",
-      "fileCount": 4,
-      "lastAccessed": 1780358653410,
+      "lastAccessed": 1780396025081,
       "keyFiles": [
         "AGENTS.md",
-        "__init__.py",
-        "conftest.py",
-        "test_dynamic_discovery.py"
+        "index.html"
       ]
     },
-    "build/lib": {
-      "path": "build/lib",
-      "purpose": "Library code",
+    "joki-blast-engine": {
+      "path": "joki-blast-engine",
+      "purpose": null,
       "fileCount": 0,
-      "lastAccessed": 1780358653410,
+      "lastAccessed": 1780396025082,
       "keyFiles": []
     },
-    "tests/fixtures": {
-      "path": "tests/fixtures",
-      "purpose": "Test fixtures",
-      "fileCount": 4,
-      "lastAccessed": 1780358653411,
+    "mirofish": {
+      "path": "mirofish",
+      "purpose": null,
+      "fileCount": 13,
+      "lastAccessed": 1780396025082,
+      "keyFiles": [
+        "Dockerfile",
+        "LICENSE",
+        "README-ZH.md",
+        "README.md",
+        "docker-compose.yml"
+      ]
+    },
+    "mt5-router": {
+      "path": "mt5-router",
+      "purpose": null,
+      "fileCount": 13,
+      "lastAccessed": 1780396025082,
       "keyFiles": [
         "AGENTS.md",
-        "mock_api_responses.py",
-        "sample_secrets.json"
+        "CLAUDE.md",
+        "PLAN.md",
+        "README.md",
+        "docker-compose.dev.yml"
       ]
+    },
+    "multi-exchange-trader": {
+      "path": "multi-exchange-trader",
+      "purpose": null,
+      "fileCount": 18,
+      "lastAccessed": 1780396025082,
+      "keyFiles": [
+        "AGENTS.md",
+        "AGENT_AUTOMATION_PLAN.md",
+        "COMPREHENSIVE_PLANNING.md",
+        "Makefile",
+        "README.md"
+      ]
+    },
+    "ojk-checker": {
+      "path": "ojk-checker",
+      "purpose": null,
+      "fileCount": 12,
+      "lastAccessed": 1780396025082,
+      "keyFiles": [
+        "AGENTS.md",
+        "Makefile",
+        "captcha_corrector.py",
+        "correct_tesseract.py",
+        "install.sh"
+      ]
+    },
+    "omg-ai": {
+      "path": "omg-ai",
+      "purpose": null,
+      "fileCount": 11,
+      "lastAccessed": 1780396025082,
+      "keyFiles": [
+        "ARCHITECTURE.md",
+        "CHANGELOG.md",
+        "CONTRIBUTING.md",
+        "Dockerfile",
+        "LICENSE"
+      ]
+    },
+    "openclaude": {
+      "path": "openclaude",
+      "purpose": null,
+      "fileCount": 19,
+      "lastAccessed": 1780396025083,
+      "keyFiles": [
+        "ANDROID_INSTALL.md",
+        "CHANGELOG.md",
+        "CODE_OF_CONDUCT.md",
+        "CONTRIBUTING.md",
+        "Dockerfile"
+      ]
+    },
+    "signals_trading_bot": {
+      "path": "signals_trading_bot",
+      "purpose": null,
+      "fileCount": 18,
+      "lastAccessed": 1780396025083,
+      "keyFiles": [
+        "Dockerfile",
+        "QUICK_START.md",
+        "README.md",
+        "__init__.py",
+        "backtest.py"
+      ]
+    },
+    "telegram-affiliate-poster": {
+      "path": "telegram-affiliate-poster",
+      "purpose": null,
+      "fileCount": 6,
+      "lastAccessed": 1780396025083,
+      "keyFiles": [
+        "README.md",
+        "bing_image_scraper.py",
+        "import_csv.py",
+        "poster.py",
+        "requirements.txt"
+      ]
+    },
+    "universalDownloader": {
+      "path": "universalDownloader",
+      "purpose": null,
+      "fileCount": 6,
+      "lastAccessed": 1780396025083,
+      "keyFiles": [
+        "README.md",
+        "index.js",
+        "package-lock.json",
+        "package.json",
+        "vercel.json"
+      ]
+    },
+    "vilona-trader": {
+      "path": "vilona-trader",
+      "purpose": null,
+      "fileCount": 5,
+      "lastAccessed": 1780396025083,
+      "keyFiles": [
+        "AGENTS.md",
+        "README.md",
+        "principles.md",
+        "vilona_hunting_protocol.md"
+      ]
+    },
+    "waha": {
+      "path": "waha",
+      "purpose": null,
+      "fileCount": 52,
+      "lastAccessed": 1780396025084,
+      "keyFiles": [
+        "01-dashboard-after-login.png",
+        "02-swagger-homepage.png",
+        "03-login-page.png",
+        "AGENTS.md",
+        "CHANGELOG.md"
+      ]
+    },
+    "waha-dashboard": {
+      "path": "waha-dashboard",
+      "purpose": null,
+      "fileCount": 7,
+      "lastAccessed": 1780396025084,
+      "keyFiles": [
+        "AGENTS.md",
+        "README.md",
+        "app.vue",
+        "nuxt.config.ts",
+        "package-lock.json"
+      ]
+    },
+    "wifi-jammer": {
+      "path": "wifi-jammer",
+      "purpose": null,
+      "fileCount": 16,
+      "lastAccessed": 1780396025084,
+      "keyFiles": [
+        "AGENTS.md",
+        "Dockerfile",
+        "LICENSE",
+        "Makefile",
+        "README.md"
+      ]
+    },
+    "1ai-poly-trader-videos/node_modules": {
+      "path": "1ai-poly-trader-videos/node_modules",
+      "purpose": "Dependencies",
+      "fileCount": 1,
+      "lastAccessed": 1780396025089,
+      "keyFiles": []
+    },
+    "1ai-poly-trader-videos/out": {
+      "path": "1ai-poly-trader-videos/out",
+      "purpose": "Build output",
+      "fileCount": 2,
+      "lastAccessed": 1780396025089,
+      "keyFiles": [
+        "marketing.mp4",
+        "walkthrough.mp4"
+      ]
+    },
+    "1ai-trade-bot/scripts": {
+      "path": "1ai-trade-bot/scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 38,
+      "lastAccessed": 1780396025090,
+      "keyFiles": [
+        "__init__.py",
+        "audit_trading_day.py",
+        "bitget_alert.py"
+      ]
+    },
+    "TikTokDownloader/docs": {
+      "path": "TikTokDownloader/docs",
+      "purpose": "Documentation",
+      "fileCount": 6,
+      "lastAccessed": 1780396025091,
+      "keyFiles": [
+        "Cookie获取教程.md",
+        "DouK-Downloader文档.md",
+        "QQ群聊二维码.png"
+      ]
+    },
+    "berkah-website/components": {
+      "path": "berkah-website/components",
+      "purpose": "UI components",
+      "fileCount": 44,
+      "lastAccessed": 1780396025091,
+      "keyFiles": [
+        "CTASection.module.css",
+        "CTASection.tsx",
+        "CharacterAvatar.module.css"
+      ]
+    },
+    "berkah-website/data": {
+      "path": "berkah-website/data",
+      "purpose": "Data files",
+      "fileCount": 8,
+      "lastAccessed": 1780396025091,
+      "keyFiles": [
+        "characters.ts",
+        "contact.ts",
+        "home.ts"
+      ]
+    },
+    "berkahkarya-affiliate-pipeline/config": {
+      "path": "berkahkarya-affiliate-pipeline/config",
+      "purpose": "Configuration files",
+      "fileCount": 1,
+      "lastAccessed": 1780396025092,
+      "keyFiles": [
+        "config.example.json"
+      ]
+    },
+    "berkahkarya-affiliate-pipeline/data": {
+      "path": "berkahkarya-affiliate-pipeline/data",
+      "purpose": "Data files",
+      "fileCount": 0,
+      "lastAccessed": 1780396025092,
+      "keyFiles": []
+    },
+    "berkahkarya-affiliate-pipeline/docs": {
+      "path": "berkahkarya-affiliate-pipeline/docs",
+      "purpose": "Documentation",
+      "fileCount": 0,
+      "lastAccessed": 1780396025092,
+      "keyFiles": []
+    },
+    "berkahkarya-affiliate-pipeline/scripts": {
+      "path": "berkahkarya-affiliate-pipeline/scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 5,
+      "lastAccessed": 1780396025092,
+      "keyFiles": [
+        "affiliate_content_pipeline.py",
+        "auto_scheduler.py",
+        "batch_deploy_now.py"
+      ]
+    },
+    "ojk-checker/data": {
+      "path": "ojk-checker/data",
+      "purpose": "Data files",
+      "fileCount": 0,
+      "lastAccessed": 1780396025093,
+      "keyFiles": []
+    },
+    "universalDownloader/controllers": {
+      "path": "universalDownloader/controllers",
+      "purpose": "Controllers",
+      "fileCount": 18,
+      "lastAccessed": 1780396025094,
+      "keyFiles": [
+        "TeraboxController.js",
+        "blueskyController.js",
+        "capcutController.js"
+      ]
+    },
+    "universalDownloader/node_modules": {
+      "path": "universalDownloader/node_modules",
+      "purpose": "Dependencies",
+      "fileCount": 1,
+      "lastAccessed": 1780396025094,
+      "keyFiles": []
+    },
+    "universalDownloader/routes": {
+      "path": "universalDownloader/routes",
+      "purpose": "Route handlers",
+      "fileCount": 18,
+      "lastAccessed": 1780396025095,
+      "keyFiles": [
+        "bluesky.js",
+        "capcut.js",
+        "dailymotion.js"
+      ]
+    },
+    "universalDownloader/services": {
+      "path": "universalDownloader/services",
+      "purpose": "Business logic services",
+      "fileCount": 18,
+      "lastAccessed": 1780396025095,
+      "keyFiles": [
+        "blueskyService.js",
+        "capcutService.js",
+        "dailymotionService.js"
+      ]
+    },
+    "vilona-trader/config": {
+      "path": "vilona-trader/config",
+      "purpose": "Configuration files",
+      "fileCount": 1,
+      "lastAccessed": 1780396025095,
+      "keyFiles": [
+        "config.env.example"
+      ]
+    },
+    "vilona-trader/scripts": {
+      "path": "vilona-trader/scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 5,
+      "lastAccessed": 1780396025096,
+      "keyFiles": [
+        "macro_filter.py",
+        "spend_monitor_1041.py",
+        "vilona_autonomous_trader.py"
+      ]
+    },
+    "waha-dashboard/assets": {
+      "path": "waha-dashboard/assets",
+      "purpose": "Static assets",
+      "fileCount": 0,
+      "lastAccessed": 1780396025096,
+      "keyFiles": []
     }
   },
   "hotPaths": [
     {
-      "path": "src/modules/crypto/leak_finder/coordinator.py",
-      "accessCount": 106,
-      "lastAccessed": 1780322318097,
-      "type": "file"
-    },
-    {
-      "path": "tests/unit/test_crypto_balance.py",
-      "accessCount": 96,
-      "lastAccessed": 1780250317119,
-      "type": "directory"
-    },
-    {
-      "path": "src/cli.py",
-      "accessCount": 62,
-      "lastAccessed": 1780399280712,
-      "type": "file"
-    },
-    {
-      "path": "src/modules/crypto/balance/sweeper.py",
-      "accessCount": 47,
-      "lastAccessed": 1780219820929,
-      "type": "file"
-    },
-    {
-      "path": "src/modules/crypto/leak_finder/extractor.py",
-      "accessCount": 46,
-      "lastAccessed": 1780322316607,
-      "type": "file"
-    },
-    {
-      "path": "src/modules/crypto/balance/smart_generator.py",
-      "accessCount": 39,
-      "lastAccessed": 1780232159058,
-      "type": "file"
-    },
-    {
-      "path": "src/modules/crypto/balance/api_rotation.py",
-      "accessCount": 34,
-      "lastAccessed": 1780169631444,
-      "type": "file"
-    },
-    {
-      "path": "src/modules/crypto/balance/scanner_engine.py",
-      "accessCount": 32,
-      "lastAccessed": 1780273449166,
-      "type": "file"
-    },
-    {
-      "path": "tests/unit/test_crypto_balance_scanner.py",
+      "path": "1ai-ads",
       "accessCount": 30,
-      "lastAccessed": 1780164243077,
+      "lastAccessed": 1780082202587,
       "type": "directory"
     },
     {
-      "path": "",
-      "accessCount": 28,
-      "lastAccessed": 1780273369992,
-      "type": "directory"
-    },
-    {
-      "path": "src/modules/crypto/balance/deriver.py",
-      "accessCount": 26,
-      "lastAccessed": 1780243037285,
-      "type": "file"
-    },
-    {
-      "path": "src/modules/crypto/leak_finder/sources/github_source.py",
-      "accessCount": 26,
-      "lastAccessed": 1780248701972,
-      "type": "file"
-    },
-    {
-      "path": "src/modules/crypto/balance/chains.py",
-      "accessCount": 26,
-      "lastAccessed": 1780322302356,
-      "type": "file"
-    },
-    {
-      "path": "src/modules/crypto/leak_finder/sources/paste_source.py",
-      "accessCount": 25,
-      "lastAccessed": 1780248678250,
-      "type": "file"
-    },
-    {
-      "path": "run_scanner.py",
-      "accessCount": 23,
-      "lastAccessed": 1780241571587,
-      "type": "directory"
-    },
-    {
-      "path": "src/modules/crypto/balance/multicall.py",
-      "accessCount": 21,
-      "lastAccessed": 1780169787128,
-      "type": "file"
-    },
-    {
-      "path": "src/modules/crypto/balance/checker.py",
-      "accessCount": 16,
-      "lastAccessed": 1780169794658,
-      "type": "file"
-    },
-    {
-      "path": "src/modules/crypto/leak_finder/sources/telegram_source.py",
-      "accessCount": 16,
-      "lastAccessed": 1780248678235,
-      "type": "file"
-    },
-    {
-      "path": "tests/unit/test_leak_extractor.py",
-      "accessCount": 16,
-      "lastAccessed": 1780248680171,
-      "type": "directory"
-    },
-    {
-      "path": "src/modules/crypto/leak_finder/sources/reddit_source.py",
-      "accessCount": 15,
-      "lastAccessed": 1780248679273,
-      "type": "file"
-    },
-    {
-      "path": ".env.example",
-      "accessCount": 14,
-      "lastAccessed": 1780273379904,
-      "type": "file"
-    },
-    {
-      "path": "src",
-      "accessCount": 14,
-      "lastAccessed": 1780273392668,
-      "type": "directory"
-    },
-    {
-      "path": "src/modules/crypto/leak_finder/sources/twitter_source.py",
-      "accessCount": 12,
-      "lastAccessed": 1780248678268,
-      "type": "file"
-    },
-    {
-      "path": "src/modules/crypto/balance/hit_logger.py",
-      "accessCount": 12,
-      "lastAccessed": 1780273380054,
-      "type": "file"
-    },
-    {
-      "path": "src/modules/crypto/leak_finder/sources/__init__.py",
-      "accessCount": 11,
-      "lastAccessed": 1780248702016,
-      "type": "file"
-    },
-    {
-      "path": "pyproject.toml",
-      "accessCount": 11,
-      "lastAccessed": 1780254167570,
-      "type": "file"
-    },
-    {
-      "path": "src/modules/crypto/balance/provider_profiles.py",
-      "accessCount": 10,
-      "lastAccessed": 1780169631716,
-      "type": "file"
-    },
-    {
-      "path": "src/modules/crypto/leak_finder/sources/duckduckgo_source.py",
-      "accessCount": 10,
-      "lastAccessed": 1780248678125,
-      "type": "file"
-    },
-    {
-      "path": "src/modules/crypto/leak_finder/sources/gitlab_source.py",
-      "accessCount": 10,
-      "lastAccessed": 1780248678787,
-      "type": "file"
-    },
-    {
-      "path": "src/modules/crypto/leak_finder/sources/bitcointalk_source.py",
-      "accessCount": 9,
-      "lastAccessed": 1780248678714,
-      "type": "file"
-    },
-    {
-      "path": "src/modules/crypto/balance/leak_scanner_telegram.py",
-      "accessCount": 9,
-      "lastAccessed": 1780273380296,
-      "type": "directory"
-    },
-    {
-      "path": "tests",
+      "path": "1ai-career/backend/pyproject.toml",
       "accessCount": 6,
-      "lastAccessed": 1780243260139,
+      "lastAccessed": 1780245563493,
+      "type": "file"
+    },
+    {
+      "path": "1ai-career/backend/tests/integration/test_analytics_endpoints.py",
+      "accessCount": 5,
+      "lastAccessed": 1780250097564,
+      "type": "file"
+    },
+    {
+      "path": "1ai-ads/adforge-dashboard/app.py",
+      "accessCount": 3,
+      "lastAccessed": 1780082131748,
+      "type": "file"
+    },
+    {
+      "path": "1ai-ads/package.json",
+      "accessCount": 3,
+      "lastAccessed": 1780082222410,
+      "type": "file"
+    },
+    {
+      "path": "1ai-ads/vitest.config.js",
+      "accessCount": 3,
+      "lastAccessed": 1780082222823,
+      "type": "file"
+    },
+    {
+      "path": "1ai-ads/playwright.config.js",
+      "accessCount": 2,
+      "lastAccessed": 1780082051726,
+      "type": "file"
+    },
+    {
+      "path": "1ai-ads/adforge.py",
+      "accessCount": 2,
+      "lastAccessed": 1780082095934,
+      "type": "file"
+    },
+    {
+      "path": "1ai-ads/server.js",
+      "accessCount": 2,
+      "lastAccessed": 1780082222598,
+      "type": "file"
+    },
+    {
+      "path": "1ai-ads/server",
+      "accessCount": 1,
+      "lastAccessed": 1780082025050,
       "type": "directory"
     },
     {
-      "path": "sweep_direct.py",
-      "accessCount": 5,
-      "lastAccessed": 1780154509349,
-      "type": "file"
-    },
-    {
-      "path": "tests/unit/test_leak_finder.py",
-      "accessCount": 5,
-      "lastAccessed": 1780242130200,
-      "type": "file"
-    },
-    {
-      "path": "src/modules/crypto/balance/scanner_coordinator.py",
-      "accessCount": 4,
-      "lastAccessed": 1780273380185,
-      "type": "file"
-    },
-    {
-      "path": "AGENTS.md",
-      "accessCount": 4,
-      "lastAccessed": 1780322185398,
-      "type": "file"
-    },
-    {
-      "path": "src/modules/crypto/leak_finder/sources/tgstat_source.py",
-      "accessCount": 3,
-      "lastAccessed": 1780171235134,
-      "type": "file"
-    },
-    {
-      "path": "scanner.service",
-      "accessCount": 3,
-      "lastAccessed": 1780241536697,
-      "type": "file"
-    },
-    {
-      "path": "src/modules/crypto/balance/leak_scanner.py",
-      "accessCount": 2,
-      "lastAccessed": 1780167655635,
-      "type": "file"
-    },
-    {
-      "path": "src/modules/crypto/balance/scanner_github.py",
-      "accessCount": 2,
-      "lastAccessed": 1780167665315,
-      "type": "file"
-    },
-    {
-      "path": "src/modules/crypto/balance/scanner_paste.py",
-      "accessCount": 2,
-      "lastAccessed": 1780167665323,
-      "type": "file"
-    },
-    {
-      "path": "src/modules/crypto/balance/scanner_dork.py",
-      "accessCount": 2,
-      "lastAccessed": 1780167665345,
-      "type": "file"
-    },
-    {
-      "path": "src/modules/crypto/balance/ai_analyzer.py",
-      "accessCount": 2,
-      "lastAccessed": 1780229712417,
-      "type": "file"
-    },
-    {
-      "path": "src/modules/crypto/balance/scanner_telegram.py",
-      "accessCount": 2,
-      "lastAccessed": 1780273380372,
-      "type": "file"
-    },
-    {
-      "path": "sweep_mnemonic.py",
+      "path": "1ai-ads/src",
       "accessCount": 1,
-      "lastAccessed": 1780154215704,
+      "lastAccessed": 1780082025387,
+      "type": "directory"
+    },
+    {
+      "path": "1ai-ads/.env.example",
+      "accessCount": 1,
+      "lastAccessed": 1780082037085,
       "type": "file"
     },
     {
-      "path": "check_nonce.py",
+      "path": "1ai-ads/README.md",
       "accessCount": 1,
-      "lastAccessed": 1780157891492,
+      "lastAccessed": 1780082038218,
       "type": "file"
     },
     {
-      "path": "src/modules/crypto/balance/bloom.py",
+      "path": "1ai-ads/server/app.js",
       "accessCount": 1,
-      "lastAccessed": 1780164145865,
+      "lastAccessed": 1780082043921,
       "type": "file"
     },
     {
-      "path": "src/AGENTS.md",
+      "path": "1ai-ads/vite.config.js",
       "accessCount": 1,
-      "lastAccessed": 1780239872355,
+      "lastAccessed": 1780082044357,
       "type": "file"
     },
     {
-      "path": "tests/AGENTS.md",
+      "path": "1ai-ads/ecosystem.config.cjs",
       "accessCount": 1,
-      "lastAccessed": 1780239872539,
+      "lastAccessed": 1780082045098,
       "type": "file"
     },
     {
-      "path": "docs/AGENTS.md",
+      "path": "1ai-ads/.env",
       "accessCount": 1,
-      "lastAccessed": 1780239872720,
+      "lastAccessed": 1780082045339,
+      "type": "file"
+    },
+    {
+      "path": "1ai-ads/server/config/index.js",
+      "accessCount": 1,
+      "lastAccessed": 1780082061950,
+      "type": "file"
+    },
+    {
+      "path": "1ai-ads/db/schema.sql",
+      "accessCount": 1,
+      "lastAccessed": 1780082062073,
+      "type": "file"
+    },
+    {
+      "path": "1ai-ads/db/index.js",
+      "accessCount": 1,
+      "lastAccessed": 1780082062461,
+      "type": "file"
+    },
+    {
+      "path": "1ai-ads/adforge-generator/package.json",
+      "accessCount": 1,
+      "lastAccessed": 1780082062613,
+      "type": "file"
+    },
+    {
+      "path": "1ai-ads/opencli-adapter/package.json",
+      "accessCount": 1,
+      "lastAccessed": 1780082062712,
+      "type": "file"
+    },
+    {
+      "path": "1ai-ads/scripts/spend_monitor_1041.py",
+      "accessCount": 1,
+      "lastAccessed": 1780082077791,
+      "type": "file"
+    },
+    {
+      "path": "1ai-ads/ads-optimizer/monitor_0858.py",
+      "accessCount": 1,
+      "lastAccessed": 1780082078219,
+      "type": "file"
+    },
+    {
+      "path": "1ai-ads/scripts/jendralbot_apply_scale.py",
+      "accessCount": 1,
+      "lastAccessed": 1780082079111,
+      "type": "file"
+    },
+    {
+      "path": "1ai-ads/ads-optimizer/spend_monitor_1041.py",
+      "accessCount": 1,
+      "lastAccessed": 1780082079275,
+      "type": "file"
+    },
+    {
+      "path": "1ai-ads/tests/helpers/db.js",
+      "accessCount": 1,
+      "lastAccessed": 1780082095387,
+      "type": "file"
+    },
+    {
+      "path": "1ai-ads/tests/helpers/fixtures.js",
+      "accessCount": 1,
+      "lastAccessed": 1780082096008,
+      "type": "file"
+    },
+    {
+      "path": "1ai-ads/tests/setup.test.js",
+      "accessCount": 1,
+      "lastAccessed": 1780082096454,
+      "type": "file"
+    },
+    {
+      "path": "1ai-ads/mcp.js",
+      "accessCount": 1,
+      "lastAccessed": 1780082097078,
+      "type": "file"
+    },
+    {
+      "path": "1ai-ads/scripts/start.sh",
+      "accessCount": 1,
+      "lastAccessed": 1780082097164,
+      "type": "file"
+    },
+    {
+      "path": "1ai-ads/start-bq.sh",
+      "accessCount": 1,
+      "lastAccessed": 1780082097739,
+      "type": "file"
+    },
+    {
+      "path": "1ai-ads/client/src/app.js",
+      "accessCount": 1,
+      "lastAccessed": 1780082099041,
+      "type": "file"
+    },
+    {
+      "path": "1ai-ads/SKILL.md",
+      "accessCount": 1,
+      "lastAccessed": 1780082107699,
+      "type": "file"
+    },
+    {
+      "path": "1ai-ads/scripts/advanced_ads_analyst.py",
+      "accessCount": 1,
+      "lastAccessed": 1780082131958,
+      "type": "file"
+    },
+    {
+      "path": "1ai-ads/tests/unit/services/scalev.test.js",
+      "accessCount": 1,
+      "lastAccessed": 1780082283223,
+      "type": "file"
+    },
+    {
+      "path": "1ai-career/AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1780230455512,
+      "type": "file"
+    },
+    {
+      "path": "1ai-career/README.md",
+      "accessCount": 1,
+      "lastAccessed": 1780230455786,
+      "type": "file"
+    },
+    {
+      "path": "1ai-career/package.json",
+      "accessCount": 1,
+      "lastAccessed": 1780230456096,
+      "type": "file"
+    },
+    {
+      "path": "1ai-career",
+      "accessCount": 1,
+      "lastAccessed": 1780230495673,
+      "type": "directory"
+    },
+    {
+      "path": "1ai-career/frontend/vitest.config.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780246106072,
+      "type": "file"
+    },
+    {
+      "path": "1ai-career/frontend/package.json",
+      "accessCount": 1,
+      "lastAccessed": 1780246145646,
+      "type": "file"
+    },
+    {
+      "path": "1ai-career/backend/tests/integration/test_protected_endpoints.py",
+      "accessCount": 1,
+      "lastAccessed": 1780250486100,
+      "type": "file"
+    },
+    {
+      "path": "1ai-career/backend/tests/integration/test_auth_endpoints.py",
+      "accessCount": 1,
+      "lastAccessed": 1780250486357,
+      "type": "file"
+    },
+    {
+      "path": "1ai-career/backend/tests/unit/test_user_repository.py",
+      "accessCount": 1,
+      "lastAccessed": 1780250487029,
+      "type": "file"
+    },
+    {
+      "path": "1ai-career/backend/tests/unit/test_analytics_service.py",
+      "accessCount": 1,
+      "lastAccessed": 1780250487359,
+      "type": "file"
+    },
+    {
+      "path": "1ai-career/backend/tests/unit/test_auth_service.py",
+      "accessCount": 1,
+      "lastAccessed": 1780250487496,
+      "type": "file"
+    },
+    {
+      "path": "1ai-career/backend/src/api/v1/auth.py",
+      "accessCount": 1,
+      "lastAccessed": 1780250487663,
+      "type": "file"
+    },
+    {
+      "path": "1ai-career/backend/tests/unit/test_ai_service.py",
+      "accessCount": 1,
+      "lastAccessed": 1780250488573,
+      "type": "file"
+    },
+    {
+      "path": "docs/1ai-affiliate.md",
+      "accessCount": 1,
+      "lastAccessed": 1780396165174,
       "type": "file"
     }
   ],
