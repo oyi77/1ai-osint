@@ -791,14 +791,15 @@ def report(
 @app.command()
 def deep_scan(
     target: str = typer.Argument(..., help="Target to investigate (name, email, username, phone, NIK)"),
-    output: str = typer.Option("html", help="Output format: html, json"),
+    report_format: str = typer.Option("html", "--format", "-f", help="Output format: html, json, stix"),
+    output_file: str = typer.Option("", "--output", "-o", help="Output file path"),
     max_iterations: int = typer.Option(5, help="Max recursive scan iterations"),
     timeout: int = typer.Option(30, help="Timeout per module in seconds"),
 ):
     """Deep scan — recursive identity investigation across all modules."""
     from src.modules.deep_scan.engine import DeepScanEngine
-    from src.modules.report_engine import ReportEngine
-    from src.modules.report_engine.html_template import render_html
+    from src.modules.deep_scan.report_generator import generate_intel_report
+    from src.modules.deep_scan.exports import export_report
 
     async def _deep_scan():
         typer.echo(f"Deep scanning: {target}", err=True)
@@ -810,18 +811,15 @@ def deep_scan(
 
         typer.echo(f"Results: {result.identifier_count} identifiers, {result.finding_count} findings, {result.iterations} iterations, {result.duration_sec:.1f}s", err=True)
 
-        # Generate report from deep scan results
-        report_engine = ReportEngine()
-        report_data = report_engine.from_scan_results(target, result.scan_results)
+        # Generate intel-grade report
+        intel = generate_intel_report(result)
+        typer.echo(f"Intel report: {len(intel.evidence)} evidence, risk={intel.risk.level.value}", err=True)
 
-        if output == "html":
-            html = render_html(report_data)
-            outfile = f"deep_scan_{target.replace(' ', '_').replace('@', '_at_')}.html"
-            with open(outfile, "w") as f:
-                f.write(html)
-            typer.echo(f"Report saved to: {outfile}", err=True)
-        else:
-            typer.echo(json.dumps(result.to_dict(), indent=2, default=str))
+        outfile = output_file or f"deep_scan_{target.replace(' ', '_').replace('@', '_at_')}.{report_format}"
+        exported = export_report(intel, fmt=report_format)
+        with open(outfile, "w") as f:
+            f.write(exported)
+        typer.echo(f"Report saved to: {outfile}", err=True)
 
     asyncio.run(_deep_scan())
 

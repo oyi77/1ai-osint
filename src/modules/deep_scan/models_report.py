@@ -1,6 +1,6 @@
 """Pydantic models for the intel-grade deep scan report.
 
-Adds EvidenceItem, SourceAttribution, ConfidenceBreakdown, RiskAssessment,
+Adds EvidenceItem, ConfidenceBreakdown, RiskAssessment, IdentityGraph,
 TimelineEntry, IdentityNode/Edge, PivotSuggestion, IntelReport on top of the
 existing DeepScanResult. Also contains the source reliability registry.
 """
@@ -13,74 +13,52 @@ from typing import Any, Optional
 from pydantic import BaseModel, Field
 
 
-class Reliability(str, Enum):
-    """NATO Admiralty-style source reliability rating.
+# --- Reliability ---
+SourceReliability = str  # NATO A-F string, e.g. "A", "B", "C", "D", "E", "F"
 
-    A = completely reliable, B = usually reliable, C = fairly reliable,
-    D = not usually reliable, E = unreliable, F = cannot be judged.
+
+def rate_source(source: str) -> str:
+    """Rate a source by its platform/identifier.
+    Returns NATO Admiralty System rating (A-F).
     """
-    A = "A"
-    B = "B"
-    C = "C"
-    D = "D"
-    E = "E"
-    F = "F"
+    s = (source or "").lower().strip()
+    for suffix in ("_osint", "_finder", "_scanner", "_checker", "_recon"):
+        if s.endswith(suffix):
+            s = s[: -len(suffix)]
+            break
+    if s in {"github", "gitlab", "linkedin"}:
+        return "B"
+    if s in {"twitter", "instagram", "facebook", "reddit", "telegram", "youtube", "tiktok", "pinterest"}:
+        return "C"
+    if s in {"google", "bing", "duckduckgo", "yandex", "leak_lookup", "leak_aggregator", "dehashed", "leakcheck"}:
+        return "D"
+    if s in {"truecaller", "whocallsme", "everycaller"}:
+        return "C"
+    if s in {"etherscan", "bscscan", "solscan", "blockchain_info", "mempool"}:
+        return "B"
+    return "F"
 
 
-# Source reliability registry. Anything not listed defaults to F ("cannot be judged").
-DEFAULT_RELIABILITY: dict[str, Reliability] = {
-    # Tier A: official, verifiable first-party
-    "github": Reliability.A,
-    "gitlab": Reliability.A,
-    "linkedin": Reliability.B,  # rate-limited/blocked, but data is first-party
-    "domain_whois": Reliability.A,
-    "ssl_cert": Reliability.A,
-    "dns_records": Reliability.A,
-    # Tier B: aggregator / API with account verification
-    "twitter": Reliability.B,
-    "instagram": Reliability.B,
-    "reddit": Reliability.B,
-    "telegram": Reliability.B,
-    "pypi": Reliability.A,
-    "npm": Reliability.A,
-    # Tier C: third-party scrapers
-    "google": Reliability.C,
-    "bing": Reliability.C,
-    "duckduckgo": Reliability.C,
-    "haveibeenpwned": Reliability.A,
-    "dehashed": Reliability.B,
-    # Tier F: everything we cannot directly verify
-    "leak_aggregator": Reliability.F,
-    "input": Reliability.A,
-}
-
-
-def reliability_for(source: str) -> Reliability:
-    """Return the reliability rating for a given source name."""
-    return DEFAULT_RELIABILITY.get(source, Reliability.F)
-
-
+# --- Evidence ---
 class EvidenceItem(BaseModel):
     """A single piece of evidence backing a finding or identifier."""
-    evidence_id: str
-    value: str
-    source: str
-    source_reliability: Reliability = Reliability.F
+    id: str = ""
+    identifier_value: str = ""
+    identifier_type: str = ""
+    source: str = ""
+    source_reliability: str = "F"
     url: Optional[str] = None
     http_status: Optional[int] = None
     snippet: Optional[str] = None
+    raw_data: dict[str, Any] = Field(default_factory=dict)
+    confidence: float = 0.0
+    notes: str = ""
     captured_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    exists: bool = True
 
 
+# --- Confidence ---
 class ConfidenceBreakdown(BaseModel):
-    """Deterministic confidence score, summing to 1.0.
-
-    existence: 0.40 — does the target exist at the source? (HTTP 200, not 404)
-    uniqueness: 0.20 — is the identifier unique to one person?
-    cross_module: 0.25 — do multiple modules agree?
-    temporal: 0.15 — is the data recent and verifiable?
-    """
+    """Deterministic confidence score components."""
     existence: float = 0.0
     uniqueness: float = 0.0
     cross_module: float = 0.0
@@ -101,8 +79,17 @@ class ConfidenceBreakdown(BaseModel):
             return "low"
         return "unverified"
 
+    def compute(self) -> None:
+        """Post-process: clamp all components to [0, 1]."""
+        self.existence = max(0.0, min(1.0, self.existence))
+        self.uniqueness = max(0.0, min(1.0, self.uniqueness))
+        self.cross_module = max(0.0, min(1.0, self.cross_module))
+        self.temporal = max(0.0, min(1.0, self.temporal))
 
+
+# --- Risk ---
 class RiskLevel(str, Enum):
+    NONE = "none"
     INFO = "info"
     LOW = "low"
     MEDIUM = "medium"
@@ -110,83 +97,83 @@ class RiskLevel(str, Enum):
     CRITICAL = "critical"
 
 
+class RiskFactor(BaseModel):
+    """A single risk assessment factor."""
+    rule: str = ""
+    description: str = ""
+    weight: float = 0.0
+    triggered: bool = False
+
+
 class RiskAssessment(BaseModel):
-    """Rule-based risk assessment derived from collected identifiers."""
-    level: RiskLevel = RiskLevel.INFO
-    score: int = 0  # 0..100
-    reasons: list[str] = Field(default_factory=list)
-    mitigations: list[str] = Field(default_factory=list)
+    """Rule-based risk assessment."""
+    level: RiskLevel = RiskLevel.NONE
+    score: float = 0.0
+    factors: list[RiskFactor] = Field(default_factory=list)
+    reasoning: str = ""
 
 
+# --- Timeline ---
 class TimelineEntry(BaseModel):
     """When a piece of evidence was captured."""
-    timestamp: datetime
-    source: str
-    event: str
-    value: str
-    url: Optional[str] = None
-
-
-class IdentityNode(BaseModel):
-    """A node in the identity graph: a discovered identifier or attribute."""
-    node_id: str
-    label: str
-    node_type: str  # email, phone, social, crypto, domain, name
-    value: str
-    source: str
-    reliability: Reliability = Reliability.F
+    timestamp: Optional[datetime] = None
+    source: str = ""
+    event: str = ""
+    detail: str = ""
     confidence: float = 0.0
 
 
+# --- Identity Graph ---
+class IdentityNode(BaseModel):
+    """A node in the identity graph."""
+    id: str = ""
+    label: str = ""
+    type: str = ""
+    weight: float = 0.0
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
 class IdentityEdge(BaseModel):
-    """An edge linking two identity nodes with a relationship reason."""
-    source_node: str
-    target_node: str
-    relationship: str  # co-occurrence, profile_match, email_linked, etc.
-    evidence: Optional[str] = None
+    """An edge linking two identity nodes."""
+    source_id: str = ""
+    target_id: str = ""
+    relationship: str = ""
     weight: float = 1.0
+    evidence_ids: list[str] = Field(default_factory=list)
 
 
+class IdentityGraph(BaseModel):
+    """Identity graph with nodes and edges."""
+    nodes: list[IdentityNode] = Field(default_factory=list)
+    edges: list[IdentityEdge] = Field(default_factory=list)
+
+
+# --- Pivots ---
 class PivotSuggestion(BaseModel):
     """Recommended next step for an investigator."""
-    pivot_id: str
-    action: str  # search, query, scrape
-    target: str
-    rationale: str
-    expected_yield: str  # emails, profiles, breaches, etc.
-    priority: int = 0  # higher = more important
+    target_type: str = ""
+    target_value: str = ""
+    rationale: str = ""
+    priority: int = 0
+    expected_sources: list[str] = Field(default_factory=list)
 
 
+# --- Top-level report ---
 class IntelReport(BaseModel):
-    """Top-level intel-grade report aggregating all the above."""
-    report_id: str
-    target: str
-    generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    """Top-level intel-grade report."""
+    report_id: str = ""
+    target: str = ""
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     duration_sec: float = 0.0
     iterations: int = 0
-    modules_used: list[str] = Field(default_factory=list)
-
-    identifiers: list[Any] = Field(default_factory=list)  # type: ignore[type-arg]
-    findings: list[Any] = Field(default_factory=list)  # type: ignore[type-arg]
+    modules_run: list[str] = Field(default_factory=list)
 
     evidence: list[EvidenceItem] = Field(default_factory=list)
-    confidence: dict[str, ConfidenceBreakdown] = Field(default_factory=dict)
+    confidence_by_identifier: dict[str, ConfidenceBreakdown] = Field(default_factory=dict)
     risk: RiskAssessment = Field(default_factory=RiskAssessment)
     timeline: list[TimelineEntry] = Field(default_factory=list)
-    graph_nodes: list[IdentityNode] = Field(default_factory=list)
-    graph_edges: list[IdentityEdge] = Field(default_factory=list)
+    identity_graph: IdentityGraph = Field(default_factory=IdentityGraph)
     pivots: list[PivotSuggestion] = Field(default_factory=list)
-
-    source_reliability_table: dict[str, Reliability] = Field(default_factory=dict)
-    next_steps: list[str] = Field(default_factory=list)
-    schema_version: str = "1.0.0"
-
-    @property
-    def identifier_count(self) -> int:
-        return len(self.identifiers)
-
-    @property
-    def finding_count(self) -> int:
-        return len(self.findings)
+    summary: str = ""
+    warnings: list[str] = Field(default_factory=list)

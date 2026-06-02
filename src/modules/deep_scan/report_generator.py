@@ -15,7 +15,6 @@ from __future__ import annotations
 import re
 import uuid
 from collections import Counter
-from datetime import datetime, timezone
 from typing import Any
 
 from src.modules.deep_scan.models_report import (
@@ -30,8 +29,9 @@ from src.modules.deep_scan.models_report import (
     RiskFactor,
     RiskLevel,
     TimelineEntry,
+    rate_source,
 )
-from src.modules.deep_scan import Identifier, IdentifierType
+from src.modules.deep_scan import IdentifierType
 
 
 # Risk rules — checked in order
@@ -94,43 +94,30 @@ def generate_intel_report(result: Any) -> IntelReport:
 def _extract_evidence(result: Any) -> list[EvidenceItem]:
     """Walk all findings and pull out per-observation evidence from raw_data."""
     evidence: list[EvidenceItem] = []
-    seen: set[tuple[str, str, str]] = set()
+    seen: set[tuple[str, str, str | None]] = set()
 
     for finding in result.findings:
         rd = finding.raw_data or {}
-        ident_value = None
-        ident_type = None
-
-        # Username/identifier from raw_data
-        if "username" in rd:
-            ident_value = str(rd["username"])
-            ident_type = "username"
-        elif "email" in rd:
-            ident_value = str(rd["email"])
-            ident_type = "email"
-        elif "phone" in rd:
-            ident_value = str(rd["phone"])
-            ident_type = "phone"
-        elif "address" in rd:
-            ident_value = str(rd["address"])
-            ident_type = rd.get("chain", "crypto")
-        elif "domain" in rd:
-            ident_value = str(rd["domain"])
-            ident_type = "domain"
-        elif "nik" in rd:
-            ident_value = str(rd["nik"])
-            ident_type = "nik"
-
         source = finding.module or "unknown"
         reliability = rate_source(source)
 
-        # Walk platform lists (e.g., social_osint)
+        # Collect all identifiers present in raw_data (not just first match)
+        identifiers_found: list[tuple[str, str]] = []
+        for key, target_type in [
+            ("username", "username"), ("email", "email"), ("phone", "phone"),
+            ("nik", "nik"), ("address", "crypto"), ("domain", "domain"),
+        ]:
+            if key in rd:
+                identifiers_found.append((str(rd[key]), target_type))
+
+        # Walk platform lists (e.g., social_osint) — emit per-platform evidence
         if "platforms" in rd and isinstance(rd["platforms"], list):
+            primary_ident = next((rd.get(k) for k in ["username", "email"] if k in rd), None)
             for plat in rd["platforms"]:
                 if not isinstance(plat, dict):
                     continue
                 platform = plat.get("platform", "?")
-                url = plat.get("url") or _build_platform_url(platform, ident_value or finding.title)
+                url = plat.get("url") or _build_platform_url(platform, str(primary_ident or finding.title))
                 status = plat.get("status")
                 exists = plat.get("exists")
                 ev_key = (str(url), source, platform)
@@ -139,8 +126,8 @@ def _extract_evidence(result: Any) -> list[EvidenceItem]:
                 seen.add(ev_key)
                 evidence.append(EvidenceItem(
                     id=f"ev-{uuid.uuid4().hex[:8]}",
-                    identifier_value=ident_value or platform,
-                    identifier_type=ident_type or "platform",
+                    identifier_value=str(primary_ident or platform),
+                    identifier_type="username" if primary_ident else "platform",
                     source=source,
                     source_reliability=reliability,
                     url=url,
@@ -150,24 +137,41 @@ def _extract_evidence(result: Any) -> list[EvidenceItem]:
                     confidence=0.9 if exists else 0.2,
                     notes=platform,
                 ))
+            # Platforms also emit the identifier value itself
+            if primary_ident:
+                ident_key = (str(primary_ident), source, "username")
+                if ident_key not in seen:
+                    seen.add(ident_key)
+                    evidence.append(EvidenceItem(
+                        id=f"ev-{uuid.uuid4().hex[:8]}",
+                        identifier_value=str(primary_ident),
+                        identifier_type="username",
+                        source=source,
+                        source_reliability=reliability,
+                        url=rd.get("url"),
+                        snippet=rd.get("snippet") or finding.description,
+                        raw_data=rd,
+                        confidence=0.7,
+                    ))
 
-        # Generic single-evidence finding
-        elif ident_value:
-            ev_key = (ident_value, source, ident_type)
-            if ev_key in seen:
-                continue
-            seen.add(ev_key)
-            evidence.append(EvidenceItem(
-                id=f"ev-{uuid.uuid4().hex[:8]}",
-                identifier_value=ident_value,
-                identifier_type=ident_type,
-                source=source,
-                source_reliability=reliability,
-                url=rd.get("url"),
-                snippet=rd.get("snippet") or finding.description,
-                raw_data=rd,
-                confidence=0.7,
-            ))
+        # Emit evidence for each identifier found (non-platform case)
+        else:
+            for ident_value, ident_type in identifiers_found:
+                ev_key = (ident_value, source, ident_type)
+                if ev_key in seen:
+                    continue
+                seen.add(ev_key)
+                evidence.append(EvidenceItem(
+                    id=f"ev-{uuid.uuid4().hex[:8]}",
+                    identifier_value=ident_value,
+                    identifier_type=ident_type,
+                    source=source,
+                    source_reliability=reliability,
+                    url=rd.get("url"),
+                    snippet=rd.get("snippet") or finding.description,
+                    raw_data=rd,
+                    confidence=0.7,
+                ))
 
     return evidence
 
