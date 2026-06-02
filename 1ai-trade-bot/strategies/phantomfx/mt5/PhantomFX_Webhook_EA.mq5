@@ -1,353 +1,229 @@
 //+------------------------------------------------------------------+
-//|                                        PhantomFX_Webhook_EA.mq5   |
+//|                                          PhantomFX_Webhook_EA.mq5 |
 //|                        PhantomFX | GENESIS AI Trader v4.0         |
-//|                        Webhook Receiver for MT5 Auto-Trade        |
+//|                        Polling EA — Fetches signals via WebRequest|
 //+------------------------------------------------------------------+
 #property copyright "PhantomFX - BerkahKarya"
 #property link      "https://t.me/berkahkaryaforexbotbot"
-#property version   "4.0"
-#property description "PhantomFX Webhook EA — Receives trade signals via HTTP POST"
-#property description "Usage: Set webhook URL in PhantomFX Connector to MT5"
+#property version   "4.1"
+#property description "PhantomFX EA v4.1 — Polls signal bridge for trade signals"
 
 //+------------------------------------------------------------------+
 //| INPUT PARAMETERS                                                  |
 //+------------------------------------------------------------------+
-input group "=== Webhook Server Settings ==="
-input int      WebhookPort       = 8765;        // Webhook Server Port
-input string   WebhookToken      = "phantomfx"; // Auth Token for Security
-input bool     EnableSSL         = false;       // Enable SSL (requires certificate)
+input group "=== Signal Bridge Server ==="
+input string   SignalBridgeURL   = "http://localhost:8765"; // Signal Bridge URL
+input int      PollIntervalSec   = 3;                        // Poll interval (seconds)
 
 input group "=== Risk Management ==="
-input double   DefaultRiskPercent = 1.0;        // Default Risk % per trade
-input double   MaxRiskPercent     = 2.0;        // Maximum Risk % per trade
-input double   MinRRRatio         = 1.5;        // Minimum R:R Ratio
-input int      MagicNumber        = 234000;     // EA Magic Number
+input double   DefaultRiskPercent = 1.0;       // Default Risk % per trade
+input double   MaxRiskPercent     = 2.0;       // Max Risk % per trade
+input int      MagicNumber        = 234000;    // EA Magic Number
 
 input group "=== Session Filter ==="
-input bool     FilterSessions     = true;       // Filter by trading sessions
-input bool     TradeAsian         = false;      // Allow Asian session trades
-input bool     TradeLondon        = true;       // Allow London session trades
-input bool     TradeNY            = true;       // Allow NY session trades
+input bool     FilterSessions     = true;      // Filter by trading sessions
+input bool     TradeAsian         = false;     // Allow Asian session
+input bool     TradeLondon        = true;      // Allow London session
+input bool     TradeNY            = true;      // Allow NY session
 
 input group "=== Circuit Breaker ==="
-input int      MaxDailyLosses     = 3;          // Max consecutive losses per day
-input double   MaxDailyDrawdown   = 5.0;        // Max daily drawdown % before halt
+input int      MaxDailyLosses     = 3;         // Max consecutive losses
+input double   MaxDailyDrawdown   = 5.0;       // Max daily DD % before halt
 
 //+------------------------------------------------------------------+
 //| GLOBAL VARIABLES                                                  |
 //+------------------------------------------------------------------+
-int g_webhookSocket = INVALID_HANDLE;
-bool g_webhookRunning = false;
+datetime g_lastPollTime = 0;
 datetime g_lastTradeTime = 0;
 int g_lossCountToday = 0;
 double g_startingBalance = 0;
 double g_dailyPnL = 0;
-
-// Trade tracking
-struct TradeRecord {
-   datetime open_time;
-   ulong    ticket;
-   string   symbol;
-   string   action;
-   double   entry_price;
-   double   sl;
-   double   tp;
-   double   risk_percent;
-   string   combat_style;
-   string   grade;
-   string   comment;
-};
-TradeRecord g_lastTrades[10];
-int g_tradeCount = 0;
+string g_lastSignalId = "";    // Prevent duplicate execution
+string g_statusText = "INIT";
 
 //+------------------------------------------------------------------+
-//| Expert initialization function                                     |
+//| Expert initialization                                             |
 //+------------------------------------------------------------------+
 int OnInit() {
-   Print("╔══════════════════════════════════════════════╗");
-   Print("║  PhantomFX Webhook EA v4.0 — INITIALIZED    ║");
-   Print("╚══════════════════════════════════════════════╝");
-   
    g_startingBalance = AccountInfoDouble(ACCOUNT_BALANCE);
    g_lossCountToday = LoadDailyLossCount();
    
-   PrintFormat("Balance: %.2f | Loss Count Today: %d | Magic: %d", 
+   Print("╔══════════════════════════════════════════════╗");
+   Print("║  PhantomFX EA v4.1 — INITIALIZED             ║");
+   Print("╚══════════════════════════════════════════════╝");
+   PrintFormat("Balance: %.2f | LossCount: %d | Magic: %d", 
                g_startingBalance, g_lossCountToday, MagicNumber);
-   PrintFormat("Webhook listening on port: %d | Token: %s", WebhookPort, WebhookToken);
+   PrintFormat("Bridge: %s | Poll: %ds", SignalBridgeURL, PollIntervalSec);
    
-   // Start webhook server
-   if(!StartWebhookServer()) {
-      Print("[ERROR] Failed to start webhook server!");
-      return INIT_FAILED;
-   }
+   // Verify WebRequest is allowed for the bridge URL
+   Print("⚠️  PASTIKAN WebRequest diizinkan: Tools → Options → Expert Advisors → Allow WebRequest for: ", SignalBridgeURL);
    
-   // Setup timer for housekeeping
-   EventSetTimer(60); // Every 60 seconds
+   EventSetTimer(PollIntervalSec);
+   g_statusText = "LISTENING";
    
    return INIT_SUCCEEDED;
 }
 
 //+------------------------------------------------------------------+
-//| Expert deinitialization function                                   |
+//| Expert deinitialization                                           |
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason) {
-   StopWebhookServer();
    SaveDailyLossCount();
+   EventKillTimer();
    
-   Print("╔══════════════════════════════════════════════╗");
-   PrintFormat("║  PhantomFX EA STOPPED | Reason: %d          ║", reason);
-   PrintFormat("║  Daily P&L: %.2f | Losses: %d               ║", g_dailyPnL, g_lossCountToday);
-   Print("╚══════════════════════════════════════════════╝");
+   PrintFormat("PhantomFX EA stopped | Reason: %d | Daily P&L: %.2f | Losses: %d", 
+               reason, g_dailyPnL, g_lossCountToday);
 }
 
 //+------------------------------------------------------------------+
-//| Timer function — housekeeping                                     |
+//| TIMER — Poll signal bridge                                        |
 //+------------------------------------------------------------------+
 void OnTimer() {
-   // Reset loss count at midnight
+   // Reset at midnight
    MqlDateTime dt;
    TimeCurrent(dt);
-   if(dt.hour == 0 && dt.min == 0) {
+   if(dt.hour == 0 && dt.min == 0 && dt.sec < 10) {
       g_lossCountToday = 0;
       g_startingBalance = AccountInfoDouble(ACCOUNT_BALANCE);
       SaveDailyLossCount();
    }
+   
+   // Poll signal bridge
+   PollSignalBridge();
+   
+   // Update chart comment
+   UpdateComment();
 }
 
 //+------------------------------------------------------------------+
-//| START WEBHOOK SERVER                                              |
+//| POLL SIGNAL BRIDGE                                                |
 //+------------------------------------------------------------------+
-bool StartWebhookServer() {
-   g_webhookSocket = SocketCreate();
-   if(g_webhookSocket == INVALID_HANDLE) {
-      Print("[ERROR] SocketCreate failed: ", GetLastError());
-      return false;
-   }
+void PollSignalBridge() {
+   // Don't poll too frequently
+   if(TimeCurrent() - g_lastPollTime < PollIntervalSec) return;
+   g_lastPollTime = TimeCurrent();
    
-   // Bind to all interfaces on the specified port
-   if(!SocketBind(g_webhookSocket, WebhookPort, "0.0.0.0")) {
-      Print("[ERROR] SocketBind failed on port ", WebhookPort, ": ", GetLastError());
-      return false;
-   }
+   // Fetch pending signal via WebRequest
+   string url = SignalBridgeURL + "/signal";
+   char result[];
+   string resultHeaders;
+   char postData[];
    
-   if(!SocketListen(g_webhookSocket, 5)) {
-      Print("[ERROR] SocketListen failed: ", GetLastError());
-      return false;
-   }
+   int res = WebRequest("GET", url, NULL, NULL, 2000, postData, 0, result, resultHeaders);
    
-   g_webhookRunning = true;
-   Print("[OK] Webhook server started on port ", WebhookPort);
-   return true;
-}
-
-//+------------------------------------------------------------------+
-//| STOP WEBHOOK SERVER                                               |
-//+------------------------------------------------------------------+
-void StopWebhookServer() {
-   g_webhookRunning = false;
-   if(g_webhookSocket != INVALID_HANDLE) {
-      SocketClose(g_webhookSocket);
-      g_webhookSocket = INVALID_HANDLE;
-   }
-}
-
-//+------------------------------------------------------------------+
-//| EXPERT TICK — Main loop (checks for incoming webhooks)            |
-//+------------------------------------------------------------------+
-void OnTick() {
-   if(!g_webhookRunning) return;
-   
-   // Check for incoming connections (non-blocking with short timeout)
-   int client = SocketAccept(g_webhookSocket);
-   
-   if(client != INVALID_HANDLE) {
-      // Read HTTP request
-      string request = SocketReadHTTP(client, 5000);
-      
-      if(StringLen(request) > 0) {
-         ProcessHTTPRequest(client, request);
+   if(res == -1) {
+      // Only log errors occasionally to avoid spam
+      static int errorCount = 0;
+      errorCount++;
+      if(errorCount % 20 == 0) {
+         PrintFormat("[WARN] WebRequest failed (%d times): %d", errorCount, GetLastError());
       }
-      
-      SocketClose(client);
-   }
-}
-
-//+------------------------------------------------------------------+
-//| READ HTTP REQUEST FROM SOCKET                                     |
-//+------------------------------------------------------------------+
-string SocketReadHTTP(int socket, uint timeout_ms) {
-   string data = "";
-   uint start = GetTickCount();
-   uchar buffer[];
-   
-   while(GetTickCount() - start < timeout_ms) {
-      uint len = SocketIsReadable(socket);
-      if(len > 0) {
-         ArrayResize(buffer, (int)len);
-         uint read = SocketRead(socket, buffer, len, timeout_ms);
-         if(read > 0) {
-            string chunk = CharArrayToString(buffer, 0, read);
-            data += chunk;
-            
-            // Check if HTTP request is complete (\r\n\r\n)
-            int headerEnd = StringFind(data, "\r\n\r\n");
-            if(headerEnd > 0) {
-               // Extract body if Content-Length header exists
-               int clPos = StringFind(data, "Content-Length:");
-               if(clPos >= 0) {
-                  int clEnd = StringFind(data, "\r\n", clPos);
-                  string clStr = StringSubstr(data, clPos + 15, clEnd - clPos - 15);
-                  StringTrimLeft(clStr);
-                  StringTrimRight(clStr);
-                  int contentLength = (int)StringToInteger(clStr);
-                  
-                  int bodyStart = headerEnd + 4;
-                  if(StringLen(data) - bodyStart >= contentLength) {
-                     break; // Full request received
-                  }
-               } else {
-                  break; // No body, request complete
-               }
-            }
-         }
-      }
-      Sleep(5);
-   }
-   
-   return data;
-}
-
-//+------------------------------------------------------------------+
-//| PROCESS HTTP REQUEST                                              |
-//+------------------------------------------------------------------+
-void ProcessHTTPRequest(int client, string request) {
-   // Extract JSON body from HTTP request
-   int headerEnd = StringFind(request, "\r\n\r\n");
-   string body = "";
-   if(headerEnd > 0) {
-      body = StringSubstr(request, headerEnd + 4);
-   }
-   
-   // Check authorization
-   string authHeader = ExtractHeader(request, "Authorization:");
-   if(authHeader != "" && StringFind(authHeader, "Bearer " + WebhookToken) < 0) {
-      SendHTTPResponse(client, 401, "{\"error\":\"Unauthorized\"}");
+      g_statusText = "BRIDGE_OFFLINE";
       return;
    }
    
-   if(body == "") {
-      SendHTTPResponse(client, 400, "{\"error\":\"Empty body\"}");
+   if(res != 200) {
+      g_statusText = "BRIDGE_ERR";
       return;
    }
    
-   Print("[WEBHOOK] Received: ", body);
+   string response = CharArrayToString(result, 0, ArraySize(result));
+   StringTrimLeft(response);
+   StringTrimRight(response);
    
-   // Parse and execute trade
-   bool success = ExecuteFromJSON(body);
-   
-   string response = success ? 
-      "{\"status\":\"executed\",\"timestamp\":" + IntegerToString(TimeCurrent()) + "}" :
-      "{\"status\":\"failed\",\"error\":\"Check MT5 logs\"}";
-   
-   SendHTTPResponse(client, success ? 200 : 500, response);
-}
-
-//+------------------------------------------------------------------+
-//| SEND HTTP RESPONSE                                                |
-//+------------------------------------------------------------------+
-void SendHTTPResponse(int socket, int statusCode, string body) {
-   string statusText = (statusCode == 200) ? "OK" : 
-                       (statusCode == 400) ? "Bad Request" :
-                       (statusCode == 401) ? "Unauthorized" : "Error";
-   
-   string response = StringFormat(
-      "HTTP/1.1 %d %s\r\n"
-      "Content-Type: application/json\r\n"
-      "Content-Length: %d\r\n"
-      "Connection: close\r\n"
-      "\r\n"
-      "%s",
-      statusCode, statusText, StringLen(body), body
-   );
-   
-   uchar sendBuffer[];
-   StringToCharArray(response, sendBuffer, 0, StringLen(response));
-   SocketSend(socket, sendBuffer, ArraySize(sendBuffer));
-}
-
-//+------------------------------------------------------------------+
-//| EXTRACT HTTP HEADER                                               |
-//+------------------------------------------------------------------+
-string ExtractHeader(string request, string headerName) {
-   int pos = StringFind(request, headerName);
-   if(pos < 0) return "";
-   
-   int valStart = pos + StringLen(headerName);
-   int valEnd = StringFind(request, "\r\n", valStart);
-   if(valEnd < 0) return "";
-   
-   string value = StringSubstr(request, valStart, valEnd - valStart);
-   StringTrimLeft(value);
-   StringTrimRight(value);
-   return value;
-}
-
-//+------------------------------------------------------------------+
-//| EXECUTE TRADE FROM JSON                                           |
-//+------------------------------------------------------------------+
-bool ExecuteFromJSON(string json) {
-   // Manual JSON parsing (MT5 doesn't have native JSON parser)
-   // Expected format: {"symbol":"XAUUSD","type":"OP_BUY","price":0,"sl":0,"tp":0,"risk_percent":1.0,"comment":"PhantomFX_..."}
-   
-   string symbol = GetJSONValue(json, "symbol");
-   string type = GetJSONValue(json, "type");
-   double price = StringToDouble(GetJSONValue(json, "price"));
-   double sl = StringToDouble(GetJSONValue(json, "sl"));
-   double tp = StringToDouble(GetJSONValue(json, "tp"));
-   double riskPercent = StringToDouble(GetJSONValue(json, "risk_percent"));
-   string comment = GetJSONValue(json, "comment");
-   
-   if(symbol == "" || type == "") {
-      Print("[ERROR] Missing symbol or type in JSON");
-      return false;
+   // Empty response = no signal
+   if(response == "" || response == "{}" || response == "null") {
+      g_statusText = "IDLE";
+      return;
    }
    
-   // Validate risk
-   if(riskPercent <= 0) riskPercent = DefaultRiskPercent;
-   if(riskPercent > MaxRiskPercent) riskPercent = MaxRiskPercent;
+   // Parse signal (simple key-value parsing for MQL5)
+   string signalId = ExtractValue(response, "signal_id");
+   string symbol = ExtractValue(response, "symbol");
+   string action = ExtractValue(response, "action");
+   double entry = StringToDouble(ExtractValue(response, "entry"));
+   double sl = StringToDouble(ExtractValue(response, "sl"));
+   double tp = StringToDouble(ExtractValue(response, "tp"));
+   double risk = StringToDouble(ExtractValue(response, "risk_percent"));
+   string comment = ExtractValue(response, "comment");
+   
+   // Validate
+   if(symbol == "" || action == "") {
+      g_statusText = "PARSE_ERR";
+      return;
+   }
+   
+   // Prevent duplicate execution
+   if(signalId == g_lastSignalId && signalId != "") {
+      return;
+   }
+   
+   // Acknowledge signal (mark as received)
+   AckSignal(signalId);
+   g_lastSignalId = signalId;
+   
+   PrintFormat("[SIGNAL] %s | %s | %s | Entry:%.2f SL:%.2f TP:%.2f Risk:%.1f%%", 
+               signalId, symbol, action, entry, sl, tp, risk);
+   
+   // Execute trade
+   ExecuteSignal(symbol, action, entry, sl, tp, risk, comment);
+}
+
+//+------------------------------------------------------------------+
+//| EXECUTE SIGNAL AS TRADE                                           |
+//+------------------------------------------------------------------+
+void ExecuteSignal(string symbol, string action, double entry, 
+                   double sl, double tp, double risk, string comment) {
    
    // Circuit breaker check
    if(g_lossCountToday >= MaxDailyLosses) {
-      Print("[CIRCUIT BREAKER] Max daily losses reached (", g_lossCountToday, "). Trade blocked.");
-      Comment("🔴 CIRCUIT BREAKER ACTIVE | Losses: ", g_lossCountToday, "/", MaxDailyLosses);
-      return false;
+      Print("[CIRCUIT BREAKER] Max losses reached: ", g_lossCountToday, "/", MaxDailyLosses);
+      g_statusText = "CB_ACTIVE";
+      return;
    }
    
-   // Check daily drawdown
-   double currentEquity = AccountInfoDouble(ACCOUNT_EQUITY);
-   double dailyDD = (g_startingBalance - currentEquity) / g_startingBalance * 100;
-   if(dailyDD > MaxDailyDrawdown) {
-      Print("[CIRCUIT BREAKER] Max daily DD reached: ", dailyDD, "%");
-      return false;
+   // Drawdown check
+   double equity = AccountInfoDouble(ACCOUNT_EQUITY);
+   double dd = (g_startingBalance - equity) / g_startingBalance * 100;
+   if(dd > MaxDailyDrawdown) {
+      Print("[CIRCUIT BREAKER] Max DD: ", DoubleToString(dd, 1), "%");
+      g_statusText = "DD_LIMIT";
+      return;
    }
    
    // Session filter
    if(FilterSessions && !IsValidSession()) {
-      Print("[SESSION] Outside allowed trading session");
-      return false;
+      Print("[SESSION] Outside trading session");
+      g_statusText = "OUTSIDE_SESSION";
+      return;
+   }
+   
+   // Skip/Hold
+   if(action == "HOLD" || action == "SKIP") {
+      Print("[HOLD] Signal is HOLD/SKIP");
+      g_statusText = "HOLD";
+      return;
    }
    
    // Validate symbol
-   if(SymbolInfoDouble(symbol, SYMBOL_BID) == 0) {
+   double bid = SymbolInfoDouble(symbol, SYMBOL_BID);
+   double ask = SymbolInfoDouble(symbol, SYMBOL_ASK);
+   if(bid == 0 || ask == 0) {
       Print("[ERROR] Symbol not found: ", symbol);
-      return false;
+      g_statusText = "BAD_SYMBOL";
+      return;
    }
    
-   // Calculate position size based on risk
-   double lotSize = CalculateLotSize(symbol, sl, price, riskPercent);
-   if(lotSize <= 0) {
-      Print("[ERROR] Invalid lot size calculation");
-      return false;
+   // Default risk
+   if(risk <= 0) risk = DefaultRiskPercent;
+   if(risk > MaxRiskPercent) risk = MaxRiskPercent;
+   
+   // Calculate lot size
+   double lot = CalculateLotSize(symbol, sl, entry, risk);
+   if(lot <= 0) {
+      Print("[ERROR] Invalid lot size");
+      g_statusText = "LOT_ERR";
+      return;
    }
    
    // Prepare trade request
@@ -356,23 +232,20 @@ bool ExecuteFromJSON(string json) {
    
    req.action = TRADE_ACTION_DEAL;
    req.symbol = symbol;
-   req.volume = lotSize;
+   req.volume = lot;
    req.magic = MagicNumber;
    req.comment = comment;
    req.type_filling = ORDER_FILLING_IOC;
    
-   if(type == "OP_BUY") {
+   if(action == "BUY") {
       req.type = ORDER_TYPE_BUY;
-      req.price = SymbolInfoDouble(symbol, SYMBOL_ASK);
-   } else if(type == "OP_SELL") {
+      req.price = ask;
+   } else if(action == "SELL") {
       req.type = ORDER_TYPE_SELL;
-      req.price = SymbolInfoDouble(symbol, SYMBOL_BID);
-   } else if(type == "SKIP" || type == "HOLD") {
-      Print("[HOLD] Signal is SKIP/HOLD — no trade placed");
-      return true;
+      req.price = bid;
    } else {
-      Print("[ERROR] Unknown order type: ", type);
-      return false;
+      Print("[ERROR] Unknown action: ", action);
+      return;
    }
    
    // Set SL/TP
@@ -381,35 +254,38 @@ bool ExecuteFromJSON(string json) {
    
    // Execute
    if(!OrderSend(req, res)) {
-      Print("[ERROR] OrderSend failed: ", res.comment, " | Error: ", GetLastError());
-      
-      // Handle specific errors
-      if(res.retcode == TRADE_RETCODE_REJECT || res.retcode == TRADE_RETCODE_ERROR) {
-         return false;
-      }
+      Print("[ERROR] OrderSend failed: ", res.comment, " | Retcode: ", res.retcode);
+      g_statusText = "ORDER_FAIL";
+      return;
    }
    
    if(res.retcode == TRADE_RETCODE_DONE || res.retcode == TRADE_RETCODE_DONE_PARTIAL) {
-      Print("[TRADE EXECUTED] Ticket: ", res.order, 
-            " | ", symbol, " | ", type, 
-            " | Lot: ", lotSize, 
-            " | Price: ", res.price,
-            " | SL: ", sl, " | TP: ", tp,
-            " | Comment: ", comment);
-      
-      // Track trade
-      TrackTrade(res.order, symbol, type, res.price, sl, tp, riskPercent, comment);
+      PrintFormat("[EXECUTED] Ticket:%d | %s %s | Lot:%.2f Price:%.2f SL:%.2f TP:%.2f", 
+                  res.order, symbol, action, lot, res.price, sl, tp);
       g_lastTradeTime = TimeCurrent();
-      
-      return true;
+      g_statusText = "TRADED";
    } else {
-      Print("[ERROR] Trade failed: retcode=", res.retcode, " | ", res.comment);
-      return false;
+      Print("[ERROR] Trade failed: retcode=", res.retcode);
+      g_statusText = "TRADE_FAIL";
    }
 }
 
 //+------------------------------------------------------------------+
-//| CALCULATE LOT SIZE BASED ON RISK %                                |
+//| ACKNOWLEDGE SIGNAL (mark as processed)                             |
+//+------------------------------------------------------------------+
+void AckSignal(string signalId) {
+   if(signalId == "") return;
+   
+   string url = SignalBridgeURL + "/ack/" + signalId;
+   char result[];
+   string resultHeaders;
+   char postData[];
+   
+   WebRequest("POST", url, NULL, NULL, 2000, postData, 0, result, resultHeaders);
+}
+
+//+------------------------------------------------------------------+
+//| CALCULATE LOT SIZE                                                |
 //+------------------------------------------------------------------+
 double CalculateLotSize(string symbol, double sl, double entry, double riskPercent) {
    double balance = AccountInfoDouble(ACCOUNT_BALANCE);
@@ -418,26 +294,20 @@ double CalculateLotSize(string symbol, double sl, double entry, double riskPerce
    double tickValue = SymbolInfoDouble(symbol, SYMBOL_TRADE_TICK_VALUE);
    double tickSize = SymbolInfoDouble(symbol, SYMBOL_TRADE_TICK_SIZE);
    double point = SymbolInfoDouble(symbol, SYMBOL_POINT);
+   double lotStep = SymbolInfoDouble(symbol, SYMBOL_VOLUME_STEP);
+   double lotMin = SymbolInfoDouble(symbol, SYMBOL_VOLUME_MIN);
+   double lotMax = SymbolInfoDouble(symbol, SYMBOL_VOLUME_MAX);
    
-   if(tickValue <= 0 || tickSize <= 0) {
-      Print("[ERROR] Cannot get symbol info for ", symbol);
-      return 0.01; // Fallback to minimum
-   }
+   if(tickValue <= 0 || tickSize <= 0 || point <= 0) return lotMin;
    
    double slPoints;
    if(sl > 0 && entry > 0) {
       slPoints = MathAbs(entry - sl) / point;
    } else {
-      // Default SL: 30 pips
-      slPoints = 300;
+      slPoints = 300; // Default 30 pips
    }
    
    double lotSize = riskAmount / (slPoints * tickValue * (point / tickSize) * 10);
-   
-   // Round to valid step
-   double lotStep = SymbolInfoDouble(symbol, SYMBOL_VOLUME_STEP);
-   double lotMin = SymbolInfoDouble(symbol, SYMBOL_VOLUME_MIN);
-   double lotMax = SymbolInfoDouble(symbol, SYMBOL_VOLUME_MAX);
    
    lotSize = MathRound(lotSize / lotStep) * lotStep;
    lotSize = MathMax(lotMin, MathMin(lotMax, lotSize));
@@ -446,49 +316,15 @@ double CalculateLotSize(string symbol, double sl, double entry, double riskPerce
 }
 
 //+------------------------------------------------------------------+
-//| TRACK TRADE IN RECORDS                                            |
-//+------------------------------------------------------------------+
-void TrackTrade(ulong ticket, string symbol, string action, double entry,
-                double sl, double tp, double risk, string comment) {
-   g_tradeCount++;
-   
-   // Shift array
-   for(int i = 9; i > 0; i--) {
-      g_lastTrades[i] = g_lastTrades[i-1];
-   }
-   
-   g_lastTrades[0].open_time = TimeCurrent();
-   g_lastTrades[0].ticket = ticket;
-   g_lastTrades[0].symbol = symbol;
-   g_lastTrades[0].action = action;
-   g_lastTrades[0].entry_price = entry;
-   g_lastTrades[0].sl = sl;
-   g_lastTrades[0].tp = tp;
-   g_lastTrades[0].risk_percent = risk;
-   g_lastTrades[0].comment = comment;
-}
-
-//+------------------------------------------------------------------+
-//| CHECK IF CURRENT SESSION IS VALID                                 |
+//| SESSION FILTER                                                    |
 //+------------------------------------------------------------------+
 bool IsValidSession() {
-   datetime serverTime = TimeCurrent();
    MqlDateTime dt;
-   TimeToStruct(serverTime, dt);
+   TimeCurrent(dt);
+   int hour = dt.hour; // Server time (usually UTC)
    
-   int hour = dt.hour;
-   
-   // WIB = UTC+7, server time may vary
-   // Asian: 22-07 UTC → London: 07-16 UTC → NY: 12-21 UTC
-   // Simplified by allowing all but Asian if configured
-   
-   // London session: 08:00-17:00 UTC
    if(hour >= 8 && hour < 17 && TradeLondon) return true;
-   
-   // NY session: 13:00-22:00 UTC  
    if(hour >= 13 && hour < 22 && TradeNY) return true;
-   
-   // Asian session: 23:00-08:00 UTC
    if((hour >= 23 || hour < 8) && TradeAsian) return true;
    
    return false;
@@ -497,65 +333,69 @@ bool IsValidSession() {
 //+------------------------------------------------------------------+
 //| SIMPLE JSON VALUE EXTRACTOR                                       |
 //+------------------------------------------------------------------+
-string GetJSONValue(string json, string key) {
+string ExtractValue(string json, string key) {
    string search = "\"" + key + "\"";
    int pos = StringFind(json, search);
    if(pos < 0) return "";
    
-   // Find the colon after the key
-   int colonPos = StringFind(json, ":", pos);
-   if(colonPos < 0) return "";
+   int colon = StringFind(json, ":", pos);
+   if(colon < 0) return "";
    
-   // Skip whitespace
-   int valStart = colonPos + 1;
-   while(valStart < StringLen(json)) {
-      ushort ch = StringGetCharacter(json, valStart);
-      if(ch != ' ' && ch != '\t' && ch != '\n' && ch != '\r') break;
-      valStart++;
+   int start = colon + 1;
+   while(start < StringLen(json)) {
+      ushort c = StringGetCharacter(json, start);
+      if(c != ' ' && c != '\t' && c != '\n' && c != '\r') break;
+      start++;
    }
    
-   if(valStart >= StringLen(json)) return "";
+   if(start >= StringLen(json)) return "";
    
-   ushort firstChar = StringGetCharacter(json, valStart);
+   ushort first = StringGetCharacter(json, start);
    
-   if(firstChar == '"') {
-      // String value
-      valStart++; // skip opening quote
-      int valEnd = StringFind(json, "\"", valStart);
-      if(valEnd < 0) return "";
-      return StringSubstr(json, valStart, valEnd - valStart);
+   if(first == '"') {
+      start++;
+      int end = StringFind(json, "\"", start);
+      if(end < 0) return "";
+      return StringSubstr(json, start, end - start);
    } else {
-      // Numeric or boolean value
-      int valEnd = valStart;
-      while(valEnd < StringLen(json)) {
-         ushort ch = StringGetCharacter(json, valEnd);
-         if(ch == ',' || ch == '}' || ch == ']' || ch == ' ' || ch == '\n' || ch == '\r') break;
-         valEnd++;
+      int end = start;
+      while(end < StringLen(json)) {
+         ushort c = StringGetCharacter(json, end);
+         if(c == ',' || c == '}' || c == ']' || c == '\n' || c == '\r') break;
+         end++;
       }
-      return StringSubstr(json, valStart, valEnd - valStart);
+      string val = StringSubstr(json, start, end - start);
+      StringTrimLeft(val);
+      StringTrimRight(val);
+      return val;
    }
 }
 
 //+------------------------------------------------------------------+
-//| LOAD/SAVE DAILY LOSS COUNT                                        |
+//| DAILY LOSS COUNT                                                  |
 //+------------------------------------------------------------------+
 int LoadDailyLossCount() {
-   // Load from global variable
-   if(GlobalVariableCheck("PhantomFX_DailyLoss_" + IntegerToString(DayOfYear()))) {
-      return (int)GlobalVariableGet("PhantomFX_DailyLoss_" + IntegerToString(DayOfYear()));
+   string gvName = "PFX_Loss_" + IntegerToString(DayOfYear());
+   if(GlobalVariableCheck(gvName)) {
+      return (int)GlobalVariableGet(gvName);
    }
    return 0;
 }
 
 void SaveDailyLossCount() {
-   GlobalVariableSet("PhantomFX_DailyLoss_" + IntegerToString(DayOfYear()), g_lossCountToday);
+   GlobalVariableSet("PFX_Loss_" + IntegerToString(DayOfYear()), g_lossCountToday);
+}
+
+int DayOfYear() {
+   MqlDateTime dt;
+   TimeCurrent(dt);
+   return dt.day_of_year;
 }
 
 //+------------------------------------------------------------------+
-//| ON TRADE EVENT — Track wins/losses                                |
+//| ON TRADE EVENT                                                    |
 //+------------------------------------------------------------------+
 void OnTrade() {
-   // Check recently closed positions
    HistorySelect(TimeCurrent() - 86400, TimeCurrent());
    int total = HistoryDealsTotal();
    
@@ -569,13 +409,10 @@ void OnTrade() {
                
                if(profit < 0) {
                   g_lossCountToday++;
-                  PrintFormat("[LOSS #%d] Ticket: %d | PnL: %.2f", 
-                             g_lossCountToday, ticket, profit);
                } else {
-                  g_lossCountToday = 0; // Reset on win
-                  PrintFormat("[WIN] Ticket: %d | PnL: %.2f | Loss streak reset", 
-                             ticket, profit);
+                  g_lossCountToday = 0;
                }
+               SaveDailyLossCount();
             }
          }
       }
@@ -583,37 +420,37 @@ void OnTrade() {
 }
 
 //+------------------------------------------------------------------+
-//| UTILITY: Day of Year                                              |
+//| CHART COMMENT                                                     |
 //+------------------------------------------------------------------+
-int DayOfYear() {
-   MqlDateTime dt;
-   TimeCurrent(dt);
-   return dt.day_of_year;
-}
-
-//+------------------------------------------------------------------+
-//| ON CHART EVENT — Comment display                                  |
-//+------------------------------------------------------------------+
-void OnChartEvent(const int id, const long &lparam, const double &dparam, const string &sparam) {
-   if(id == CHARTEVENT_CLICK) {
-      // Show status on click
-      string status = StringFormat(
-         "⚡ PhantomFX EA v4.0\n"
-         "━━━━━━━━━━━━━━━━━━━━\n"
-         "Port: %d | Token: %s\n"
-         "Balance: %.2f | Losses: %d/%d\n"
-         "Daily P&L: %.2f | DD: %.2f%%\n"
-         "Last Trade: %s\n"
-         "━━━━━━━━━━━━━━━━━━━━\n"
-         "Status: %s",
-         WebhookPort, WebhookToken,
-         AccountInfoDouble(ACCOUNT_BALANCE), g_lossCountToday, MaxDailyLosses,
-         g_dailyPnL, (g_startingBalance - AccountInfoDouble(ACCOUNT_EQUITY)) / g_startingBalance * 100,
-         TimeToString(g_lastTradeTime),
-         g_webhookRunning ? "🟢 LISTENING" : "🔴 STOPPED"
-      );
-      Comment(status);
-   }
+void UpdateComment() {
+   double equity = AccountInfoDouble(ACCOUNT_EQUITY);
+   double dd = g_startingBalance > 0 ? (g_startingBalance - equity) / g_startingBalance * 100 : 0;
+   
+   string status;
+   if(g_statusText == "LISTENING" || g_statusText == "IDLE") 
+      status = "🟢 " + g_statusText;
+   else if(g_statusText == "TRADED")
+      status = "🔵 " + g_statusText;
+   else if(g_statusText == "HOLD")
+      status = "🟡 " + g_statusText;
+   else
+      status = "🔴 " + g_statusText;
+   
+   Comment(
+      "⚡ PhantomFX EA v4.1",
+      "━━━━━━━━━━━━━━━━━━━━",
+      "Status: ", status,
+      "Bridge: ", SignalBridgeURL,
+      "Poll: ", PollIntervalSec, "s",
+      "━━━━━━━━━━━━━━━━━━━━",
+      "Balance: ", DoubleToString(AccountInfoDouble(ACCOUNT_BALANCE), 2),
+      "Equity: ", DoubleToString(equity, 2),
+      "Losses: ", g_lossCountToday, "/", MaxDailyLosses,
+      "Daily P&L: ", DoubleToString(g_dailyPnL, 2),
+      "DD: ", DoubleToString(dd, 1), "%",
+      "━━━━━━━━━━━━━━━━━━━━",
+      "Last: ", TimeToString(g_lastTradeTime)
+   );
 }
 
 //+------------------------------------------------------------------+

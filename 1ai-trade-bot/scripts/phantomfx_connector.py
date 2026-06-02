@@ -78,7 +78,11 @@ def _load_env():
 
 _load_env()
 
-MT5_ROUTER_URL = os.environ.get("MT5_ROUTER_URL", "http://localhost:8080")
+# Path A: Signal Bridge → MT5 EA polling (RECOMMENDED)
+SIGNAL_BRIDGE_URL = os.environ.get("SIGNAL_BRIDGE_URL", "http://localhost:8765")
+
+# Path B: MT5 Router (optional — for multi-instance management)
+MT5_ROUTER_URL = os.environ.get("MT5_ROUTER_URL", "")
 MT5_ROUTER_API_KEY = os.environ.get("MT5_ROUTER_API_KEY", "")
 MT5_INSTANCE_ID = os.environ.get("MT5_INSTANCE_ID", "mt5-default")
 
@@ -242,68 +246,46 @@ def send_telegram(message: str, parse_mode: str = "MarkdownV2") -> bool:
         return False
 
 
-def send_to_mt5_router(parsed: Dict[str, Any]) -> Tuple[bool, str]:
-    """Send trade signal to MT5 Router API."""
-    if not parsed.get("mt5_webhook", {}).get("ready"):
-        return False, "MT5 webhook not ready"
+def send_to_signal_bridge(parsed: Dict[str, Any]) -> Tuple[bool, str]:
+    """Send trade signal to Signal Bridge -> MT5 EA polls and executes.
 
-    webhook = parsed["mt5_webhook"]
+    Architecture:
+        Connector POST /signal -> Signal Bridge (in-memory queue)
+        MT5 EA GET /signal (every 3s) -> receives and executes
+        MT5 EA POST /ack/{id} -> marks as processed
+    """
     action = parsed.get("action", "HOLD").upper()
+    webhook = parsed.get("mt5_webhook", {})
 
     if action == "HOLD" or webhook.get("type") == "SKIP":
         return False, "Signal is HOLD/SKIP"
 
-    # Map to MT5 Router order format
-    order = {
+    payload = {
+        "signal_id": parsed.get("cycle_id", f"pfx_{int(time.time()*1000)}"),
         "symbol": webhook.get("symbol", parsed.get("symbol", "XAUUSD")),
-        "order_type": "OP_BUY" if action == "BUY" else "OP_SELL",
-        "volume": 0.01,  # Default, risk-based sizing done by EA
+        "action": action,
+        "entry": webhook.get("price", parsed.get("entry", 0)),
         "sl": webhook.get("sl", parsed.get("sl", 0)),
         "tp": webhook.get("tp", parsed.get("tp", 0)),
+        "risk_percent": webhook.get("risk_percent", 1.0),
         "comment": webhook.get("comment", f"PhantomFX_{parsed.get('combat_style','AUTO')}"),
-    }
-
-    headers = {"Content-Type": "application/json"}
-    if MT5_ROUTER_API_KEY:
-        headers["X-API-Key"] = MT5_ROUTER_API_KEY
-
-    # Try MT5 Router webhook endpoint first
-    url = f"{MT5_ROUTER_URL}/api/v1/webhooks/receive"
-    payload = {
-        "event_type": "phantomfx_signal",
-        "payload": {
-            "symbol": order["symbol"],
-            "action": "BUY" if order["order_type"] == "OP_BUY" else "SELL",
-            "volume": order["volume"],
-            "sl": order["sl"],
-            "tp": order["tp"],
-            "comment": order["comment"],
-        },
+        "grade": parsed.get("grade", ""),
+        "combat_style": parsed.get("combat_style", ""),
     }
 
     try:
-        resp = requests.post(url, json=payload, headers=headers, timeout=10)
-        logger.info(f"MT5 webhook response: {resp.status_code} {resp.text}")
+        resp = requests.post(f"{SIGNAL_BRIDGE_URL}/signal", json=payload, timeout=10)
+        logger.info(f"Signal bridge response: {resp.status_code} {resp.text}")
         if resp.status_code in (200, 201):
-            return True, f"Webhook accepted: {resp.json().get('status', 'ok')}"
-        else:
-            return False, f"Webhook failed: {resp.status_code}"
+            data = resp.json()
+            sid = data.get("signal_id", "unknown")
+            return True, f"Signal queued: {sid} (EA polling...)"
+        return False, f"Bridge rejected: {resp.status_code}"
     except requests.exceptions.ConnectionError:
-        # Try direct trading API as fallback
-        logger.info("Webhook endpoint unreachable, trying direct trading API...")
-        try:
-            trade_url = f"{MT5_ROUTER_URL}/api/v1/trading/orders?instance_id={MT5_INSTANCE_ID}"
-            resp = requests.post(trade_url, json=order, headers=headers, timeout=10)
-            logger.info(f"MT5 trading API response: {resp.status_code}")
-            if resp.status_code in (200, 201):
-                data = resp.json()
-                ticket = data.get("ticket", "unknown")
-                return True, f"Order placed: ticket {ticket}"
-            return False, f"Trading API failed: {resp.status_code} {resp.text}"
-        except Exception as e:
-            return False, f"Trading API error: {e}"
+        logger.warning(f"Signal bridge unreachable at {SIGNAL_BRIDGE_URL}")
+        return False, "Signal bridge offline"
     except Exception as e:
-        return False, f"MT5 Router error: {e}"
+        return False, f"Signal bridge error: {e}"
 
 
 def log_trade(parsed: Dict[str, Any], status: str, result: str):
@@ -402,7 +384,7 @@ def process_output(text: str, dry_run: bool = False, telegram_only: bool = False
             result["mt5_sent"] = True
             result["details"] = "Dry run — no trade executed"
         else:
-            success, detail = send_to_mt5_router(parsed)
+            success, detail = send_to_signal_bridge(parsed)
             result["mt5_sent"] = success
             result["details"] = detail
             log_trade(parsed, "success" if success else "failed", detail)
