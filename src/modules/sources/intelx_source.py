@@ -57,10 +57,17 @@ class IntelxSource:
                         if result_resp.status_code == 200:
                             results = result_resp.json()
                             for record in results.get("records", []):
+                                structured: dict[str, str] = {}
+                                if isinstance(record, dict):
+                                    for field in ("name", "email", "username", "phone", "domain", "password", "ip"):
+                                        val = record.get(field, "")
+                                        if val:
+                                            structured[field] = str(val)
                                 leaks.append(RawLeak(
                                     text=str(record),
                                     source_name="intelx",
                                     source_url=f"https://intelx.io/?s={address}",
+                                    metadata=structured,
                                 ))
             except Exception as exc:
                 logger.debug("Intelligence X error for '%s': %s", address, exc)

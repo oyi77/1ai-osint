@@ -48,11 +48,21 @@ class HIBPSource:
                 if resp.status_code == 200:
                     breaches = resp.json()
                     for breach in breaches:
+                        data_classes = breach.get("DataClasses", [])
+                        structured: dict[str, object] = {
+                            "breach_name": str(breach.get("Name", "")),
+                            "breach_date": str(breach.get("BreachDate", "")),
+                            "data_classes": data_classes if isinstance(data_classes, list) else [],
+                        }
+                        for k in ("Description", "Domain"):
+                            if breach.get(k):
+                                structured[k.lower()] = str(breach[k])
                         leaks.append(RawLeak(
                             text=f"Breach: {breach.get('Name', '')} on {breach.get('BreachDate', '')}\n"
-                                 f"Data classes: {', '.join(breach.get('DataClasses', []))}",
+                                 f"Data classes: {', '.join(data_classes)}",
                             source_name="hibp",
                             source_url=f"https://haveibeenpwned.com/account/{address}",
+                            metadata=dict(structured),
                         ))
                 elif resp.status_code == 404:
                     # No breaches found

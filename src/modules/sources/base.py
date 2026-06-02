@@ -11,6 +11,7 @@ class RawLeak:
     source_name: str
     source_url: str = ""
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    metadata: dict = field(default_factory=dict)
 
 
 class BaseLeakSource(ABC):

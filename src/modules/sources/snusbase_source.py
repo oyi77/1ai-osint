@@ -49,10 +49,17 @@ class SnusbaseSource:
                     for table, entries in results.items():
                         if isinstance(entries, list):
                             for entry in entries:
+                                structured: dict[str, str] = {"breach_name": table}
+                                if isinstance(entry, dict):
+                                    for field in ("email", "username", "phone", "password", "password_hash", "name"):
+                                        val = entry.get(field, "")
+                                        if val:
+                                            structured[field] = str(val)
                                 leaks.append(RawLeak(
                                     text=f"Table: {table}\n{str(entry)[:5000]}",
                                     source_name="snusbase",
                                     source_url=f"https://snusbase.com/search?q={address}",
+                                    metadata=structured,
                                 ))
             except Exception as exc:
                 logger.debug("Snusbase error for '%s': %s", address, exc)

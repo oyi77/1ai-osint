@@ -46,10 +46,18 @@ class LeakcheckSource:
                     data = resp.json()
                     if data.get("found", 0) > 0:
                         for entry in data.get("sources", []):
+                            structured: dict[str, str] = {}
+                            if isinstance(entry, dict):
+                                for field in ("name", "date", "email", "username", "password", "phone"):
+                                    val = entry.get(field, "")
+                                    if val:
+                                        key = "breach_name" if field == "name" else field
+                                        structured[key] = str(val)
                             leaks.append(RawLeak(
                                 text=f"Leak found for {address}: {entry}",
                                 source_name="leakcheck",
                                 source_url=f"https://leakcheck.io/check/{address}",
+                                metadata=structured,
                             ))
             except Exception as exc:
                 logger.debug("LeakCheck error for '%s': %s", address, exc)

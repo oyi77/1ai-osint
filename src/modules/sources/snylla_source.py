@@ -47,10 +47,18 @@ class ScyllaSource:
                     results = resp.json()
                     if isinstance(results, list):
                         for entry in results:
+                            structured: dict[str, str] = {}
+                            if isinstance(entry, dict):
+                                for field in ("email", "username", "phone", "domain", "password",
+                                              "password_hash", "name", "ip_address"):
+                                    val = entry.get(field, "")
+                                    if val:
+                                        structured[field] = str(val)
                             leaks.append(RawLeak(
                                 text=str(entry)[:5000],
                                 source_name="scylla",
                                 source_url=f"https://scylla.sh/search?q={address}",
+                                metadata=structured,
                             ))
             except Exception as exc:
                 logger.debug("Scylla error for '%s': %s", address, exc)

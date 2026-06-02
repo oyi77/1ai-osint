@@ -52,13 +52,22 @@ class DehashedSource:
                 if resp.status_code == 200:
                     data = resp.json()
                     entries = data.get("entries", [])
-                    if entries:
-                        for entry in entries:
-                            leaks.append(RawLeak(
-                                text=str(entry)[:5000],
-                                source_name="dehashed",
-                                source_url=f"https://dehashed.com/search?query={address}",
-                            ))
+                    for entry in entries:
+                        structured: dict[str, str] = {}
+                        if isinstance(entry, dict):
+                            for field in ("email", "username", "phone", "name", "domain", "password",
+                                          "hashed_password", "ip_address", "address", "database_name"):
+                                val = entry.get(field, "")
+                                if val:
+                                    key = "password_hash" if field == "hashed_password" else (
+                                          "breach_name" if field == "database_name" else field)
+                                    structured[key] = str(val)
+                        leaks.append(RawLeak(
+                            text=str(entry)[:5000],
+                            source_name="dehashed",
+                            source_url=f"https://dehashed.com/search?query={address}",
+                            metadata=structured,
+                        ))
             except Exception as exc:
                 logger.debug("DeHashed error for '%s': %s", address, exc)
         return leaks
