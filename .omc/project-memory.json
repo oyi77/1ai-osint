@@ -25,7 +25,7 @@
   },
   "build": {
     "buildCommand": null,
-    "testCommand": "rm -f .coverage && python -m pytest tests/unit/ -q --tb=short --no-header 2>&1 | tail -5",
+    "testCommand": "rm -f .coverage && python -m pytest tests/ -q --tb=short --no-header -o \"addopts=\" -p no:cov 2>&1 | tail -3",
     "lintCommand": "ruff check",
     "devCommand": null,
     "scripts": {}
