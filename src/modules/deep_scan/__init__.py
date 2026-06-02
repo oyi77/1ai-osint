@@ -61,6 +61,7 @@ class DeepScanResult:
     iterations: int = 0
     max_iterations: int = 10
     errors: list[str] = field(default_factory=list)
+    zkit_result: Optional[Any] = None  # CorrelationResult from identity_tracking
 
     @property
     def duration_sec(self) -> float:

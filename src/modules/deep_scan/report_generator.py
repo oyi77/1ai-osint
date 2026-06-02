@@ -45,6 +45,11 @@ _RISK_RULES: list[tuple[str, str, str, float, RiskLevel]] = [
     ("multi_platform_corroboration", "_has_3plus_platforms", "Username confirmed on 3+ platforms (high visibility)", 0.3, RiskLevel.MEDIUM),
     ("phone_present", "_has_phone", "Phone number exposed", 0.3, RiskLevel.MEDIUM),
     ("email_present", "_has_email", "Email exposed", 0.2, RiskLevel.LOW),
+    ("nik_plus_address_plus_phone", "_has_nik_address_phone", "NIK + address + phone (full KYC exposure)", 0.8, RiskLevel.CRITICAL),
+    ("multi_breach_credentials", "_has_multi_breach_password", "Password found in 2+ breaches", 0.9, RiskLevel.CRITICAL),
+    ("password_plus_email", "_has_password_email", "Password + email combo leaked", 0.8, RiskLevel.CRITICAL),
+    ("dob_plus_nik", "_has_dob_nik", "Date of birth + NIK (identity theft risk)", 0.6, RiskLevel.HIGH),
+    ("crypto_key_leak", "_has_crypto_key", "Crypto private key or seed phrase in raw data", 0.9, RiskLevel.CRITICAL),
 ]
 
 
@@ -80,6 +85,11 @@ def generate_intel_report(result: Any) -> IntelReport:
 
     # Pivots
     report.pivots = _suggest_pivots(result, evidence)
+
+    # ZKIT correlation
+    if getattr(result, 'zkit_result', None):
+        report.correlation_clusters = _build_correlation(result.zkit_result)
+        report.correlation_stats = result.zkit_result.graph_stats if hasattr(result.zkit_result, 'graph_stats') else {}
 
     # Summary + warnings
     report.summary = _summarize(result, evidence, report.risk)
@@ -247,7 +257,6 @@ def _assess_risk(result: Any, evidence: list[EvidenceItem]) -> RiskAssessment:
 
     # Build identifier-value set for risk rules
     values = {ev.identifier_value for ev in evidence if ev.identifier_value}
-    has_value = lambda predicate: any(predicate(v) for v in values)
 
     factors: list[RiskFactor] = []
 
@@ -323,6 +332,44 @@ def _has_phone(values: set) -> bool:
 
 def _has_email(values: set) -> bool:
     return any("@" in v and "." in v for v in values)
+
+
+def _has_nik_address_phone(values: set) -> bool:
+    has_nik = any(re.match(r"^\d{16}$", v.replace(" ", "")) for v in values)
+    has_phone = any(re.match(r"^\+?\d[\d\-\s]{6,}$", v) for v in values)
+    has_address = any(
+        ("street" in v.lower() or "jalan" in v.lower() or "address" in v.lower())
+        for v in values
+    )
+    return has_nik and has_address and has_phone
+
+
+def _has_multi_breach_password(values: set) -> bool:
+    return any("breach" in v.lower() and "password" in v.lower() for v in values)
+
+
+def _has_password_email(values: set) -> bool:
+    has_pw = any("password" in v.lower() or "passwd" in v.lower() for v in values)
+    has_email = any("@" in v and "." in v for v in values)
+    return has_pw and has_email
+
+
+def _has_dob_nik(values: set) -> bool:
+    has_nik = any(re.match(r"^\d{16}$", v.replace(" ", "")) for v in values)
+    has_dob = any(
+        re.match(r"\d{4}[-/]\d{2}[-/]\d{2}", v) or re.match(r"\d{2}[-/]\d{2}[-/]\d{4}", v)
+        for v in values
+    )
+    return has_dob and has_nik
+
+
+def _has_crypto_key(values: set) -> bool:
+    return any(
+        "private_key" in v.lower() or "privatekey" in v.lower()
+        or "seed phrase" in v.lower() or "mnemonic" in v.lower()
+        or "0x" in v and len(v) == 66  # raw private key hex
+        for v in values
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -497,3 +544,21 @@ def _collect_warnings(result: Any, evidence: list[EvidenceItem]) -> list[str]:
     if low_conf:
         warnings.append(f"{len(low_conf)} low-confidence evidence item(s) — verify manually")
     return warnings
+
+
+# ---------------------------------------------------------------------------
+# ZKIT correlation
+# ---------------------------------------------------------------------------
+def _build_correlation(zkit_result: Any) -> list[dict]:
+    """Convert ZKIT CorrelationResult to serializable dicts for the report."""
+    clusters: list[dict] = []
+    for entity in getattr(zkit_result, 'resolved_entities', []):
+        clusters.append({
+            "entity_id": getattr(entity, 'entity_id', ''),
+            "zkit_hashes": getattr(entity, 'zkit_hashes', []),
+            "attribute_types": getattr(entity, 'attribute_types', {}),
+            "confidence": getattr(entity, 'confidence', 0.0),
+            "source_modules": getattr(entity, 'source_modules', []),
+            "evidence": getattr(entity, 'correlation_evidence', []),
+        })
+    return clusters

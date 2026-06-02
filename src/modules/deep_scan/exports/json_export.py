@@ -119,4 +119,27 @@ def _to_dict(report: IntelReport) -> dict[str, Any]:
             }
             for p in report.pivots
         ],
+        "correlation": {
+            "clusters": [
+                {
+                    "entity_id": c.get("entity_id", ""),
+                    "confidence": c.get("confidence", 0),
+                    "attribute_types": c.get("attribute_types", {}),
+                    "source_modules": c.get("source_modules", []),
+                    "evidence": c.get("correlation_evidence", []),
+                }
+                for c in (report.correlation_clusters or [])
+            ],
+            "stats": report.correlation_stats,
+        },
+        "breaches": [
+            {
+                "name": ev.raw_data.get("Name") or ev.identifier_value,
+                "date": ev.raw_data.get("BreachDate") or ev.raw_data.get("breach_date"),
+                "data_classes": ev.raw_data.get("DataClasses", []),
+                "source": ev.source,
+                "confidence": ev.confidence,
+            }
+            for ev in report.evidence if ev.identifier_type == "breach"
+        ],
     }

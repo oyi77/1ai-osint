@@ -128,6 +128,12 @@ def export_html(report: IntelReport) -> str:
     )
 
 
+def _reliability_badge(reliability: str) -> str:
+    """Render a colored NATO A-F reliability badge."""
+    cls = f"badge-{reliability.lower()}" if reliability.lower() in "abcdf" else "badge-f"
+    return f'<span class="badge {cls}">{reliability}</span>'
+
+
 def _render_inline(report: IntelReport) -> str:
     """Fallback inline HTML renderer (no Jinja2 needed)."""
     graph_svg = _svg_graph(report)
@@ -147,7 +153,7 @@ def _render_inline(report: IntelReport) -> str:
         <tr>
             <td>{ev.identifier_value}</td>
             <td>{ev.identifier_type}</td>
-            <td>{ev.source} <small>({ev.source_reliability})</small></td>
+            <td>{ev.source} {_reliability_badge(ev.source_reliability)}</td>
             <td>{status_badge}</td>
             <td><a href="{url_display}" target="_blank">{url_display[:50]}</a></td>
             <td>{ev.confidence:.0%}</td>
@@ -182,6 +188,46 @@ def _render_inline(report: IntelReport) -> str:
             <td>{p.rationale}</td>
             <td>{", ".join(p.expected_sources)}</td>
         </tr>"""
+
+    # Breach timeline
+    breach_items = [e for e in report.evidence if e.identifier_type == "breach"]
+    breach_rows = ""
+    for ev in breach_items:
+        name = ev.raw_data.get("Name") or ev.identifier_value or "?"
+        date = ev.raw_data.get("BreachDate") or ev.raw_data.get("breach_date") or "?"
+        data_classes = ev.raw_data.get("DataClasses", [])
+        if isinstance(data_classes, list):
+            data_classes = ", ".join(data_classes)
+        breach_rows += f"""
+        <tr>
+            <td>{name}</td><td>{date}</td><td>{data_classes}</td><td>{ev.source}</td>
+        </tr>"""
+
+    # Cross-module correlations
+    correlation_rows = ""
+    for c in (getattr(report, "correlation_clusters", None) or []):
+        correlation_rows += f"""
+        <div class="card" style="margin:8px 0">
+            <b>Entity {c.get("entity_id", "?")}</b><br>
+            Confidence: {c.get("confidence", 0):.0%}<br>
+            Modules: {', '.join(c.get("source_modules", []))}<br>
+            Evidence: {', '.join(c.get("correlation_evidence", []))}
+        </div>"""
+
+    # Structured PII section
+    pii_types = {"nik", "phone", "email", "address"}
+    pii_items = [e for e in report.evidence if e.identifier_type in pii_types]
+    pii_rows = ""
+    for ev in pii_items:
+        pii_rows += f"""
+        <tr>
+            <td>{ev.identifier_type.upper()}</td><td>{ev.identifier_value}</td>
+            <td>{ev.source}</td><td>{ev.confidence:.0%}</td>
+        </tr>"""
+
+    # Breaches found count
+    n_breaches = len(breach_items)
+    n_correlations = len(getattr(report, "correlation_clusters", None) or [])
 
     factors_html = ""
     for f in report.risk.factors:
@@ -254,13 +300,15 @@ def _render_inline(report: IntelReport) -> str:
   <div class="card"><div class="label">Risk Score</div><div class="value risk-{report.risk.level.value}">{report.risk.level.value.upper()}</div></div>
   <div class="card"><div class="label">Identifiers</div><div class="value">{len(report.confidence_by_identifier)}</div></div>
   <div class="card"><div class="label">Pivot Suggestions</div><div class="value">{len(report.pivots)}</div></div>
+  <div class="card"><div class="label">Correlations</div><div class="value">{n_correlations}</div></div>
+  <div class="card"><div class="label">Breaches Found</div><div class="value">{n_breaches}</div></div>
 </div>
 
 <div class="summary">
   <strong>Summary:</strong> {report.summary}
 </div>
 
-{f'<div class="warning">' + "</div><div class='warning'>".join(report.warnings) + "</div>" if report.warnings else ""}
+{'<div class="warning">' + "</div><div class='warning'>".join(report.warnings) + "</div>" if report.warnings else ""}
 
 <h2>Risk Factors</h2>
 <div class="card">{factors_html}</div>
@@ -291,6 +339,12 @@ def _render_inline(report: IntelReport) -> str:
   <tr><th>Type</th><th>Value</th><th>Rationale</th><th>Sources</th></tr>
   {pivot_rows}
 </table>
+
+{f'<h2>Breach Timeline ({n_breaches} records)</h2><table><tr><th>Breach Name</th><th>Date</th><th>Data Classes</th><th>Source</th></tr>{breach_rows}</table>' if breach_rows else ""}
+
+{f'<h2>Cross-Module Correlations ({n_correlations} clusters)</h2>{correlation_rows}' if correlation_rows else ""}
+
+{f'<h2>Structured PII <small style="color:#ef4444">(restricted)</small></h2><details><summary style="cursor:pointer;color:#60a5fa">Show PII data (authorized personnel only)</summary><table><tr><th>Type</th><th>Value</th><th>Source</th><th>Confidence</th></tr>{pii_rows}</table></details>' if pii_rows else ""}
 
 </div>
 </body>

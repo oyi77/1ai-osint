@@ -22,6 +22,11 @@ def rate_source(source: str) -> str:
     Returns NATO Admiralty System rating (A-F).
     """
     s = (source or "").lower().strip()
+
+    # Strip "source_" prefix used by source adapters
+    if s.startswith("source_"):
+        s = s[7:]
+
     for suffix in ("_osint", "_finder", "_scanner", "_checker", "_recon"):
         if s.endswith(suffix):
             s = s[: -len(suffix)]
@@ -36,6 +41,8 @@ def rate_source(source: str) -> str:
         return "C"
     if s in {"etherscan", "bscscan", "solscan", "blockchain_info", "mempool"}:
         return "B"
+    if s in {"snylla", "snusbase", "dehashed", "leakcheck", "intelx", "hibp"}:
+        return "C"
     return "F"
 
 
@@ -53,6 +60,8 @@ class EvidenceItem(BaseModel):
     raw_data: dict[str, Any] = Field(default_factory=dict)
     confidence: float = 0.0
     notes: str = ""
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    display_value: str = ""
     captured_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -179,3 +188,5 @@ class IntelReport(BaseModel):
     pivots: list[PivotSuggestion] = Field(default_factory=list)
     summary: str = ""
     warnings: list[str] = Field(default_factory=list)
+    correlation_clusters: list[dict] = Field(default_factory=list)
+    correlation_stats: dict = Field(default_factory=dict)

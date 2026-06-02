@@ -29,7 +29,16 @@ _MODULE_INPUTS: dict[str, set[IdentifierType]] = {
     "crypto_balance": {IdentifierType.CRYPTO_ADDRESS},
     "gitleaks": {IdentifierType.DOMAIN, IdentifierType.URL},
     "vuln_scanner": {IdentifierType.DOMAIN, IdentifierType.IP},
+    "dehashed": {IdentifierType.EMAIL, IdentifierType.USERNAME, IdentifierType.PHONE, IdentifierType.DOMAIN},
+    "leakcheck": {IdentifierType.EMAIL, IdentifierType.USERNAME},
+    "snylla": {IdentifierType.EMAIL, IdentifierType.USERNAME, IdentifierType.PHONE, IdentifierType.DOMAIN},
+    "snusbase": {IdentifierType.EMAIL, IdentifierType.USERNAME, IdentifierType.PHONE},
+    "hibp": {IdentifierType.EMAIL},
+    "intelx": {IdentifierType.EMAIL, IdentifierType.USERNAME, IdentifierType.PHONE, IdentifierType.DOMAIN, IdentifierType.NAME},
 }
+
+# Sources handled by source_adapter (separate from CLI modules)
+_SOURCE_MODULES = {"dehashed", "leakcheck", "snylla", "snusbase", "hibp", "intelx"}
 
 
 class DeepScanEngine:
@@ -88,11 +97,34 @@ class DeepScanEngine:
             seen_targets.update(t.lower() for t in new_targets)
 
         result.completed_at = datetime.now(timezone.utc)
+
+        # ZKIT cross-module correlation
+        try:
+            result.zkit_result = self._run_zkit_correlation(result)
+        except Exception as exc:
+            logger.warning("ZKIT correlation failed: %s", exc)
+            result.errors.append(f"zkit_correlation: {exc}")
+
         logger.info(
             "Deep scan complete: %d identifiers, %d findings, %d iterations, %.1fs",
             result.identifier_count, result.finding_count, result.iterations, result.duration_sec,
         )
         return result
+
+    def _run_zkit_correlation(self, result: DeepScanResult) -> Optional[Any]:
+        """Run ZKIT identity correlation on all collected scan results."""
+        if not result.scan_results:
+            return None
+        from src.modules.identity_tracking.correlation import CrossModuleCorrelator
+        from src.modules.identity_tracking.zkit_engine import ZKITEngine
+
+        salt = ZKITEngine.new_salt()
+        correlator = CrossModuleCorrelator(salt=salt)
+        module_results = {sr.module: sr for sr in result.scan_results if sr.module}
+        if not module_results:
+            return None
+        correlator.ingest_scan_results(module_results)
+        return correlator.correlate()
 
     async def _run_iteration(self, result: DeepScanResult, targets: set[str]) -> None:
         """Run one iteration of scanning across all modules."""
@@ -102,6 +134,21 @@ class DeepScanEngine:
         tasks = []
 
         for mod_name in modules:
+            if mod_name in _SOURCE_MODULES:
+                # Source adapter path
+                from src.modules.sources import discover_sources
+
+                all_sources = discover_sources()
+                source_cls = all_sources.get(mod_name)
+                if source_cls:
+                    source_inst = source_cls()
+                    relevant_targets = self._filter_targets_for_module(mod_name, targets, result)
+                    for target in relevant_targets:
+                        tasks.append(
+                            self._scan_source_adapter(mod_name, source_inst, target, result)
+                        )
+                continue
+
             mod = _get_module(mod_name)
             if not mod:
                 continue
@@ -146,6 +193,25 @@ class DeepScanEngine:
             result.errors.append(f"{mod_name}({target}): timeout")
         except Exception as exc:
             result.errors.append(f"{mod_name}({target}): {exc}")
+
+    async def _scan_source_adapter(
+        self, source_name: str, source_inst: Any, target: str, result: DeepScanResult,
+    ) -> None:
+        """Run a breach/leak source via the source adapter."""
+        try:
+            from src.modules.deep_scan.source_adapter import run_source_scan
+            scan_result = await asyncio.wait_for(
+                run_source_scan(source_name, target, source_inst),
+                timeout=self.timeout_per_module,
+            )
+            if isinstance(scan_result, ScanResult):
+                result.scan_results.append(scan_result)
+                for finding in scan_result.findings:
+                    result.findings.append(finding)
+        except asyncio.TimeoutError:
+            result.errors.append(f"source_{source_name}({target}): timeout")
+        except Exception as exc:
+            result.errors.append(f"source_{source_name}({target}): {exc}")
 
     def _get_new_targets(self, result: DeepScanResult, seen: set[str]) -> set[str]:
         """Extract new targets from discovered identifiers."""
