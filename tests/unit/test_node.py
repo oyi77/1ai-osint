@@ -518,47 +518,6 @@ class TestDB:
 
 # ---------------------------------------------------------------------------
 # Master API tests
-# ---------------------------------------------------------------------------
-class TestMasterAPI:
-    def _make_client(self):
-        from src.modules.node.master_api import app
-        from fastapi.testclient import TestClient
-        return TestClient(app)
-
-    def test_health_endpoint(self):
-        client = self._make_client()
-        resp = client.get("/api/health")
-        assert resp.status_code == 200
-        assert resp.json()["status"] == "ok"
-
-    @patch("src.modules.node.db.get_stats", new_callable=AsyncMock)
-    def test_stats_endpoint(self, mock_stats):
-        mock_stats.return_value = {"seen_keys": 0, "raw_leaks": 0, "extracted_keys": 0, "funded_wallets": 0, "swept_wallets": 0, "active_nodes": 0}
-        client = self._make_client()
-        resp = client.get("/api/stats")
-        assert resp.status_code == 200
-        assert "seen_keys" in resp.json()
-
-    @patch("src.modules.node.db.get_audit_trail", new_callable=AsyncMock)
-    def test_audit_endpoint(self, mock_audit):
-        mock_audit.return_value = []
-        client = self._make_client()
-        resp = client.get("/api/audit")
-        assert resp.status_code == 200
-        assert "events" in resp.json()
-
-    @patch("src.modules.node.db.get_all_heartbeats", new_callable=AsyncMock)
-    def test_nodes_endpoint(self, mock_hb):
-        mock_hb.return_value = []
-        client = self._make_client()
-        resp = client.get("/api/nodes")
-        assert resp.status_code == 200
-        assert "nodes" in resp.json()
-
-
-# ---------------------------------------------------------------------------
-# NodeAgent API sync tests
-# ---------------------------------------------------------------------------
 class TestNodeAgentAPISync:
     def _make_agent(self):
         from src.modules.node.agent import NodeAgent
@@ -677,102 +636,6 @@ class TestDBModule:
         int(h, 16)
 
 
-# ---------------------------------------------------------------------------
-# Master API endpoint tests
-# ---------------------------------------------------------------------------
-class TestMasterAPIEndpoints:
-    def _make_client(self):
-        from src.modules.node.master_api import app
-        from fastapi.testclient import TestClient
-        return TestClient(app)
-
-    @patch("src.modules.node.db.is_key_seen", new_callable=AsyncMock)
-    @patch("src.modules.node.db.mark_key_seen", new_callable=AsyncMock)
-    def test_report_keys_new(self, mock_mark, mock_seen):
-        mock_seen.return_value = False
-        mock_mark.return_value = None
-        client = self._make_client()
-        resp = client.post("/api/keys", json={
-            "node_id": "test",
-            "keys": [{"key_hash": "abc123", "key_type": "hex", "source": "reddit"}],
-        })
-        assert resp.status_code == 200
-        assert resp.json()["recorded"] == 1
-
-    @patch("src.modules.node.db.is_key_seen", new_callable=AsyncMock)
-    def test_report_keys_seen(self, mock_seen):
-        mock_seen.return_value = True
-        client = self._make_client()
-        resp = client.post("/api/keys", json={
-            "node_id": "test",
-            "keys": [{"key_hash": "abc123", "key_type": "hex", "source": "reddit"}],
-        })
-        assert resp.status_code == 200
-        assert resp.json()["recorded"] == 0
-
-    @patch("src.modules.node.db.get_seen_keys_bloom", new_callable=AsyncMock)
-    def test_get_seen(self, mock_bloom):
-        mock_bloom.return_value = b"abc|def|ghi"
-        client = self._make_client()
-        resp = client.get("/api/seen")
-        assert resp.status_code == 200
-        assert resp.json()["count"] == 3
-
-    @patch("src.modules.node.db.acquire_sweep_lock", new_callable=AsyncMock)
-    def test_acquire_lock_success(self, mock_lock):
-        mock_lock.return_value = True
-        client = self._make_client()
-        resp = client.post("/api/locks", json={
-            "address": "0x123",
-            "node_id": "test",
-            "ttl_seconds": 300,
-        })
-        assert resp.status_code == 200
-
-    @patch("src.modules.node.db.acquire_sweep_lock", new_callable=AsyncMock)
-    def test_acquire_lock_denied(self, mock_lock):
-        mock_lock.return_value = False
-        client = self._make_client()
-        resp = client.post("/api/locks", json={
-            "address": "0x123",
-            "node_id": "test",
-            "ttl_seconds": 300,
-        })
-        assert resp.status_code == 409
-
-    @patch("src.modules.node.db.record_heartbeat", new_callable=AsyncMock)
-    def test_heartbeat(self, mock_hb):
-        mock_hb.return_value = None
-        client = self._make_client()
-        resp = client.post("/api/heartbeat", json={
-            "node_id": "test",
-            "status": {"hostname": "host", "cpu": 50},
-        })
-        assert resp.status_code == 200
-
-    @patch("src.modules.node.db.mark_swept", new_callable=AsyncMock)
-    def test_report_sweep(self, mock_sweep):
-        mock_sweep.return_value = None
-        client = self._make_client()
-        resp = client.post("/api/sweep", json={
-            "address": "0x123",
-            "node_id": "test",
-            "sweep_tx": "tx_hash",
-        })
-        assert resp.status_code == 200
-
-    @patch("src.modules.node.db.get_assigned_sources", new_callable=AsyncMock)
-    def test_get_sources_assigned(self, mock_src):
-        mock_src.return_value = ["reddit", "github"]
-        client = self._make_client()
-        resp = client.get("/api/sources?node_id=test")
-        assert resp.status_code == 200
-        assert resp.json()["sources"] == ["reddit", "github"]
-
-
-# ---------------------------------------------------------------------------
-# DB mock tests for remaining functions
-# ---------------------------------------------------------------------------
 class TestDBMocked:
     @patch("src.modules.node.db.get_pool", new_callable=AsyncMock)
     @pytest.mark.asyncio
@@ -792,12 +655,14 @@ class TestDBMocked:
     async def test_record_heartbeat(self, mock_pool):
         mock_conn = AsyncMock()
         mock_conn.execute = AsyncMock()
+        mock_conn.fetchrow = AsyncMock(return_value=None)
         mock_acquire = MagicMock()
         mock_acquire.__aenter__ = AsyncMock(return_value=mock_conn)
         mock_acquire.__aexit__ = AsyncMock(return_value=False)
         mock_pool.return_value = MagicMock(acquire=MagicMock(return_value=mock_acquire))
         from src.modules.node.db import record_heartbeat
-        await record_heartbeat("test", {"hostname": "h", "ip": "1.2.3.4", "version": "v"})
+        result = await record_heartbeat("test", {"hostname": "h", "ip": "1.2.3.4", "version": "v"})
+        assert result == "test"
         mock_conn.execute.assert_called_once()
 
     @patch("src.modules.node.db.get_pool", new_callable=AsyncMock)

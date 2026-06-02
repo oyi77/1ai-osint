@@ -111,9 +111,9 @@ async def release_lock(address: str, node_id: str):
 
 @app.post("/api/heartbeat")
 async def heartbeat(req: HeartbeatRequest):
-    """Node reports status."""
-    await db.record_heartbeat(req.node_id, req.status)
-    return {"status": "ok"}
+    """Node reports status. Returns actual node_id (may differ if duplicate)."""
+    actual_id = await db.record_heartbeat(req.node_id, req.status)
+    return {"status": "ok", "node_id": actual_id}
 
 
 @app.get("/api/sources")

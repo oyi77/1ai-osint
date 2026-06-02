@@ -108,6 +108,7 @@ class MasterBot:
             "/config": self._cmd_config,
             "/deploy": self._cmd_deploy,
             "/stats": self._cmd_stats,
+            "/install": self._cmd_install,
         }
 
         handler = handlers.get(cmd)
@@ -168,6 +169,7 @@ class MasterBot:
 /sync <node> — Git pull + restart
 /scan <node> — Run single scan cycle
 /stats — Global scan statistics
+/install — Show install script for new nodes
 /config <node> key=value — Update config
 /deploy — Deploy to all nodes
 /help — Show this help"""
@@ -199,6 +201,24 @@ Active Nodes: {data.get('active_nodes', 0)}"""
                     await self._send_to(chat_id, "Failed to fetch stats from API.")
         except Exception as exc:
             await self._send_to(chat_id, f"Error: {exc}")
+
+    async def _cmd_install(self, chat_id: str, args: str):
+        """Show install script for new nodes."""
+        master_url = "http://5.189.138.144:8420"
+        text = f"""Install a new node:
+
+curl -sSL https://raw.githubusercontent.com/oyi77/1ai-osint/main/scripts/install-node.sh | bash -s -- --master {master_url} --id my-node
+
+Or with wget:
+wget -qO- https://raw.githubusercontent.com/oyi77/1ai-osint/main/scripts/install-node.sh | bash -s -- --master {master_url} --id my-node
+
+Options:
+  --master {master_url}  Master API URL
+  --id my-node           Node ID (auto-unique if duplicate)
+  --dir ~/1ai-osint      Install directory
+
+After install, the node auto-registers with master and starts scanning."""
+        await self._send_to(chat_id, text)
 
     async def _cmd_nodes(self, chat_id: str, args: str):
         if not self.nodes:

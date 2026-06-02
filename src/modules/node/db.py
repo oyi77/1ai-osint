@@ -291,16 +291,34 @@ async def get_assigned_sources(node_id: str) -> list[str]:
 
 # ── Heartbeat operations ────────────────────────────────────────────────────
 
-async def record_heartbeat(node_id: str, status: dict):
-    """Record a node heartbeat."""
+async def record_heartbeat(node_id: str, status: dict) -> str:
+    """Record a node heartbeat. Returns the actual node_id used (may differ if duplicate)."""
     pool = await get_pool()
     async with pool.acquire() as conn:
+        # Check if this node_id already exists with a different IP
+        existing = await conn.fetchrow(
+            "SELECT ip FROM node_heartbeats WHERE node_id = $1", node_id
+        )
+        actual_id = node_id
+        if existing and existing["ip"] != status.get("ip", ""):
+            # Same ID, different IP — auto-append suffix
+            counter = 1
+            while True:
+                candidate = f"{node_id}-{counter}"
+                check = await conn.fetchrow(
+                    "SELECT 1 FROM node_heartbeats WHERE node_id = $1", candidate
+                )
+                if not check:
+                    actual_id = candidate
+                    break
+                counter += 1
+
         await conn.execute(
             """INSERT INTO node_heartbeats (node_id, hostname, ip, version, scanner_running, scan_count, uptime_sec, memory_mb, cpu_percent, last_heartbeat)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
                ON CONFLICT (node_id) DO UPDATE SET
                  hostname = $2, ip = $3, version = $4, scanner_running = $5, scan_count = $6, uptime_sec = $7, memory_mb = $8, cpu_percent = $9, last_heartbeat = NOW()""",
-            node_id,
+            actual_id,
             status.get("hostname", ""),
             status.get("ip", ""),
             status.get("version", ""),
@@ -310,6 +328,7 @@ async def record_heartbeat(node_id: str, status: dict):
             status.get("memory_mb", 0),
             status.get("cpu_percent", 0),
         )
+        return actual_id
 
 
 async def get_all_heartbeats() -> list[dict]:
