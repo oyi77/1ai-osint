@@ -7,12 +7,15 @@
 ## Quick Start
 
 ```bash
-# Install
 pip install -e .
-
-# Run
+cp .env.example .env
+1ai-osint doctor
+1ai-osint deep-scan "Target Name" --profile fast
+1ai-osint deep-scan user@example.com --profile agency --case INV-001 --pdf
 python -m src.cli --help
 ```
+
+See [docs/ROADMAP.md](docs/ROADMAP.md) and [docs/INTEL_STANDARD.md](docs/INTEL_STANDARD.md) for briefing structure and API keys.
 
 ## Features
 

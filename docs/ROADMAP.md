@@ -18,38 +18,38 @@ See also: [INTEL_STANDARD.md](./INTEL_STANDARD.md) for briefing section requirem
 
 ---
 
-## Phase 0 — Reliable core (weeks 0–6) `IN PROGRESS`
+## Phase 0 — Reliable core `DONE`
 
 - [x] `sherlock-project` core dependency
 - [x] Deep scan fast profile + dedupe + name pivots
 - [x] Operational briefing HTML/JSON (`briefing.*`)
-- [ ] `1ai-osint doctor` — environment health
-- [ ] `deep-scan --profile fast|standard|deep|agency`
-- [ ] Breach router (keyed APIs only)
-- [ ] Golden integration test (mocked, no live PII in CI)
-- [ ] PDF from briefing template
+- [x] `1ai-osint doctor` — environment health
+- [x] `deep-scan --profile fast|standard|deep|agency`
+- [x] Breach router (keyed APIs only)
+- [x] Golden integration test (mocked, no live PII in CI)
+- [x] PDF from briefing template
 
-## Phase 1 — Agency packet depth (weeks 6–14)
+## Phase 1 — Agency packet depth `MOSTLY DONE`
 
-- [ ] Email OSINT + Holehe in standard/agency profiles
-- [ ] Phone finder + E.164 normalization
-- [ ] Breach normalizer → INTEL_STANDARD field taxonomy
-- [ ] Indonesia pack: NIK parser, locale phones
-- [ ] AI: BLUF + judgments (cited to evidence IDs only)
-- [ ] STIX 2.1 bundle validation in CI
-- [ ] `investigations/<case_id>/` case folders
+- [x] Email OSINT + Holehe in standard/agency profiles
+- [x] Phone finder + E.164 normalization
+- [x] Breach normalizer → INTEL_STANDARD field taxonomy
+- [ ] Indonesia pack: NIK parser, locale phones (partial via NIK type + ID default)
+- [x] AI: BLUF + judgments (`--ai`, evidence-cited)
+- [x] STIX 2.1 bundle + CI shape validation
+- [x] `investigations/<case_id>/` case folders + delta on re-run
 
-## Phase 2 — Differentiation (weeks 14–26)
+## Phase 2 — Differentiation `IN PROGRESS`
 
-- [ ] ZKIT graph export (Neo4j JSON)
+- [x] ZKIT graph export (Neo4j JSON in intel JSON)
 - [ ] LangGraph planner: budget-aware module scheduling
-- [ ] Monitor mode + delta briefings
-- [ ] Crypto wallet → same briefing packet
-- [ ] Plugin SDK + module discovery registry
+- [x] Monitor delta briefings (`delta_briefing` + `--case`)
+- [ ] Crypto wallet → same briefing packet (crypto modules exist; briefing merge pending)
+- [x] Module discovery registry (`module_discovery.py`)
 
-## Phase 3 — Ecosystem (weeks 26–40)
+## Phase 3 — Ecosystem `STARTED`
 
-- [ ] FastAPI async jobs + report API
+- [x] FastAPI async jobs skeleton (`src/api/app.py`)
 - [ ] Report viewer UI
 - [ ] Distributed node collection (`src/modules/node`)
 - [ ] Public benchmark + reproducibility package
@@ -60,7 +60,7 @@ See also: [INTEL_STANDARD.md](./INTEL_STANDARD.md) for briefing section requirem
 ## Architecture
 
 ```
-CLI → profile resolver → DeepScanEngine → [modules + breach router]
+CLI / API → profile resolver → DeepScanEngine → [modules + breach router]
                               ↓
                          ZKIT correlator
                               ↓
@@ -90,11 +90,23 @@ CLI → profile resolver → DeepScanEngine → [modules + breach router]
 
 ---
 
-## Immediate backlog (30 days)
+## Analyst quickstart
 
-1. `doctor` command
-2. Scan profiles `standard` / `deep` / `agency`
-3. Breach router wired to engine
-4. Deprecate duplicate PeopleFinderTool subprocess path
-5. README analyst quickstart + API key table
-6. Do not commit scan artifacts or `.session` files
+```bash
+pip install -e .
+cp .env.example .env   # HIBP, DeHashed, LeakCheck, IntelX for §IV
+1ai-osint doctor
+1ai-osint deep-scan "Target Name" --profile fast
+1ai-osint deep-scan target@email.com --profile agency --case INV-001 --pdf --ai
+uvicorn src.api.app:app --reload   # POST /v1/scan
+```
+
+| Key | Enables |
+|-----|---------|
+| `HIBP_API_KEY` | Have I Been Pwned |
+| `DEHASHED_API_KEY` / email | DeHashed |
+| `LEAKCHECK_API_KEY` | LeakCheck |
+| `INTELX_API_KEY` | IntelX |
+| `OPENAI_API_KEY` or `OMNIROUTE_API_KEY` | `--ai` BLUF enhancement |
+
+Do not commit scan artifacts, `.session`, or investigation outputs.

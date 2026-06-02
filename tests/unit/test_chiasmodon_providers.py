@@ -112,11 +112,12 @@ class TestCLIProviders:
     """Test CLI-wrapping providers with mocked subprocess."""
 
     @patch("os.unlink")
+    @patch("os.path.getsize", return_value=64)
     @patch("os.path.isfile", return_value=True)
     @patch("builtins.open", create=True)
     @patch("tempfile.NamedTemporaryFile")
     @patch("subprocess.run")
-    def test_sherlock_success(self, mock_run, mock_tmp, mock_open, _isfile, _unlink):
+    def test_sherlock_success(self, mock_run, mock_tmp, mock_open, _isfile, _size, _unlink):
         from src.vendor.chiasmodon.providers.sherlock import SherlockProvider
 
         mock_tmp.return_value.__enter__.return_value.name = "/tmp/out.json"
@@ -163,8 +164,10 @@ class TestCLIProviders:
         result = ExifToolProvider().search("test.jpg")
         assert isinstance(result, list)
 
+    @patch("os.path.getsize", return_value=0)
+    @patch("os.path.isfile", return_value=True)
     @patch("subprocess.run")
-    def test_cli_provider_error(self, mock_run):
+    def test_cli_provider_error(self, mock_run, _isfile, _size):
         from src.vendor.chiasmodon.providers.sherlock import SherlockProvider
         mock_run.return_value = MagicMock(returncode=1, stdout="", stderr="not found")
         result = SherlockProvider().search("user")

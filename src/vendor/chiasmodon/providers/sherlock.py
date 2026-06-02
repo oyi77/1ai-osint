@@ -29,12 +29,13 @@ class SherlockProvider:
                 timeout=120,
                 check=False,
             )
-            if result.returncode not in (0, 1) and not os.path.isfile(tmp_path):
-                return {"error": result.stderr.strip() or "Sherlock failed"}
+            if not os.path.isfile(tmp_path) or os.path.getsize(tmp_path) == 0:
+                err = result.stderr.strip() or result.stdout.strip() or "Sherlock failed"
+                return {"error": err}
             with open(tmp_path, encoding="utf-8") as f:
                 raw = f.read().strip()
             if not raw:
-                return {}
+                return {"error": result.stderr.strip() or "empty sherlock output"}
             return json.loads(raw)
         except json.JSONDecodeError as exc:
             return {"error": f"Sherlock JSON parse error: {exc}"}

@@ -10,7 +10,7 @@ from src.modules.deep_scan.models_report import (
     IntelReport,
     RiskLevel,
 )
-from src.modules.deep_scan.report_generator import generate_intel_report
+from src.modules.deep_scan.report_generator import generate_intel_report, generate_intel_report_with_ai
 
 
 def _make_result(target="test_user", findings=None, identifiers=None):
@@ -320,6 +320,22 @@ class TestPivots:
         assert any("etherscan" in p.expected_sources for p in report.pivots)
 
 
+class TestNeo4jAndAi:
+    def test_neo4j_export_embedded(self):
+        result = _make_result(
+            identifiers=[
+                Identifier(value="alice", id_type=IdentifierType.USERNAME, source="github", confidence=0.9),
+            ]
+        )
+        report = generate_intel_report(result)
+        assert "neo4j" in report.correlation_stats
+        assert report.correlation_stats["neo4j"]["nodes"]
+
+    def test_generate_with_ai_disabled(self):
+        report = generate_intel_report_with_ai(_make_result(), use_ai=False)
+        assert report.target == "test_user"
+
+
 # --- Summary ---
 class TestSummary:
     def test_summary_has_key_stats(self):
@@ -329,3 +345,13 @@ class TestSummary:
         assert result.target in report.summary
         assert "1 evidence" in report.summary or "1 evidence item" in report.summary
         assert "risk" in report.summary.lower()
+
+    def test_breach_normalizer_in_briefing(self):
+        f = _make_finding(
+            module="source_hibp",
+            raw_data={"user_email": "leak@example.com", "database": "TestBreach"},
+        )
+        result = _make_result(findings=[f])
+        report = generate_intel_report(result)
+        assert report.briefing.breach_records
+        assert report.briefing.breach_records[0].fields.get("email") == "leak@example.com"

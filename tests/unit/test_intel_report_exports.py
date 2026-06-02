@@ -184,4 +184,10 @@ class TestExportDispatcher:
     def test_unknown_format_raises(self):
         report = _sample_report()
         with pytest.raises(ValueError, match="Unknown export format"):
-            export_report(report, fmt="pdf")
+            export_report(report, fmt="xml")
+
+    def test_pdf_export(self):
+        report = _sample_report()
+        pdf = export_report(report, fmt="pdf")
+        assert isinstance(pdf, bytes)
+        assert len(pdf) > 100

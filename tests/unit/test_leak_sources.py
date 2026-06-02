@@ -1133,15 +1133,26 @@ class TestSherlockSource:
 
     @pytest.mark.asyncio
     async def test_search_for_address_success(self):
+        from unittest.mock import mock_open
+
         source = self._make_source()
         mock_proc = AsyncMock()
-        mock_proc.communicate = AsyncMock(return_value=(
-            b'{"GitHub": {"status": "Claimed", "url": "https://github.com/testuser"}}',
-            b"",
-        ))
+        mock_proc.communicate = AsyncMock(return_value=(b"", b""))
+        sherlock_json = '{"GitHub": {"status": "Claimed", "url": "https://github.com/testuser"}}'
+        mock_tmp = MagicMock()
+        mock_tmp.__enter__ = MagicMock(return_value=mock_tmp)
+        mock_tmp.__exit__ = MagicMock(return_value=False)
+        mock_tmp.name = "/tmp/sherlock_test.json"
         with patch("src.modules.sources.sherlock_source.shutil.which", return_value="/usr/bin/sherlock"):
-            with patch("src.modules.sources.sherlock_source.asyncio.create_subprocess_exec", return_value=mock_proc):
-                leaks = await source.search_for_address("testuser")
+            with patch("tempfile.NamedTemporaryFile", return_value=mock_tmp):
+                with patch("os.path.isfile", return_value=True):
+                    with patch("os.unlink"):
+                        with patch("builtins.open", mock_open(read_data=sherlock_json)):
+                            with patch(
+                                "src.modules.sources.sherlock_source.asyncio.create_subprocess_exec",
+                                return_value=mock_proc,
+                            ):
+                                leaks = await source.search_for_address("testuser")
         assert len(leaks) == 1
         assert "GitHub" in leaks[0].text
 

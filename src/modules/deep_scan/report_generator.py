@@ -104,6 +104,24 @@ def generate_intel_report(result: Any) -> IntelReport:
 
     report.briefing = build_operational_briefing(result, report)
 
+    try:
+        from src.modules.identity_tracking.neo4j_export import export_neo4j_json
+
+        report.correlation_stats = report.correlation_stats or {}
+        report.correlation_stats["neo4j"] = export_neo4j_json(report.identity_graph)
+    except Exception:
+        pass
+
+    return report
+
+
+def generate_intel_report_with_ai(result: Any, *, use_ai: bool = False) -> Any:
+    """Build intel report with optional AI enhancement."""
+    report = generate_intel_report(result)
+    if use_ai:
+        from src.modules.deep_scan.ai_briefing import enhance_briefing_with_ai
+
+        enhance_briefing_with_ai(report, result)
     return report
 
 

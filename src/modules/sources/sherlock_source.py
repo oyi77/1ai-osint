@@ -67,9 +67,8 @@ class SherlockSource:
                                 source_url=data.get("url", ""),
                             ))
                 except json.JSONDecodeError:
-                    # sherlock may output non-JSON
-                    text = stdout.decode()
-                    if text.strip():
+                    if raw.strip():
+                        text = raw
                         leaks.append(RawLeak(
                             text=text,
                             source_name="sherlock",

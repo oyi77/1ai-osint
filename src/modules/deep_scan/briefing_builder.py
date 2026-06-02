@@ -55,7 +55,10 @@ def _build_subject(result: Any, report: IntelReport) -> SubjectProfile:
         elif ident.id_type == IdentifierType.EMAIL:
             emails.add(val.lower())
         elif ident.id_type == IdentifierType.PHONE:
-            phones.add(val)
+            from src.utils.phone_normalize import normalize_phone_e164
+
+            normalized = normalize_phone_e164(val) or val
+            phones.add(normalized)
         elif ident.id_type == IdentifierType.NIK:
             niks.add(val)
 
@@ -146,17 +149,28 @@ def _build_breach_records(result: Any) -> list[BreachIntelRecord]:
             continue
         rd = dict(getattr(finding, "raw_data", None) or {})
         skip = {"platforms", "type", "profile"}
-        fields = {
-            _label_key(k): str(v)
-            for k, v in rd.items()
+        from src.modules.deep_scan.breach_normalizer import normalize_breach_record
+
+        fields = normalize_breach_record({
+            k: v for k, v in rd.items()
             if k not in skip and v is not None and str(v).strip()
-        }
+        })
+        if not fields:
+            fields = {
+                _label_key(k): str(v)
+                for k, v in rd.items()
+                if k not in skip and v is not None and str(v).strip()
+            }
         if not fields:
             continue
         records.append(BreachIntelRecord(
             source=mod.replace("source_", ""),
             breach_name=str(
-                fields.get("Breach Name") or fields.get("Breach") or rd.get("breach_name") or mod
+                fields.get("breach_name")
+                or fields.get("Breach Name")
+                or fields.get("Breach")
+                or rd.get("breach_name")
+                or mod
             ),
             fields=fields,
             confidence=float(getattr(finding, "confidence", 0.6) or 0.6),

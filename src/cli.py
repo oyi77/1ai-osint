@@ -822,12 +822,16 @@ def deep_scan(
         "-p",
         help="Collection profile: fast, standard, deep, agency (see docs/INTEL_STANDARD.md)",
     ),
+    case_id: str = typer.Option("", "--case", help="Investigation case ID (persists under investigations/)"),
+    use_ai: bool = typer.Option(False, "--ai", help="Enhance BLUF with AI when API key configured"),
+    pdf: bool = typer.Option(False, "--pdf", help="Also write briefing PDF"),
 ):
     """Deep scan — recursive identity investigation across all modules."""
     from src.modules.deep_scan.engine import DeepScanEngine
-    from src.modules.deep_scan.report_generator import generate_intel_report
+    from src.modules.deep_scan.report_generator import generate_intel_report_with_ai
     from src.modules.deep_scan.exports import export_report
     from src.modules.deep_scan.scan_profiles import resolve_scan_profile
+    from src.investigations.case_manager import CaseManager
 
     async def _deep_scan():
         profile_name = "fast" if fast else profile
@@ -854,9 +858,21 @@ def deep_scan(
 
         typer.echo(f"Results: {result.identifier_count} identifiers, {result.finding_count} findings, {result.iterations} iterations, {result.duration_sec:.1f}s", err=True)
 
-        # Generate intel-grade report
-        intel = generate_intel_report(result)
+        intel = generate_intel_report_with_ai(result, use_ai=use_ai)
         typer.echo(f"Intel report: {len(intel.evidence)} evidence, risk={intel.risk.level.value}", err=True)
+
+        if case_id:
+            prev = CaseManager().load_previous_intel(case_id)
+            if prev:
+                from src.modules.deep_scan.delta_briefing import compute_intel_delta
+                import json as _json
+
+                delta = compute_intel_delta(prev, _json.loads(export_report(intel, fmt="json")))
+                typer.echo(
+                    f"Delta vs prior run: +{delta['new_evidence_count']} evidence, "
+                    f"+{len(delta['new_emails'])} emails, breach Δ{delta['breach_delta']}",
+                    err=True,
+                )
 
         base = output_file or f"deep_scan_{target.replace(' ', '_').replace('@', '_at_')}"
         for ext in (".html", ".json", ".stix"):
@@ -867,10 +883,32 @@ def deep_scan(
         json_path = f"{base}.json"
         with open(html_path, "w") as f:
             f.write(export_report(intel, fmt="html"))
+        json_body = export_report(intel, fmt="json")
         with open(json_path, "w") as f:
-            f.write(export_report(intel, fmt="json"))
+            f.write(json_body)
         typer.echo(f"HTML report: {html_path}", err=True)
         typer.echo(f"JSON report: {json_path}", err=True)
+        if pdf:
+            pdf_path = f"{base}.pdf"
+            pdf_bytes = export_report(intel, fmt="pdf")
+            with open(pdf_path, "wb") as f:
+                f.write(pdf_bytes)
+            typer.echo(f"PDF briefing: {pdf_path}", err=True)
+        if case_id:
+            stix_body = ""
+            if report_format == "stix":
+                stix_body = export_report(intel, fmt="stix")
+            CaseManager().save_run(
+                case_id,
+                target,
+                result,
+                intel,
+                html=export_report(intel, fmt="html"),
+                json_report=json_body,
+                stix=stix_body,
+                pdf_bytes=export_report(intel, fmt="pdf") if pdf else None,
+            )
+            typer.echo(f"Case saved: investigations/{case_id}", err=True)
         if report_format == "stix":
             stix_path = f"{base}.stix.json"
             with open(stix_path, "w") as f:
