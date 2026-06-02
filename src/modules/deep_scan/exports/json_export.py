@@ -132,6 +132,26 @@ def _to_dict(report: IntelReport) -> dict[str, Any]:
             ],
             "stats": report.correlation_stats,
         },
+        "briefing": {
+            "classification": report.briefing.classification,
+            "bluf": report.briefing.bluf,
+            "key_judgments": report.briefing.key_judgments,
+            "subject": report.briefing.subject.model_dump(),
+            "digital_accounts": [a.model_dump() for a in report.briefing.digital_accounts],
+            "breach_records": [b.model_dump() for b in report.briefing.breach_records],
+            "intelligence_gaps": report.briefing.intelligence_gaps,
+            "recommended_actions": report.briefing.recommended_actions,
+        },
+        "source_blocks": [
+            {
+                "block_id": b.block_id,
+                "module": b.module,
+                "title": b.title,
+                "description": b.description,
+                "records": b.records,
+            }
+            for b in report.source_blocks
+        ],
         "breaches": [
             {
                 "name": ev.raw_data.get("Name") or ev.identifier_value,

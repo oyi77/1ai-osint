@@ -169,6 +169,56 @@ class PivotSuggestion(BaseModel):
     expected_sources: list[str] = Field(default_factory=list)
 
 
+class SourceIntelBlock(BaseModel):
+    """Grouped records for one module/source (raw source appendix)."""
+    block_id: str = ""
+    module: str = ""
+    title: str = ""
+    description: str = ""
+    records: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class SubjectProfile(BaseModel):
+    """Resolved subject identity indicators."""
+    primary_name: str = ""
+    known_aliases: list[str] = Field(default_factory=list)
+    known_handles: list[str] = Field(default_factory=list)
+    emails: list[str] = Field(default_factory=list)
+    phones: list[str] = Field(default_factory=list)
+    niks: list[str] = Field(default_factory=list)
+    locations: list[str] = Field(default_factory=list)
+
+
+class DigitalAccount(BaseModel):
+    """Confirmed or candidate online account."""
+    platform: str = ""
+    username: str = ""
+    url: str = ""
+    status: str = ""
+    confidence: float = 0.0
+    sources: list[str] = Field(default_factory=list)
+
+
+class BreachIntelRecord(BaseModel):
+    """Structured breach / leak exposure row."""
+    source: str = ""
+    breach_name: str = ""
+    fields: dict[str, str] = Field(default_factory=dict)
+    confidence: float = 0.0
+
+
+class OperationalBriefing(BaseModel):
+    """Pre-operational OSINT briefing packet."""
+    classification: str = "UNCLASSIFIED // OPEN SOURCE INTELLIGENCE // LAWFUL USE ONLY"
+    bluf: str = ""
+    subject: SubjectProfile = Field(default_factory=SubjectProfile)
+    digital_accounts: list[DigitalAccount] = Field(default_factory=list)
+    breach_records: list[BreachIntelRecord] = Field(default_factory=list)
+    intelligence_gaps: list[str] = Field(default_factory=list)
+    recommended_actions: list[str] = Field(default_factory=list)
+    key_judgments: list[str] = Field(default_factory=list)
+
+
 # --- Top-level report ---
 class IntelReport(BaseModel):
     """Top-level intel-grade report."""
@@ -190,3 +240,5 @@ class IntelReport(BaseModel):
     warnings: list[str] = Field(default_factory=list)
     correlation_clusters: list[dict] = Field(default_factory=list)
     correlation_stats: dict = Field(default_factory=dict)
+    source_blocks: list[SourceIntelBlock] = Field(default_factory=list)
+    briefing: OperationalBriefing = Field(default_factory=OperationalBriefing)

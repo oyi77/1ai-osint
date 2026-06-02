@@ -28,9 +28,12 @@ from src.modules.deep_scan.models_report import (
     RiskAssessment,
     RiskFactor,
     RiskLevel,
+    SourceIntelBlock,
     TimelineEntry,
     rate_source,
 )
+from src.modules.deep_scan.briefing_builder import build_operational_briefing
+from src.modules.deep_scan.field_labels import source_blurb, source_display_name
 from src.modules.deep_scan import IdentifierType
 
 
@@ -94,6 +97,12 @@ def generate_intel_report(result: Any) -> IntelReport:
     # Summary + warnings
     report.summary = _summarize(result, evidence, report.risk)
     report.warnings = _collect_warnings(result, evidence)
+
+    report.source_blocks = _build_source_blocks(result)
+    modules_from_blocks = {b.module for b in report.source_blocks}
+    report.modules_run = sorted(set(report.modules_run) | modules_from_blocks)
+
+    report.briefing = build_operational_briefing(result, report)
 
     return report
 
@@ -177,13 +186,71 @@ def _extract_evidence(result: Any) -> list[EvidenceItem]:
                     identifier_type=ident_type,
                     source=source,
                     source_reliability=reliability,
-                    url=rd.get("url"),
+                    url=rd.get("url") or rd.get("source_url"),
                     snippet=rd.get("snippet") or finding.description,
                     raw_data=rd,
                     confidence=0.7,
                 ))
 
+            # Full structured record (breach / leak / people_finder rows)
+            if rd and len(rd) > 1:
+                primary = (
+                    rd.get("email") or rd.get("username") or rd.get("phone")
+                    or rd.get("name") or rd.get("target") or finding.title
+                )
+                record_key = (source, str(primary), "record")
+                if record_key not in seen:
+                    seen.add(record_key)
+                    evidence.append(EvidenceItem(
+                        id=f"ev-{uuid.uuid4().hex[:8]}",
+                        identifier_value=str(primary),
+                        identifier_type="breach_record" if source.startswith("source_") else "record",
+                        source=source,
+                        source_reliability=reliability,
+                        url=rd.get("source_url") or rd.get("url"),
+                        snippet=finding.description or "",
+                        raw_data=rd,
+                        confidence=getattr(finding, "confidence", 0.7) or 0.7,
+                        notes=rd.get("source") or rd.get("breach_name") or "",
+                    ))
+
     return evidence
+
+
+def _build_source_blocks(result: Any) -> list[SourceIntelBlock]:
+    """Group raw findings into presentable per-source blocks."""
+    grouped: dict[str, list[dict[str, Any]]] = {}
+
+    for finding in getattr(result, "findings", []) or []:
+        module = getattr(finding, "module", None) or "unknown"
+        rd = dict(getattr(finding, "raw_data", None) or {})
+        title = getattr(finding, "title", "") or ""
+        desc = getattr(finding, "description", "") or ""
+
+        if "platforms" in rd and isinstance(rd["platforms"], list):
+            grouped.setdefault(module, []).append(dict(rd))
+            continue
+
+        if rd:
+            if title:
+                rd.setdefault("_title", title)
+            if desc:
+                rd.setdefault("_detail", desc)
+            grouped.setdefault(module, []).append(rd)
+        elif title or desc:
+            grouped.setdefault(module, []).append({"_title": title, "_detail": desc})
+
+    blocks: list[SourceIntelBlock] = []
+    for idx, module in enumerate(sorted(grouped.keys()), start=1):
+        records = grouped[module]
+        blocks.append(SourceIntelBlock(
+            block_id=f"p{idx}",
+            module=module,
+            title=source_display_name(module),
+            description=source_blurb(module),
+            records=records,
+        ))
+    return blocks
 
 
 def _build_platform_url(platform: str, value: str) -> str:
@@ -471,8 +538,10 @@ def _suggest_pivots(result: Any, evidence: list[EvidenceItem]) -> list[PivotSugg
     seen: set[tuple[str, str]] = set()
 
     def _add(target_type: str, value: str, rationale: str, priority: int, sources: list[str]):
+        if not value or value.startswith(("http://", "https://")):
+            return
         key = (target_type, value)
-        if key in seen or not value:
+        if key in seen:
             return
         seen.add(key)
         pivots.append(PivotSuggestion(
@@ -485,6 +554,8 @@ def _suggest_pivots(result: Any, evidence: list[EvidenceItem]) -> list[PivotSugg
 
     for ident in result.identifiers:
         if ident.id_type == IdentifierType.USERNAME:
+            if ident.value.startswith(("http://", "https://")):
+                continue
             _add("email", _guess_email(ident.value, result.target),
                  f"Username '{ident.value}' likely has a Gravatar or GitHub email",
                  priority=2, sources=["github", "gravatar", "hunter"])

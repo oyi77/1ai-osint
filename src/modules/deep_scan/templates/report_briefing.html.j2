@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Operational Intelligence Brief — {{ report.target }}</title>
+<style>
+  :root { --ink: #1a1a1a; --muted: #4a5568; --line: #cbd5e1; --accent: #1e40af; --bg: #f8fafc; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Georgia', 'Times New Roman', serif; background: var(--bg); color: var(--ink); font-size: 15px; line-height: 1.55; }
+  .banner { background: #111; color: #fbbf24; text-align: center; padding: 8px; font: bold 11px/1.4 'Courier New', monospace; letter-spacing: 0.08em; }
+  .page { max-width: 920px; margin: 0 auto; padding: 28px 32px 48px; background: white; min-height: 100vh; box-shadow: 0 0 24px rgba(0,0,0,.06); }
+  h1 { font-size: 22px; margin: 0 0 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .subtitle { color: var(--muted); font-size: 13px; margin-bottom: 20px; font-family: -apple-system, sans-serif; }
+  .meta-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 16px 0 24px; font-family: -apple-system, sans-serif; font-size: 12px; }
+  .meta-box { border: 1px solid var(--line); padding: 10px; border-radius: 4px; }
+  .meta-box b { display: block; font-size: 10px; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+  section { margin: 28px 0; page-break-inside: avoid; }
+  section h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 2px solid var(--accent); padding-bottom: 6px; margin: 0 0 12px; color: var(--accent); font-family: -apple-system, sans-serif; }
+  .bluf { background: #eff6ff; border-left: 4px solid var(--accent); padding: 14px 16px; font-size: 15px; }
+  .bluf strong { font-family: -apple-system, sans-serif; font-size: 11px; text-transform: uppercase; display: block; margin-bottom: 6px; color: var(--accent); }
+  ul.judgments li, ul.gaps li, ul.actions li { margin: 6px 0; }
+  table { width: 100%; border-collapse: collapse; font-family: -apple-system, sans-serif; font-size: 13px; }
+  th, td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { background: #f1f5f9; font-size: 11px; text-transform: uppercase; color: var(--muted); }
+  tr:nth-child(even) td { background: #fafafa; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 600; }
+  .tag-ok { background: #dcfce7; color: #166534; }
+  .tag-warn { background: #fef9c3; color: #854d0e; }
+  .tag-bad { background: #fee2e2; color: #991b1b; }
+  .breach-card { border: 1px solid var(--line); margin: 10px 0; padding: 12px; border-radius: 4px; }
+  .breach-card h4 { margin: 0 0 8px; font-size: 13px; font-family: -apple-system, sans-serif; }
+  .field-line { font-family: -apple-system, sans-serif; font-size: 12px; margin: 3px 0; }
+  .field-line code { background: #f1f5f9; padding: 1px 5px; }
+  .graph { text-align: center; margin: 12px 0; overflow-x: auto; }
+  .footer { margin-top: 40px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 11px; color: var(--muted); font-family: -apple-system, sans-serif; }
+  @media print { body { background: white; } .page { box-shadow: none; max-width: 100%; } .banner { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style>
+</head>
+<body>
+<div class="banner">{{ report.briefing.classification }}</div>
+<div class="page">
+
+  <h1>Operational Intelligence Brief</h1>
+  <p class="subtitle">Subject: <strong>{{ report.target }}</strong> · Report {{ report.report_id }} · {{ report.completed_at }}</p>
+
+  <div class="meta-grid">
+    <div class="meta-box"><b>Collection window</b>{{ report.duration_sec | round(1) }}s · {{ report.iterations }} pass(es)</div>
+    <div class="meta-box"><b>Modules</b>{{ report.modules_run | join(', ') or '—' }}</div>
+    <div class="meta-box"><b>Exposure</b>{{ report.risk.level.value | upper }} ({{ "%.0f"|format(report.risk.score * 100) }}%)</div>
+    <div class="meta-box"><b>Evidence</b>{{ report.evidence | length }} items</div>
+    <div class="meta-box"><b>Accounts</b>{{ report.briefing.digital_accounts | length }}</div>
+    <div class="meta-box"><b>Breach rows</b>{{ report.briefing.breach_records | length }}</div>
+  </div>
+
+  <section id="bluf">
+    <div class="bluf">
+      <strong>Bottom line up front (BLUF)</strong>
+      {{ report.briefing.bluf }}
+    </div>
+  </section>
+
+  <section id="judgments">
+    <h2>I. Key judgments</h2>
+    <ul class="judgments">
+      {% for j in report.briefing.key_judgments %}
+      <li>{{ j }}</li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <section id="subject">
+    <h2>II. Subject identification &amp; resolution</h2>
+    <table>
+      <tr><th>Primary name</th><td>{{ report.briefing.subject.primary_name }}</td></tr>
+      <tr><th>Aliases</th><td>{% if report.briefing.subject.known_aliases %}{{ report.briefing.subject.known_aliases | join(', ') }}{% else %}<em>None collected</em>{% endif %}</td></tr>
+      <tr><th>Usernames / handles</th><td>{% if report.briefing.subject.known_handles %}<code>{{ report.briefing.subject.known_handles | join('</code>, <code>') }}</code>{% else %}<em>None</em>{% endif %}</td></tr>
+      <tr><th>Email addresses</th><td>{% if report.briefing.subject.emails %}{{ report.briefing.subject.emails | join(', ') }}{% else %}<em>None</em>{% endif %}</td></tr>
+      <tr><th>Telephone</th><td>{% if report.briefing.subject.phones %}{{ report.briefing.subject.phones | join(', ') }}{% else %}<em>None</em>{% endif %}</td></tr>
+      <tr><th>NIK / national ID</th><td>{% if report.briefing.subject.niks %}{{ report.briefing.subject.niks | join(', ') }}{% else %}<em>None</em>{% endif %}</td></tr>
+      <tr><th>Location indicators</th><td>{% if report.briefing.subject.locations %}{{ report.briefing.subject.locations | join('; ') }}{% else %}<em>None</em>{% endif %}</td></tr>
+    </table>
+  </section>
+
+  <section id="digital">
+    <h2>III. Digital presence &amp; account matrix</h2>
+    {% if report.briefing.digital_accounts %}
+    <table>
+      <tr><th>Platform</th><th>Handle</th><th>Status</th><th>Confidence</th><th>Sources</th><th>URL</th></tr>
+      {% for ac in report.briefing.digital_accounts %}
+      <tr>
+        <td>{{ ac.platform }}</td>
+        <td><code>{{ ac.username }}</code></td>
+        <td>
+          {% if ac.status in ('found', 'confirmed') %}<span class="tag tag-ok">{{ ac.status }}</span>
+          {% elif ac.status == 'not_found' %}<span class="tag tag-bad">{{ ac.status }}</span>
+          {% else %}<span class="tag tag-warn">{{ ac.status }}</span>{% endif %}
+        </td>
+        <td>{{ "%.0f"|format(ac.confidence * 100) }}%</td>
+        <td>{{ ac.sources | join(', ') }}</td>
+        <td>{% if ac.url %}<a href="{{ ac.url }}">{{ ac.url[:48] }}{% if ac.url|length > 48 %}…{% endif %}</a>{% else %}—{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}
+    <p><em>No accounts enumerated — install <code>sherlock-project</code> and re-run deep scan.</em></p>
+    {% endif %}
+  </section>
+
+  <section id="breach">
+    <h2>IV. Breach &amp; credential intelligence</h2>
+    {% if report.briefing.breach_records %}
+    {% for br in report.briefing.breach_records %}
+    <div class="breach-card">
+      <h4>{{ br.breach_name }} <small>({{ br.source }} · {{ "%.0f"|format(br.confidence * 100) }}%)</small></h4>
+      {% for k, v in br.fields.items() %}
+      <div class="field-line"><b>{{ k }}:</b> <code>{{ v }}</code></div>
+      {% endfor %}
+    </div>
+    {% endfor %}
+    {% else %}
+    <p><em>No breach corpus hits. Add API keys (HIBP, DeHashed, LeakCheck) for credential exposure detail comparable to commercial leak indices.</em></p>
+    {% endif %}
+  </section>
+
+  <section id="risk">
+    <h2>V. Threat &amp; exposure assessment</h2>
+    <p><strong>Assessment:</strong> {{ report.risk.reasoning }}</p>
+    <table>
+      <tr><th>Factor</th><th>Status</th><th>Weight</th></tr>
+      {% for f in report.risk.factors %}
+      <tr>
+        <td>{{ f.description }}</td>
+        <td>{% if f.triggered %}<span class="tag tag-bad">TRIGGERED</span>{% else %}<span class="tag tag-ok">Clear</span>{% endif %}</td>
+        <td>{{ f.weight }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </section>
+
+  <section id="graph">
+    <h2>VI. Link analysis</h2>
+    <div class="graph">{{ svg_graph }}</div>
+  </section>
+
+  <section id="chronology">
+    <h2>VII. Chronology</h2>
+    <table>
+      <tr><th>Time (UTC)</th><th>Source</th><th>Event</th><th>Conf.</th></tr>
+      {% for t in report.timeline[:40] %}
+      <tr>
+        <td>{{ t.timestamp.strftime('%Y-%m-%d %H:%M') if t.timestamp else '—' }}</td>
+        <td>{{ t.source }}</td>
+        <td>{{ t.detail[:120] }}</td>
+        <td>{{ "%.0f"|format(t.confidence * 100) }}%</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </section>
+
+  <section id="gaps">
+    <h2>VIII. Intelligence gaps</h2>
+    <ul class="gaps">
+      {% for g in report.briefing.intelligence_gaps %}
+      <li>{{ g }}</li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <section id="actions">
+    <h2>IX. Recommended collection &amp; follow-up</h2>
+    <ul class="actions">
+      {% for a in report.briefing.recommended_actions %}
+      <li>{{ a }}</li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <section id="evidence-index">
+    <h2>Appendix A — Evidence register</h2>
+    <table>
+      <tr><th>Value</th><th>Type</th><th>Source</th><th>Rel.</th><th>Conf.</th></tr>
+      {% for ev in report.evidence[:60] %}
+      <tr>
+        <td><code>{{ ev.identifier_value[:50] }}</code></td>
+        <td>{{ ev.identifier_type }}</td>
+        <td>{{ ev.source }}</td>
+        <td>{{ ev.source_reliability }}</td>
+        <td>{{ "%.0f"|format(ev.confidence * 100) }}%</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% if report.evidence|length > 60 %}
+    <p><em>{{ report.evidence|length - 60 }} additional evidence items in JSON export.</em></p>
+    {% endif %}
+  </section>
+
+  {% if report.warnings %}
+  <section id="warnings">
+    <h2>Appendix B — Analyst warnings</h2>
+    <ul>{% for w in report.warnings %}<li>{{ w }}</li>{% endfor %}</ul>
+  </section>
+  {% endif %}
+
+  <div class="footer">
+    Generated by 1ai-osint ZKIT Deep Scan · {{ report.summary }}
+  </div>
+</div>
+</body>
+</html>

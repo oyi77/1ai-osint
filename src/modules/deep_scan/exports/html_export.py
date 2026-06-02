@@ -15,9 +15,27 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader
 
+from src.modules.deep_scan.field_labels import format_platform_block, format_record_fields
 from src.modules.deep_scan.models_report import IntelReport
 
 _TEMPLATE_DIR = Path(__file__).parent.parent / "templates"
+
+
+def _format_block_record(record: dict) -> str:
+    """Jinja helper: format one raw_data record."""
+    if not record:
+        return ""
+    platforms = record.get("platforms")
+    if isinstance(platforms, list) and platforms:
+        user = str(record.get("username") or record.get("display_name") or "")
+        body = format_platform_block(platforms, user)
+        if record.get("display_name") and record.get("display_name") != user:
+            body = (
+                f"<b>👤Display name: </b> <code>{record['display_name']}</code><br>"
+                f"<b>👤Handle: </b> <code>{user}</code><br><br>{body}"
+            )
+        return body
+    return format_record_fields(record)
 
 
 def _svg_graph(report: IntelReport) -> str:
@@ -112,13 +130,16 @@ def _risk_gauge(score: float) -> str:
 
 
 def export_html(report: IntelReport) -> str:
-    """Render IntelReport to self-contained HTML."""
+    """Render IntelReport to self-contained HTML (LeakBase-style + dashboard)."""
     env = Environment(loader=FileSystemLoader(str(_TEMPLATE_DIR)))
+    env.globals["format_record"] = _format_block_record
     try:
-        template = env.get_template("report.html.j2")
+        template = env.get_template("report_briefing.html.j2")
     except Exception:
-        # Fallback: render inline
-        return _render_inline(report)
+        try:
+            template = env.get_template("report.html.j2")
+        except Exception:
+            return _render_inline(report)
 
     return template.render(
         report=report,
