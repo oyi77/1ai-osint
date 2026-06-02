@@ -211,7 +211,7 @@ def _render_inline(report: IntelReport) -> str:
             <b>Entity {c.get("entity_id", "?")}</b><br>
             Confidence: {c.get("confidence", 0):.0%}<br>
             Modules: {', '.join(c.get("source_modules", []))}<br>
-            Evidence: {', '.join(c.get("correlation_evidence", []))}
+            Evidence: {', '.join(c.get("evidence", []))}
         </div>"""
 
     # Structured PII section
