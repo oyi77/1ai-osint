@@ -5,7 +5,7 @@ Grab forex data + generate signals even without MT5/EA.
 
 Commands: /phantomfx /price /analyze /data /status /killzone /help /start
 """
-import json, logging, os, re, sys, time, urllib.request
+import json, logging, os, re, sys, threading, time, urllib.request
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
@@ -359,6 +359,139 @@ def handle_command(cmd, text, chat_id=None):
                     f"Nearest S: ${sr['nearest_support']:,} | Nearest R: ${sr['nearest_resistance']:,}\n"
                     f"<i>AI signal unavailable — pivot analysis</i>")
 
+
+# ═══════════════════════════════════════════════════════════════
+# AUTONOMOUS SIGNAL GENERATOR
+# ═══════════════════════════════════════════════════════════════
+
+SIGNAL_LOG_PATH = DATA_DIR / "signal_log.json"
+
+def load_signal_log():
+    try:
+        if SIGNAL_LOG_PATH.exists():
+            return json.loads(SIGNAL_LOG_PATH.read_text())
+    except: pass
+    today = wib_now().strftime("%Y-%m-%d")
+    return {"date": today, "signals_sent": 0, "loss_count": 0, "last_signal_time": None, "signals": []}
+
+def save_signal_log(log):
+    SIGNAL_LOG_PATH.write_text(json.dumps(log, indent=2))
+
+def is_trading_session(h=None):
+    """Check if we're in an active trading session."""
+    h = h if h is not None else wib_now().hour
+    return (9 <= h < 17) or (19 <= h < 23)  # London or NY
+
+def should_generate(log):
+    """Check if we should generate a new signal."""
+    now = wib_now()
+    today = now.strftime("%Y-%m-%d")
+    
+    # Reset daily counters
+    if log.get("date") != today:
+        log = {"date": today, "signals_sent": 0, "loss_count": 0, "last_signal_time": None, "signals": []}
+    
+    # Circuit breaker
+    if log["loss_count"] >= 3:
+        return False, log
+    
+    # Max 5 signals per session
+    if log["signals_sent"] >= 5:
+        return False, log
+    
+    # Throttle: minimum 5 min between signals
+    if log.get("last_signal_time"):
+        try:
+            last = datetime.fromisoformat(log["last_signal_time"])
+            if (now - last).total_seconds() < 300:
+                return False, log
+        except: pass
+    
+    return True, log
+
+def auto_analyze_loop():
+    """Background loop: generate signals during trading sessions."""
+    logger.info("🔄 Auto-signal loop started")
+    
+    while True:
+        try:
+            h = wib_now().hour
+            
+            if not is_trading_session(h):
+                # Outside trading — sleep longer
+                sleep_time = 120 if 0 <= h < 9 else 60
+                time.sleep(sleep_time)
+                continue
+            
+            # During trading session
+            log = load_signal_log()
+            should_gen, log = should_generate(log)
+            
+            if not should_gen:
+                time.sleep(30)
+                continue
+            
+            # Fetch price
+            price = fetch_price()
+            if not price:
+                logger.warning("Auto-signal: price unavailable")
+                time.sleep(60)
+                continue
+            
+            dxy = fetch_dxy()
+            lkz, nykz = killzone(h)
+            kz = "London" if lkz else ("NY" if nykz else "Outside")
+            
+            logger.info(f"🔍 Auto-analyze: XAUUSD=${price:.1f} | {session(h)} | KZ={kz}")
+            
+            sig = ask_ai(price, dxy, session(h), kz, log["loss_count"])
+            
+            if not sig:
+                time.sleep(60)
+                continue
+            
+            action = sig.get("action", "HOLD")
+            ensemble = sig.get("ensemble", "")
+            confidence = sig.get("confidence", 0)
+            
+            # Only push when:
+            # - Both models agree (ensemble="agree") 
+            # - Action is BUY or SELL
+            # - Confidence >= 0.65
+            if ensemble == "agree" and action in ("BUY", "SELL") and confidence >= 0.65:
+                logger.info(f"🚀 AUTO SIGNAL: {action} | conf={confidence:.0%} | {sig.get('reasoning','')[:60]}")
+                
+                # Format and send
+                text = fmt_signal(sig, price, dxy, h) + "\n<i>[AUTO] Generated during {session(h)} session</i>"
+                tg_send(text)
+                
+                # Update log
+                log["signals_sent"] += 1
+                log["last_signal_time"] = wib_now().isoformat()
+                log["signals"].append({
+                    "time": wib_now().isoformat(),
+                    "action": action,
+                    "confidence": confidence,
+                    "entry": sig.get("entry"),
+                    "price_at_signal": price,
+                    "session": session(h),
+                })
+                save_signal_log(log)
+                
+                # Wait longer after sending a signal
+                time.sleep(300)  # 5 min cooldown
+            elif ensemble == "disagree":
+                logger.info(f"   Split → skip (Claude vs DeepSeek disagree)")
+                time.sleep(90)
+            else:
+                logger.info(f"   No consensus or HOLD → skip")
+                time.sleep(60)
+                
+        except Exception as e:
+            logger.error(f"Auto-loop error: {e}")
+            time.sleep(60)
+
+
 def main():
     if not TOKEN:
         logger.error("PHANTOMFX_TELEGRAM_BOT_TOKEN not set!"); sys.exit(1)
@@ -369,7 +502,10 @@ def main():
 
     logger.info(f"🤖 PhantomFX Bot starting — @berkahkaryaforexbotbot")
     logger.info(f"   Chat: {CHAT_ID} | Offset: {last_update_id} | Time: {wib_fmt()}")
-
+        # Start autonomous signal generator in background thread
+    auto_thread = threading.Thread(target=auto_analyze_loop, daemon=True, name="auto-signal")
+    auto_thread.start()
+    logger.info("   Auto-signal generator: ENABLED (London + NY sessions)")
     while True:
         try:
             url = f"https://api.telegram.org/bot{TOKEN}/getUpdates?offset={last_update_id+1}&timeout=30"
