@@ -59,11 +59,20 @@ def save_state(s):
 
 def fetch_price(pair="gold"):
     """Fetch live price from gold-api.com (primary) + metals.live (fallback)."""
+    # Map pair names to exchange-api symbols
+    pair_map = {"gold": "xau", "xauusd": "xau", "dxy": "usd", "eurusd": "eur", "gbpusd": "gbp", "usdjpy": "jpy"}
+    api_pair = pair_map.get(pair, pair)
+    
     sources = [
+        # Source 1: gold-api.com (real-time, fastest)
         ("gold-api", f"https://api.gold-api.com/price/{pair.upper() if pair != 'gold' else 'XAU'}",
          lambda r: float(r.get("price")) if r.get("price") else None),
+        # Source 2: metals.live (real-time backup)
         ("metals.live", f"https://api.metals.live/v1/spot/{pair}",
          lambda r: float(r["price"]) if r.get("price") else None),
+        # Source 3: fawazahmed0 exchange-api (daily, free, no rate limit)
+        ("exchange-api", f"https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/{api_pair}.min.json",
+         lambda r: float(r[api_pair].get("usd")) if r.get(api_pair,{}).get("usd") else None),
     ]
     for name, url, parser in sources:
         try:
