@@ -58,20 +58,31 @@ def save_state(s):
     STATE_PATH.write_text(json.dumps(s))
 
 def fetch_price(pair="gold"):
-    for url in [f"https://api.metals.live/v1/spot/{pair}", "https://api.metals.live/v1/spot/gold"]:
+    """Fetch live price from gold-api.com (primary) + metals.live (fallback)."""
+    sources = [
+        ("gold-api", f"https://api.gold-api.com/price/{pair.upper() if pair != 'gold' else 'XAU'}",
+         lambda r: float(r.get("price")) if r.get("price") else None),
+        ("metals.live", f"https://api.metals.live/v1/spot/{pair}",
+         lambda r: float(r["price"]) if r.get("price") else None),
+    ]
+    for name, url, parser in sources:
         try:
-            req = urllib.request.Request(url, headers={"User-Agent":"PhantomFX/4.2"})
-            r = json.loads(urllib.request.urlopen(req, timeout=8).read())
-            if r.get("price"): return float(r["price"])
+            req = urllib.request.Request(url, headers={"User-Agent":"PhantomFX/4.3"})
+            r = json.loads(urllib.request.urlopen(req, timeout=6).read())
+            price = parser(r)
+            if price and price > 0:
+                return price
         except: continue
-    return 2650.0
+    return None
 
 def fetch_dxy():
-    try:
-        req = urllib.request.Request("https://api.metals.live/v1/spot/dxy", headers={"User-Agent":"PhantomFX/4.2"})
-        r = json.loads(urllib.request.urlopen(req, timeout=8).read())
-        if r.get("price"): return float(r["price"])
-    except: pass
+    """Fetch DXY from available sources."""
+    for url in ["https://api.metals.live/v1/spot/dxy"]:
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent":"PhantomFX/4.3"})
+            r = json.loads(urllib.request.urlopen(req, timeout=6).read())
+            if r.get("price"): return float(r["price"])
+        except: continue
     return None
 
 def tg_send(text):
@@ -241,8 +252,7 @@ def ask_ai(price, dxy, sess, kz_str, loss_count):
 def fmt_price(price, dxy, h):
     lkz,nykz = killzone(h)
     kz = "🟢 ACTIVE" if (lkz or nykz) else "⚪ Outside"
-    return (f"<b>📊 XAUUSD Live</b>\n━━━━━━━━━━━━━━━━\n"
-            f"<b>💰 ${price:,.2f}</b>\n"
+    return (f"<b>📊 XAUUSD Live</b>\n━━━━━━━━━━━━━━━━\n" + (f"<b>💰 ${price:,.2f}</b>\n" if price else "❌ Price unavailable\n")
             + (f"DXY: {dxy:.2f}\n" if dxy else "")
             + f"Session: {session(h)}\nKillzone: {kz}\nTime: {wib_fmt()}")
 
@@ -293,7 +303,10 @@ def handle_command(cmd, text, chat_id=None):
 
     elif cmd == "/price":
         price = fetch_price(); dxy = fetch_dxy()
-        tg_send(fmt_price(price, dxy, h))
+        if price is None:
+            tg_send("❌ XAUUSD price unavailable — all sources offline.", chat_id)
+        else:
+            tg_send(fmt_price(price, dxy, h), chat_id)
 
     elif cmd == "/data":
         pairs = {"XAUUSD":"gold","DXY":"dxy","EURUSD":"eurusd","GBPUSD":"gbpusd","USDJPY":"usdjpy"}
