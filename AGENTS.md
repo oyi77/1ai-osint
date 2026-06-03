@@ -49,6 +49,7 @@ Complete OSINT ecosystem built around Zero Knowledge Identity Tracking (ZKIT). C
 - Multi-chain support: EVM, Solana, Bitcoin, Tron, and more
 - AI analysis via LLM integration (analyzers + prompts)
 - Vendor modules under `src/vendor/` for third-party integrations
+- **CloakBrowser Integration**: Use the `--cloak` flag or `CLOAKBROWSER_API_URL` to route web scraping requests (LinkedIn, Facebook, etc.) through anti-detect chromium CDP sessions via `src/core/cloak_client.py`.
 
 ## Dependencies
 

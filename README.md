@@ -10,9 +10,9 @@
 pip install -e .
 cp .env.example .env
 1ai-osint doctor
-1ai-osint deep-scan "Target Name" --profile fast
+1ai-osint deep-scan "Target Name" --profile fast --cloak
 1ai-osint deep-scan user@example.com --profile agency --case INV-001 --pdf
-python -m src.cli --help
+python -m src.cli.main --help
 ```
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) and [docs/INTEL_STANDARD.md](docs/INTEL_STANDARD.md) for briefing structure and API keys.
@@ -29,6 +29,7 @@ See [docs/ROADMAP.md](docs/ROADMAP.md) and [docs/INTEL_STANDARD.md](docs/INTEL_S
 | **Crypto Private Key** | Leaked key detection + validation |
 | **ZKIT Identity** | Privacy-preserving identity correlation |
 | **AI Orchestrator** | LangGraph workflow with Omniroute |
+| **CloakBrowser Stealth**| Bypasses CDNs & CAPTCHAs via CDP |
 
 ## Research
 
