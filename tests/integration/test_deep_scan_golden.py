@@ -1,11 +1,11 @@
 """Golden-path intel packet (fixture data, no live OSINT)."""
+
 from __future__ import annotations
 
 import json
 from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock
 
-import pytest
 
 from src.modules.deep_scan import DeepScanResult, Identifier, IdentifierType
 from src.modules.deep_scan.exports import export_report
@@ -23,7 +23,12 @@ def _fixture_result() -> DeepScanResult:
     f.raw_data = {
         "username": "fixture_user",
         "platforms": [
-            {"platform": "github", "url": "https://github.com/fixture_user", "status": 200, "exists": True},
+            {
+                "platform": "github",
+                "url": "https://github.com/fixture_user",
+                "status": 200,
+                "exists": True,
+            },
         ],
     }
     f.title = "fixture_user"
@@ -31,8 +36,18 @@ def _fixture_result() -> DeepScanResult:
     f.confidence = 0.85
     r.findings = [f]
     r.identifiers = [
-        Identifier(value="fixture_user", id_type=IdentifierType.USERNAME, source="social_osint", confidence=0.9),
-        Identifier(value="fixture@example.com", id_type=IdentifierType.EMAIL, source="data_leaks", confidence=0.7),
+        Identifier(
+            value="fixture_user",
+            id_type=IdentifierType.USERNAME,
+            source="social_osint",
+            confidence=0.9,
+        ),
+        Identifier(
+            value="fixture@example.com",
+            id_type=IdentifierType.EMAIL,
+            source="data_leaks",
+            confidence=0.7,
+        ),
     ]
     return r
 

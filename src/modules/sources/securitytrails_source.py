@@ -1,4 +1,5 @@
 """SecurityTrails source adapter for domain/IP reconnaissance."""
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -17,7 +18,12 @@ class SecurityTrailsSource:
 
     BASE_URL = "https://api.securitytrails.com/v1"
 
-    def __init__(self, api_key: Optional[str] = None, request_delay: float = 2.0, timeout: float = 30.0):
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        request_delay: float = 2.0,
+        timeout: float = 30.0,
+    ):
         self.api_key = api_key or os.getenv("SECURITYTRAILS_API_KEY", "")
         self.request_delay = request_delay
         self.timeout = timeout
@@ -35,7 +41,9 @@ class SecurityTrailsSource:
 
         leaks: list[RawLeak] = []
         headers = {"apikey": self.api_key}
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             # Get subdomains
             try:
                 await self._rate_limit()
@@ -47,11 +55,14 @@ class SecurityTrailsSource:
                     data = resp.json()
                     subdomains = data.get("subdomains", [])
                     if subdomains:
-                        leaks.append(RawLeak(
-                            text=f"Subdomains of {address}:\n" + "\n".join(f"{s}.{address}" for s in subdomains),
-                            source_name="securitytrails",
-                            source_url=f"https://securitytrails.com/domain/{address}",
-                        ))
+                        leaks.append(
+                            RawLeak(
+                                text=f"Subdomains of {address}:\n"
+                                + "\n".join(f"{s}.{address}" for s in subdomains),
+                                source_name="securitytrails",
+                                source_url=f"https://securitytrails.com/domain/{address}",
+                            )
+                        )
             except Exception as exc:
                 logger.debug("SecurityTrails subdomains error: %s", exc)
 
@@ -64,11 +75,13 @@ class SecurityTrailsSource:
                 )
                 if resp.status_code == 200:
                     data = resp.json()
-                    leaks.append(RawLeak(
-                        text=str(data),
-                        source_name="securitytrails",
-                        source_url=f"https://securitytrails.com/domain/{address}",
-                    ))
+                    leaks.append(
+                        RawLeak(
+                            text=str(data),
+                            source_name="securitytrails",
+                            source_url=f"https://securitytrails.com/domain/{address}",
+                        )
+                    )
             except Exception as exc:
                 logger.debug("SecurityTrails DNS error: %s", exc)
 

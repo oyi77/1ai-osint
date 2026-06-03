@@ -8,6 +8,7 @@ Includes:
   - Pivot recommendations
   - Print-friendly CSS embedded
 """
+
 from __future__ import annotations
 
 import math
@@ -15,7 +16,10 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader
 
-from src.modules.deep_scan.field_labels import format_platform_block, format_record_fields
+from src.modules.deep_scan.field_labels import (
+    format_platform_block,
+    format_record_fields,
+)
 from src.modules.deep_scan.models_report import IntelReport
 
 _TEMPLATE_DIR = Path(__file__).parent.parent / "templates"
@@ -151,7 +155,9 @@ def export_html(report: IntelReport) -> str:
 
 def _reliability_badge(reliability: str) -> str:
     """Render a colored NATO A-F reliability badge."""
-    cls = f"badge-{reliability.lower()}" if reliability.lower() in "abcdf" else "badge-f"
+    cls = (
+        f"badge-{reliability.lower()}" if reliability.lower() in "abcdf" else "badge-f"
+    )
     return f'<span class="badge {cls}">{reliability}</span>'
 
 
@@ -226,13 +232,13 @@ def _render_inline(report: IntelReport) -> str:
 
     # Cross-module correlations
     correlation_rows = ""
-    for c in (getattr(report, "correlation_clusters", None) or []):
+    for c in getattr(report, "correlation_clusters", None) or []:
         correlation_rows += f"""
         <div class="card" style="margin:8px 0">
             <b>Entity {c.get("entity_id", "?")}</b><br>
             Confidence: {c.get("confidence", 0):.0%}<br>
-            Modules: {', '.join(c.get("source_modules", []))}<br>
-            Evidence: {', '.join(c.get("evidence", []))}
+            Modules: {", ".join(c.get("source_modules", []))}<br>
+            Evidence: {", ".join(c.get("evidence", []))}
         </div>"""
 
     # Structured PII section
@@ -361,9 +367,9 @@ def _render_inline(report: IntelReport) -> str:
   {pivot_rows}
 </table>
 
-{f'<h2>Breach Timeline ({n_breaches} records)</h2><table><tr><th>Breach Name</th><th>Date</th><th>Data Classes</th><th>Source</th></tr>{breach_rows}</table>' if breach_rows else ""}
+{f"<h2>Breach Timeline ({n_breaches} records)</h2><table><tr><th>Breach Name</th><th>Date</th><th>Data Classes</th><th>Source</th></tr>{breach_rows}</table>" if breach_rows else ""}
 
-{f'<h2>Cross-Module Correlations ({n_correlations} clusters)</h2>{correlation_rows}' if correlation_rows else ""}
+{f"<h2>Cross-Module Correlations ({n_correlations} clusters)</h2>{correlation_rows}" if correlation_rows else ""}
 
 {f'<h2>Structured PII <small style="color:#ef4444">(restricted)</small></h2><details><summary style="cursor:pointer;color:#60a5fa">Show PII data (authorized personnel only)</summary><table><tr><th>Type</th><th>Value</th><th>Source</th><th>Confidence</th></tr>{pii_rows}</table></details>' if pii_rows else ""}
 

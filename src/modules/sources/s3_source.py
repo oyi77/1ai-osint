@@ -1,4 +1,5 @@
 """S3 bucket source adapter for exposed cloud storage scanning."""
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -41,7 +42,9 @@ class S3Source:
         # Clean target name
         target = address.split("@")[0].split(".")[0].lower().replace(" ", "-")
 
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             for pattern in self.BUCKET_PATTERNS[:5]:
                 bucket_name = pattern.format(target=target)
                 try:
@@ -53,11 +56,13 @@ class S3Source:
                     if resp.status_code == 200:
                         # Bucket exists and is publicly accessible
                         content = resp.text[:10000]
-                        leaks.append(RawLeak(
-                            text=f"Exposed S3 bucket: {bucket_name}\n{content}",
-                            source_name="s3",
-                            source_url=f"https://{bucket_name}.s3.amazonaws.com/",
-                        ))
+                        leaks.append(
+                            RawLeak(
+                                text=f"Exposed S3 bucket: {bucket_name}\n{content}",
+                                source_name="s3",
+                                source_url=f"https://{bucket_name}.s3.amazonaws.com/",
+                            )
+                        )
                 except Exception:
                     pass  # Bucket doesn't exist or is private
 

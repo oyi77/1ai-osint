@@ -11,7 +11,7 @@ pip install -e .
 cp .env.example .env
 1ai-osint doctor
 1ai-osint deep-scan "Target Name" --profile fast --cloak
-1ai-osint deep-scan user@example.com --profile agency --case INV-001 --pdf
+1ai-osint deep-scan user@example.com --profile deep --case INV-001 --pdf
 python -m src.cli.main --help
 ```
 

@@ -1,6 +1,6 @@
 """Tests for database module."""
 
-from src.models import ScanResult, Finding, Severity
+from src.core.models import ScanResult, Finding, Severity
 
 
 class TestDatabase:
@@ -27,7 +27,9 @@ class TestDatabase:
 
     def test_save_scan_with_findings(self, test_db):
         findings = [
-            Finding(id=f"f{i}", module="test", title=f"Finding {i}", severity=Severity.HIGH)
+            Finding(
+                id=f"f{i}", module="test", title=f"Finding {i}", severity=Severity.HIGH
+            )
             for i in range(5)
         ]
         scan = ScanResult(

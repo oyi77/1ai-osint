@@ -1,4 +1,5 @@
 """Deep-scan module discovery registry."""
+
 from __future__ import annotations
 
 from src.modules.deep_scan.engine import _MODULE_INPUTS, _SOURCE_MODULES

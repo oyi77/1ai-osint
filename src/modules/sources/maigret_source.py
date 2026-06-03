@@ -1,4 +1,5 @@
 """Maigret source adapter for username enumeration."""
+
 from __future__ import annotations
 import asyncio
 import json
@@ -30,32 +31,38 @@ class MaigretSource:
 
         try:
             proc = await asyncio.create_subprocess_exec(
-                maigret_path, address, "--json", "simple", "/dev/stdout",
+                maigret_path,
+                address,
+                "--json",
+                "simple",
+                "/dev/stdout",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
-            stdout, _ = await asyncio.wait_for(
-                proc.communicate(), timeout=self.timeout
-            )
+            stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=self.timeout)
             if stdout:
                 try:
                     results = json.loads(stdout.decode())
                     for site, data in results.items():
                         if data.get("status") == "Claimed":
                             url = data.get("url", "")
-                            leaks.append(RawLeak(
-                                text=f"Username '{address}' found on {site}: {url}",
-                                source_name="maigret",
-                                source_url=url,
-                            ))
+                            leaks.append(
+                                RawLeak(
+                                    text=f"Username '{address}' found on {site}: {url}",
+                                    source_name="maigret",
+                                    source_url=url,
+                                )
+                            )
                 except json.JSONDecodeError:
                     text = stdout.decode()
                     if text.strip():
-                        leaks.append(RawLeak(
-                            text=text,
-                            source_name="maigret",
-                            source_url="",
-                        ))
+                        leaks.append(
+                            RawLeak(
+                                text=text,
+                                source_name="maigret",
+                                source_url="",
+                            )
+                        )
         except asyncio.TimeoutError:
             logger.debug("Maigret: timeout for '%s'", address)
         except Exception as exc:

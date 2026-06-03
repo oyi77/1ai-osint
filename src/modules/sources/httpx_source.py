@@ -1,4 +1,5 @@
 """httpx source adapter for HTTP probing."""
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -29,32 +30,40 @@ class HttpxSource:
 
         try:
             proc = await asyncio.create_subprocess_exec(
-                httpx_path, "-u", address, "-silent", "-json", "/dev/stdout",
+                httpx_path,
+                "-u",
+                address,
+                "-silent",
+                "-json",
+                "/dev/stdout",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
-            stdout, _ = await asyncio.wait_for(
-                proc.communicate(), timeout=self.timeout
-            )
+            stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=self.timeout)
             if stdout:
                 try:
                     import json
+
                     results = json.loads(stdout.decode())
                     if isinstance(results, list):
                         for entry in results:
-                            leaks.append(RawLeak(
-                                text=json.dumps(entry),
-                                source_name="httpx",
-                                source_url=address,
-                            ))
+                            leaks.append(
+                                RawLeak(
+                                    text=json.dumps(entry),
+                                    source_name="httpx",
+                                    source_url=address,
+                                )
+                            )
                 except Exception:
                     text = stdout.decode()
                     if text.strip():
-                        leaks.append(RawLeak(
-                            text=text,
-                            source_name="httpx",
-                            source_url=address,
-                        ))
+                        leaks.append(
+                            RawLeak(
+                                text=text,
+                                source_name="httpx",
+                                source_url=address,
+                            )
+                        )
         except asyncio.TimeoutError:
             logger.debug("httpx: timeout for '%s'", address)
         except Exception as exc:

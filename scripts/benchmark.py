@@ -28,13 +28,13 @@ async def run_benchmark(workers: int = 20, duration: int = 60) -> None:
     from src.modules.crypto.balance.scanner_engine import RandomScanner
     from src.modules.crypto.balance.chains import ALL_CHAINS
 
-    print(f"=" * 60)
-    print(f"  Scanner Throughput Benchmark")
-    print(f"=" * 60)
+    print("=" * 60)
+    print("  Scanner Throughput Benchmark")
+    print("=" * 60)
     print(f"  Workers:   {workers}")
     print(f"  Duration:  {duration}s")
     print(f"  Chains:    {', '.join(c.symbol for c in ALL_CHAINS)}")
-    print(f"=" * 60)
+    print("=" * 60)
 
     scanner = RandomScanner(
         workers=workers,
@@ -51,10 +51,10 @@ async def run_benchmark(workers: int = 20, duration: int = 60) -> None:
         else 0.0
     )
 
-    print(f"")
-    print(f"=" * 60)
-    print(f"  BENCHMARK RESULTS")
-    print(f"=" * 60)
+    print("")
+    print("=" * 60)
+    print("  BENCHMARK RESULTS")
+    print("=" * 60)
     print(f"  Elapsed:           {elapsed:.1f}s")
     print(f"  Mnemonics:         {stats.mnemonics_generated}")
     print(f"  Addresses:         {stats.addresses_checked}")
@@ -63,7 +63,7 @@ async def run_benchmark(workers: int = 20, duration: int = 60) -> None:
     print(f"  Mnemonics/sec:     {stats.mnemonics_per_sec:.1f}")
     print(f"  Addresses/sec:     {stats.addresses_checked / elapsed:.1f}")
     print(f"  Error Rate:        {error_rate:.1f}%")
-    print(f"=" * 60)
+    print("=" * 60)
 
     # Verdict
     target_mnemonics_per_sec = 20.0
@@ -82,13 +82,13 @@ async def run_benchmark(workers: int = 20, duration: int = 60) -> None:
     else:
         print(f"  PASS: Error rate ({error_rate:.1f}%) <= target ({target_error_rate}%)")
 
-    print(f"=" * 60)
+    print("=" * 60)
 
     if passes:
-        print(f"  OVERALL: PASS")
+        print("  OVERALL: PASS")
     else:
-        print(f"  OVERALL: FAIL")
-    print(f"=" * 60)
+        print("  OVERALL: FAIL")
+    print("=" * 60)
 
     sys.exit(0 if passes else 1)
 

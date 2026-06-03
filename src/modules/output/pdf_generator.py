@@ -5,7 +5,7 @@ import io
 from datetime import datetime, timezone
 from typing import Any
 
-from src.models import ScanResult, Severity
+from src.core.models import ScanResult, Severity
 
 
 class PDFGenerator:
@@ -117,7 +117,12 @@ class PDFGenerator:
                     ("FONTSIZE", (0, 0), (-1, 0), 11),
                     ("FONTSIZE", (0, 1), (-1, -1), 10),
                     ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f0f4ff")]),
+                    (
+                        "ROWBACKGROUNDS",
+                        (0, 1),
+                        (-1, -1),
+                        [colors.white, colors.HexColor("#f0f4ff")],
+                    ),
                 ]
             )
         )
@@ -176,7 +181,10 @@ class PDFGenerator:
                             f.module,
                         ]
                     )
-                findings_table = Table(findings_rows, colWidths=[1 * inch, 2.5 * inch, 1 * inch, 0.8 * inch, 1 * inch])
+                findings_table = Table(
+                    findings_rows,
+                    colWidths=[1 * inch, 2.5 * inch, 1 * inch, 0.8 * inch, 1 * inch],
+                )
                 findings_table.setStyle(
                     TableStyle(
                         [
@@ -184,7 +192,12 @@ class PDFGenerator:
                             ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
                             ("FONTSIZE", (0, 0), (-1, -1), 8),
                             ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-                            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#fef2f2")]),
+                            (
+                                "ROWBACKGROUNDS",
+                                (0, 1),
+                                (-1, -1),
+                                [colors.white, colors.HexColor("#fef2f2")],
+                            ),
                         ]
                     )
                 )

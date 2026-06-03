@@ -4,7 +4,7 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
-from src.models import Finding, ScanResult, Severity
+from src.core.models import Finding, ScanResult, Severity
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +38,7 @@ _RISK_CATEGORIES: dict[str, list[str]] = {
 @dataclass
 class RiskBreakdown:
     """Risk score broken down by category."""
+
     category: str
     score: float
     finding_count: int
@@ -48,6 +49,7 @@ class RiskBreakdown:
 @dataclass
 class RiskScore:
     """Complete risk assessment result."""
+
     overall_score: float  # 0.0 to 100.0
     risk_level: str  # critical, high, medium, low, minimal
     breakdowns: list[RiskBreakdown] = field(default_factory=list)
@@ -126,11 +128,16 @@ class RiskScorer:
         # Compute overall score as weighted average of category scores
         if breakdowns:
             total_weight = sum(
-                self._module_weight(b.category) * b.finding_count
-                for b in breakdowns
+                self._module_weight(b.category) * b.finding_count for b in breakdowns
             )
             if total_weight > 0:
-                overall = sum(b.score * self._module_weight(b.category) * b.finding_count for b in breakdowns) / total_weight
+                overall = (
+                    sum(
+                        b.score * self._module_weight(b.category) * b.finding_count
+                        for b in breakdowns
+                    )
+                    / total_weight
+                )
             else:
                 overall = 0.0
         else:
@@ -232,6 +239,8 @@ class RiskScorer:
         if breakdowns:
             lines.append("Category breakdown:")
             for b in sorted(breakdowns, key=lambda x: -x.score):
-                lines.append(f"  - {b.category}: {b.score:.1f}/100 ({b.finding_count} findings)")
+                lines.append(
+                    f"  - {b.category}: {b.score:.1f}/100 ({b.finding_count} findings)"
+                )
 
         return "\n".join(lines)

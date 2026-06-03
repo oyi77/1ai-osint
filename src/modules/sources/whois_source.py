@@ -1,4 +1,5 @@
 """WHOIS source adapter for domain registration lookup."""
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -27,7 +28,9 @@ class WhoisSource:
     async def search_for_address(self, address: str) -> list[RawLeak]:
         """Look up WHOIS data for a domain or IP."""
         leaks: list[RawLeak] = []
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             try:
                 await self._rate_limit()
                 # Try as IP first
@@ -37,11 +40,13 @@ class WhoisSource:
                 )
                 if resp.status_code == 200:
                     data = resp.json()
-                    leaks.append(RawLeak(
-                        text=str(data),
-                        source_name="whois",
-                        source_url=f"https://whois.arin.net/rest/ip/{address}",
-                    ))
+                    leaks.append(
+                        RawLeak(
+                            text=str(data),
+                            source_name="whois",
+                            source_url=f"https://whois.arin.net/rest/ip/{address}",
+                        )
+                    )
                 else:
                     # Try as ASN
                     await self._rate_limit()
@@ -51,11 +56,13 @@ class WhoisSource:
                     )
                     if resp.status_code == 200:
                         data = resp.json()
-                        leaks.append(RawLeak(
-                            text=str(data),
-                            source_name="whois",
-                            source_url=f"https://whois.arin.net/rest/asn/{address}",
-                        ))
+                        leaks.append(
+                            RawLeak(
+                                text=str(data),
+                                source_name="whois",
+                                source_url=f"https://whois.arin.net/rest/asn/{address}",
+                            )
+                        )
             except Exception as exc:
                 logger.debug("WHOIS error for '%s': %s", address, exc)
         return leaks

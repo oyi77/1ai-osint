@@ -1,6 +1,6 @@
 """Tests for rate limiter module."""
 
-from src.rate_limiter import RateLimiter
+from src.core.rate_limiter import RateLimiter
 
 
 class TestRateLimiter:

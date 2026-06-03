@@ -1,4 +1,5 @@
 """IPInfo source adapter for IP geolocation."""
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -17,7 +18,12 @@ class IPInfoSource:
 
     BASE_URL = "https://ipinfo.io"
 
-    def __init__(self, api_key: Optional[str] = None, request_delay: float = 1.0, timeout: float = 30.0):
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        request_delay: float = 1.0,
+        timeout: float = 30.0,
+    ):
         self.api_key = api_key or os.getenv("IPINFO_API_KEY", "")
         self.request_delay = request_delay
         self.timeout = timeout
@@ -31,7 +37,9 @@ class IPInfoSource:
         params = {}
         if self.api_key:
             params["token"] = self.api_key
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             try:
                 await self._rate_limit()
                 resp = await client.get(
@@ -40,11 +48,13 @@ class IPInfoSource:
                 )
                 if resp.status_code == 200:
                     data = resp.json()
-                    leaks.append(RawLeak(
-                        text=f"IP: {address}\nCity: {data.get('city', '')}\nRegion: {data.get('region', '')}\nCountry: {data.get('country', '')}\nOrg: {data.get('org', '')}",
-                        source_name="ipinfo",
-                        source_url=f"https://ipinfo.io/{address}",
-                    ))
+                    leaks.append(
+                        RawLeak(
+                            text=f"IP: {address}\nCity: {data.get('city', '')}\nRegion: {data.get('region', '')}\nCountry: {data.get('country', '')}\nOrg: {data.get('org', '')}",
+                            source_name="ipinfo",
+                            source_url=f"https://ipinfo.io/{address}",
+                        )
+                    )
             except Exception as exc:
                 logger.debug("IPInfo error: %s", exc)
         return leaks

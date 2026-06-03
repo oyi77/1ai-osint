@@ -43,9 +43,7 @@ def _generate_records(n: int) -> list[dict]:
     return records
 
 
-def _generate_overlapping_records(
-    n_groups: int, records_per_group: int
-) -> list[dict]:
+def _generate_overlapping_records(n_groups: int, records_per_group: int) -> list[dict]:
     """Generate records with shared attributes to create graph edges.
 
     Each group shares one common email, producing connected components.
@@ -146,8 +144,10 @@ class TestGraphPerformance:
             )
 
         print("\n=== Graph Construction Performance ===")
-        print(f"  {'Records':>8} | {'Time (s)':>10} | {'Nodes':>8} | {'Edges':>8} | {'ms/rec':>8}")
-        print(f"  {'-'*8}-+-{'-'*10}-+-{'-'*8}-+-{'-'*8}-+-{'-'*8}")
+        print(
+            f"  {'Records':>8} | {'Time (s)':>10} | {'Nodes':>8} | {'Edges':>8} | {'ms/rec':>8}"
+        )
+        print(f"  {'-' * 8}-+-{'-' * 10}-+-{'-' * 8}-+-{'-' * 8}-+-{'-' * 8}")
         for r in results:
             ms_per = (r["time_s"] / r["n"]) * 1000
             print(
@@ -164,7 +164,9 @@ class TestGraphPerformance:
     def test_correlation_scaling(self) -> None:
         """Measure correlation (connected components) time for varying graph sizes."""
         salt = ZKITEngine.new_salt()
-        records = _generate_overlapping_records(50, 10)  # 50 groups, 10 each = 500 records
+        records = _generate_overlapping_records(
+            50, 10
+        )  # 50 groups, 10 each = 500 records
 
         engine = ZKITEngine(salt=salt, investigation_id="corr-perf")
         ingested = engine.ingest(records)
@@ -272,7 +274,7 @@ class TestMemoryUsage:
 
         print("\n=== Per-Node Memory Estimate ===")
         print(f"  Serialized node: {node_bytes} bytes")
-        print(f"  For 100K nodes:  {node_bytes * 100_000 / (1024*1024):.1f} MB")
+        print(f"  For 100K nodes:  {node_bytes * 100_000 / (1024 * 1024):.1f} MB")
 
         assert node_bytes < 10_000, f"Node size {node_bytes} bytes exceeds 10KB"
 
@@ -311,7 +313,9 @@ class TestEndToEndPerformance:
         engine2 = ZKITEngine(salt=salt, investigation_id="merge-2")
 
         records1 = _generate_records(500)
-        records2 = _generate_records(500, )  # may overlap
+        records2 = _generate_records(
+            500,
+        )  # may overlap
 
         # Build both graphs
         engine1.run(records1)

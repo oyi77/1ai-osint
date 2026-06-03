@@ -39,7 +39,9 @@ class EntityExtractor:
                 raw_response="",
             )
 
-    def extract_from_findings(self, findings: list[dict[str, Any]]) -> EntityExtractionResult:
+    def extract_from_findings(
+        self, findings: list[dict[str, Any]]
+    ) -> EntityExtractionResult:
         """
         Extract entities from a list of finding dicts (batch mode).
 
@@ -93,12 +95,14 @@ class EntityExtractor:
             except ValueError:
                 entity_type = EntityType.OTHER
 
-            entities.append(ExtractedEntity(
-                entity_type=entity_type,
-                value=str(item.get("value", "")),
-                confidence=float(item.get("confidence", 0.5)),
-                context=str(item.get("context", "")),
-            ))
+            entities.append(
+                ExtractedEntity(
+                    entity_type=entity_type,
+                    value=str(item.get("value", "")),
+                    confidence=float(item.get("confidence", 0.5)),
+                    context=str(item.get("context", "")),
+                )
+            )
 
         return EntityExtractionResult(
             entities=entities,

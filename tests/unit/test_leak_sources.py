@@ -1,4 +1,5 @@
 """Tests for all 8 leak_finder source adapters."""
+
 import asyncio
 import json
 import pytest
@@ -13,6 +14,7 @@ from src.modules.sources.github_source import RawLeak
 class TestGitHubLeakSource:
     def _make_source(self):
         from src.modules.sources.github_source import GitHubLeakSource
+
         return GitHubLeakSource(github_token="ghp_test", rate_limit=100, timeout=5.0)
 
     def _mock_client(self, responses):
@@ -40,9 +42,17 @@ class TestGitHubLeakSource:
         gist_resp.status_code = 200
         gist_resp.json.return_value = []
         mock_client = self._mock_client([search_resp, raw_resp, gist_resp])
-        with patch("src.modules.sources.github_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.github_source.asyncio.sleep", new_callable=AsyncMock):
-                leaks = await source.fetch_raw_leaks(queries=["test query"], max_per_query=1)
+        with patch(
+            "src.modules.sources.github_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.github_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
+                leaks = await source.fetch_raw_leaks(
+                    queries=["test query"], max_per_query=1
+                )
         assert len(leaks) == 1
         assert leaks[0].source_name == "github"
         assert "PRIVATE_KEY" in leaks[0].text
@@ -58,9 +68,17 @@ class TestGitHubLeakSource:
         gist_resp.status_code = 200
         gist_resp.json.return_value = []
         mock_client = self._mock_client([search_resp, gist_resp])
-        with patch("src.modules.sources.github_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.github_source.asyncio.sleep", new_callable=AsyncMock):
-                leaks = await source.fetch_raw_leaks(queries=["no results"], max_per_query=1)
+        with patch(
+            "src.modules.sources.github_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.github_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
+                leaks = await source.fetch_raw_leaks(
+                    queries=["no results"], max_per_query=1
+                )
         assert leaks == []
 
     @pytest.mark.asyncio
@@ -73,23 +91,42 @@ class TestGitHubLeakSource:
         gist_resp.status_code = 200
         gist_resp.json.return_value = []
         mock_client = self._mock_client([error_resp, gist_resp])
-        with patch("src.modules.sources.github_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.github_source.asyncio.sleep", new_callable=AsyncMock):
-                leaks = await source.fetch_raw_leaks(queries=["error query"], max_per_query=1)
+        with patch(
+            "src.modules.sources.github_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.github_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
+                leaks = await source.fetch_raw_leaks(
+                    queries=["error query"], max_per_query=1
+                )
         assert leaks == []
 
     @pytest.mark.asyncio
     async def test_fetch_raw_leaks_timeout(self):
         source = self._make_source()
         import httpx as _httpx
+
         mock_client = self._mock_client([_httpx.TimeoutException("timed out")])
         gist_resp = MagicMock()
         gist_resp.status_code = 200
         gist_resp.json.return_value = []
-        mock_client.get = AsyncMock(side_effect=[_httpx.TimeoutException("timed out"), gist_resp])
-        with patch("src.modules.sources.github_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.github_source.asyncio.sleep", new_callable=AsyncMock):
-                leaks = await source.fetch_raw_leaks(queries=["timeout"], max_per_query=1)
+        mock_client.get = AsyncMock(
+            side_effect=[_httpx.TimeoutException("timed out"), gist_resp]
+        )
+        with patch(
+            "src.modules.sources.github_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.github_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
+                leaks = await source.fetch_raw_leaks(
+                    queries=["timeout"], max_per_query=1
+                )
         assert leaks == []
 
     @pytest.mark.asyncio
@@ -103,8 +140,14 @@ class TestGitHubLeakSource:
         gist_resp.status_code = 200
         gist_resp.json.return_value = []
         mock_client = self._mock_client([search_resp, gist_resp])
-        with patch("src.modules.sources.github_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.github_source.asyncio.sleep", new_callable=AsyncMock):
+        with patch(
+            "src.modules.sources.github_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.github_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
                 leaks = await source.search_for_address("0xabcdef")
         assert isinstance(leaks, list)
 
@@ -115,6 +158,7 @@ class TestGitHubLeakSource:
 
     def test_make_headers_without_token(self):
         from src.modules.sources.github_source import GitHubLeakSource
+
         h = GitHubLeakSource()._make_headers()
         assert "Authorization" not in h
 
@@ -128,9 +172,17 @@ class TestGitHubLeakSource:
         gist_resp.status_code = 200
         gist_resp.json.return_value = []
         mock_client = self._mock_client([resp_403, gist_resp])
-        with patch("src.modules.sources.github_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.github_source.asyncio.sleep", new_callable=AsyncMock):
-                leaks = await source.fetch_raw_leaks(queries=["rate limit"], max_per_query=1)
+        with patch(
+            "src.modules.sources.github_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.github_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
+                leaks = await source.fetch_raw_leaks(
+                    queries=["rate limit"], max_per_query=1
+                )
         assert leaks == []
 
 
@@ -140,6 +192,7 @@ class TestGitHubLeakSource:
 class TestRedditSource:
     def _make_source(self):
         from src.modules.sources.reddit_source import RedditSource
+
         return RedditSource(max_per_sub=5, request_delay=0.0, timeout=5.0)
 
     @pytest.mark.asyncio
@@ -149,15 +202,25 @@ class TestRedditSource:
         ok_resp.status_code = 200
         ok_resp.json.return_value = {
             "data": [
-                {"permalink": "/r/test/comments/abc", "title": "Leaked key", "selftext": "0xabcdef"},
+                {
+                    "permalink": "/r/test/comments/abc",
+                    "title": "Leaked key",
+                    "selftext": "0xabcdef",
+                },
             ]
         }
         mock_client = AsyncMock()
         mock_client.get = AsyncMock(return_value=ok_resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.reddit_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.reddit_source.asyncio.sleep", new_callable=AsyncMock):
+        with patch(
+            "src.modules.sources.reddit_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.reddit_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
                 leaks = await source.fetch_raw_leaks()
         assert len(leaks) >= 1
         assert any(leak.source_name == "reddit" for leak in leaks)
@@ -172,8 +235,14 @@ class TestRedditSource:
         mock_client.get = AsyncMock(return_value=ok_resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.reddit_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.reddit_source.asyncio.sleep", new_callable=AsyncMock):
+        with patch(
+            "src.modules.sources.reddit_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.reddit_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
                 leaks = await source.fetch_raw_leaks()
         assert leaks == []
 
@@ -186,21 +255,34 @@ class TestRedditSource:
         mock_client.get = AsyncMock(return_value=err_resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.reddit_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.reddit_source.asyncio.sleep", new_callable=AsyncMock):
+        with patch(
+            "src.modules.sources.reddit_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.reddit_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
                 leaks = await source.fetch_raw_leaks()
         assert leaks == []
 
     @pytest.mark.asyncio
     async def test_fetch_raw_leaks_timeout(self):
         import httpx as _httpx
+
         source = self._make_source()
         mock_client = AsyncMock()
         mock_client.get = AsyncMock(side_effect=_httpx.TimeoutException("timed out"))
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.reddit_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.reddit_source.asyncio.sleep", new_callable=AsyncMock):
+        with patch(
+            "src.modules.sources.reddit_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.reddit_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
                 leaks = await source.fetch_raw_leaks()
         assert leaks == []
 
@@ -211,15 +293,25 @@ class TestRedditSource:
         ok_resp.status_code = 200
         ok_resp.json.return_value = {
             "data": [
-                {"permalink": "/r/test/comments/abc", "title": "Found", "selftext": "addr_0x1234"},
+                {
+                    "permalink": "/r/test/comments/abc",
+                    "title": "Found",
+                    "selftext": "addr_0x1234",
+                },
             ]
         }
         mock_client = AsyncMock()
         mock_client.get = AsyncMock(return_value=ok_resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.reddit_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.reddit_source.asyncio.sleep", new_callable=AsyncMock):
+        with patch(
+            "src.modules.sources.reddit_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.reddit_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
                 leaks = await source.search_for_address("addr_0x1234")
         assert len(leaks) == 1
 
@@ -230,6 +322,7 @@ class TestRedditSource:
 class TestBitcoinTalkSource:
     def _make_source(self):
         from src.modules.sources.bitcointalk_source import BitcoinTalkSource
+
         return BitcoinTalkSource(max_topics=1, request_delay=0.0, timeout=5.0)
 
     @pytest.mark.asyncio
@@ -247,8 +340,14 @@ class TestBitcoinTalkSource:
         mock_client.get = AsyncMock(side_effect=[board_resp, topic_resp])
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.bitcointalk_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.bitcointalk_source.asyncio.sleep", new_callable=AsyncMock):
+        with patch(
+            "src.modules.sources.bitcointalk_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.bitcointalk_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
                 leaks = await source.fetch_raw_leaks()
         assert len(leaks) >= 1
         assert leaks[0].source_name == "bitcointalk"
@@ -263,8 +362,14 @@ class TestBitcoinTalkSource:
         mock_client.get = AsyncMock(return_value=empty_board)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.bitcointalk_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.bitcointalk_source.asyncio.sleep", new_callable=AsyncMock):
+        with patch(
+            "src.modules.sources.bitcointalk_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.bitcointalk_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
                 leaks = await source.fetch_raw_leaks()
         assert leaks == []
 
@@ -277,21 +382,34 @@ class TestBitcoinTalkSource:
         mock_client.get = AsyncMock(return_value=err_resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.bitcointalk_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.bitcointalk_source.asyncio.sleep", new_callable=AsyncMock):
+        with patch(
+            "src.modules.sources.bitcointalk_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.bitcointalk_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
                 leaks = await source.fetch_raw_leaks()
         assert leaks == []
 
     @pytest.mark.asyncio
     async def test_fetch_raw_leaks_timeout(self):
         import httpx as _httpx
+
         source = self._make_source()
         mock_client = AsyncMock()
         mock_client.get = AsyncMock(side_effect=_httpx.TimeoutException("timed out"))
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.bitcointalk_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.bitcointalk_source.asyncio.sleep", new_callable=AsyncMock):
+        with patch(
+            "src.modules.sources.bitcointalk_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.bitcointalk_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
                 leaks = await source.fetch_raw_leaks()
         assert leaks == []
 
@@ -302,6 +420,7 @@ class TestBitcoinTalkSource:
 class TestPasteSource:
     def _make_source(self):
         from src.modules.sources.paste_source import PasteSource
+
         return PasteSource(max_pastes_per_source=5, request_delay=0.0, timeout=5.0)
 
     @pytest.mark.asyncio
@@ -318,8 +437,13 @@ class TestPasteSource:
         mock_client.get = AsyncMock(side_effect=[archive_resp, raw_resp])
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.paste_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.paste_source.asyncio.sleep", new_callable=AsyncMock):
+        with patch(
+            "src.modules.sources.paste_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.paste_source.asyncio.sleep", new_callable=AsyncMock
+            ):
                 leaks = await source.fetch_raw_leaks()
         assert len(leaks) >= 1
 
@@ -334,8 +458,13 @@ class TestPasteSource:
         mock_client.get = AsyncMock(return_value=empty_resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.paste_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.paste_source.asyncio.sleep", new_callable=AsyncMock):
+        with patch(
+            "src.modules.sources.paste_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.paste_source.asyncio.sleep", new_callable=AsyncMock
+            ):
                 leaks = await source.fetch_raw_leaks()
         assert leaks == []
 
@@ -349,26 +478,38 @@ class TestPasteSource:
         mock_client.get = AsyncMock(return_value=err_resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.paste_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.paste_source.asyncio.sleep", new_callable=AsyncMock):
+        with patch(
+            "src.modules.sources.paste_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.paste_source.asyncio.sleep", new_callable=AsyncMock
+            ):
                 leaks = await source.fetch_raw_leaks()
         assert leaks == []
 
     @pytest.mark.asyncio
     async def test_fetch_raw_leaks_timeout(self):
         import httpx as _httpx
+
         source = self._make_source()
         mock_client = AsyncMock()
         mock_client.get = AsyncMock(side_effect=_httpx.TimeoutException("timed out"))
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.paste_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.paste_source.asyncio.sleep", new_callable=AsyncMock):
+        with patch(
+            "src.modules.sources.paste_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.paste_source.asyncio.sleep", new_callable=AsyncMock
+            ):
                 leaks = await source.fetch_raw_leaks()
         assert leaks == []
 
     def test_parse_pastebin_ids(self):
         from src.modules.sources.paste_source import PasteSource
+
         html = '<a href="/abc123DEF">Paste 1</a><a href="/archive">Archive</a><a href="/login">Login</a>'
         ids = PasteSource._parse_pastebin_ids(html)
         assert "abc123DEF" in ids
@@ -379,10 +520,20 @@ class TestPasteSource:
     async def test_search_for_address(self):
         source = self._make_source()
         mock_leaks = [
-            RawLeak(text="leaked key 0xABCDEF1234", source_name="pastebin", source_url="https://pastebin.com/test123"),
-            RawLeak(text="nothing here", source_name="pastebin", source_url="https://pastebin.com/test456"),
+            RawLeak(
+                text="leaked key 0xABCDEF1234",
+                source_name="pastebin",
+                source_url="https://pastebin.com/test123",
+            ),
+            RawLeak(
+                text="nothing here",
+                source_name="pastebin",
+                source_url="https://pastebin.com/test456",
+            ),
         ]
-        with patch.object(source, "fetch_raw_leaks", new_callable=AsyncMock, return_value=mock_leaks):
+        with patch.object(
+            source, "fetch_raw_leaks", new_callable=AsyncMock, return_value=mock_leaks
+        ):
             leaks = await source.search_for_address("0xABCDEF1234")
         assert len(leaks) == 1
         assert "0xABCDEF1234" in leaks[0].text
@@ -394,6 +545,7 @@ class TestPasteSource:
 class TestTwitterSource:
     def _make_source(self):
         from src.modules.sources.twitter_source import TwitterSource
+
         return TwitterSource(max_per_query=5, timeout=5.0)
 
     @pytest.mark.asyncio
@@ -401,15 +553,26 @@ class TestTwitterSource:
         source = self._make_source()
         source._cli_path = "/usr/bin/twitter"
         tweet_data = [
-            {"id": "1", "text": "found a seed phrase", "author": {"screen_name": "user1"}},
+            {
+                "id": "1",
+                "text": "found a seed phrase",
+                "author": {"screen_name": "user1"},
+            },
         ]
         mock_proc = AsyncMock()
         mock_proc.returncode = 0
-        mock_proc.communicate = AsyncMock(return_value=(
-            __import__("json").dumps(tweet_data).encode(), b""
-        ))
-        with patch("src.modules.sources.twitter_source.asyncio.create_subprocess_exec", return_value=mock_proc):
-            with patch("src.modules.sources.twitter_source.asyncio.wait_for", new_callable=AsyncMock, return_value=(json.dumps(tweet_data).encode(), b"")):
+        mock_proc.communicate = AsyncMock(
+            return_value=(__import__("json").dumps(tweet_data).encode(), b"")
+        )
+        with patch(
+            "src.modules.sources.twitter_source.asyncio.create_subprocess_exec",
+            return_value=mock_proc,
+        ):
+            with patch(
+                "src.modules.sources.twitter_source.asyncio.wait_for",
+                new_callable=AsyncMock,
+                return_value=(json.dumps(tweet_data).encode(), b""),
+            ):
                 leaks = await source.fetch_raw_leaks()
         assert len(leaks) >= 1
         assert leaks[0].source_name == "twitter"
@@ -417,6 +580,7 @@ class TestTwitterSource:
     @pytest.mark.asyncio
     async def test_fetch_raw_leaks_no_cli(self):
         from src.modules.sources.twitter_source import TwitterSource
+
         source = TwitterSource()
         source._cli_path = None
         leaks = await source.fetch_raw_leaks()
@@ -429,8 +593,15 @@ class TestTwitterSource:
         mock_proc = AsyncMock()
         mock_proc.returncode = 1
         mock_proc.communicate = AsyncMock(return_value=(b"", b"error"))
-        with patch("src.modules.sources.twitter_source.asyncio.create_subprocess_exec", return_value=mock_proc):
-            with patch("src.modules.sources.twitter_source.asyncio.wait_for", new_callable=AsyncMock, return_value=(b"", b"error")):
+        with patch(
+            "src.modules.sources.twitter_source.asyncio.create_subprocess_exec",
+            return_value=mock_proc,
+        ):
+            with patch(
+                "src.modules.sources.twitter_source.asyncio.wait_for",
+                new_callable=AsyncMock,
+                return_value=(b"", b"error"),
+            ):
                 leaks = await source.fetch_raw_leaks()
         assert leaks == []
 
@@ -438,14 +609,22 @@ class TestTwitterSource:
     async def test_fetch_raw_leaks_timeout(self):
         source = self._make_source()
         source._cli_path = "/usr/bin/twitter"
-        with patch("src.modules.sources.twitter_source.asyncio.create_subprocess_exec", return_value=AsyncMock()):
-            with patch("src.modules.sources.twitter_source.asyncio.wait_for", new_callable=AsyncMock, side_effect=asyncio.TimeoutError):
+        with patch(
+            "src.modules.sources.twitter_source.asyncio.create_subprocess_exec",
+            return_value=AsyncMock(),
+        ):
+            with patch(
+                "src.modules.sources.twitter_source.asyncio.wait_for",
+                new_callable=AsyncMock,
+                side_effect=asyncio.TimeoutError,
+            ):
                 leaks = await source.fetch_raw_leaks()
         assert leaks == []
 
     @pytest.mark.asyncio
     async def test_search_for_address_no_cli(self):
         from src.modules.sources.twitter_source import TwitterSource
+
         source = TwitterSource()
         source._cli_path = None
         leaks = await source.search_for_address("0x1234")
@@ -458,7 +637,10 @@ class TestTwitterSource:
 class TestTelegramSource:
     def _make_source(self):
         from src.modules.sources.telegram_source import TelegramSource
-        return TelegramSource(api_id=12345, api_hash="abc123", max_messages_per_channel=5, timeout=5.0)
+
+        return TelegramSource(
+            api_id=12345, api_hash="abc123", max_messages_per_channel=5, timeout=5.0
+        )
 
     @pytest.mark.asyncio
     async def test_fetch_raw_leaks_no_telethon(self):
@@ -470,6 +652,7 @@ class TestTelegramSource:
     @pytest.mark.asyncio
     async def test_fetch_raw_leaks_no_credentials(self):
         from src.modules.sources.telegram_source import TelegramSource
+
         source = TelegramSource(api_id=0, api_hash="")
         leaks = await source.fetch_raw_leaks()
         assert leaks == []
@@ -482,14 +665,24 @@ class TestTelegramSource:
         mock_client.start = AsyncMock(side_effect=Exception("Connection failed"))
         mock_client.disconnect = AsyncMock()
         mock_telethon.TelegramClient = MagicMock(return_value=mock_client)
-        with patch.dict("sys.modules", {"telethon": mock_telethon, "telethon.tl.functions.contacts": MagicMock()}):
-            with patch("src.modules.sources.telegram_source.asyncio.wait_for", new_callable=AsyncMock, side_effect=Exception("Connection failed")):
+        with patch.dict(
+            "sys.modules",
+            {"telethon": mock_telethon, "telethon.tl.functions.contacts": MagicMock()},
+        ):
+            with patch(
+                "src.modules.sources.telegram_source.asyncio.wait_for",
+                new_callable=AsyncMock,
+                side_effect=Exception("Connection failed"),
+            ):
                 leaks = await source.fetch_raw_leaks()
         assert leaks == []
 
     def test_extract_flood_wait(self):
         from src.modules.sources.telegram_source import TelegramSource
-        assert TelegramSource._extract_flood_wait("A wait of 30 seconds is required") == 30
+
+        assert (
+            TelegramSource._extract_flood_wait("A wait of 30 seconds is required") == 30
+        )
         assert TelegramSource._extract_flood_wait("Please wait 45 more") == 45
         assert TelegramSource._extract_flood_wait("unknown error") == 60
 
@@ -520,8 +713,14 @@ class TestTelegramSource:
         contacts_mod = MagicMock()
         contacts_mod.SearchRequest = MagicMock(return_value=search_result)
 
-        with patch.dict("sys.modules", {"telethon": mock_telethon, "telethon.tl.functions.contacts": contacts_mod}):
-            with patch("src.modules.sources.telegram_source.asyncio.wait_for", new_callable=AsyncMock):
+        with patch.dict(
+            "sys.modules",
+            {"telethon": mock_telethon, "telethon.tl.functions.contacts": contacts_mod},
+        ):
+            with patch(
+                "src.modules.sources.telegram_source.asyncio.wait_for",
+                new_callable=AsyncMock,
+            ):
                 leaks = await source.fetch_raw_leaks(keywords=["test"])
         # Channels list is empty so no messages iterated
         assert isinstance(leaks, list)
@@ -533,6 +732,7 @@ class TestTelegramSource:
 class TestDuckDuckGoSource:
     def _make_source(self):
         from src.modules.sources.duckduckgo_source import DuckDuckGoSource
+
         return DuckDuckGoSource(max_per_query=3, request_delay=0.0, timeout=5.0)
 
     @pytest.mark.asyncio
@@ -549,9 +749,18 @@ class TestDuckDuckGoSource:
         mock_client.get = AsyncMock(return_value=page_resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.duckduckgo_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.duckduckgo_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.duckduckgo_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.duckduckgo_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.duckduckgo_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
+                with patch(
+                    "src.modules.sources.duckduckgo_source.time.monotonic",
+                    return_value=0.0,
+                ):
                     leaks = await source.fetch_raw_leaks()
         assert len(leaks) >= 1
         assert leaks[0].source_name == "duckduckgo"
@@ -566,9 +775,18 @@ class TestDuckDuckGoSource:
         mock_client.post = AsyncMock(return_value=search_resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.duckduckgo_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.duckduckgo_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.duckduckgo_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.duckduckgo_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.duckduckgo_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
+                with patch(
+                    "src.modules.sources.duckduckgo_source.time.monotonic",
+                    return_value=0.0,
+                ):
                     leaks = await source.fetch_raw_leaks()
         assert leaks == []
 
@@ -581,23 +799,42 @@ class TestDuckDuckGoSource:
         mock_client.post = AsyncMock(return_value=err_resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.duckduckgo_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.duckduckgo_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.duckduckgo_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.duckduckgo_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.duckduckgo_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
+                with patch(
+                    "src.modules.sources.duckduckgo_source.time.monotonic",
+                    return_value=0.0,
+                ):
                     leaks = await source.fetch_raw_leaks()
         assert leaks == []
 
     @pytest.mark.asyncio
     async def test_fetch_raw_leaks_timeout(self):
         import httpx as _httpx
+
         source = self._make_source()
         mock_client = AsyncMock()
         mock_client.post = AsyncMock(side_effect=_httpx.TimeoutException("timed out"))
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.duckduckgo_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.duckduckgo_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.duckduckgo_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.duckduckgo_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.duckduckgo_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
+                with patch(
+                    "src.modules.sources.duckduckgo_source.time.monotonic",
+                    return_value=0.0,
+                ):
                     leaks = await source.fetch_raw_leaks()
         assert leaks == []
 
@@ -608,6 +845,7 @@ class TestDuckDuckGoSource:
 class TestGitLabSource:
     def _make_source(self):
         from src.modules.sources.gitlab_source import GitLabSource
+
         return GitLabSource(max_per_query=5, request_delay=0.0, timeout=5.0)
 
     @pytest.mark.asyncio
@@ -615,7 +853,9 @@ class TestGitLabSource:
         source = self._make_source()
         search_resp = MagicMock()
         search_resp.status_code = 200
-        search_resp.json.return_value = [{"project_id": 1, "data": "PRIVATE_KEY=abcdef"}]
+        search_resp.json.return_value = [
+            {"project_id": 1, "data": "PRIVATE_KEY=abcdef"}
+        ]
         snippet_list_resp = MagicMock()
         snippet_list_resp.status_code = 200
         snippet_list_resp.json.return_value = []
@@ -623,8 +863,14 @@ class TestGitLabSource:
         mock_client.get = AsyncMock(side_effect=[search_resp, snippet_list_resp])
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.gitlab_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.gitlab_source.asyncio.sleep", new_callable=AsyncMock):
+        with patch(
+            "src.modules.sources.gitlab_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.gitlab_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
                 leaks = await source.fetch_raw_leaks()
         assert len(leaks) >= 1
         assert leaks[0].source_name == "gitlab"
@@ -642,8 +888,14 @@ class TestGitLabSource:
         mock_client.get = AsyncMock(side_effect=[empty_resp, snippet_resp])
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.gitlab_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.gitlab_source.asyncio.sleep", new_callable=AsyncMock):
+        with patch(
+            "src.modules.sources.gitlab_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.gitlab_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
                 leaks = await source.fetch_raw_leaks()
         assert leaks == []
 
@@ -658,21 +910,34 @@ class TestGitLabSource:
         mock_client.get = AsyncMock(side_effect=[err_resp, snippet_resp])
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.gitlab_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.gitlab_source.asyncio.sleep", new_callable=AsyncMock):
+        with patch(
+            "src.modules.sources.gitlab_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.gitlab_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
                 leaks = await source.fetch_raw_leaks()
         assert leaks == []
 
     @pytest.mark.asyncio
     async def test_fetch_raw_leaks_timeout(self):
         import httpx as _httpx
+
         source = self._make_source()
         mock_client = AsyncMock()
         mock_client.get = AsyncMock(side_effect=_httpx.TimeoutException("timed out"))
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.gitlab_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.gitlab_source.asyncio.sleep", new_callable=AsyncMock):
+        with patch(
+            "src.modules.sources.gitlab_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.gitlab_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
                 leaks = await source.fetch_raw_leaks()
         assert leaks == []
 
@@ -683,6 +948,7 @@ class TestGitLabSource:
 class TestNpmSource:
     def _make_source(self):
         from src.modules.sources.npm_source import NpmSource
+
         return NpmSource(max_per_query=2, request_delay=0.0, timeout=5.0)
 
     @pytest.mark.asyncio
@@ -690,9 +956,7 @@ class TestNpmSource:
         source = self._make_source()
         search_resp = MagicMock()
         search_resp.status_code = 200
-        search_resp.json.return_value = {
-            "objects": [{"package": {"name": "test-pkg"}}]
-        }
+        search_resp.json.return_value = {"objects": [{"package": {"name": "test-pkg"}}]}
         pkg_resp = MagicMock()
         pkg_resp.status_code = 200
         pkg_resp.json.return_value = {
@@ -704,10 +968,26 @@ class TestNpmSource:
         mock_client.get = AsyncMock(side_effect=[search_resp, pkg_resp] * 20)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.npm_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.npm_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.npm_source.time.monotonic", return_value=0.0):
-                    with patch.object(source, "REGISTRY_ENDPOINTS", [("npmjs", "https://registry.npmjs.org/-/v1/search", "https://registry.npmjs.org")]):
+        with patch(
+            "src.modules.sources.npm_source.httpx.AsyncClient", return_value=mock_client
+        ):
+            with patch(
+                "src.modules.sources.npm_source.asyncio.sleep", new_callable=AsyncMock
+            ):
+                with patch(
+                    "src.modules.sources.npm_source.time.monotonic", return_value=0.0
+                ):
+                    with patch.object(
+                        source,
+                        "REGISTRY_ENDPOINTS",
+                        [
+                            (
+                                "npmjs",
+                                "https://registry.npmjs.org/-/v1/search",
+                                "https://registry.npmjs.org",
+                            )
+                        ],
+                    ):
                         leaks = await source.fetch_raw_leaks()
         assert len(leaks) >= 1
 
@@ -720,9 +1000,15 @@ class TestNpmSource:
         mock_client.get = AsyncMock(return_value=err_resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.npm_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.npm_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.npm_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.npm_source.httpx.AsyncClient", return_value=mock_client
+        ):
+            with patch(
+                "src.modules.sources.npm_source.asyncio.sleep", new_callable=AsyncMock
+            ):
+                with patch(
+                    "src.modules.sources.npm_source.time.monotonic", return_value=0.0
+                ):
                     leaks = await source.fetch_raw_leaks()
         assert leaks == []
 
@@ -736,9 +1022,15 @@ class TestNpmSource:
         mock_client.get = AsyncMock(return_value=search_resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.npm_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.npm_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.npm_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.npm_source.httpx.AsyncClient", return_value=mock_client
+        ):
+            with patch(
+                "src.modules.sources.npm_source.asyncio.sleep", new_callable=AsyncMock
+            ):
+                with patch(
+                    "src.modules.sources.npm_source.time.monotonic", return_value=0.0
+                ):
                     leaks = await source.search_for_address("0x123")
         assert leaks == []
 
@@ -749,6 +1041,7 @@ class TestNpmSource:
 class TestStackOverflowSource:
     def _make_source(self):
         from src.modules.sources.stackoverflow_source import StackOverflowSource
+
         return StackOverflowSource(max_per_query=5, request_delay=0.0, timeout=5.0)
 
     @pytest.mark.asyncio
@@ -757,20 +1050,31 @@ class TestStackOverflowSource:
         resp = MagicMock()
         resp.status_code = 200
         resp.json.return_value = {
-            "items": [{
-                "question_id": 1,
-                "title": "How to store private key",
-                "body": "<p>PRIVATE_KEY=abcdef</p>",
-                "link": "https://stackoverflow.com/q/1",
-            }]
+            "items": [
+                {
+                    "question_id": 1,
+                    "title": "How to store private key",
+                    "body": "<p>PRIVATE_KEY=abcdef</p>",
+                    "link": "https://stackoverflow.com/q/1",
+                }
+            ]
         }
         mock_client = AsyncMock()
         mock_client.get = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.stackoverflow_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.stackoverflow_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.stackoverflow_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.stackoverflow_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.stackoverflow_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
+                with patch(
+                    "src.modules.sources.stackoverflow_source.time.monotonic",
+                    return_value=0.0,
+                ):
                     leaks = await source.fetch_raw_leaks()
         assert len(leaks) >= 1
         assert leaks[0].source_name == "stackoverflow"
@@ -784,9 +1088,18 @@ class TestStackOverflowSource:
         mock_client.get = AsyncMock(return_value=err_resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.stackoverflow_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.stackoverflow_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.stackoverflow_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.stackoverflow_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.stackoverflow_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
+                with patch(
+                    "src.modules.sources.stackoverflow_source.time.monotonic",
+                    return_value=0.0,
+                ):
                     leaks = await source.fetch_raw_leaks()
         assert leaks == []
 
@@ -800,9 +1113,18 @@ class TestStackOverflowSource:
         mock_client.get = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.stackoverflow_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.stackoverflow_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.stackoverflow_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.stackoverflow_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.stackoverflow_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
+                with patch(
+                    "src.modules.sources.stackoverflow_source.time.monotonic",
+                    return_value=0.0,
+                ):
                     leaks = await source.search_for_address("0x123")
         assert leaks == []
 
@@ -813,6 +1135,7 @@ class TestStackOverflowSource:
 class TestCodebergSource:
     def _make_source(self):
         from src.modules.sources.codeberg_source import CodebergSource
+
         return CodebergSource(max_per_query=5, request_delay=0.0, timeout=5.0)
 
     @pytest.mark.asyncio
@@ -823,22 +1146,42 @@ class TestCodebergSource:
         search_resp.json.return_value = {"data": [{"full_name": "user/repo"}]}
         file_resp = MagicMock()
         file_resp.status_code = 200
-        file_resp.json.return_value = {"content": "UFJJVkFURV9LRVk9YWJjZA==", "encoding": "base64"}
+        file_resp.json.return_value = {
+            "content": "UFJJVkFURV9LRVk9YWJjZA==",
+            "encoding": "base64",
+        }
         readme_resp = MagicMock()
         readme_resp.status_code = 200
         readme_resp.json.return_value = {"content": "# Test", "encoding": "utf-8"}
         empty_resp = MagicMock()
         empty_resp.status_code = 404
         mock_client = AsyncMock()
-        mock_client.get = AsyncMock(side_effect=[
-            search_resp, file_resp, empty_resp, empty_resp, empty_resp,
-            empty_resp, empty_resp, readme_resp,
-        ])
+        mock_client.get = AsyncMock(
+            side_effect=[
+                search_resp,
+                file_resp,
+                empty_resp,
+                empty_resp,
+                empty_resp,
+                empty_resp,
+                empty_resp,
+                readme_resp,
+            ]
+        )
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.codeberg_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.codeberg_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.codeberg_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.codeberg_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.codeberg_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
+                with patch(
+                    "src.modules.sources.codeberg_source.time.monotonic",
+                    return_value=0.0,
+                ):
                     leaks = await source.fetch_raw_leaks()
         assert len(leaks) >= 1
 
@@ -851,9 +1194,18 @@ class TestCodebergSource:
         mock_client.get = AsyncMock(return_value=err_resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.codeberg_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.codeberg_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.codeberg_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.codeberg_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.codeberg_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
+                with patch(
+                    "src.modules.sources.codeberg_source.time.monotonic",
+                    return_value=0.0,
+                ):
                     leaks = await source.fetch_raw_leaks()
         assert leaks == []
 
@@ -867,9 +1219,18 @@ class TestCodebergSource:
         mock_client.get = AsyncMock(return_value=search_resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.codeberg_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.codeberg_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.codeberg_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.codeberg_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.codeberg_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
+                with patch(
+                    "src.modules.sources.codeberg_source.time.monotonic",
+                    return_value=0.0,
+                ):
                     leaks = await source.search_for_address("0x123")
         assert leaks == []
 
@@ -881,6 +1242,7 @@ class TestChiasmodonBridge:
     @pytest.mark.asyncio
     async def test_fetch_raw_leaks_success(self):
         from src.modules.sources.chiasmodon_bridge import ChiasmodonBridge
+
         mock_tool = MagicMock()
         mock_tool.search.return_value = {
             "status": "ok",
@@ -894,6 +1256,7 @@ class TestChiasmodonBridge:
     @pytest.mark.asyncio
     async def test_fetch_raw_leaks_error_status(self):
         from src.modules.sources.chiasmodon_bridge import ChiasmodonBridge
+
         mock_tool = MagicMock()
         mock_tool.search.return_value = {"status": "error", "error": "API down"}
         bridge = ChiasmodonBridge("scylla", mock_tool)
@@ -903,6 +1266,7 @@ class TestChiasmodonBridge:
     @pytest.mark.asyncio
     async def test_fetch_raw_leaks_exception(self):
         from src.modules.sources.chiasmodon_bridge import ChiasmodonBridge
+
         mock_tool = MagicMock()
         mock_tool.search.side_effect = Exception("connection failed")
         bridge = ChiasmodonBridge("shodan", mock_tool)
@@ -912,6 +1276,7 @@ class TestChiasmodonBridge:
     @pytest.mark.asyncio
     async def test_search_for_address(self):
         from src.modules.sources.chiasmodon_bridge import ChiasmodonBridge
+
         mock_tool = MagicMock()
         mock_tool.search.return_value = {"status": "ok", "result": []}
         bridge = ChiasmodonBridge("intelx", mock_tool)
@@ -920,11 +1285,13 @@ class TestChiasmodonBridge:
 
     def test_get_chiasmodon_sources(self):
         from src.modules.sources.chiasmodon_bridge import get_chiasmodon_sources
+
         sources = get_chiasmodon_sources()
         assert isinstance(sources, dict)
 
     def test_load_chiasmodon_tool_unknown(self):
         from src.modules.sources.chiasmodon_bridge import _load_chiasmodon_tool
+
         result = _load_chiasmodon_tool("nonexistent_source")
         assert result is None
 
@@ -935,6 +1302,7 @@ class TestChiasmodonBridge:
 class TestWaybackSource:
     def _make_source(self):
         from src.modules.sources.wayback_source import WaybackSource
+
         return WaybackSource(max_per_query=5, request_delay=0.0, timeout=5.0)
 
     @pytest.mark.asyncio
@@ -953,9 +1321,18 @@ class TestWaybackSource:
         mock_client.get = AsyncMock(side_effect=[cdx_resp, page_resp])
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.wayback_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.wayback_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.wayback_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.wayback_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.wayback_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
+                with patch(
+                    "src.modules.sources.wayback_source.time.monotonic",
+                    return_value=0.0,
+                ):
                     leaks = await source.fetch_raw_leaks()
         assert len(leaks) >= 1
         assert leaks[0].source_name == "wayback"
@@ -970,9 +1347,18 @@ class TestWaybackSource:
         mock_client.get = AsyncMock(return_value=cdx_resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.wayback_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.wayback_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.wayback_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.wayback_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.wayback_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
+                with patch(
+                    "src.modules.sources.wayback_source.time.monotonic",
+                    return_value=0.0,
+                ):
                     leaks = await source.fetch_raw_leaks()
         assert leaks == []
 
@@ -986,9 +1372,18 @@ class TestWaybackSource:
         mock_client.get = AsyncMock(return_value=cdx_resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.wayback_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.wayback_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.wayback_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.wayback_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.wayback_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
+                with patch(
+                    "src.modules.sources.wayback_source.time.monotonic",
+                    return_value=0.0,
+                ):
                     leaks = await source.search_for_address("0x123")
         assert leaks == []
 
@@ -999,6 +1394,7 @@ class TestWaybackSource:
 class TestCrtShSource:
     def _make_source(self):
         from src.modules.sources.crtsh_source import CrtShSource
+
         return CrtShSource(max_results=5, request_delay=0.0, timeout=5.0)
 
     @pytest.mark.asyncio
@@ -1011,9 +1407,16 @@ class TestCrtShSource:
         mock_client.get = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.crtsh_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.crtsh_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.crtsh_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.crtsh_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.crtsh_source.asyncio.sleep", new_callable=AsyncMock
+            ):
+                with patch(
+                    "src.modules.sources.crtsh_source.time.monotonic", return_value=0.0
+                ):
                     leaks = await source.fetch_raw_leaks()
         assert len(leaks) == 1
         assert leaks[0].source_name == "crtsh"
@@ -1027,9 +1430,16 @@ class TestCrtShSource:
         mock_client.get = AsyncMock(return_value=err_resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.crtsh_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.crtsh_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.crtsh_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.crtsh_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.crtsh_source.asyncio.sleep", new_callable=AsyncMock
+            ):
+                with patch(
+                    "src.modules.sources.crtsh_source.time.monotonic", return_value=0.0
+                ):
                     leaks = await source.fetch_raw_leaks()
         assert leaks == []
 
@@ -1043,9 +1453,16 @@ class TestCrtShSource:
         mock_client.get = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.crtsh_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.crtsh_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.crtsh_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.crtsh_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.crtsh_source.asyncio.sleep", new_callable=AsyncMock
+            ):
+                with patch(
+                    "src.modules.sources.crtsh_source.time.monotonic", return_value=0.0
+                ):
                     leaks = await source.search_for_address("test.com")
         assert len(leaks) == 1
 
@@ -1056,11 +1473,13 @@ class TestCrtShSource:
 class TestVirusTotalSource:
     def _make_source(self):
         from src.modules.sources.virustotal_source import VirusTotalSource
+
         return VirusTotalSource(api_key="test_key", request_delay=0.0, timeout=5.0)
 
     @pytest.mark.asyncio
     async def test_fetch_raw_leaks_no_key(self):
         from src.modules.sources.virustotal_source import VirusTotalSource
+
         source = VirusTotalSource(api_key="", request_delay=0.0, timeout=5.0)
         leaks = await source.fetch_raw_leaks()
         assert leaks == []
@@ -1077,9 +1496,18 @@ class TestVirusTotalSource:
         mock_client.get = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.virustotal_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.virustotal_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.virustotal_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.virustotal_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.virustotal_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
+                with patch(
+                    "src.modules.sources.virustotal_source.time.monotonic",
+                    return_value=0.0,
+                ):
                     leaks = await source.fetch_raw_leaks()
         assert len(leaks) >= 1
         assert leaks[0].source_name == "virustotal"
@@ -1087,6 +1515,7 @@ class TestVirusTotalSource:
     @pytest.mark.asyncio
     async def test_search_for_address_no_key(self):
         from src.modules.sources.virustotal_source import VirusTotalSource
+
         source = VirusTotalSource(api_key="", request_delay=0.0, timeout=5.0)
         leaks = await source.search_for_address("example.com")
         assert leaks == []
@@ -1103,9 +1532,18 @@ class TestVirusTotalSource:
         mock_client.get = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.virustotal_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.virustotal_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.virustotal_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.virustotal_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.virustotal_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
+                with patch(
+                    "src.modules.sources.virustotal_source.time.monotonic",
+                    return_value=0.0,
+                ):
                     leaks = await source.search_for_address("example.com")
         assert len(leaks) == 1
 
@@ -1116,6 +1554,7 @@ class TestVirusTotalSource:
 class TestSherlockSource:
     def _make_source(self):
         from src.modules.sources.sherlock_source import SherlockSource
+
         return SherlockSource(timeout=5.0)
 
     @pytest.mark.asyncio
@@ -1127,7 +1566,9 @@ class TestSherlockSource:
     @pytest.mark.asyncio
     async def test_search_for_address_no_binary(self):
         source = self._make_source()
-        with patch("src.modules.sources.sherlock_source.shutil.which", return_value=None):
+        with patch(
+            "src.modules.sources.sherlock_source.shutil.which", return_value=None
+        ):
             leaks = await source.search_for_address("testuser")
         assert leaks == []
 
@@ -1138,12 +1579,17 @@ class TestSherlockSource:
         source = self._make_source()
         mock_proc = AsyncMock()
         mock_proc.communicate = AsyncMock(return_value=(b"", b""))
-        sherlock_json = '{"GitHub": {"status": "Claimed", "url": "https://github.com/testuser"}}'
+        sherlock_json = (
+            '{"GitHub": {"status": "Claimed", "url": "https://github.com/testuser"}}'
+        )
         mock_tmp = MagicMock()
         mock_tmp.__enter__ = MagicMock(return_value=mock_tmp)
         mock_tmp.__exit__ = MagicMock(return_value=False)
         mock_tmp.name = "/tmp/sherlock_test.json"
-        with patch("src.modules.sources.sherlock_source.shutil.which", return_value="/usr/bin/sherlock"):
+        with patch(
+            "src.modules.sources.sherlock_source.shutil.which",
+            return_value="/usr/bin/sherlock",
+        ):
             with patch("tempfile.NamedTemporaryFile", return_value=mock_tmp):
                 with patch("os.path.isfile", return_value=True):
                     with patch("os.unlink"):
@@ -1163,6 +1609,7 @@ class TestSherlockSource:
 class TestHoleheSource:
     def _make_source(self):
         from src.modules.sources.holehe_source import HoleheSource
+
         return HoleheSource(timeout=5.0)
 
     @pytest.mark.asyncio
@@ -1194,6 +1641,7 @@ class TestHoleheSource:
 class TestMaigretSource:
     def _make_source(self):
         from src.modules.sources.maigret_source import MaigretSource
+
         return MaigretSource(timeout=5.0)
 
     @pytest.mark.asyncio
@@ -1205,7 +1653,9 @@ class TestMaigretSource:
     @pytest.mark.asyncio
     async def test_search_for_address_no_binary(self):
         source = self._make_source()
-        with patch("src.modules.sources.maigret_source.shutil.which", return_value=None):
+        with patch(
+            "src.modules.sources.maigret_source.shutil.which", return_value=None
+        ):
             leaks = await source.search_for_address("testuser")
         assert leaks == []
 
@@ -1216,6 +1666,7 @@ class TestMaigretSource:
 class TestTheHarvesterSource:
     def _make_source(self):
         from src.modules.sources.theharvester_source import TheHarvesterSource
+
         return TheHarvesterSource(timeout=5.0)
 
     @pytest.mark.asyncio
@@ -1227,7 +1678,9 @@ class TestTheHarvesterSource:
     @pytest.mark.asyncio
     async def test_search_for_address_no_binary(self):
         source = self._make_source()
-        with patch("src.modules.sources.theharvester_source.shutil.which", return_value=None):
+        with patch(
+            "src.modules.sources.theharvester_source.shutil.which", return_value=None
+        ):
             leaks = await source.search_for_address("example.com")
         assert leaks == []
 
@@ -1238,6 +1691,7 @@ class TestTheHarvesterSource:
 class TestAmassSource:
     def _make_source(self):
         from src.modules.sources.amass_source import AmassSource
+
         return AmassSource(timeout=5.0)
 
     @pytest.mark.asyncio
@@ -1260,6 +1714,7 @@ class TestAmassSource:
 class TestWhatsMyNameSource:
     def _make_source(self):
         from src.modules.sources.whatsmyname_source import WhatsMyNameSource
+
         return WhatsMyNameSource(request_delay=0.0, timeout=5.0)
 
     @pytest.mark.asyncio
@@ -1278,9 +1733,18 @@ class TestWhatsMyNameSource:
         mock_client.get = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.whatsmyname_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.whatsmyname_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.whatsmyname_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.whatsmyname_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.whatsmyname_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
+                with patch(
+                    "src.modules.sources.whatsmyname_source.time.monotonic",
+                    return_value=0.0,
+                ):
                     leaks = await source.search_for_address("testuser")
         assert len(leaks) == 1
         assert leaks[0].source_name == "whatsmyname"
@@ -1292,6 +1756,7 @@ class TestWhatsMyNameSource:
 class TestWhoisSource:
     def _make_source(self):
         from src.modules.sources.whois_source import WhoisSource
+
         return WhoisSource(request_delay=0.0, timeout=5.0)
 
     @pytest.mark.asyncio
@@ -1310,9 +1775,16 @@ class TestWhoisSource:
         mock_client.get = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.whois_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.whois_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.whois_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.whois_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.whois_source.asyncio.sleep", new_callable=AsyncMock
+            ):
+                with patch(
+                    "src.modules.sources.whois_source.time.monotonic", return_value=0.0
+                ):
                     leaks = await source.search_for_address("8.8.8.8")
         assert len(leaks) == 1
         assert leaks[0].source_name == "whois"
@@ -1324,6 +1796,7 @@ class TestWhoisSource:
 class TestDNSDumpsterSource:
     def _make_source(self):
         from src.modules.sources.dnsdumpster_source import DNSDumpsterSource
+
         return DNSDumpsterSource(request_delay=0.0, timeout=5.0)
 
     @pytest.mark.asyncio
@@ -1339,6 +1812,7 @@ class TestDNSDumpsterSource:
 class TestSecurityTrailsSource:
     def _make_source(self):
         from src.modules.sources.securitytrails_source import SecurityTrailsSource
+
         return SecurityTrailsSource(api_key="test_key", request_delay=0.0, timeout=5.0)
 
     @pytest.mark.asyncio
@@ -1350,6 +1824,7 @@ class TestSecurityTrailsSource:
     @pytest.mark.asyncio
     async def test_search_for_address_no_key(self):
         from src.modules.sources.securitytrails_source import SecurityTrailsSource
+
         source = SecurityTrailsSource(api_key="", request_delay=0.0, timeout=5.0)
         leaks = await source.search_for_address("example.com")
         assert leaks == []
@@ -1367,9 +1842,18 @@ class TestSecurityTrailsSource:
         mock_client.get = AsyncMock(side_effect=[sub_resp, dns_resp])
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.securitytrails_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.securitytrails_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.securitytrails_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.securitytrails_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.securitytrails_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
+                with patch(
+                    "src.modules.sources.securitytrails_source.time.monotonic",
+                    return_value=0.0,
+                ):
                     leaks = await source.search_for_address("example.com")
         assert len(leaks) == 2
 
@@ -1380,6 +1864,7 @@ class TestSecurityTrailsSource:
 class TestHunterSource:
     def _make_source(self):
         from src.modules.sources.hunter_source import HunterSource
+
         return HunterSource(api_key="test_key", request_delay=0.0, timeout=5.0)
 
     @pytest.mark.asyncio
@@ -1391,6 +1876,7 @@ class TestHunterSource:
     @pytest.mark.asyncio
     async def test_search_for_address_no_key(self):
         from src.modules.sources.hunter_source import HunterSource
+
         source = HunterSource(api_key="", request_delay=0.0, timeout=5.0)
         leaks = await source.search_for_address("example.com")
         assert leaks == []
@@ -1405,9 +1891,17 @@ class TestHunterSource:
         mock_client.get = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.hunter_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.hunter_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.hunter_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.hunter_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.hunter_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
+                with patch(
+                    "src.modules.sources.hunter_source.time.monotonic", return_value=0.0
+                ):
                     leaks = await source.search_for_address("example.com")
         assert len(leaks) == 1
         assert leaks[0].source_name == "hunter"
@@ -1419,6 +1913,7 @@ class TestHunterSource:
 class TestPhoneInfogaSource:
     def _make_source(self):
         from src.modules.sources.phoneinfoga_source import PhoneInfogaSource
+
         return PhoneInfogaSource(timeout=5.0)
 
     @pytest.mark.asyncio
@@ -1430,7 +1925,9 @@ class TestPhoneInfogaSource:
     @pytest.mark.asyncio
     async def test_search_for_address_no_binary(self):
         source = self._make_source()
-        with patch("src.modules.sources.phoneinfoga_source.shutil.which", return_value=None):
+        with patch(
+            "src.modules.sources.phoneinfoga_source.shutil.which", return_value=None
+        ):
             leaks = await source.search_for_address("+1234567890")
         assert leaks == []
 
@@ -1446,6 +1943,7 @@ class TestPhoneInfogaSource:
 class TestDNSDumpsterSourceExtra:
     def _make_source(self):
         from src.modules.sources.dnsdumpster_source import DNSDumpsterSource
+
         return DNSDumpsterSource(request_delay=0.0, timeout=5.0)
 
     @pytest.mark.asyncio
@@ -1466,9 +1964,18 @@ class TestDNSDumpsterSourceExtra:
         mock_client.cookies.jar = [cookie]
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.dnsdumpster_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.dnsdumpster_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.dnsdumpster_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.dnsdumpster_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.dnsdumpster_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
+                with patch(
+                    "src.modules.sources.dnsdumpster_source.time.monotonic",
+                    return_value=0.0,
+                ):
                     leaks = await source.search_for_address("example.com")
         assert len(leaks) == 1
         assert leaks[0].source_name == "dnsdumpster"
@@ -1484,9 +1991,18 @@ class TestDNSDumpsterSourceExtra:
         mock_client.cookies.jar = []
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.dnsdumpster_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.dnsdumpster_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.dnsdumpster_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.dnsdumpster_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.dnsdumpster_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
+                with patch(
+                    "src.modules.sources.dnsdumpster_source.time.monotonic",
+                    return_value=0.0,
+                ):
                     leaks = await source.search_for_address("example.com")
         assert leaks == []
 
@@ -1497,9 +2013,18 @@ class TestDNSDumpsterSourceExtra:
         mock_client.get = AsyncMock(side_effect=Exception("network error"))
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.dnsdumpster_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.dnsdumpster_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.dnsdumpster_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.dnsdumpster_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.dnsdumpster_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
+                with patch(
+                    "src.modules.sources.dnsdumpster_source.time.monotonic",
+                    return_value=0.0,
+                ):
                     leaks = await source.search_for_address("example.com")
         assert leaks == []
 
@@ -1511,14 +2036,23 @@ class TestMaigretSourceFull:
     @pytest.mark.asyncio
     async def test_search_for_address_success(self):
         from src.modules.sources.maigret_source import MaigretSource
+
         source = MaigretSource(timeout=5.0)
         mock_proc = AsyncMock()
-        mock_proc.communicate = AsyncMock(return_value=(
-            b'{"GitHub": {"url_user": "https://github.com/test", "status": "Claimed"}}',
-            b"",
-        ))
-        with patch("src.modules.sources.maigret_source.shutil.which", return_value="/usr/bin/maigret"):
-            with patch("src.modules.sources.maigret_source.asyncio.create_subprocess_exec", return_value=mock_proc):
+        mock_proc.communicate = AsyncMock(
+            return_value=(
+                b'{"GitHub": {"url_user": "https://github.com/test", "status": "Claimed"}}',
+                b"",
+            )
+        )
+        with patch(
+            "src.modules.sources.maigret_source.shutil.which",
+            return_value="/usr/bin/maigret",
+        ):
+            with patch(
+                "src.modules.sources.maigret_source.asyncio.create_subprocess_exec",
+                return_value=mock_proc,
+            ):
                 leaks = await source.search_for_address("testuser")
         assert len(leaks) >= 1
         assert leaks[0].source_name == "maigret"
@@ -1528,19 +2062,26 @@ class TestAmassSourceFull:
     @pytest.mark.asyncio
     async def test_search_for_address_success(self):
         from src.modules.sources.amass_source import AmassSource
+
         source = AmassSource(timeout=5.0)
         mock_proc = AsyncMock()
-        mock_proc.communicate = AsyncMock(return_value=(
-            b"sub1.example.com\nsub2.example.com",
-            b"",
-        ))
-        with patch("src.modules.sources.amass_source.shutil.which", return_value="/usr/bin/amass"):
-            with patch("src.modules.sources.amass_source.asyncio.create_subprocess_exec", return_value=mock_proc):
+        mock_proc.communicate = AsyncMock(
+            return_value=(
+                b"sub1.example.com\nsub2.example.com",
+                b"",
+            )
+        )
+        with patch(
+            "src.modules.sources.amass_source.shutil.which",
+            return_value="/usr/bin/amass",
+        ):
+            with patch(
+                "src.modules.sources.amass_source.asyncio.create_subprocess_exec",
+                return_value=mock_proc,
+            ):
                 leaks = await source.search_for_address("example.com")
         assert len(leaks) >= 1
         assert leaks[0].source_name == "amass"
-
-
 
 
 # ---------------------------------------------------------------------------
@@ -1549,6 +2090,7 @@ class TestAmassSourceFull:
 class TestH8mailSource:
     def _make_source(self):
         from src.modules.sources.h8mail_source import H8mailSource
+
         return H8mailSource(timeout=5.0)
 
     @pytest.mark.asyncio
@@ -1577,6 +2119,7 @@ class TestH8mailSource:
 class TestExiftoolSource:
     def _make_source(self):
         from src.modules.sources.exiftool_source import ExiftoolSource
+
         return ExiftoolSource(timeout=5.0)
 
     @pytest.mark.asyncio
@@ -1588,7 +2131,9 @@ class TestExiftoolSource:
     @pytest.mark.asyncio
     async def test_search_for_address_no_binary(self):
         source = self._make_source()
-        with patch("src.modules.sources.exiftool_source.shutil.which", return_value=None):
+        with patch(
+            "src.modules.sources.exiftool_source.shutil.which", return_value=None
+        ):
             leaks = await source.search_for_address("/path/to/file.jpg")
         assert leaks == []
 
@@ -1599,6 +2144,7 @@ class TestExiftoolSource:
 class TestSocialSource:
     def _make_source(self):
         from src.modules.sources.social_source import SocialSource
+
         return SocialSource(request_delay=0.0, timeout=5.0)
 
     @pytest.mark.asyncio
@@ -1617,9 +2163,17 @@ class TestSocialSource:
         mock_client.get = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.social_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.social_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.social_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.social_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.social_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
+                with patch(
+                    "src.modules.sources.social_source.time.monotonic", return_value=0.0
+                ):
                     leaks = await source.search_for_address("testuser")
         assert len(leaks) >= 1
 
@@ -1630,6 +2184,7 @@ class TestSocialSource:
 class TestIntelxSource:
     def _make_source(self):
         from src.modules.sources.intelx_source import IntelxSource
+
         return IntelxSource(api_key="test_key", request_delay=0.0, timeout=5.0)
 
     @pytest.mark.asyncio
@@ -1641,6 +2196,7 @@ class TestIntelxSource:
     @pytest.mark.asyncio
     async def test_search_for_address_no_key(self):
         from src.modules.sources.intelx_source import IntelxSource
+
         source = IntelxSource(api_key="", request_delay=0.0, timeout=5.0)
         leaks = await source.search_for_address("test@example.com")
         assert leaks == []
@@ -1652,6 +2208,7 @@ class TestIntelxSource:
 class TestLeakcheckSource:
     def _make_source(self):
         from src.modules.sources.leakcheck_source import LeakcheckSource
+
         return LeakcheckSource(api_key="test_key", request_delay=0.0, timeout=5.0)
 
     @pytest.mark.asyncio
@@ -1663,6 +2220,7 @@ class TestLeakcheckSource:
     @pytest.mark.asyncio
     async def test_search_for_address_no_key(self):
         from src.modules.sources.leakcheck_source import LeakcheckSource
+
         source = LeakcheckSource(api_key="", request_delay=0.0, timeout=5.0)
         leaks = await source.search_for_address("test@example.com")
         assert leaks == []
@@ -1680,6 +2238,7 @@ class TestIntelxSourceFull:
     @pytest.mark.asyncio
     async def test_search_for_address_success(self):
         from src.modules.sources.intelx_source import IntelxSource
+
         source = IntelxSource(api_key="test_key", request_delay=0.0, timeout=5.0)
         search_resp = MagicMock()
         search_resp.status_code = 200
@@ -1692,9 +2251,17 @@ class TestIntelxSourceFull:
         mock_client.get = AsyncMock(return_value=result_resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.intelx_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.intelx_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.intelx_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.intelx_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.intelx_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
+                with patch(
+                    "src.modules.sources.intelx_source.time.monotonic", return_value=0.0
+                ):
                     leaks = await source.search_for_address("test@example.com")
         assert len(leaks) == 1
         assert leaks[0].source_name == "intelx"
@@ -1707,6 +2274,7 @@ class TestLeakcheckSourceFull:
     @pytest.mark.asyncio
     async def test_search_for_address_success(self):
         from src.modules.sources.leakcheck_source import LeakcheckSource
+
         source = LeakcheckSource(api_key="test_key", request_delay=0.0, timeout=5.0)
         resp = MagicMock()
         resp.status_code = 200
@@ -1715,9 +2283,18 @@ class TestLeakcheckSourceFull:
         mock_client.get = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.leakcheck_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.leakcheck_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.leakcheck_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.leakcheck_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.leakcheck_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
+                with patch(
+                    "src.modules.sources.leakcheck_source.time.monotonic",
+                    return_value=0.0,
+                ):
                     leaks = await source.search_for_address("test@example.com")
         assert len(leaks) == 1
         assert leaks[0].source_name == "leakcheck"
@@ -1730,13 +2307,28 @@ class TestH8mailSourceFull:
     @pytest.mark.asyncio
     async def test_search_for_address_success(self):
         from src.modules.sources.h8mail_source import H8mailSource
+
         source = H8mailSource(timeout=5.0)
         mock_proc = MagicMock()
-        mock_proc.communicate = AsyncMock(return_value=(b'[{"email": "test@example.com", "password": "secret"}]', b""))
-        with patch("src.modules.sources.h8mail_source.shutil.which", return_value="/usr/bin/h8mail"):
-            with patch("src.modules.sources.h8mail_source.asyncio.create_subprocess_exec", return_value=mock_proc):
-                with patch("src.modules.sources.h8mail_source.asyncio.wait_for", new_callable=AsyncMock) as mock_wait:
-                    mock_wait.return_value = (b'[{"email": "test@example.com", "password": "secret"}]', b"")
+        mock_proc.communicate = AsyncMock(
+            return_value=(b'[{"email": "test@example.com", "password": "secret"}]', b"")
+        )
+        with patch(
+            "src.modules.sources.h8mail_source.shutil.which",
+            return_value="/usr/bin/h8mail",
+        ):
+            with patch(
+                "src.modules.sources.h8mail_source.asyncio.create_subprocess_exec",
+                return_value=mock_proc,
+            ):
+                with patch(
+                    "src.modules.sources.h8mail_source.asyncio.wait_for",
+                    new_callable=AsyncMock,
+                ) as mock_wait:
+                    mock_wait.return_value = (
+                        b'[{"email": "test@example.com", "password": "secret"}]',
+                        b"",
+                    )
                     leaks = await source.search_for_address("test@example.com")
         assert len(leaks) == 1
         assert leaks[0].source_name == "h8mail"
@@ -1749,14 +2341,31 @@ class TestExiftoolSourceFull:
     @pytest.mark.asyncio
     async def test_search_for_address_success(self):
         from src.modules.sources.exiftool_source import ExiftoolSource
+
         source = ExiftoolSource(timeout=5.0)
-        with patch("src.modules.sources.exiftool_source.shutil.which", return_value="/usr/bin/exiftool"):
-            with patch("src.modules.sources.exiftool_source.asyncio.create_subprocess_exec") as mock_exec:
+        with patch(
+            "src.modules.sources.exiftool_source.shutil.which",
+            return_value="/usr/bin/exiftool",
+        ):
+            with patch(
+                "src.modules.sources.exiftool_source.asyncio.create_subprocess_exec"
+            ) as mock_exec:
                 mock_proc = MagicMock()
-                mock_proc.communicate = AsyncMock(return_value=(b'[{"SourceFile": "test.jpg", "GPS": "lat,lon"}]', b""))
+                mock_proc.communicate = AsyncMock(
+                    return_value=(
+                        b'[{"SourceFile": "test.jpg", "GPS": "lat,lon"}]',
+                        b"",
+                    )
+                )
                 mock_exec.return_value = mock_proc
-                with patch("src.modules.sources.exiftool_source.asyncio.wait_for", new_callable=AsyncMock) as mock_wait:
-                    mock_wait.return_value = (b'[{"SourceFile": "test.jpg", "GPS": "lat,lon"}]', b"")
+                with patch(
+                    "src.modules.sources.exiftool_source.asyncio.wait_for",
+                    new_callable=AsyncMock,
+                ) as mock_wait:
+                    mock_wait.return_value = (
+                        b'[{"SourceFile": "test.jpg", "GPS": "lat,lon"}]',
+                        b"",
+                    )
                     leaks = await source.search_for_address("/path/to/file.jpg")
         assert len(leaks) == 1
         assert leaks[0].source_name == "exiftool"
@@ -1769,13 +2378,24 @@ class TestPhoneInfogaSourceFull:
     @pytest.mark.asyncio
     async def test_search_for_address_success(self):
         from src.modules.sources.phoneinfoga_source import PhoneInfogaSource
+
         source = PhoneInfogaSource(timeout=5.0)
-        with patch("src.modules.sources.phoneinfoga_source.shutil.which", return_value="/usr/bin/phoneinfoga"):
-            with patch("src.modules.sources.phoneinfoga_source.asyncio.create_subprocess_exec") as mock_exec:
+        with patch(
+            "src.modules.sources.phoneinfoga_source.shutil.which",
+            return_value="/usr/bin/phoneinfoga",
+        ):
+            with patch(
+                "src.modules.sources.phoneinfoga_source.asyncio.create_subprocess_exec"
+            ) as mock_exec:
                 mock_proc = MagicMock()
-                mock_proc.communicate = AsyncMock(return_value=(b'{"valid": true, "country": "US"}', b""))
+                mock_proc.communicate = AsyncMock(
+                    return_value=(b'{"valid": true, "country": "US"}', b"")
+                )
                 mock_exec.return_value = mock_proc
-                with patch("src.modules.sources.phoneinfoga_source.asyncio.wait_for", new_callable=AsyncMock) as mock_wait:
+                with patch(
+                    "src.modules.sources.phoneinfoga_source.asyncio.wait_for",
+                    new_callable=AsyncMock,
+                ) as mock_wait:
                     mock_wait.return_value = (b'{"valid": true, "country": "US"}', b"")
                     leaks = await source.search_for_address("+1234567890")
         assert len(leaks) == 1
@@ -1786,20 +2406,34 @@ class TestTheHarvesterSourceFull2:
     @pytest.mark.asyncio
     async def test_search_for_address_timeout(self):
         from src.modules.sources.theharvester_source import TheHarvesterSource
+
         source = TheHarvesterSource(timeout=0.1)
         mock_proc = AsyncMock()
         mock_proc.communicate = AsyncMock(side_effect=asyncio.TimeoutError())
-        with patch("src.modules.sources.theharvester_source.shutil.which", return_value="/usr/bin/theHarvester"):
-            with patch("src.modules.sources.theharvester_source.asyncio.create_subprocess_exec", return_value=mock_proc):
+        with patch(
+            "src.modules.sources.theharvester_source.shutil.which",
+            return_value="/usr/bin/theHarvester",
+        ):
+            with patch(
+                "src.modules.sources.theharvester_source.asyncio.create_subprocess_exec",
+                return_value=mock_proc,
+            ):
                 leaks = await source.search_for_address("example.com")
         assert leaks == []
 
     @pytest.mark.asyncio
     async def test_search_for_address_exception(self):
         from src.modules.sources.theharvester_source import TheHarvesterSource
+
         source = TheHarvesterSource(timeout=5.0)
-        with patch("src.modules.sources.theharvester_source.shutil.which", return_value="/usr/bin/theHarvester"):
-            with patch("src.modules.sources.theharvester_source.asyncio.create_subprocess_exec", side_effect=Exception("fail")):
+        with patch(
+            "src.modules.sources.theharvester_source.shutil.which",
+            return_value="/usr/bin/theHarvester",
+        ):
+            with patch(
+                "src.modules.sources.theharvester_source.asyncio.create_subprocess_exec",
+                side_effect=Exception("fail"),
+            ):
                 leaks = await source.search_for_address("example.com")
         assert leaks == []
 
@@ -1810,6 +2444,7 @@ class TestTheHarvesterSourceFull2:
 class TestDehashedSource:
     def _make_source(self):
         from src.modules.sources.dehashed_source import DehashedSource
+
         return DehashedSource(api_key="test_key", request_delay=0.0, timeout=5.0)
 
     @pytest.mark.asyncio
@@ -1821,6 +2456,7 @@ class TestDehashedSource:
     @pytest.mark.asyncio
     async def test_search_for_address_no_key(self):
         from src.modules.sources.dehashed_source import DehashedSource
+
         source = DehashedSource(api_key="", request_delay=0.0, timeout=5.0)
         leaks = await source.search_for_address("test@example.com")
         assert leaks == []
@@ -1830,14 +2466,25 @@ class TestDehashedSource:
         source = self._make_source()
         resp = MagicMock()
         resp.status_code = 200
-        resp.json.return_value = {"entries": [{"email": "test@example.com", "password": "secret"}]}
+        resp.json.return_value = {
+            "entries": [{"email": "test@example.com", "password": "secret"}]
+        }
         mock_client = AsyncMock()
         mock_client.get = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.dehashed_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.dehashed_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.dehashed_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.dehashed_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.dehashed_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
+                with patch(
+                    "src.modules.sources.dehashed_source.time.monotonic",
+                    return_value=0.0,
+                ):
                     leaks = await source.search_for_address("test@example.com")
         assert len(leaks) == 1
         assert leaks[0].source_name == "dehashed"
@@ -1849,6 +2496,7 @@ class TestDehashedSource:
 class TestSnyllaSource:
     def _make_source(self):
         from src.modules.sources.snylla_source import ScyllaSource
+
         return ScyllaSource(api_key="test_key", request_delay=0.0, timeout=5.0)
 
     @pytest.mark.asyncio
@@ -1860,6 +2508,7 @@ class TestSnyllaSource:
     @pytest.mark.asyncio
     async def test_search_for_address_no_key(self):
         from src.modules.sources.snylla_source import ScyllaSource
+
         source = ScyllaSource(api_key="", request_delay=0.0, timeout=5.0)
         leaks = await source.search_for_address("test@example.com")
         assert leaks == []
@@ -1874,9 +2523,17 @@ class TestSnyllaSource:
         mock_client.get = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.snylla_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.snylla_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.snylla_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.snylla_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.snylla_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
+                with patch(
+                    "src.modules.sources.snylla_source.time.monotonic", return_value=0.0
+                ):
                     leaks = await source.search_for_address("test@example.com")
         assert len(leaks) == 1
         assert leaks[0].source_name == "scylla"
@@ -1888,6 +2545,7 @@ class TestSnyllaSource:
 class TestSnusbaseSource:
     def _make_source(self):
         from src.modules.sources.snusbase_source import SnusbaseSource
+
         return SnusbaseSource(api_key="test_key", request_delay=0.0, timeout=5.0)
 
     @pytest.mark.asyncio
@@ -1899,6 +2557,7 @@ class TestSnusbaseSource:
     @pytest.mark.asyncio
     async def test_search_for_address_no_key(self):
         from src.modules.sources.snusbase_source import SnusbaseSource
+
         source = SnusbaseSource(api_key="", request_delay=0.0, timeout=5.0)
         leaks = await source.search_for_address("test@example.com")
         assert leaks == []
@@ -1913,9 +2572,18 @@ class TestSnusbaseSource:
         mock_client.post = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.snusbase_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.snusbase_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.snusbase_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.snusbase_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.snusbase_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
+                with patch(
+                    "src.modules.sources.snusbase_source.time.monotonic",
+                    return_value=0.0,
+                ):
                     leaks = await source.search_for_address("test@example.com")
         assert len(leaks) == 1
         assert leaks[0].source_name == "snusbase"
@@ -1927,6 +2595,7 @@ class TestSnusbaseSource:
 class TestHIBPSource:
     def _make_source(self):
         from src.modules.sources.hibp_source import HIBPSource
+
         return HIBPSource(api_key="test_key", request_delay=0.0, timeout=5.0)
 
     @pytest.mark.asyncio
@@ -1938,6 +2607,7 @@ class TestHIBPSource:
     @pytest.mark.asyncio
     async def test_search_for_address_no_key(self):
         from src.modules.sources.hibp_source import HIBPSource
+
         source = HIBPSource(api_key="", request_delay=0.0, timeout=5.0)
         leaks = await source.search_for_address("test@example.com")
         assert leaks == []
@@ -1953,14 +2623,27 @@ class TestHIBPSource:
         source = self._make_source()
         resp = MagicMock()
         resp.status_code = 200
-        resp.json.return_value = [{"Name": "LinkedIn", "BreachDate": "2012-05-05", "DataClasses": ["Email", "Password"]}]
+        resp.json.return_value = [
+            {
+                "Name": "LinkedIn",
+                "BreachDate": "2012-05-05",
+                "DataClasses": ["Email", "Password"],
+            }
+        ]
         mock_client = AsyncMock()
         mock_client.get = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.hibp_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.hibp_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.hibp_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.hibp_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.hibp_source.asyncio.sleep", new_callable=AsyncMock
+            ):
+                with patch(
+                    "src.modules.sources.hibp_source.time.monotonic", return_value=0.0
+                ):
                     leaks = await source.search_for_address("test@example.com")
         assert len(leaks) == 1
         assert leaks[0].source_name == "hibp"
@@ -1974,9 +2657,16 @@ class TestHIBPSource:
         mock_client.get = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.hibp_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.hibp_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.hibp_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.hibp_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.hibp_source.asyncio.sleep", new_callable=AsyncMock
+            ):
+                with patch(
+                    "src.modules.sources.hibp_source.time.monotonic", return_value=0.0
+                ):
                     leaks = await source.search_for_address("clean@example.com")
         assert leaks == []
 
@@ -1987,6 +2677,7 @@ class TestHIBPSource:
 class TestSpiderFootSource:
     def _make_source(self):
         from src.modules.sources.spiderfoot_source import SpiderFootSource
+
         return SpiderFootSource(timeout=5.0)
 
     @pytest.mark.asyncio
@@ -1998,20 +2689,38 @@ class TestSpiderFootSource:
     @pytest.mark.asyncio
     async def test_search_for_address_no_binary(self):
         source = self._make_source()
-        with patch("src.modules.sources.spiderfoot_source.shutil.which", return_value=None):
+        with patch(
+            "src.modules.sources.spiderfoot_source.shutil.which", return_value=None
+        ):
             leaks = await source.search_for_address("example.com")
         assert leaks == []
 
     @pytest.mark.asyncio
     async def test_search_for_address_success(self):
         source = self._make_source()
-        with patch("src.modules.sources.spiderfoot_source.shutil.which", return_value="/usr/bin/spiderfoot"):
-            with patch("src.modules.sources.spiderfoot_source.asyncio.create_subprocess_exec") as mock_exec:
+        with patch(
+            "src.modules.sources.spiderfoot_source.shutil.which",
+            return_value="/usr/bin/spiderfoot",
+        ):
+            with patch(
+                "src.modules.sources.spiderfoot_source.asyncio.create_subprocess_exec"
+            ) as mock_exec:
                 mock_proc = MagicMock()
-                mock_proc.communicate = AsyncMock(return_value=(b'[{"element": "example.com", "type": "domain"}]', b""))
+                mock_proc.communicate = AsyncMock(
+                    return_value=(
+                        b'[{"element": "example.com", "type": "domain"}]',
+                        b"",
+                    )
+                )
                 mock_exec.return_value = mock_proc
-                with patch("src.modules.sources.spiderfoot_source.asyncio.wait_for", new_callable=AsyncMock) as mock_wait:
-                    mock_wait.return_value = (b'[{"element": "example.com", "type": "domain"}]', b"")
+                with patch(
+                    "src.modules.sources.spiderfoot_source.asyncio.wait_for",
+                    new_callable=AsyncMock,
+                ) as mock_wait:
+                    mock_wait.return_value = (
+                        b'[{"element": "example.com", "type": "domain"}]',
+                        b"",
+                    )
                     leaks = await source.search_for_address("example.com")
         assert len(leaks) == 1
         assert leaks[0].source_name == "spiderfoot"
@@ -2023,6 +2732,7 @@ class TestSpiderFootSource:
 class TestShodanSource:
     def _make_source(self):
         from src.modules.sources.shodan_source import ShodanSource
+
         return ShodanSource(api_key="test_key", request_delay=0.0, timeout=5.0)
 
     @pytest.mark.asyncio
@@ -2034,6 +2744,7 @@ class TestShodanSource:
     @pytest.mark.asyncio
     async def test_search_for_address_no_key(self):
         from src.modules.sources.shodan_source import ShodanSource
+
         source = ShodanSource(api_key="", request_delay=0.0, timeout=5.0)
         leaks = await source.search_for_address("8.8.8.8")
         assert leaks == []
@@ -2048,9 +2759,17 @@ class TestShodanSource:
         mock_client.get = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.shodan_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.shodan_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.shodan_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.shodan_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.shodan_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
+                with patch(
+                    "src.modules.sources.shodan_source.time.monotonic", return_value=0.0
+                ):
                     leaks = await source.search_for_address("8.8.8.8")
         assert len(leaks) == 1
         assert leaks[0].source_name == "shodan"
@@ -2062,7 +2781,10 @@ class TestShodanSource:
 class TestCensysSource:
     def _make_source(self):
         from src.modules.sources.censys_source import CensysSource
-        return CensysSource(api_key="test_id:test_secret", request_delay=0.0, timeout=5.0)
+
+        return CensysSource(
+            api_key="test_id:test_secret", request_delay=0.0, timeout=5.0
+        )
 
     @pytest.mark.asyncio
     async def test_fetch_raw_leaks_empty(self):
@@ -2073,6 +2795,7 @@ class TestCensysSource:
     @pytest.mark.asyncio
     async def test_search_for_address_no_key(self):
         from src.modules.sources.censys_source import CensysSource
+
         source = CensysSource(api_key="", request_delay=0.0, timeout=5.0)
         leaks = await source.search_for_address("example.com")
         assert leaks == []
@@ -2090,9 +2813,17 @@ class TestCensysSource:
         mock_client.get = AsyncMock(side_effect=[hosts_resp, certs_resp])
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.censys_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.censys_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.censys_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.censys_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.censys_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
+                with patch(
+                    "src.modules.sources.censys_source.time.monotonic", return_value=0.0
+                ):
                     leaks = await source.search_for_address("example.com")
         assert len(leaks) == 2
 
@@ -2103,6 +2834,7 @@ class TestCensysSource:
 class TestZoomEyeSource:
     def _make_source(self):
         from src.modules.sources.zoomeye_source import ZoomEyeSource
+
         return ZoomEyeSource(api_key="test_key", request_delay=0.0, timeout=5.0)
 
     @pytest.mark.asyncio
@@ -2114,6 +2846,7 @@ class TestZoomEyeSource:
     @pytest.mark.asyncio
     async def test_search_for_address_no_key(self):
         from src.modules.sources.zoomeye_source import ZoomEyeSource
+
         source = ZoomEyeSource(api_key="", request_delay=0.0, timeout=5.0)
         leaks = await source.search_for_address("8.8.8.8")
         assert leaks == []
@@ -2128,9 +2861,18 @@ class TestZoomEyeSource:
         mock_client.get = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.zoomeye_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.zoomeye_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.zoomeye_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.zoomeye_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.zoomeye_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
+                with patch(
+                    "src.modules.sources.zoomeye_source.time.monotonic",
+                    return_value=0.0,
+                ):
                     leaks = await source.search_for_address("8.8.8.8")
         assert len(leaks) == 1
         assert leaks[0].source_name == "zoomeye"
@@ -2142,6 +2884,7 @@ class TestZoomEyeSource:
 class TestOTXSource:
     def _make_source(self):
         from src.modules.sources.otx_source import OTXSource
+
         return OTXSource(api_key="test_key", request_delay=0.0, timeout=5.0)
 
     @pytest.mark.asyncio
@@ -2153,6 +2896,7 @@ class TestOTXSource:
     @pytest.mark.asyncio
     async def test_search_for_address_no_key(self):
         from src.modules.sources.otx_source import OTXSource
+
         source = OTXSource(api_key="", request_delay=0.0, timeout=5.0)
         leaks = await source.search_for_address("example.com")
         assert leaks == []
@@ -2167,9 +2911,15 @@ class TestOTXSource:
         mock_client.get = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.otx_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.otx_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.otx_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.otx_source.httpx.AsyncClient", return_value=mock_client
+        ):
+            with patch(
+                "src.modules.sources.otx_source.asyncio.sleep", new_callable=AsyncMock
+            ):
+                with patch(
+                    "src.modules.sources.otx_source.time.monotonic", return_value=0.0
+                ):
                     leaks = await source.search_for_address("example.com")
         assert len(leaks) == 1
         assert leaks[0].source_name == "otx"
@@ -2181,6 +2931,7 @@ class TestOTXSource:
 class TestAbuseIPDBSource:
     def _make_source(self):
         from src.modules.sources.abuseipdb_source import AbuseIPDBSource
+
         return AbuseIPDBSource(api_key="test_key", request_delay=0.0, timeout=5.0)
 
     @pytest.mark.asyncio
@@ -2192,6 +2943,7 @@ class TestAbuseIPDBSource:
     @pytest.mark.asyncio
     async def test_search_for_address_no_key(self):
         from src.modules.sources.abuseipdb_source import AbuseIPDBSource
+
         source = AbuseIPDBSource(api_key="", request_delay=0.0, timeout=5.0)
         leaks = await source.search_for_address("8.8.8.8")
         assert leaks == []
@@ -2201,14 +2953,30 @@ class TestAbuseIPDBSource:
         source = self._make_source()
         resp = MagicMock()
         resp.status_code = 200
-        resp.json.return_value = {"data": {"abuseConfidenceScore": 0, "isp": "Google", "countryCode": "US", "totalReports": 0}}
+        resp.json.return_value = {
+            "data": {
+                "abuseConfidenceScore": 0,
+                "isp": "Google",
+                "countryCode": "US",
+                "totalReports": 0,
+            }
+        }
         mock_client = AsyncMock()
         mock_client.get = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.abuseipdb_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.abuseipdb_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.abuseipdb_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.abuseipdb_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.abuseipdb_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
+                with patch(
+                    "src.modules.sources.abuseipdb_source.time.monotonic",
+                    return_value=0.0,
+                ):
                     leaks = await source.search_for_address("8.8.8.8")
         assert len(leaks) == 1
         assert leaks[0].source_name == "abuseipdb"
@@ -2220,6 +2988,7 @@ class TestAbuseIPDBSource:
 class TestGreyNoiseSource:
     def _make_source(self):
         from src.modules.sources.greynoise_source import GreyNoiseSource
+
         return GreyNoiseSource(api_key="test_key", request_delay=0.0, timeout=5.0)
 
     @pytest.mark.asyncio
@@ -2231,6 +3000,7 @@ class TestGreyNoiseSource:
     @pytest.mark.asyncio
     async def test_search_for_address_no_key(self):
         from src.modules.sources.greynoise_source import GreyNoiseSource
+
         source = GreyNoiseSource(api_key="", request_delay=0.0, timeout=5.0)
         leaks = await source.search_for_address("8.8.8.8")
         assert leaks == []
@@ -2240,14 +3010,27 @@ class TestGreyNoiseSource:
         source = self._make_source()
         resp = MagicMock()
         resp.status_code = 200
-        resp.json.return_value = {"classification": "benign", "name": "Google DNS", "seen": True}
+        resp.json.return_value = {
+            "classification": "benign",
+            "name": "Google DNS",
+            "seen": True,
+        }
         mock_client = AsyncMock()
         mock_client.get = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.greynoise_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.greynoise_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.greynoise_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.greynoise_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.greynoise_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
+                with patch(
+                    "src.modules.sources.greynoise_source.time.monotonic",
+                    return_value=0.0,
+                ):
                     leaks = await source.search_for_address("8.8.8.8")
         assert len(leaks) == 1
         assert leaks[0].source_name == "greynoise"
@@ -2259,6 +3042,7 @@ class TestGreyNoiseSource:
 class TestIPInfoSource:
     def _make_source(self):
         from src.modules.sources.ipinfo_source import IPInfoSource
+
         return IPInfoSource(api_key="test_key", request_delay=0.0, timeout=5.0)
 
     @pytest.mark.asyncio
@@ -2272,14 +3056,27 @@ class TestIPInfoSource:
         source = self._make_source()
         resp = MagicMock()
         resp.status_code = 200
-        resp.json.return_value = {"city": "Mountain View", "region": "California", "country": "US", "org": "AS15169 Google LLC"}
+        resp.json.return_value = {
+            "city": "Mountain View",
+            "region": "California",
+            "country": "US",
+            "org": "AS15169 Google LLC",
+        }
         mock_client = AsyncMock()
         mock_client.get = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.ipinfo_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.ipinfo_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.ipinfo_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.ipinfo_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.ipinfo_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
+                with patch(
+                    "src.modules.sources.ipinfo_source.time.monotonic", return_value=0.0
+                ):
                     leaks = await source.search_for_address("8.8.8.8")
         assert len(leaks) == 1
         assert leaks[0].source_name == "ipinfo"
@@ -2291,6 +3088,7 @@ class TestIPInfoSource:
 class TestWiGLESource:
     def _make_source(self):
         from src.modules.sources.wigle_source import WiGLESource
+
         return WiGLESource(api_key="test_key", request_delay=0.0, timeout=5.0)
 
     @pytest.mark.asyncio
@@ -2302,6 +3100,7 @@ class TestWiGLESource:
     @pytest.mark.asyncio
     async def test_search_for_address_no_key(self):
         from src.modules.sources.wigle_source import WiGLESource
+
         source = WiGLESource(api_key="", request_delay=0.0, timeout=5.0)
         leaks = await source.search_for_address("MyNetwork")
         assert leaks == []
@@ -2311,14 +3110,29 @@ class TestWiGLESource:
         source = self._make_source()
         resp = MagicMock()
         resp.status_code = 200
-        resp.json.return_value = {"results": [{"ssid": "MyNetwork", "netid": "AA:BB:CC:DD:EE:FF", "encryption": "WPA2"}]}
+        resp.json.return_value = {
+            "results": [
+                {
+                    "ssid": "MyNetwork",
+                    "netid": "AA:BB:CC:DD:EE:FF",
+                    "encryption": "WPA2",
+                }
+            ]
+        }
         mock_client = AsyncMock()
         mock_client.get = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.wigle_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.wigle_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.wigle_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.wigle_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.wigle_source.asyncio.sleep", new_callable=AsyncMock
+            ):
+                with patch(
+                    "src.modules.sources.wigle_source.time.monotonic", return_value=0.0
+                ):
                     leaks = await source.search_for_address("MyNetwork")
         assert len(leaks) == 1
         assert leaks[0].source_name == "wigle"
@@ -2330,6 +3144,7 @@ class TestWiGLESource:
 class TestPulsediveSource:
     def _make_source(self):
         from src.modules.sources.pulsedive_source import PulsediveSource
+
         return PulsediveSource(api_key="test_key", request_delay=0.0, timeout=5.0)
 
     @pytest.mark.asyncio
@@ -2341,6 +3156,7 @@ class TestPulsediveSource:
     @pytest.mark.asyncio
     async def test_search_for_address_no_key(self):
         from src.modules.sources.pulsedive_source import PulsediveSource
+
         source = PulsediveSource(api_key="", request_delay=0.0, timeout=5.0)
         resp = MagicMock()
         resp.status_code = 200
@@ -2349,9 +3165,18 @@ class TestPulsediveSource:
         mock_client.get = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.pulsedive_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.pulsedive_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.pulsedive_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.pulsedive_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.pulsedive_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
+                with patch(
+                    "src.modules.sources.pulsedive_source.time.monotonic",
+                    return_value=0.0,
+                ):
                     leaks = await source.search_for_address("evil.com")
         assert len(leaks) == 1
 
@@ -2360,14 +3185,27 @@ class TestPulsediveSource:
         source = self._make_source()
         resp = MagicMock()
         resp.status_code = 200
-        resp.json.return_value = {"risk": "high", "threats": ["malware"], "attributes": {"type": "domain"}}
+        resp.json.return_value = {
+            "risk": "high",
+            "threats": ["malware"],
+            "attributes": {"type": "domain"},
+        }
         mock_client = AsyncMock()
         mock_client.get = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.pulsedive_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.pulsedive_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.pulsedive_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.pulsedive_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.pulsedive_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
+                with patch(
+                    "src.modules.sources.pulsedive_source.time.monotonic",
+                    return_value=0.0,
+                ):
                     leaks = await source.search_for_address("evil.com")
         assert len(leaks) == 1
         assert leaks[0].source_name == "pulsedive"
@@ -2379,6 +3217,7 @@ class TestPulsediveSource:
 class TestURLhausSource:
     def _make_source(self):
         from src.modules.sources.urlhaus_source import URLhausSource
+
         return URLhausSource(request_delay=0.0, timeout=5.0)
 
     @pytest.mark.asyncio
@@ -2392,14 +3231,33 @@ class TestURLhausSource:
         source = self._make_source()
         resp = MagicMock()
         resp.status_code = 200
-        resp.json.return_value = {"query_status": "ok", "urls": [{"url": "http://evil.com/malware", "url_status": "online", "threat": "malware_download", "tags": ["elf"]}]}
+        resp.json.return_value = {
+            "query_status": "ok",
+            "urls": [
+                {
+                    "url": "http://evil.com/malware",
+                    "url_status": "online",
+                    "threat": "malware_download",
+                    "tags": ["elf"],
+                }
+            ],
+        }
         mock_client = AsyncMock()
         mock_client.post = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.urlhaus_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.urlhaus_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.urlhaus_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.urlhaus_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.urlhaus_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
+                with patch(
+                    "src.modules.sources.urlhaus_source.time.monotonic",
+                    return_value=0.0,
+                ):
                     leaks = await source.search_for_address("evil.com")
         assert len(leaks) == 1
         assert leaks[0].source_name == "urlhaus"
@@ -2411,6 +3269,7 @@ class TestURLhausSource:
 class TestMaltegoSource:
     def _make_source(self):
         from src.modules.sources.maltego_source import MaltegoSource
+
         return MaltegoSource(request_delay=0.0, timeout=5.0)
 
     @pytest.mark.asyncio
@@ -2424,14 +3283,25 @@ class TestMaltegoSource:
         source = self._make_source()
         resp = MagicMock()
         resp.status_code = 200
-        resp.json.return_value = {"results": [{"type": "domain", "value": "example.com"}]}
+        resp.json.return_value = {
+            "results": [{"type": "domain", "value": "example.com"}]
+        }
         mock_client = AsyncMock()
         mock_client.get = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch("src.modules.sources.maltego_source.httpx.AsyncClient", return_value=mock_client):
-            with patch("src.modules.sources.maltego_source.asyncio.sleep", new_callable=AsyncMock):
-                with patch("src.modules.sources.maltego_source.time.monotonic", return_value=0.0):
+        with patch(
+            "src.modules.sources.maltego_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.maltego_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
+                with patch(
+                    "src.modules.sources.maltego_source.time.monotonic",
+                    return_value=0.0,
+                ):
                     leaks = await source.search_for_address("example.com")
         assert len(leaks) == 1
         assert leaks[0].source_name == "maltego"
@@ -2443,6 +3313,7 @@ class TestMaltegoSource:
 class TestReconNgSource:
     def _make_source(self):
         from src.modules.sources.recon_ng_source import ReconNgSource
+
         return ReconNgSource(timeout=5.0)
 
     @pytest.mark.asyncio
@@ -2454,7 +3325,9 @@ class TestReconNgSource:
     @pytest.mark.asyncio
     async def test_search_for_address_no_binary(self):
         source = self._make_source()
-        with patch("src.modules.sources.recon_ng_source.shutil.which", return_value=None):
+        with patch(
+            "src.modules.sources.recon_ng_source.shutil.which", return_value=None
+        ):
             leaks = await source.search_for_address("example.com")
         assert leaks == []
 
@@ -2465,6 +3338,7 @@ class TestReconNgSource:
 class TestSubfinderSource:
     def _make_source(self):
         from src.modules.sources.subfinder_source import SubfinderSource
+
         return SubfinderSource(timeout=5.0)
 
     @pytest.mark.asyncio
@@ -2476,7 +3350,9 @@ class TestSubfinderSource:
     @pytest.mark.asyncio
     async def test_search_for_address_no_binary(self):
         source = self._make_source()
-        with patch("src.modules.sources.subfinder_source.shutil.which", return_value=None):
+        with patch(
+            "src.modules.sources.subfinder_source.shutil.which", return_value=None
+        ):
             leaks = await source.search_for_address("example.com")
         assert leaks == []
 
@@ -2487,6 +3363,7 @@ class TestSubfinderSource:
 class TestHttpxSource:
     def _make_source(self):
         from src.modules.sources.httpx_source import HttpxSource
+
         return HttpxSource(timeout=5.0)
 
     @pytest.mark.asyncio
@@ -2509,6 +3386,7 @@ class TestHttpxSource:
 class TestNmapSource:
     def _make_source(self):
         from src.modules.sources.nmap_source import NmapSource
+
         return NmapSource(timeout=5.0)
 
     @pytest.mark.asyncio
@@ -2531,6 +3409,7 @@ class TestNmapSource:
 class TestBbotSource:
     def _make_source(self):
         from src.modules.sources.bbot_source import BbotSource
+
         return BbotSource(timeout=5.0)
 
     @pytest.mark.asyncio
@@ -2554,13 +3433,24 @@ class TestNmapSourceFull:
     @pytest.mark.asyncio
     async def test_search_success(self):
         from src.modules.sources.nmap_source import NmapSource
+
         source = NmapSource(timeout=5.0)
         mock_proc = MagicMock()
-        mock_proc.communicate = AsyncMock(return_value=(b'<nmaprun>results</nmaprun>', b""))
-        with patch("src.modules.sources.nmap_source.shutil.which", return_value="/usr/bin/nmap"):
-            with patch("src.modules.sources.nmap_source.asyncio.create_subprocess_exec", return_value=mock_proc):
-                with patch("src.modules.sources.nmap_source.asyncio.wait_for", new_callable=AsyncMock) as mock_wait:
-                    mock_wait.return_value = (b'<nmaprun>results</nmaprun>', b"")
+        mock_proc.communicate = AsyncMock(
+            return_value=(b"<nmaprun>results</nmaprun>", b"")
+        )
+        with patch(
+            "src.modules.sources.nmap_source.shutil.which", return_value="/usr/bin/nmap"
+        ):
+            with patch(
+                "src.modules.sources.nmap_source.asyncio.create_subprocess_exec",
+                return_value=mock_proc,
+            ):
+                with patch(
+                    "src.modules.sources.nmap_source.asyncio.wait_for",
+                    new_callable=AsyncMock,
+                ) as mock_wait:
+                    mock_wait.return_value = (b"<nmaprun>results</nmaprun>", b"")
                     leaks = await source.search_for_address("example.com")
         assert len(leaks) >= 1
         assert leaks[0].source_name == "nmap"
@@ -2570,13 +3460,28 @@ class TestSubfinderSourceFull:
     @pytest.mark.asyncio
     async def test_search_success(self):
         from src.modules.sources.subfinder_source import SubfinderSource
+
         source = SubfinderSource(timeout=5.0)
         mock_proc = MagicMock()
-        mock_proc.communicate = AsyncMock(return_value=(b"sub1.example.com\nsub2.example.com", b""))
-        with patch("src.modules.sources.subfinder_source.shutil.which", return_value="/usr/bin/subfinder"):
-            with patch("src.modules.sources.subfinder_source.asyncio.create_subprocess_exec", return_value=mock_proc):
-                with patch("src.modules.sources.subfinder_source.asyncio.wait_for", new_callable=AsyncMock) as mock_wait:
-                    mock_wait.return_value = (b"sub1.example.com\nsub2.example.com", b"")
+        mock_proc.communicate = AsyncMock(
+            return_value=(b"sub1.example.com\nsub2.example.com", b"")
+        )
+        with patch(
+            "src.modules.sources.subfinder_source.shutil.which",
+            return_value="/usr/bin/subfinder",
+        ):
+            with patch(
+                "src.modules.sources.subfinder_source.asyncio.create_subprocess_exec",
+                return_value=mock_proc,
+            ):
+                with patch(
+                    "src.modules.sources.subfinder_source.asyncio.wait_for",
+                    new_callable=AsyncMock,
+                ) as mock_wait:
+                    mock_wait.return_value = (
+                        b"sub1.example.com\nsub2.example.com",
+                        b"",
+                    )
                     leaks = await source.search_for_address("example.com")
         assert len(leaks) >= 1
         assert leaks[0].source_name == "subfinder"
@@ -2586,13 +3491,28 @@ class TestHttpxSourceFull:
     @pytest.mark.asyncio
     async def test_search_success(self):
         from src.modules.sources.httpx_source import HttpxSource
+
         source = HttpxSource(timeout=5.0)
         mock_proc = MagicMock()
-        mock_proc.communicate = AsyncMock(return_value=(b'[{"url": "https://example.com", "status": 200}]', b""))
-        with patch("src.modules.sources.httpx_source.shutil.which", return_value="/usr/bin/httpx"):
-            with patch("src.modules.sources.httpx_source.asyncio.create_subprocess_exec", return_value=mock_proc):
-                with patch("src.modules.sources.httpx_source.asyncio.wait_for", new_callable=AsyncMock) as mock_wait:
-                    mock_wait.return_value = (b'[{"url": "https://example.com", "status": 200}]', b"")
+        mock_proc.communicate = AsyncMock(
+            return_value=(b'[{"url": "https://example.com", "status": 200}]', b"")
+        )
+        with patch(
+            "src.modules.sources.httpx_source.shutil.which",
+            return_value="/usr/bin/httpx",
+        ):
+            with patch(
+                "src.modules.sources.httpx_source.asyncio.create_subprocess_exec",
+                return_value=mock_proc,
+            ):
+                with patch(
+                    "src.modules.sources.httpx_source.asyncio.wait_for",
+                    new_callable=AsyncMock,
+                ) as mock_wait:
+                    mock_wait.return_value = (
+                        b'[{"url": "https://example.com", "status": 200}]',
+                        b"",
+                    )
                     leaks = await source.search_for_address("example.com")
         assert len(leaks) >= 1
         assert leaks[0].source_name == "httpx"
@@ -2602,13 +3522,28 @@ class TestReconNgSourceFull:
     @pytest.mark.asyncio
     async def test_search_success(self):
         from src.modules.sources.recon_ng_source import ReconNgSource
+
         source = ReconNgSource(timeout=5.0)
         mock_proc = MagicMock()
-        mock_proc.communicate = AsyncMock(return_value=(b'[{"host": "example.com", "ip": "1.2.3.4"}]', b""))
-        with patch("src.modules.sources.recon_ng_source.shutil.which", return_value="/usr/bin/recon-ng"):
-            with patch("src.modules.sources.recon_ng_source.asyncio.create_subprocess_exec", return_value=mock_proc):
-                with patch("src.modules.sources.recon_ng_source.asyncio.wait_for", new_callable=AsyncMock) as mock_wait:
-                    mock_wait.return_value = (b'[{"host": "example.com", "ip": "1.2.3.4"}]', b"")
+        mock_proc.communicate = AsyncMock(
+            return_value=(b'[{"host": "example.com", "ip": "1.2.3.4"}]', b"")
+        )
+        with patch(
+            "src.modules.sources.recon_ng_source.shutil.which",
+            return_value="/usr/bin/recon-ng",
+        ):
+            with patch(
+                "src.modules.sources.recon_ng_source.asyncio.create_subprocess_exec",
+                return_value=mock_proc,
+            ):
+                with patch(
+                    "src.modules.sources.recon_ng_source.asyncio.wait_for",
+                    new_callable=AsyncMock,
+                ) as mock_wait:
+                    mock_wait.return_value = (
+                        b'[{"host": "example.com", "ip": "1.2.3.4"}]',
+                        b"",
+                    )
                     leaks = await source.search_for_address("example.com")
         assert len(leaks) >= 1
         assert leaks[0].source_name == "recon_ng"

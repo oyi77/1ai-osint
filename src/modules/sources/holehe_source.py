@@ -1,4 +1,5 @@
 """Holehe source adapter for email account enumeration."""
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -27,6 +28,7 @@ class HoleheSource:
 
         try:
             from holehe import check_email
+
             result = await asyncio.wait_for(
                 check_email(address),
                 timeout=self.timeout,
@@ -34,11 +36,13 @@ class HoleheSource:
             if result:
                 for site, data in result.items():
                     if data.get("exists"):
-                        leaks.append(RawLeak(
-                            text=f"Email '{address}' registered on {site}",
-                            source_name="holehe",
-                            source_url=f"https://{site}",
-                        ))
+                        leaks.append(
+                            RawLeak(
+                                text=f"Email '{address}' registered on {site}",
+                                source_name="holehe",
+                                source_url=f"https://{site}",
+                            )
+                        )
         except ImportError:
             logger.debug("Holehe: package not installed, skipping")
         except asyncio.TimeoutError:

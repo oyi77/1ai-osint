@@ -1,0 +1,2502 @@
+{
+  "schema_version": "1.0.0",
+  "report_id": "intel-1a29ef5dc5dd",
+  "target": "test@example.com",
+  "started_at": "2026-06-02T23:46:42.367920+00:00",
+  "completed_at": "2026-06-02T23:46:52.124143+00:00",
+  "duration_sec": 9.756223,
+  "iterations": 2,
+  "modules_run": [
+    "email_osint",
+    "social_osint"
+  ],
+  "summary": "Scan of 'test@example.com' completed in 9.8s across 2 module(s) and 2 iteration(s). Collected 30 evidence item(s) from 6 distinct platform(s). Overall risk: HIGH (score 0.50).",
+  "warnings": [
+    "12 low-confidence evidence item(s) \u2014 verify manually"
+  ],
+  "risk": {
+    "level": "high",
+    "score": 0.5,
+    "reasoning": "Username confirmed on 3+ platforms (high visibility); Email exposed",
+    "factors": [
+      {
+        "rule": "nik_plus_name_plus_phone",
+        "description": "NIK + name + phone combined (full PII exposure)",
+        "weight": 0.7,
+        "triggered": false
+      },
+      {
+        "rule": "nik_present",
+        "description": "Indonesian NIK (national ID) found",
+        "weight": 0.5,
+        "triggered": false
+      },
+      {
+        "rule": "crypto_mixer",
+        "description": "Crypto address tagged as mixer (sanctioned risk)",
+        "weight": 0.9,
+        "triggered": false
+      },
+      {
+        "rule": "seed_phrase_leak",
+        "description": "Seed phrase / private key exposed",
+        "weight": 1.0,
+        "triggered": false
+      },
+      {
+        "rule": "password_leak",
+        "description": "Plaintext password discovered",
+        "weight": 0.8,
+        "triggered": false
+      },
+      {
+        "rule": "multi_platform_corroboration",
+        "description": "Username confirmed on 3+ platforms (high visibility)",
+        "weight": 0.3,
+        "triggered": true
+      },
+      {
+        "rule": "phone_present",
+        "description": "Phone number exposed",
+        "weight": 0.3,
+        "triggered": false
+      },
+      {
+        "rule": "email_present",
+        "description": "Email exposed",
+        "weight": 0.2,
+        "triggered": true
+      },
+      {
+        "rule": "nik_plus_address_plus_phone",
+        "description": "NIK + address + phone (full KYC exposure)",
+        "weight": 0.8,
+        "triggered": false
+      },
+      {
+        "rule": "multi_breach_credentials",
+        "description": "Password found in 2+ breaches",
+        "weight": 0.9,
+        "triggered": false
+      },
+      {
+        "rule": "password_plus_email",
+        "description": "Password + email combo leaked",
+        "weight": 0.8,
+        "triggered": false
+      },
+      {
+        "rule": "dob_plus_nik",
+        "description": "Date of birth + NIK (identity theft risk)",
+        "weight": 0.6,
+        "triggered": false
+      },
+      {
+        "rule": "crypto_key_leak",
+        "description": "Crypto private key or seed phrase in raw data",
+        "weight": 0.9,
+        "triggered": false
+      }
+    ]
+  },
+  "confidence_by_identifier": {
+    "test@example.com": {
+      "existence": 0.7,
+      "uniqueness": 0.9,
+      "cross_module": 1.0,
+      "temporal": 0.7,
+      "total": 0.815,
+      "grade": "medium"
+    },
+    "1y4vw3qtb4skdx9e7dxt97qrmmq9": {
+      "existence": 0.9,
+      "uniqueness": 0.4,
+      "cross_module": 1.0,
+      "temporal": 0.7,
+      "total": 0.795,
+      "grade": "medium"
+    },
+    "githubusercontent.": {
+      "existence": 0.9,
+      "uniqueness": 0.4,
+      "cross_module": 1.0,
+      "temporal": 0.7,
+      "total": 0.795,
+      "grade": "medium"
+    },
+    "example.": {
+      "existence": 0.9,
+      "uniqueness": 0.4,
+      "cross_module": 1.0,
+      "temporal": 0.7,
+      "total": 0.795,
+      "grade": "medium"
+    },
+    "github.": {
+      "existence": 0.9,
+      "uniqueness": 0.4,
+      "cross_module": 1.0,
+      "temporal": 0.7,
+      "total": 0.795,
+      "grade": "medium"
+    }
+  },
+  "evidence": [
+    {
+      "id": "ev-30133436",
+      "identifier_value": "test@example.com",
+      "identifier_type": "email",
+      "source": "email_osint",
+      "source_reliability": "F",
+      "url": null,
+      "http_status": null,
+      "snippet": "Domain example.com has 1 MX records",
+      "confidence": 0.7,
+      "notes": "",
+      "captured_at": "2026-06-02T23:46:52.126174+00:00"
+    },
+    {
+      "id": "ev-60519bde",
+      "identifier_value": "test@example.com",
+      "identifier_type": "record",
+      "source": "email_osint",
+      "source_reliability": "F",
+      "url": null,
+      "http_status": null,
+      "snippet": "Domain example.com has 1 MX records",
+      "confidence": 0.5,
+      "notes": "",
+      "captured_at": "2026-06-02T23:46:52.126190+00:00"
+    },
+    {
+      "id": "ev-5ced3f89",
+      "identifier_value": "1y4vw3qtb4skdx9e7dxt97qrmmq9",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://github.com/1y4vw3qtb4skdx9e7dxt97qrmmq9",
+      "http_status": 404,
+      "snippet": "Status 404 (exists=False)",
+      "confidence": 0.2,
+      "notes": "github",
+      "captured_at": "2026-06-02T23:46:52.126416+00:00"
+    },
+    {
+      "id": "ev-c76e426c",
+      "identifier_value": "1y4vw3qtb4skdx9e7dxt97qrmmq9",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://gitlab.com/1y4vw3qtb4skdx9e7dxt97qrmmq9",
+      "http_status": 200,
+      "snippet": "Status 200 (exists=True)",
+      "confidence": 0.9,
+      "notes": "gitlab",
+      "captured_at": "2026-06-02T23:46:52.126427+00:00"
+    },
+    {
+      "id": "ev-a78760ab",
+      "identifier_value": "1y4vw3qtb4skdx9e7dxt97qrmmq9",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://reddit.com/user/1y4vw3qtb4skdx9e7dxt97qrmmq9",
+      "http_status": 403,
+      "snippet": "Status 403 (exists=False)",
+      "confidence": 0.2,
+      "notes": "reddit",
+      "captured_at": "2026-06-02T23:46:52.126435+00:00"
+    },
+    {
+      "id": "ev-93bad281",
+      "identifier_value": "1y4vw3qtb4skdx9e7dxt97qrmmq9",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://twitter.com/1y4vw3qtb4skdx9e7dxt97qrmmq9",
+      "http_status": 200,
+      "snippet": "Status 200 (exists=True)",
+      "confidence": 0.9,
+      "notes": "twitter",
+      "captured_at": "2026-06-02T23:46:52.126442+00:00"
+    },
+    {
+      "id": "ev-5ccc8fa9",
+      "identifier_value": "1y4vw3qtb4skdx9e7dxt97qrmmq9",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://instagram.com/1y4vw3qtb4skdx9e7dxt97qrmmq9",
+      "http_status": 200,
+      "snippet": "Status 200 (exists=True)",
+      "confidence": 0.9,
+      "notes": "instagram",
+      "captured_at": "2026-06-02T23:46:52.126450+00:00"
+    },
+    {
+      "id": "ev-3c3d114c",
+      "identifier_value": "1y4vw3qtb4skdx9e7dxt97qrmmq9",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://linkedin.com/in/1y4vw3qtb4skdx9e7dxt97qrmmq9",
+      "http_status": 999,
+      "snippet": "Status 999 (exists=False)",
+      "confidence": 0.2,
+      "notes": "linkedin",
+      "captured_at": "2026-06-02T23:46:52.126456+00:00"
+    },
+    {
+      "id": "ev-bac55752",
+      "identifier_value": "1y4vw3qtb4skdx9e7dxt97qrmmq9",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": null,
+      "http_status": null,
+      "snippet": "Found on 3 platforms",
+      "confidence": 0.7,
+      "notes": "",
+      "captured_at": "2026-06-02T23:46:52.126462+00:00"
+    },
+    {
+      "id": "ev-4e22f16c",
+      "identifier_value": "githubusercontent.",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://github.com/githubusercontent.",
+      "http_status": 404,
+      "snippet": "Status 404 (exists=False)",
+      "confidence": 0.2,
+      "notes": "github",
+      "captured_at": "2026-06-02T23:46:52.126474+00:00"
+    },
+    {
+      "id": "ev-829674be",
+      "identifier_value": "githubusercontent.",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://gitlab.com/githubusercontent.",
+      "http_status": 200,
+      "snippet": "Status 200 (exists=True)",
+      "confidence": 0.9,
+      "notes": "gitlab",
+      "captured_at": "2026-06-02T23:46:52.126480+00:00"
+    },
+    {
+      "id": "ev-5ed46f77",
+      "identifier_value": "githubusercontent.",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://reddit.com/user/githubusercontent.",
+      "http_status": 403,
+      "snippet": "Status 403 (exists=False)",
+      "confidence": 0.2,
+      "notes": "reddit",
+      "captured_at": "2026-06-02T23:46:52.126487+00:00"
+    },
+    {
+      "id": "ev-203848f0",
+      "identifier_value": "githubusercontent.",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://twitter.com/githubusercontent.",
+      "http_status": 200,
+      "snippet": "Status 200 (exists=True)",
+      "confidence": 0.9,
+      "notes": "twitter",
+      "captured_at": "2026-06-02T23:46:52.126493+00:00"
+    },
+    {
+      "id": "ev-b31d9f44",
+      "identifier_value": "githubusercontent.",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://instagram.com/githubusercontent.",
+      "http_status": 200,
+      "snippet": "Status 200 (exists=True)",
+      "confidence": 0.9,
+      "notes": "instagram",
+      "captured_at": "2026-06-02T23:46:52.126499+00:00"
+    },
+    {
+      "id": "ev-79af6337",
+      "identifier_value": "githubusercontent.",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://linkedin.com/in/githubusercontent.",
+      "http_status": 999,
+      "snippet": "Status 999 (exists=False)",
+      "confidence": 0.2,
+      "notes": "linkedin",
+      "captured_at": "2026-06-02T23:46:52.126510+00:00"
+    },
+    {
+      "id": "ev-fbcbbbe0",
+      "identifier_value": "githubusercontent.",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": null,
+      "http_status": null,
+      "snippet": "Found on 3 platforms",
+      "confidence": 0.7,
+      "notes": "",
+      "captured_at": "2026-06-02T23:46:52.126515+00:00"
+    },
+    {
+      "id": "ev-1d4df130",
+      "identifier_value": "example.",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://github.com/example.",
+      "http_status": 404,
+      "snippet": "Status 404 (exists=False)",
+      "confidence": 0.2,
+      "notes": "github",
+      "captured_at": "2026-06-02T23:46:52.126525+00:00"
+    },
+    {
+      "id": "ev-a0bce65b",
+      "identifier_value": "example.",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://gitlab.com/example.",
+      "http_status": 200,
+      "snippet": "Status 200 (exists=True)",
+      "confidence": 0.9,
+      "notes": "gitlab",
+      "captured_at": "2026-06-02T23:46:52.126531+00:00"
+    },
+    {
+      "id": "ev-a1c28d6e",
+      "identifier_value": "example.",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://reddit.com/user/example.",
+      "http_status": 403,
+      "snippet": "Status 403 (exists=False)",
+      "confidence": 0.2,
+      "notes": "reddit",
+      "captured_at": "2026-06-02T23:46:52.126538+00:00"
+    },
+    {
+      "id": "ev-8635a4da",
+      "identifier_value": "example.",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://twitter.com/example.",
+      "http_status": 200,
+      "snippet": "Status 200 (exists=True)",
+      "confidence": 0.9,
+      "notes": "twitter",
+      "captured_at": "2026-06-02T23:46:52.126543+00:00"
+    },
+    {
+      "id": "ev-887c1d98",
+      "identifier_value": "example.",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://instagram.com/example.",
+      "http_status": 200,
+      "snippet": "Status 200 (exists=True)",
+      "confidence": 0.9,
+      "notes": "instagram",
+      "captured_at": "2026-06-02T23:46:52.126550+00:00"
+    },
+    {
+      "id": "ev-aad6607f",
+      "identifier_value": "example.",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://linkedin.com/in/example.",
+      "http_status": 999,
+      "snippet": "Status 999 (exists=False)",
+      "confidence": 0.2,
+      "notes": "linkedin",
+      "captured_at": "2026-06-02T23:46:52.126556+00:00"
+    },
+    {
+      "id": "ev-0089cb8f",
+      "identifier_value": "example.",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": null,
+      "http_status": null,
+      "snippet": "Found on 3 platforms",
+      "confidence": 0.7,
+      "notes": "",
+      "captured_at": "2026-06-02T23:46:52.126562+00:00"
+    },
+    {
+      "id": "ev-471896bb",
+      "identifier_value": "github.",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://github.com/github.",
+      "http_status": 404,
+      "snippet": "Status 404 (exists=False)",
+      "confidence": 0.2,
+      "notes": "github",
+      "captured_at": "2026-06-02T23:46:52.126570+00:00"
+    },
+    {
+      "id": "ev-cce38a3c",
+      "identifier_value": "github.",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://gitlab.com/github.",
+      "http_status": 200,
+      "snippet": "Status 200 (exists=True)",
+      "confidence": 0.9,
+      "notes": "gitlab",
+      "captured_at": "2026-06-02T23:46:52.126576+00:00"
+    },
+    {
+      "id": "ev-fb5adbf8",
+      "identifier_value": "github.",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://reddit.com/user/github.",
+      "http_status": 403,
+      "snippet": "Status 403 (exists=False)",
+      "confidence": 0.2,
+      "notes": "reddit",
+      "captured_at": "2026-06-02T23:46:52.126582+00:00"
+    },
+    {
+      "id": "ev-0592d820",
+      "identifier_value": "github.",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://twitter.com/github.",
+      "http_status": 200,
+      "snippet": "Status 200 (exists=True)",
+      "confidence": 0.9,
+      "notes": "twitter",
+      "captured_at": "2026-06-02T23:46:52.126588+00:00"
+    },
+    {
+      "id": "ev-c0cff30a",
+      "identifier_value": "github.",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://instagram.com/github.",
+      "http_status": 200,
+      "snippet": "Status 200 (exists=True)",
+      "confidence": 0.9,
+      "notes": "instagram",
+      "captured_at": "2026-06-02T23:46:52.126595+00:00"
+    },
+    {
+      "id": "ev-988765b5",
+      "identifier_value": "github.",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://linkedin.com/in/github.",
+      "http_status": 999,
+      "snippet": "Status 999 (exists=False)",
+      "confidence": 0.2,
+      "notes": "linkedin",
+      "captured_at": "2026-06-02T23:46:52.126600+00:00"
+    },
+    {
+      "id": "ev-60351bbc",
+      "identifier_value": "github.",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": null,
+      "http_status": null,
+      "snippet": "Found on 3 platforms",
+      "confidence": 0.7,
+      "notes": "",
+      "captured_at": "2026-06-02T23:46:52.126605+00:00"
+    }
+  ],
+  "timeline": [
+    {
+      "timestamp": "2026-06-02T23:46:42.670898+00:00",
+      "source": "email_osint",
+      "event": "Domain Analysis for example.com",
+      "detail": "Found 2 TXT records",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": "2026-06-02T23:46:42.673477+00:00",
+      "source": "email_osint",
+      "event": "Email Validation: test@example.com",
+      "detail": "Domain example.com has 1 MX records",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": "2026-06-02T23:46:43.088822+00:00",
+      "source": "email_osint",
+      "event": "Social Media Found for test@example.com",
+      "detail": "Found 30 potential GitHub matches",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": "2026-06-02T23:46:45.904957+00:00",
+      "source": "social_osint",
+      "event": "Username Found: 1y4vw3qtb4skdx9e7dxt97qrmmq9",
+      "detail": "Found on 3 platforms",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": "2026-06-02T23:46:45.929118+00:00",
+      "source": "social_osint",
+      "event": "Username Found: githubusercontent.",
+      "detail": "Found on 3 platforms",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": "2026-06-02T23:46:45.999488+00:00",
+      "source": "social_osint",
+      "event": "Username Found: example.",
+      "detail": "Found on 3 platforms",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": "2026-06-02T23:46:46.673970+00:00",
+      "source": "social_osint",
+      "event": "Username Found: github.",
+      "detail": "Found on 3 platforms",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": "2026-06-02T23:46:52.126174+00:00",
+      "source": "email_osint",
+      "event": "evidence_captured",
+      "detail": "email=test@example.com on email_osint",
+      "confidence": 0.7
+    },
+    {
+      "timestamp": "2026-06-02T23:46:52.126190+00:00",
+      "source": "email_osint",
+      "event": "evidence_captured",
+      "detail": "record=test@example.com on email_osint",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": "2026-06-02T23:46:52.126416+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=1y4vw3qtb4skdx9e7dxt97qrmmq9 on social_osint (https://github.com/1y4vw3qtb4skdx9e7dxt97qrmmq9)",
+      "confidence": 0.2
+    },
+    {
+      "timestamp": "2026-06-02T23:46:52.126427+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=1y4vw3qtb4skdx9e7dxt97qrmmq9 on social_osint (https://gitlab.com/1y4vw3qtb4skdx9e7dxt97qrmmq9)",
+      "confidence": 0.9
+    },
+    {
+      "timestamp": "2026-06-02T23:46:52.126435+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=1y4vw3qtb4skdx9e7dxt97qrmmq9 on social_osint (https://reddit.com/user/1y4vw3qtb4skdx9e7dxt97qrmmq9)",
+      "confidence": 0.2
+    },
+    {
+      "timestamp": "2026-06-02T23:46:52.126442+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=1y4vw3qtb4skdx9e7dxt97qrmmq9 on social_osint (https://twitter.com/1y4vw3qtb4skdx9e7dxt97qrmmq9)",
+      "confidence": 0.9
+    },
+    {
+      "timestamp": "2026-06-02T23:46:52.126450+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=1y4vw3qtb4skdx9e7dxt97qrmmq9 on social_osint (https://instagram.com/1y4vw3qtb4skdx9e7dxt97qrmmq9)",
+      "confidence": 0.9
+    },
+    {
+      "timestamp": "2026-06-02T23:46:52.126456+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=1y4vw3qtb4skdx9e7dxt97qrmmq9 on social_osint (https://linkedin.com/in/1y4vw3qtb4skdx9e7dxt97qrmmq9)",
+      "confidence": 0.2
+    },
+    {
+      "timestamp": "2026-06-02T23:46:52.126462+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=1y4vw3qtb4skdx9e7dxt97qrmmq9 on social_osint",
+      "confidence": 0.7
+    },
+    {
+      "timestamp": "2026-06-02T23:46:52.126474+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=githubusercontent. on social_osint (https://github.com/githubusercontent.)",
+      "confidence": 0.2
+    },
+    {
+      "timestamp": "2026-06-02T23:46:52.126480+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=githubusercontent. on social_osint (https://gitlab.com/githubusercontent.)",
+      "confidence": 0.9
+    },
+    {
+      "timestamp": "2026-06-02T23:46:52.126487+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=githubusercontent. on social_osint (https://reddit.com/user/githubusercontent.)",
+      "confidence": 0.2
+    },
+    {
+      "timestamp": "2026-06-02T23:46:52.126493+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=githubusercontent. on social_osint (https://twitter.com/githubusercontent.)",
+      "confidence": 0.9
+    },
+    {
+      "timestamp": "2026-06-02T23:46:52.126499+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=githubusercontent. on social_osint (https://instagram.com/githubusercontent.)",
+      "confidence": 0.9
+    },
+    {
+      "timestamp": "2026-06-02T23:46:52.126510+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=githubusercontent. on social_osint (https://linkedin.com/in/githubusercontent.)",
+      "confidence": 0.2
+    },
+    {
+      "timestamp": "2026-06-02T23:46:52.126515+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=githubusercontent. on social_osint",
+      "confidence": 0.7
+    },
+    {
+      "timestamp": "2026-06-02T23:46:52.126525+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=example. on social_osint (https://github.com/example.)",
+      "confidence": 0.2
+    },
+    {
+      "timestamp": "2026-06-02T23:46:52.126531+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=example. on social_osint (https://gitlab.com/example.)",
+      "confidence": 0.9
+    },
+    {
+      "timestamp": "2026-06-02T23:46:52.126538+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=example. on social_osint (https://reddit.com/user/example.)",
+      "confidence": 0.2
+    },
+    {
+      "timestamp": "2026-06-02T23:46:52.126543+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=example. on social_osint (https://twitter.com/example.)",
+      "confidence": 0.9
+    },
+    {
+      "timestamp": "2026-06-02T23:46:52.126550+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=example. on social_osint (https://instagram.com/example.)",
+      "confidence": 0.9
+    },
+    {
+      "timestamp": "2026-06-02T23:46:52.126556+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=example. on social_osint (https://linkedin.com/in/example.)",
+      "confidence": 0.2
+    },
+    {
+      "timestamp": "2026-06-02T23:46:52.126562+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=example. on social_osint",
+      "confidence": 0.7
+    },
+    {
+      "timestamp": "2026-06-02T23:46:52.126570+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=github. on social_osint (https://github.com/github.)",
+      "confidence": 0.2
+    },
+    {
+      "timestamp": "2026-06-02T23:46:52.126576+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=github. on social_osint (https://gitlab.com/github.)",
+      "confidence": 0.9
+    },
+    {
+      "timestamp": "2026-06-02T23:46:52.126582+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=github. on social_osint (https://reddit.com/user/github.)",
+      "confidence": 0.2
+    },
+    {
+      "timestamp": "2026-06-02T23:46:52.126588+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=github. on social_osint (https://twitter.com/github.)",
+      "confidence": 0.9
+    },
+    {
+      "timestamp": "2026-06-02T23:46:52.126595+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=github. on social_osint (https://instagram.com/github.)",
+      "confidence": 0.9
+    },
+    {
+      "timestamp": "2026-06-02T23:46:52.126600+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=github. on social_osint (https://linkedin.com/in/github.)",
+      "confidence": 0.2
+    },
+    {
+      "timestamp": "2026-06-02T23:46:52.126605+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=github. on social_osint",
+      "confidence": 0.7
+    }
+  ],
+  "identity_graph": {
+    "nodes": [
+      {
+        "id": "target",
+        "label": "test@example.com",
+        "type": "name",
+        "weight": 1.0
+      },
+      {
+        "id": "ident-email-test@example.com",
+        "label": "test@example.com",
+        "type": "email",
+        "weight": 1.0
+      },
+      {
+        "id": "ident-domain-example.",
+        "label": "example.",
+        "type": "domain",
+        "weight": 1.0
+      },
+      {
+        "id": "ident-phone-13393021",
+        "label": "13393021",
+        "type": "phone",
+        "weight": 1.0
+      },
+      {
+        "id": "ident-phone-21636478",
+        "label": "21636478",
+        "type": "phone",
+        "weight": 1.0
+      },
+      {
+        "id": "ident-phone-34076873",
+        "label": "34076873",
+        "type": "phone",
+        "weight": 1.0
+      },
+      {
+        "id": "ident-phone-20162049",
+        "label": "20162049",
+        "type": "phone",
+        "weight": 1.0
+      },
+      {
+        "id": "ident-domain-githubusercontent.",
+        "label": "githubusercontent.",
+        "type": "domain",
+        "weight": 1.0
+      },
+      {
+        "id": "ident-domain-github.",
+        "label": "github.",
+        "type": "domain",
+        "weight": 1.0
+      },
+      {
+        "id": "ident-crypto_address-1y4vw3qtb4skdx9e7dxt97qrmmq9",
+        "label": "1y4vw3qtb4skdx9e7dxt97qrmmq9",
+        "type": "crypto_address",
+        "weight": 1.0
+      },
+      {
+        "id": "ident-username-1y4vw3qtb4skdx9e7dxt97qrmmq9",
+        "label": "1y4vw3qtb4skdx9e7dxt97qrmmq9",
+        "type": "username",
+        "weight": 0.9
+      },
+      {
+        "id": "ident-username-githubusercontent.",
+        "label": "githubusercontent.",
+        "type": "username",
+        "weight": 0.9
+      },
+      {
+        "id": "ident-username-example.",
+        "label": "example.",
+        "type": "username",
+        "weight": 0.9
+      },
+      {
+        "id": "ident-username-github.",
+        "label": "github.",
+        "type": "username",
+        "weight": 0.9
+      },
+      {
+        "id": "plat-github",
+        "label": "github",
+        "type": "social",
+        "weight": 0.5
+      },
+      {
+        "id": "plat-gitlab",
+        "label": "gitlab",
+        "type": "social",
+        "weight": 0.5
+      },
+      {
+        "id": "plat-reddit",
+        "label": "reddit",
+        "type": "social",
+        "weight": 0.5
+      },
+      {
+        "id": "plat-twitter",
+        "label": "twitter",
+        "type": "social",
+        "weight": 0.5
+      },
+      {
+        "id": "plat-instagram",
+        "label": "instagram",
+        "type": "social",
+        "weight": 0.5
+      },
+      {
+        "id": "plat-linkedin",
+        "label": "linkedin",
+        "type": "social",
+        "weight": 0.5
+      }
+    ],
+    "edges": [
+      {
+        "source_id": "target",
+        "target_id": "ident-email-test@example.com",
+        "relationship": "linked_to",
+        "weight": 1.0,
+        "evidence_ids": []
+      },
+      {
+        "source_id": "target",
+        "target_id": "ident-domain-example.",
+        "relationship": "linked_to",
+        "weight": 1.0,
+        "evidence_ids": []
+      },
+      {
+        "source_id": "target",
+        "target_id": "ident-phone-13393021",
+        "relationship": "linked_to",
+        "weight": 1.0,
+        "evidence_ids": []
+      },
+      {
+        "source_id": "target",
+        "target_id": "ident-phone-21636478",
+        "relationship": "linked_to",
+        "weight": 1.0,
+        "evidence_ids": []
+      },
+      {
+        "source_id": "target",
+        "target_id": "ident-phone-34076873",
+        "relationship": "linked_to",
+        "weight": 1.0,
+        "evidence_ids": []
+      },
+      {
+        "source_id": "target",
+        "target_id": "ident-phone-20162049",
+        "relationship": "linked_to",
+        "weight": 1.0,
+        "evidence_ids": []
+      },
+      {
+        "source_id": "target",
+        "target_id": "ident-domain-githubusercontent.",
+        "relationship": "linked_to",
+        "weight": 1.0,
+        "evidence_ids": []
+      },
+      {
+        "source_id": "target",
+        "target_id": "ident-domain-github.",
+        "relationship": "linked_to",
+        "weight": 1.0,
+        "evidence_ids": []
+      },
+      {
+        "source_id": "target",
+        "target_id": "ident-crypto_address-1y4vw3qtb4skdx9e7dxt97qrmmq9",
+        "relationship": "linked_to",
+        "weight": 1.0,
+        "evidence_ids": []
+      },
+      {
+        "source_id": "target",
+        "target_id": "ident-username-1y4vw3qtb4skdx9e7dxt97qrmmq9",
+        "relationship": "linked_to",
+        "weight": 0.9,
+        "evidence_ids": []
+      },
+      {
+        "source_id": "target",
+        "target_id": "ident-username-githubusercontent.",
+        "relationship": "linked_to",
+        "weight": 0.9,
+        "evidence_ids": []
+      },
+      {
+        "source_id": "target",
+        "target_id": "ident-username-example.",
+        "relationship": "linked_to",
+        "weight": 0.9,
+        "evidence_ids": []
+      },
+      {
+        "source_id": "target",
+        "target_id": "ident-username-github.",
+        "relationship": "linked_to",
+        "weight": 0.9,
+        "evidence_ids": []
+      },
+      {
+        "source_id": "ident-crypto_address-1y4vw3qtb4skdx9e7dxt97qrmmq9",
+        "target_id": "plat-github",
+        "relationship": "found_on",
+        "weight": 0.2,
+        "evidence_ids": [
+          "ev-5ced3f89"
+        ]
+      },
+      {
+        "source_id": "ident-crypto_address-1y4vw3qtb4skdx9e7dxt97qrmmq9",
+        "target_id": "plat-gitlab",
+        "relationship": "found_on",
+        "weight": 0.9,
+        "evidence_ids": [
+          "ev-c76e426c"
+        ]
+      },
+      {
+        "source_id": "ident-crypto_address-1y4vw3qtb4skdx9e7dxt97qrmmq9",
+        "target_id": "plat-reddit",
+        "relationship": "found_on",
+        "weight": 0.2,
+        "evidence_ids": [
+          "ev-a78760ab"
+        ]
+      },
+      {
+        "source_id": "ident-crypto_address-1y4vw3qtb4skdx9e7dxt97qrmmq9",
+        "target_id": "plat-twitter",
+        "relationship": "found_on",
+        "weight": 0.9,
+        "evidence_ids": [
+          "ev-93bad281"
+        ]
+      },
+      {
+        "source_id": "ident-crypto_address-1y4vw3qtb4skdx9e7dxt97qrmmq9",
+        "target_id": "plat-instagram",
+        "relationship": "found_on",
+        "weight": 0.9,
+        "evidence_ids": [
+          "ev-5ccc8fa9"
+        ]
+      },
+      {
+        "source_id": "ident-crypto_address-1y4vw3qtb4skdx9e7dxt97qrmmq9",
+        "target_id": "plat-linkedin",
+        "relationship": "found_on",
+        "weight": 0.2,
+        "evidence_ids": [
+          "ev-3c3d114c"
+        ]
+      },
+      {
+        "source_id": "ident-domain-githubusercontent.",
+        "target_id": "plat-github",
+        "relationship": "found_on",
+        "weight": 0.2,
+        "evidence_ids": [
+          "ev-4e22f16c"
+        ]
+      },
+      {
+        "source_id": "ident-domain-githubusercontent.",
+        "target_id": "plat-gitlab",
+        "relationship": "found_on",
+        "weight": 0.9,
+        "evidence_ids": [
+          "ev-829674be"
+        ]
+      },
+      {
+        "source_id": "ident-domain-githubusercontent.",
+        "target_id": "plat-reddit",
+        "relationship": "found_on",
+        "weight": 0.2,
+        "evidence_ids": [
+          "ev-5ed46f77"
+        ]
+      },
+      {
+        "source_id": "ident-domain-githubusercontent.",
+        "target_id": "plat-twitter",
+        "relationship": "found_on",
+        "weight": 0.9,
+        "evidence_ids": [
+          "ev-203848f0"
+        ]
+      },
+      {
+        "source_id": "ident-domain-githubusercontent.",
+        "target_id": "plat-instagram",
+        "relationship": "found_on",
+        "weight": 0.9,
+        "evidence_ids": [
+          "ev-b31d9f44"
+        ]
+      },
+      {
+        "source_id": "ident-domain-githubusercontent.",
+        "target_id": "plat-linkedin",
+        "relationship": "found_on",
+        "weight": 0.2,
+        "evidence_ids": [
+          "ev-79af6337"
+        ]
+      },
+      {
+        "source_id": "ident-domain-example.",
+        "target_id": "plat-github",
+        "relationship": "found_on",
+        "weight": 0.2,
+        "evidence_ids": [
+          "ev-1d4df130"
+        ]
+      },
+      {
+        "source_id": "ident-domain-example.",
+        "target_id": "plat-gitlab",
+        "relationship": "found_on",
+        "weight": 0.9,
+        "evidence_ids": [
+          "ev-a0bce65b"
+        ]
+      },
+      {
+        "source_id": "ident-domain-example.",
+        "target_id": "plat-reddit",
+        "relationship": "found_on",
+        "weight": 0.2,
+        "evidence_ids": [
+          "ev-a1c28d6e"
+        ]
+      },
+      {
+        "source_id": "ident-domain-example.",
+        "target_id": "plat-twitter",
+        "relationship": "found_on",
+        "weight": 0.9,
+        "evidence_ids": [
+          "ev-8635a4da"
+        ]
+      },
+      {
+        "source_id": "ident-domain-example.",
+        "target_id": "plat-instagram",
+        "relationship": "found_on",
+        "weight": 0.9,
+        "evidence_ids": [
+          "ev-887c1d98"
+        ]
+      },
+      {
+        "source_id": "ident-domain-example.",
+        "target_id": "plat-linkedin",
+        "relationship": "found_on",
+        "weight": 0.2,
+        "evidence_ids": [
+          "ev-aad6607f"
+        ]
+      },
+      {
+        "source_id": "ident-domain-github.",
+        "target_id": "plat-github",
+        "relationship": "found_on",
+        "weight": 0.2,
+        "evidence_ids": [
+          "ev-471896bb"
+        ]
+      },
+      {
+        "source_id": "ident-domain-github.",
+        "target_id": "plat-gitlab",
+        "relationship": "found_on",
+        "weight": 0.9,
+        "evidence_ids": [
+          "ev-cce38a3c"
+        ]
+      },
+      {
+        "source_id": "ident-domain-github.",
+        "target_id": "plat-reddit",
+        "relationship": "found_on",
+        "weight": 0.2,
+        "evidence_ids": [
+          "ev-fb5adbf8"
+        ]
+      },
+      {
+        "source_id": "ident-domain-github.",
+        "target_id": "plat-twitter",
+        "relationship": "found_on",
+        "weight": 0.9,
+        "evidence_ids": [
+          "ev-0592d820"
+        ]
+      },
+      {
+        "source_id": "ident-domain-github.",
+        "target_id": "plat-instagram",
+        "relationship": "found_on",
+        "weight": 0.9,
+        "evidence_ids": [
+          "ev-c0cff30a"
+        ]
+      },
+      {
+        "source_id": "ident-domain-github.",
+        "target_id": "plat-linkedin",
+        "relationship": "found_on",
+        "weight": 0.2,
+        "evidence_ids": [
+          "ev-988765b5"
+        ]
+      }
+    ]
+  },
+  "pivots": [
+    {
+      "target_type": "username",
+      "target_value": "test",
+      "rationale": "Extract local-part 'test' for username search",
+      "priority": 1,
+      "expected_sources": [
+        "github",
+        "twitter",
+        "instagram"
+      ]
+    },
+    {
+      "target_type": "domain",
+      "target_value": "example.com",
+      "rationale": "Investigate domain example.com",
+      "priority": 2,
+      "expected_sources": [
+        "whois",
+        "domain_recon"
+      ]
+    },
+    {
+      "target_type": "email",
+      "target_value": "phone:13393021",
+      "rationale": "Run reverse phone lookup for 13393021",
+      "priority": 2,
+      "expected_sources": [
+        "leakcheck",
+        "dehashed"
+      ]
+    },
+    {
+      "target_type": "email",
+      "target_value": "phone:21636478",
+      "rationale": "Run reverse phone lookup for 21636478",
+      "priority": 2,
+      "expected_sources": [
+        "leakcheck",
+        "dehashed"
+      ]
+    },
+    {
+      "target_type": "email",
+      "target_value": "phone:34076873",
+      "rationale": "Run reverse phone lookup for 34076873",
+      "priority": 2,
+      "expected_sources": [
+        "leakcheck",
+        "dehashed"
+      ]
+    },
+    {
+      "target_type": "email",
+      "target_value": "phone:20162049",
+      "rationale": "Run reverse phone lookup for 20162049",
+      "priority": 2,
+      "expected_sources": [
+        "leakcheck",
+        "dehashed"
+      ]
+    },
+    {
+      "target_type": "username",
+      "target_value": "address:1y4vw3qtb4",
+      "rationale": "Track funding source for 1y4vw3qtb4...",
+      "priority": 1,
+      "expected_sources": [
+        "etherscan",
+        "blockchain_info"
+      ]
+    },
+    {
+      "target_type": "email",
+      "target_value": "1y4vw3qtb4skdx9e7dxt97qrmmq9@",
+      "rationale": "Username '1y4vw3qtb4skdx9e7dxt97qrmmq9' likely has a Gravatar or GitHub email",
+      "priority": 2,
+      "expected_sources": [
+        "github",
+        "gravatar",
+        "hunter"
+      ]
+    },
+    {
+      "target_type": "phone",
+      "target_value": "Username 1y4vw3qtb4skdx9e7dxt97qrmmq9 on phone lookup",
+      "rationale": "Username '1y4vw3qtb4skdx9e7dxt97qrmmq9' may have associated phone",
+      "priority": 3,
+      "expected_sources": [
+        "truecaller",
+        "leakcheck"
+      ]
+    },
+    {
+      "target_type": "email",
+      "target_value": "githubusercontent.@",
+      "rationale": "Username 'githubusercontent.' likely has a Gravatar or GitHub email",
+      "priority": 2,
+      "expected_sources": [
+        "github",
+        "gravatar",
+        "hunter"
+      ]
+    },
+    {
+      "target_type": "phone",
+      "target_value": "Username githubusercontent. on phone lookup",
+      "rationale": "Username 'githubusercontent.' may have associated phone",
+      "priority": 3,
+      "expected_sources": [
+        "truecaller",
+        "leakcheck"
+      ]
+    },
+    {
+      "target_type": "email",
+      "target_value": "example.@",
+      "rationale": "Username 'example.' likely has a Gravatar or GitHub email",
+      "priority": 2,
+      "expected_sources": [
+        "github",
+        "gravatar",
+        "hunter"
+      ]
+    },
+    {
+      "target_type": "phone",
+      "target_value": "Username example. on phone lookup",
+      "rationale": "Username 'example.' may have associated phone",
+      "priority": 3,
+      "expected_sources": [
+        "truecaller",
+        "leakcheck"
+      ]
+    },
+    {
+      "target_type": "email",
+      "target_value": "github.@",
+      "rationale": "Username 'github.' likely has a Gravatar or GitHub email",
+      "priority": 2,
+      "expected_sources": [
+        "github",
+        "gravatar",
+        "hunter"
+      ]
+    },
+    {
+      "target_type": "phone",
+      "target_value": "Username github. on phone lookup",
+      "rationale": "Username 'github.' may have associated phone",
+      "priority": 3,
+      "expected_sources": [
+        "truecaller",
+        "leakcheck"
+      ]
+    }
+  ],
+  "correlation": {
+    "clusters": [],
+    "stats": {
+      "node_count": 2,
+      "edge_count": 0,
+      "entity_count": 0,
+      "unresolved_count": 2,
+      "neo4j": {
+        "nodes": [
+          {
+            "id": "target",
+            "labels": [
+              "NAME"
+            ],
+            "properties": {
+              "label": "test@example.com",
+              "weight": 1.0
+            }
+          },
+          {
+            "id": "ident-email-test@example.com",
+            "labels": [
+              "EMAIL"
+            ],
+            "properties": {
+              "label": "test@example.com",
+              "weight": 1.0
+            }
+          },
+          {
+            "id": "ident-domain-example.",
+            "labels": [
+              "DOMAIN"
+            ],
+            "properties": {
+              "label": "example.",
+              "weight": 1.0
+            }
+          },
+          {
+            "id": "ident-phone-13393021",
+            "labels": [
+              "PHONE"
+            ],
+            "properties": {
+              "label": "13393021",
+              "weight": 1.0
+            }
+          },
+          {
+            "id": "ident-phone-21636478",
+            "labels": [
+              "PHONE"
+            ],
+            "properties": {
+              "label": "21636478",
+              "weight": 1.0
+            }
+          },
+          {
+            "id": "ident-phone-34076873",
+            "labels": [
+              "PHONE"
+            ],
+            "properties": {
+              "label": "34076873",
+              "weight": 1.0
+            }
+          },
+          {
+            "id": "ident-phone-20162049",
+            "labels": [
+              "PHONE"
+            ],
+            "properties": {
+              "label": "20162049",
+              "weight": 1.0
+            }
+          },
+          {
+            "id": "ident-domain-githubusercontent.",
+            "labels": [
+              "DOMAIN"
+            ],
+            "properties": {
+              "label": "githubusercontent.",
+              "weight": 1.0
+            }
+          },
+          {
+            "id": "ident-domain-github.",
+            "labels": [
+              "DOMAIN"
+            ],
+            "properties": {
+              "label": "github.",
+              "weight": 1.0
+            }
+          },
+          {
+            "id": "ident-crypto_address-1y4vw3qtb4skdx9e7dxt97qrmmq9",
+            "labels": [
+              "CRYPTO_ADDRESS"
+            ],
+            "properties": {
+              "label": "1y4vw3qtb4skdx9e7dxt97qrmmq9",
+              "weight": 1.0
+            }
+          },
+          {
+            "id": "ident-username-1y4vw3qtb4skdx9e7dxt97qrmmq9",
+            "labels": [
+              "USERNAME"
+            ],
+            "properties": {
+              "label": "1y4vw3qtb4skdx9e7dxt97qrmmq9",
+              "weight": 0.9
+            }
+          },
+          {
+            "id": "ident-username-githubusercontent.",
+            "labels": [
+              "USERNAME"
+            ],
+            "properties": {
+              "label": "githubusercontent.",
+              "weight": 0.9
+            }
+          },
+          {
+            "id": "ident-username-example.",
+            "labels": [
+              "USERNAME"
+            ],
+            "properties": {
+              "label": "example.",
+              "weight": 0.9
+            }
+          },
+          {
+            "id": "ident-username-github.",
+            "labels": [
+              "USERNAME"
+            ],
+            "properties": {
+              "label": "github.",
+              "weight": 0.9
+            }
+          },
+          {
+            "id": "plat-github",
+            "labels": [
+              "SOCIAL"
+            ],
+            "properties": {
+              "label": "github",
+              "weight": 0.5
+            }
+          },
+          {
+            "id": "plat-gitlab",
+            "labels": [
+              "SOCIAL"
+            ],
+            "properties": {
+              "label": "gitlab",
+              "weight": 0.5
+            }
+          },
+          {
+            "id": "plat-reddit",
+            "labels": [
+              "SOCIAL"
+            ],
+            "properties": {
+              "label": "reddit",
+              "weight": 0.5
+            }
+          },
+          {
+            "id": "plat-twitter",
+            "labels": [
+              "SOCIAL"
+            ],
+            "properties": {
+              "label": "twitter",
+              "weight": 0.5
+            }
+          },
+          {
+            "id": "plat-instagram",
+            "labels": [
+              "SOCIAL"
+            ],
+            "properties": {
+              "label": "instagram",
+              "weight": 0.5
+            }
+          },
+          {
+            "id": "plat-linkedin",
+            "labels": [
+              "SOCIAL"
+            ],
+            "properties": {
+              "label": "linkedin",
+              "weight": 0.5
+            }
+          }
+        ],
+        "relationships": [
+          {
+            "type": "LINKED_TO",
+            "start": "target",
+            "end": "ident-email-test@example.com",
+            "properties": {
+              "weight": 1.0
+            }
+          },
+          {
+            "type": "LINKED_TO",
+            "start": "target",
+            "end": "ident-domain-example.",
+            "properties": {
+              "weight": 1.0
+            }
+          },
+          {
+            "type": "LINKED_TO",
+            "start": "target",
+            "end": "ident-phone-13393021",
+            "properties": {
+              "weight": 1.0
+            }
+          },
+          {
+            "type": "LINKED_TO",
+            "start": "target",
+            "end": "ident-phone-21636478",
+            "properties": {
+              "weight": 1.0
+            }
+          },
+          {
+            "type": "LINKED_TO",
+            "start": "target",
+            "end": "ident-phone-34076873",
+            "properties": {
+              "weight": 1.0
+            }
+          },
+          {
+            "type": "LINKED_TO",
+            "start": "target",
+            "end": "ident-phone-20162049",
+            "properties": {
+              "weight": 1.0
+            }
+          },
+          {
+            "type": "LINKED_TO",
+            "start": "target",
+            "end": "ident-domain-githubusercontent.",
+            "properties": {
+              "weight": 1.0
+            }
+          },
+          {
+            "type": "LINKED_TO",
+            "start": "target",
+            "end": "ident-domain-github.",
+            "properties": {
+              "weight": 1.0
+            }
+          },
+          {
+            "type": "LINKED_TO",
+            "start": "target",
+            "end": "ident-crypto_address-1y4vw3qtb4skdx9e7dxt97qrmmq9",
+            "properties": {
+              "weight": 1.0
+            }
+          },
+          {
+            "type": "LINKED_TO",
+            "start": "target",
+            "end": "ident-username-1y4vw3qtb4skdx9e7dxt97qrmmq9",
+            "properties": {
+              "weight": 0.9
+            }
+          },
+          {
+            "type": "LINKED_TO",
+            "start": "target",
+            "end": "ident-username-githubusercontent.",
+            "properties": {
+              "weight": 0.9
+            }
+          },
+          {
+            "type": "LINKED_TO",
+            "start": "target",
+            "end": "ident-username-example.",
+            "properties": {
+              "weight": 0.9
+            }
+          },
+          {
+            "type": "LINKED_TO",
+            "start": "target",
+            "end": "ident-username-github.",
+            "properties": {
+              "weight": 0.9
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-crypto_address-1y4vw3qtb4skdx9e7dxt97qrmmq9",
+            "end": "plat-github",
+            "properties": {
+              "weight": 0.2
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-crypto_address-1y4vw3qtb4skdx9e7dxt97qrmmq9",
+            "end": "plat-gitlab",
+            "properties": {
+              "weight": 0.9
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-crypto_address-1y4vw3qtb4skdx9e7dxt97qrmmq9",
+            "end": "plat-reddit",
+            "properties": {
+              "weight": 0.2
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-crypto_address-1y4vw3qtb4skdx9e7dxt97qrmmq9",
+            "end": "plat-twitter",
+            "properties": {
+              "weight": 0.9
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-crypto_address-1y4vw3qtb4skdx9e7dxt97qrmmq9",
+            "end": "plat-instagram",
+            "properties": {
+              "weight": 0.9
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-crypto_address-1y4vw3qtb4skdx9e7dxt97qrmmq9",
+            "end": "plat-linkedin",
+            "properties": {
+              "weight": 0.2
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-domain-githubusercontent.",
+            "end": "plat-github",
+            "properties": {
+              "weight": 0.2
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-domain-githubusercontent.",
+            "end": "plat-gitlab",
+            "properties": {
+              "weight": 0.9
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-domain-githubusercontent.",
+            "end": "plat-reddit",
+            "properties": {
+              "weight": 0.2
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-domain-githubusercontent.",
+            "end": "plat-twitter",
+            "properties": {
+              "weight": 0.9
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-domain-githubusercontent.",
+            "end": "plat-instagram",
+            "properties": {
+              "weight": 0.9
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-domain-githubusercontent.",
+            "end": "plat-linkedin",
+            "properties": {
+              "weight": 0.2
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-domain-example.",
+            "end": "plat-github",
+            "properties": {
+              "weight": 0.2
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-domain-example.",
+            "end": "plat-gitlab",
+            "properties": {
+              "weight": 0.9
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-domain-example.",
+            "end": "plat-reddit",
+            "properties": {
+              "weight": 0.2
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-domain-example.",
+            "end": "plat-twitter",
+            "properties": {
+              "weight": 0.9
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-domain-example.",
+            "end": "plat-instagram",
+            "properties": {
+              "weight": 0.9
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-domain-example.",
+            "end": "plat-linkedin",
+            "properties": {
+              "weight": 0.2
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-domain-github.",
+            "end": "plat-github",
+            "properties": {
+              "weight": 0.2
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-domain-github.",
+            "end": "plat-gitlab",
+            "properties": {
+              "weight": 0.9
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-domain-github.",
+            "end": "plat-reddit",
+            "properties": {
+              "weight": 0.2
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-domain-github.",
+            "end": "plat-twitter",
+            "properties": {
+              "weight": 0.9
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-domain-github.",
+            "end": "plat-instagram",
+            "properties": {
+              "weight": 0.9
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-domain-github.",
+            "end": "plat-linkedin",
+            "properties": {
+              "weight": 0.2
+            }
+          }
+        ]
+      }
+    }
+  },
+  "briefing": {
+    "classification": "UNCLASSIFIED // OPEN SOURCE INTELLIGENCE // LAWFUL USE ONLY",
+    "bluf": "Open-source scan on 'test@example.com' completed in 10s with 30 observations across 2 module(s). Key handles: 1y4vw3qtb4skdx9e7dxt97qrmmq9, example., github.. 12 confirmed platform presence(s). Overall exposure: HIGH (50%).",
+    "key_judgments": [
+      "Subject likely operates accounts on: gitlab, instagram, twitter (12 high-confidence hits).",
+      "Primary handle candidates: 1y4vw3qtb4skdx9e7dxt97qrmmq9, example., github., githubusercontent..",
+      "Risk drivers: Username confirmed on 3+ platforms (high visibility); Email exposed."
+    ],
+    "subject": {
+      "primary_name": "test@example.com",
+      "known_aliases": [],
+      "known_handles": [
+        "1y4vw3qtb4skdx9e7dxt97qrmmq9",
+        "example.",
+        "github.",
+        "githubusercontent."
+      ],
+      "emails": [
+        "test@example.com"
+      ],
+      "phones": [
+        "13393021",
+        "20162049",
+        "21636478",
+        "34076873"
+      ],
+      "niks": [],
+      "locations": [],
+      "crypto_addresses": [
+        "1y4vw3qtb4skdx9e7dxt97qrmmq9"
+      ]
+    },
+    "digital_accounts": [
+      {
+        "platform": "gitlab",
+        "username": "1y4vw3qtb4skdx9e7dxt97qrmmq9",
+        "url": "https://gitlab.com/1y4vw3qtb4skdx9e7dxt97qrmmq9",
+        "status": "confirmed",
+        "confidence": 0.85,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "gitlab",
+        "username": "githubusercontent.",
+        "url": "https://gitlab.com/githubusercontent.",
+        "status": "confirmed",
+        "confidence": 0.85,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "gitlab",
+        "username": "example.",
+        "url": "https://gitlab.com/example.",
+        "status": "confirmed",
+        "confidence": 0.85,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "gitlab",
+        "username": "github.",
+        "url": "https://gitlab.com/github.",
+        "status": "confirmed",
+        "confidence": 0.85,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "instagram",
+        "username": "1y4vw3qtb4skdx9e7dxt97qrmmq9",
+        "url": "https://instagram.com/1y4vw3qtb4skdx9e7dxt97qrmmq9",
+        "status": "confirmed",
+        "confidence": 0.85,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "instagram",
+        "username": "githubusercontent.",
+        "url": "https://instagram.com/githubusercontent.",
+        "status": "confirmed",
+        "confidence": 0.85,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "instagram",
+        "username": "example.",
+        "url": "https://instagram.com/example.",
+        "status": "confirmed",
+        "confidence": 0.85,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "instagram",
+        "username": "github.",
+        "url": "https://instagram.com/github.",
+        "status": "confirmed",
+        "confidence": 0.85,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "twitter",
+        "username": "1y4vw3qtb4skdx9e7dxt97qrmmq9",
+        "url": "https://twitter.com/1y4vw3qtb4skdx9e7dxt97qrmmq9",
+        "status": "confirmed",
+        "confidence": 0.85,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "twitter",
+        "username": "githubusercontent.",
+        "url": "https://twitter.com/githubusercontent.",
+        "status": "confirmed",
+        "confidence": 0.85,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "twitter",
+        "username": "example.",
+        "url": "https://twitter.com/example.",
+        "status": "confirmed",
+        "confidence": 0.85,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "twitter",
+        "username": "github.",
+        "url": "https://twitter.com/github.",
+        "status": "confirmed",
+        "confidence": 0.85,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "github",
+        "username": "1y4vw3qtb4skdx9e7dxt97qrmmq9",
+        "url": "https://github.com/1y4vw3qtb4skdx9e7dxt97qrmmq9",
+        "status": "not_found",
+        "confidence": 0.25,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "github",
+        "username": "githubusercontent.",
+        "url": "https://github.com/githubusercontent.",
+        "status": "not_found",
+        "confidence": 0.25,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "github",
+        "username": "example.",
+        "url": "https://github.com/example.",
+        "status": "not_found",
+        "confidence": 0.25,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "github",
+        "username": "github.",
+        "url": "https://github.com/github.",
+        "status": "not_found",
+        "confidence": 0.25,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "linkedin",
+        "username": "1y4vw3qtb4skdx9e7dxt97qrmmq9",
+        "url": "https://linkedin.com/in/1y4vw3qtb4skdx9e7dxt97qrmmq9",
+        "status": "not_found",
+        "confidence": 0.25,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "linkedin",
+        "username": "githubusercontent.",
+        "url": "https://linkedin.com/in/githubusercontent.",
+        "status": "not_found",
+        "confidence": 0.25,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "linkedin",
+        "username": "example.",
+        "url": "https://linkedin.com/in/example.",
+        "status": "not_found",
+        "confidence": 0.25,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "linkedin",
+        "username": "github.",
+        "url": "https://linkedin.com/in/github.",
+        "status": "not_found",
+        "confidence": 0.25,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "reddit",
+        "username": "1y4vw3qtb4skdx9e7dxt97qrmmq9",
+        "url": "https://reddit.com/user/1y4vw3qtb4skdx9e7dxt97qrmmq9",
+        "status": "not_found",
+        "confidence": 0.25,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "reddit",
+        "username": "githubusercontent.",
+        "url": "https://reddit.com/user/githubusercontent.",
+        "status": "not_found",
+        "confidence": 0.25,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "reddit",
+        "username": "example.",
+        "url": "https://reddit.com/user/example.",
+        "status": "not_found",
+        "confidence": 0.25,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "reddit",
+        "username": "github.",
+        "url": "https://reddit.com/user/github.",
+        "status": "not_found",
+        "confidence": 0.25,
+        "sources": [
+          "social_osint"
+        ]
+      }
+    ],
+    "breach_records": [],
+    "intelligence_gaps": [
+      "No breach corpus hits \u2014 configure DEHASHED_API_KEY, HIBP_API_KEY, LEAKCHECK_API_KEY in .env.",
+      "No NIK / national ID \u2014 Indonesian civil registry sources not queried.",
+      "No geolocation indicators \u2014 expand to domain/WHOIS and address fields in breach data."
+    ],
+    "recommended_actions": [
+      "[P1] USERNAME: test \u2014 Extract local-part 'test' for username search",
+      "[P1] USERNAME: address:1y4vw3qtb4 \u2014 Track funding source for 1y4vw3qtb4...",
+      "[P2] DOMAIN: example.com \u2014 Investigate domain example.com",
+      "[P2] EMAIL: phone:13393021 \u2014 Run reverse phone lookup for 13393021",
+      "[P2] EMAIL: phone:21636478 \u2014 Run reverse phone lookup for 21636478",
+      "[P2] EMAIL: phone:34076873 \u2014 Run reverse phone lookup for 34076873",
+      "[P2] EMAIL: phone:20162049 \u2014 Run reverse phone lookup for 20162049",
+      "[P2] EMAIL: 1y4vw3qtb4skdx9e7dxt97qrmmq9@ \u2014 Username '1y4vw3qtb4skdx9e7dxt97qrmmq9' likely has a Gravatar or GitHub email",
+      "Enumerate 1y4vw3qtb4skdx9e7dxt97qrmmq9 across archived web (Wayback) and code repos (GitHub dorks).",
+      "Enumerate example. across archived web (Wayback) and code repos (GitHub dorks).",
+      "Enumerate github. across archived web (Wayback) and code repos (GitHub dorks).",
+      "Deep breach pivot on test@example.com (HIBP, DeHashed, IntelX)."
+    ]
+  },
+  "source_blocks": [
+    {
+      "block_id": "p1",
+      "module": "email_osint",
+      "title": "\ud83d\udce7Email Osint",
+      "description": "Email OSINT and verification signals.",
+      "records": [
+        {
+          "type": "validation",
+          "email": "test@example.com",
+          "mx_records": [
+            {
+              "name": "example.com.",
+              "type": 15,
+              "TTL": 23,
+              "data": "0 ."
+            }
+          ],
+          "_title": "Email Validation: test@example.com",
+          "_detail": "Domain example.com has 1 MX records"
+        },
+        {
+          "type": "social",
+          "email": "test@example.com",
+          "github_users": [
+            {
+              "login": "test",
+              "id": 383316,
+              "node_id": "MDQ6VXNlcjM4MzMxNg==",
+              "avatar_url": "https://avatars.githubusercontent.com/u/383316?v=4",
+              "gravatar_id": "",
+              "url": "https://api.github.com/users/test",
+              "html_url": "https://github.com/test",
+              "followers_url": "https://api.github.com/users/test/followers",
+              "following_url": "https://api.github.com/users/test/following{/other_user}",
+              "gists_url": "https://api.github.com/users/test/gists{/gist_id}",
+              "starred_url": "https://api.github.com/users/test/starred{/owner}{/repo}",
+              "subscriptions_url": "https://api.github.com/users/test/subscriptions",
+              "organizations_url": "https://api.github.com/users/test/orgs",
+              "repos_url": "https://api.github.com/users/test/repos",
+              "events_url": "https://api.github.com/users/test/events{/privacy}",
+              "received_events_url": "https://api.github.com/users/test/received_events",
+              "type": "User",
+              "user_view_type": "public",
+              "site_admin": false,
+              "score": 1.0
+            },
+            {
+              "login": "testcontainers",
+              "id": 13393021,
+              "node_id": "MDEyOk9yZ2FuaXphdGlvbjEzMzkzMDIx",
+              "avatar_url": "https://avatars.githubusercontent.com/u/13393021?v=4",
+              "gravatar_id": "",
+              "url": "https://api.github.com/users/testcontainers",
+              "html_url": "https://github.com/testcontainers",
+              "followers_url": "https://api.github.com/users/testcontainers/followers",
+              "following_url": "https://api.github.com/users/testcontainers/following{/other_user}",
+              "gists_url": "https://api.github.com/users/testcontainers/gists{/gist_id}",
+              "starred_url": "https://api.github.com/users/testcontainers/starred{/owner}{/repo}",
+              "subscriptions_url": "https://api.github.com/users/testcontainers/subscriptions",
+              "organizations_url": "https://api.github.com/users/testcontainers/orgs",
+              "repos_url": "https://api.github.com/users/testcontainers/repos",
+              "events_url": "https://api.github.com/users/testcontainers/events{/privacy}",
+              "received_events_url": "https://api.github.com/users/testcontainers/received_events",
+              "type": "Organization",
+              "user_view_type": "public",
+              "site_admin": false,
+              "score": 1.0
+            },
+            {
+              "login": "TestLeafPages",
+              "id": 21636478,
+              "node_id": "MDQ6VXNlcjIxNjM2NDc4",
+              "avatar_url": "https://avatars.githubusercontent.com/u/21636478?v=4",
+              "gravatar_id": "",
+              "url": "https://api.github.com/users/TestLeafPages",
+              "html_url": "https://github.com/TestLeafPages",
+              "followers_url": "https://api.github.com/users/TestLeafPages/followers",
+              "following_url": "https://api.github.com/users/TestLeafPages/following{/other_user}",
+              "gists_url": "https://api.github.com/users/TestLeafPages/gists{/gist_id}",
+              "starred_url": "https://api.github.com/users/TestLeafPages/starred{/owner}{/repo}",
+              "subscriptions_url": "https://api.github.com/users/TestLeafPages/subscriptions",
+              "organizations_url": "https://api.github.com/users/TestLeafPages/orgs",
+              "repos_url": "https://api.github.com/users/TestLeafPages/repos",
+              "events_url": "https://api.github.com/users/TestLeafPages/events{/privacy}",
+              "received_events_url": "https://api.github.com/users/TestLeafPages/received_events",
+              "type": "User",
+              "user_view_type": "public",
+              "site_admin": false,
+              "score": 1.0
+            },
+            {
+              "login": "testdrivenio",
+              "id": 34076873,
+              "node_id": "MDEyOk9yZ2FuaXphdGlvbjM0MDc2ODcz",
+              "avatar_url": "https://avatars.githubusercontent.com/u/34076873?v=4",
+              "gravatar_id": "",
+              "url": "https://api.github.com/users/testdrivenio",
+              "html_url": "https://github.com/testdrivenio",
+              "followers_url": "https://api.github.com/users/testdrivenio/followers",
+              "following_url": "https://api.github.com/users/testdrivenio/following{/other_user}",
+              "gists_url": "https://api.github.com/users/testdrivenio/gists{/gist_id}",
+              "starred_url": "https://api.github.com/users/testdrivenio/starred{/owner}{/repo}",
+              "subscriptions_url": "https://api.github.com/users/testdrivenio/subscriptions",
+              "organizations_url": "https://api.github.com/users/testdrivenio/orgs",
+              "repos_url": "https://api.github.com/users/testdrivenio/repos",
+              "events_url": "https://api.github.com/users/testdrivenio/events{/privacy}",
+              "received_events_url": "https://api.github.com/users/testdrivenio/received_events",
+              "type": "Organization",
+              "user_view_type": "public",
+              "site_admin": false,
+              "score": 1.0
+            },
+            {
+              "login": "testerSunshine",
+              "id": 20162049,
+              "node_id": "MDQ6VXNlcjIwMTYyMDQ5",
+              "avatar_url": "https://avatars.githubusercontent.com/u/20162049?v=4",
+              "gravatar_id": "",
+              "url": "https://api.github.com/users/testerSunshine",
+              "html_url": "https://github.com/testerSunshine",
+              "followers_url": "https://api.github.com/users/testerSunshine/followers",
+              "following_url": "https://api.github.com/users/testerSunshine/following{/other_user}",
+              "gists_url": "https://api.github.com/users/testerSunshine/gists{/gist_id}",
+              "starred_url": "https://api.github.com/users/testerSunshine/starred{/owner}{/repo}",
+              "subscriptions_url": "https://api.github.com/users/testerSunshine/subscriptions",
+              "organizations_url": "https://api.github.com/users/testerSunshine/orgs",
+              "repos_url": "https://api.github.com/users/testerSunshine/repos",
+              "events_url": "https://api.github.com/users/testerSunshine/events{/privacy}",
+              "received_events_url": "https://api.github.com/users/testerSunshine/received_events",
+              "type": "User",
+              "user_view_type": "public",
+              "site_admin": false,
+              "score": 1.0
+            }
+          ],
+          "_title": "Social Media Found for test@example.com",
+          "_detail": "Found 30 potential GitHub matches"
+        },
+        {
+          "type": "domain",
+          "email": "test@example.com",
+          "txt_records": [
+            "v=spf1 -all",
+            "_k2n1y4vw3qtb4skdx9e7dxt97qrmmq9"
+          ],
+          "_title": "Domain Analysis for example.com",
+          "_detail": "Found 2 TXT records"
+        }
+      ]
+    },
+    {
+      "block_id": "p2",
+      "module": "social_osint",
+      "title": "\ud83c\udf10Social Osint",
+      "description": "Cross-platform social profile presence and username availability.",
+      "records": [
+        {
+          "type": "username_check",
+          "username": "1y4vw3qtb4skdx9e7dxt97qrmmq9",
+          "display_name": "1y4vw3qtb4skdx9e7dxt97qrmmq9",
+          "platforms": [
+            {
+              "platform": "github",
+              "status": 404,
+              "exists": false
+            },
+            {
+              "platform": "gitlab",
+              "status": 200,
+              "exists": true
+            },
+            {
+              "platform": "reddit",
+              "status": 403,
+              "exists": false
+            },
+            {
+              "platform": "twitter",
+              "status": 200,
+              "exists": true
+            },
+            {
+              "platform": "instagram",
+              "status": 200,
+              "exists": true
+            },
+            {
+              "platform": "linkedin",
+              "status": 999,
+              "exists": false
+            }
+          ]
+        },
+        {
+          "type": "username_check",
+          "username": "githubusercontent.",
+          "display_name": "githubusercontent.",
+          "platforms": [
+            {
+              "platform": "github",
+              "status": 404,
+              "exists": false
+            },
+            {
+              "platform": "gitlab",
+              "status": 200,
+              "exists": true
+            },
+            {
+              "platform": "reddit",
+              "status": 403,
+              "exists": false
+            },
+            {
+              "platform": "twitter",
+              "status": 200,
+              "exists": true
+            },
+            {
+              "platform": "instagram",
+              "status": 200,
+              "exists": true
+            },
+            {
+              "platform": "linkedin",
+              "status": 999,
+              "exists": false
+            }
+          ]
+        },
+        {
+          "type": "username_check",
+          "username": "example.",
+          "display_name": "example.",
+          "platforms": [
+            {
+              "platform": "github",
+              "status": 404,
+              "exists": false
+            },
+            {
+              "platform": "gitlab",
+              "status": 200,
+              "exists": true
+            },
+            {
+              "platform": "reddit",
+              "status": 403,
+              "exists": false
+            },
+            {
+              "platform": "twitter",
+              "status": 200,
+              "exists": true
+            },
+            {
+              "platform": "instagram",
+              "status": 200,
+              "exists": true
+            },
+            {
+              "platform": "linkedin",
+              "status": 999,
+              "exists": false
+            }
+          ]
+        },
+        {
+          "type": "username_check",
+          "username": "github.",
+          "display_name": "github.",
+          "platforms": [
+            {
+              "platform": "github",
+              "status": 404,
+              "exists": false
+            },
+            {
+              "platform": "gitlab",
+              "status": 200,
+              "exists": true
+            },
+            {
+              "platform": "reddit",
+              "status": 403,
+              "exists": false
+            },
+            {
+              "platform": "twitter",
+              "status": 200,
+              "exists": true
+            },
+            {
+              "platform": "instagram",
+              "status": 200,
+              "exists": true
+            },
+            {
+              "platform": "linkedin",
+              "status": 999,
+              "exists": false
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "breaches": []
+}

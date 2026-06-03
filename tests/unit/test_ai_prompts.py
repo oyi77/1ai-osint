@@ -1,11 +1,11 @@
 """Tests for AI prompt templates — entity_extraction and false_positive_filter."""
 
-
 from src.ai.prompts.entity_extraction import ENTITY_EXTRACTION_PROMPT
 from src.ai.prompts.false_positive_filter import FALSE_POSITIVE_PROMPT
 
 
 # --- Entity Extraction Prompt ---
+
 
 class TestEntityExtractionPrompt:
     """Tests for the ENTITY_EXTRACTION_PROMPT template."""
@@ -16,8 +16,16 @@ class TestEntityExtractionPrompt:
 
     def test_prompt_contains_entity_types(self):
         expected_types = [
-            "email", "phone", "username", "domain", "ip",
-            "url", "hash", "name", "organization", "address",
+            "email",
+            "phone",
+            "username",
+            "domain",
+            "ip",
+            "url",
+            "hash",
+            "name",
+            "organization",
+            "address",
         ]
         for etype in expected_types:
             assert etype in ENTITY_EXTRACTION_PROMPT, f"Missing entity type: {etype}"
@@ -36,7 +44,9 @@ class TestEntityExtractionPrompt:
         assert "0.3" in ENTITY_EXTRACTION_PROMPT
 
     def test_prompt_contains_rules(self):
-        assert "Rules:" in ENTITY_EXTRACTION_PROMPT or "Rules" in ENTITY_EXTRACTION_PROMPT
+        assert (
+            "Rules:" in ENTITY_EXTRACTION_PROMPT or "Rules" in ENTITY_EXTRACTION_PROMPT
+        )
 
     def test_prompt_mentions_json_response(self):
         assert "JSON" in ENTITY_EXTRACTION_PROMPT
@@ -50,6 +60,7 @@ class TestEntityExtractionPrompt:
 
 
 # --- False Positive Filter Prompt ---
+
 
 class TestFalsePositivePrompt:
     """Tests for the FALSE_POSITIVE_PROMPT template."""
@@ -77,10 +88,16 @@ class TestFalsePositivePrompt:
         assert "example.com" in FALSE_POSITIVE_PROMPT
 
     def test_prompt_contains_placeholder_indicators(self):
-        assert "placeholder" in FALSE_POSITIVE_PROMPT.lower() or "null" in FALSE_POSITIVE_PROMPT.lower()
+        assert (
+            "placeholder" in FALSE_POSITIVE_PROMPT.lower()
+            or "null" in FALSE_POSITIVE_PROMPT.lower()
+        )
 
     def test_prompt_contains_outdated_data_indicator(self):
-        assert "2010" in FALSE_POSITIVE_PROMPT or "outdated" in FALSE_POSITIVE_PROMPT.lower()
+        assert (
+            "2010" in FALSE_POSITIVE_PROMPT
+            or "outdated" in FALSE_POSITIVE_PROMPT.lower()
+        )
 
     def test_prompt_mentions_duplicate_findings(self):
         assert "duplicate" in FALSE_POSITIVE_PROMPT.lower()

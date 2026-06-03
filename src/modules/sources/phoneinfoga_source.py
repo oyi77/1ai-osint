@@ -1,4 +1,5 @@
 """PhoneInfoga source adapter for phone number OSINT."""
+
 from __future__ import annotations
 import asyncio
 import json
@@ -30,29 +31,36 @@ class PhoneInfogaSource:
 
         try:
             proc = await asyncio.create_subprocess_exec(
-                phoneinfoga_path, "scan", "-n", address, "--json", "/dev/stdout",
+                phoneinfoga_path,
+                "scan",
+                "-n",
+                address,
+                "--json",
+                "/dev/stdout",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
-            stdout, _ = await asyncio.wait_for(
-                proc.communicate(), timeout=self.timeout
-            )
+            stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=self.timeout)
             if stdout:
                 try:
                     data = json.loads(stdout.decode())
-                    leaks.append(RawLeak(
-                        text=json.dumps(data, indent=2),
-                        source_name="phoneinfoga",
-                        source_url="",
-                    ))
+                    leaks.append(
+                        RawLeak(
+                            text=json.dumps(data, indent=2),
+                            source_name="phoneinfoga",
+                            source_url="",
+                        )
+                    )
                 except json.JSONDecodeError:
                     text = stdout.decode()
                     if text.strip():
-                        leaks.append(RawLeak(
-                            text=text,
-                            source_name="phoneinfoga",
-                            source_url="",
-                        ))
+                        leaks.append(
+                            RawLeak(
+                                text=text,
+                                source_name="phoneinfoga",
+                                source_url="",
+                            )
+                        )
         except asyncio.TimeoutError:
             logger.debug("PhoneInfoga: timeout for '%s'", address)
         except Exception as exc:

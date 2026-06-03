@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-from src.models import Finding, ScanResult, Severity
+from src.core.models import Finding, ScanResult, Severity
 from src.modules.base.base import BaseOSINTTool
 
 
@@ -81,8 +81,10 @@ class GitleaksModule(BaseOSINTTool):
                 [
                     self.gitleaks_path,
                     "detect",
-                    "--source", str(repo_path),
-                    "--format", "json",
+                    "--source",
+                    str(repo_path),
+                    "--format",
+                    "json",
                     "--no-banner",
                     "--no-color",
                 ],
@@ -137,7 +139,9 @@ class GitleaksModule(BaseOSINTTool):
                         "rule_id": rule_id,
                         "file": raw.get("file", raw.get("File", "")),
                         "line": raw.get("line", raw.get("Line", "")),
-                        "match": raw.get("match", raw.get("Match", ""))[:100],  # Truncate
+                        "match": raw.get("match", raw.get("Match", ""))[
+                            :100
+                        ],  # Truncate
                         "commit": raw.get("commit", raw.get("Commit", "")),
                         "author": raw.get("author", raw.get("Author", "")),
                         "email": raw.get("email", raw.get("Email", "")),
@@ -204,9 +208,7 @@ class GitleaksModule(BaseOSINTTool):
             "total_findings": len(findings),
             "severity_breakdown": severity_counts,
             "rule_breakdown": rule_counts,
-            "has_critical": any(
-                f.severity == Severity.CRITICAL for f in findings
-            ),
+            "has_critical": any(f.severity == Severity.CRITICAL for f in findings),
         }
 
     async def learn(self, feedback: dict[str, Any], **kwargs) -> None:

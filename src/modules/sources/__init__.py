@@ -4,6 +4,7 @@ Auto-discovers source files in this directory. Each source must:
 - Be named *_source.py
 - Contain a class ending in 'Source' with a fetch_raw_leaks() method
 """
+
 from __future__ import annotations
 import importlib
 import pathlib
@@ -20,9 +21,7 @@ def discover_sources() -> dict[str, type]:
         module_name = py_file.stem
         key = module_name.replace("_source", "")
         try:
-            module = importlib.import_module(
-                f"src.modules.sources.{module_name}"
-            )
+            module = importlib.import_module(f"src.modules.sources.{module_name}")
             for attr_name in dir(module):
                 attr = getattr(module, attr_name)
                 if (

@@ -83,12 +83,15 @@ class WordFrequencyAnalyzer:
 
         # Log-scale normalization: avoids extreme skew from very common words
         import math
+
         for word, count in counts.items():
             self._weights[word] = math.log(1 + count) / math.log(1 + max_count)
 
         logger.info(
             "Analyzed %d mnemonics, %d unique BIP-39 words found, max count=%d",
-            valid_count, sum(1 for c in counts.values() if c > 0), max_count,
+            valid_count,
+            sum(1 for c in counts.values() if c > 0),
+            max_count,
         )
         return dict(self._weights)
 
@@ -113,7 +116,9 @@ class WordFrequencyAnalyzer:
         )
         conn.commit()
         conn.close()
-        logger.info("Saved %d word weights to %s:%s", len(self._weights), path, _TABLE_NAME)
+        logger.info(
+            "Saved %d word weights to %s:%s", len(self._weights), path, _TABLE_NAME
+        )
 
     def load_from_db(self, db_path: Optional[str] = None) -> bool:
         """Load weights from the ``word_frequencies`` SQLite table.
@@ -124,9 +129,7 @@ class WordFrequencyAnalyzer:
         path = db_path or self._db_path
         try:
             conn = sqlite3.connect(path)
-            rows = conn.execute(
-                f"SELECT word, weight FROM {_TABLE_NAME}"
-            ).fetchall()
+            rows = conn.execute(f"SELECT word, weight FROM {_TABLE_NAME}").fetchall()
             conn.close()
 
             if not rows:
@@ -137,7 +140,9 @@ class WordFrequencyAnalyzer:
                 if word in self._weights:
                     self._weights[word] = weight
 
-            logger.info("Loaded %d word weights from %s:%s", len(rows), path, _TABLE_NAME)
+            logger.info(
+                "Loaded %d word weights from %s:%s", len(rows), path, _TABLE_NAME
+            )
             return True
         except sqlite3.OperationalError:
             logger.debug("Table %s not found in %s", _TABLE_NAME, path)
@@ -188,7 +193,9 @@ class WordFrequencyAnalyzer:
             # entropy_bits now has 121 bits (11 words * 11 bits)
 
             mnemonic = None
-            for candidate in random.sample(self._wordlist, min(256, len(self._wordlist))):
+            for candidate in random.sample(
+                self._wordlist, min(256, len(self._wordlist))
+            ):
                 cand_idx = self._word_index[candidate]
                 # Full 132-bit value: 121 bits from first 11 + 11 bits from 12th
                 full_value = (entropy_bits << 11) | cand_idx
@@ -209,5 +216,7 @@ class WordFrequencyAnalyzer:
                 valid += 1
 
         rate = valid / n if n > 0 else 0.0
-        logger.info("Biased generation validation: %d/%d valid (%.2f%%)", valid, n, rate * 100)
+        logger.info(
+            "Biased generation validation: %d/%d valid (%.2f%%)", valid, n, rate * 100
+        )
         return rate

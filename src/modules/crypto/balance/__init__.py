@@ -16,7 +16,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-from src.models import Finding, ScanResult, Severity
+from src.core.models import Finding, ScanResult, Severity
 from src.modules.base.base import BaseOSINTTool
 from src.modules.crypto.balance.chains import ALL_CHAINS, CHAIN_MAP, ChainConfig
 from src.modules.crypto.balance.deriver import (

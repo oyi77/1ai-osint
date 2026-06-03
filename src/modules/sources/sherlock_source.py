@@ -1,4 +1,5 @@
 """Sherlock source adapter for username enumeration."""
+
 from __future__ import annotations
 import asyncio
 import json
@@ -34,7 +35,8 @@ class SherlockSource:
             import tempfile
 
             with tempfile.NamedTemporaryFile(
-                suffix=".json", delete=False,
+                suffix=".json",
+                delete=False,
             ) as tmp:
                 out_path = tmp.name
             try:
@@ -61,19 +63,23 @@ class SherlockSource:
                     results = json.loads(raw)
                     for site, data in results.items():
                         if data.get("status") == "Claimed":
-                            leaks.append(RawLeak(
-                                text=f"Username '{address}' found on {site}: {data.get('url', '')}",
-                                source_name="sherlock",
-                                source_url=data.get("url", ""),
-                            ))
+                            leaks.append(
+                                RawLeak(
+                                    text=f"Username '{address}' found on {site}: {data.get('url', '')}",
+                                    source_name="sherlock",
+                                    source_url=data.get("url", ""),
+                                )
+                            )
                 except json.JSONDecodeError:
                     if raw.strip():
                         text = raw
-                        leaks.append(RawLeak(
-                            text=text,
-                            source_name="sherlock",
-                            source_url="",
-                        ))
+                        leaks.append(
+                            RawLeak(
+                                text=text,
+                                source_name="sherlock",
+                                source_url="",
+                            )
+                        )
         except asyncio.TimeoutError:
             logger.debug("Sherlock: timeout for '%s'", address)
         except Exception as exc:

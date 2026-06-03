@@ -18,6 +18,7 @@ from pydantic import BaseModel, Field
 
 class NodeType(str, Enum):
     """Supported node types in the identity graph."""
+
     EMAIL_HASH = "email_hash"
     USERNAME_HASH = "username_hash"
     PHONE_HASH = "phone_hash"
@@ -26,6 +27,7 @@ class NodeType(str, Enum):
 
 class GraphNode(BaseModel):
     """A hashed attribute node in the identity graph."""
+
     node_id: str = Field(..., description="ZKIT salted SHA-256 hash (node key)")
     node_type: NodeType = Field(..., description="Type of hashed attribute")
     first_seen: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -42,16 +44,21 @@ class GraphNode(BaseModel):
 
 class GraphEdge(BaseModel):
     """A co-occurrence edge connecting two attribute nodes."""
+
     source_id: str = Field(..., description="Source node_id (hash)")
     target_id: str = Field(..., description="Target node_id (hash)")
     weight: float = Field(default=1.0, ge=0.0, description="Edge confidence weight")
-    co_occurrences: int = Field(default=1, ge=1, description="Number of co-observations")
+    co_occurrences: int = Field(
+        default=1, ge=1, description="Number of co-observations"
+    )
     first_seen: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     last_seen: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     sources: list[str] = Field(default_factory=list)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
-    def touch(self, source: Optional[str] = None, weight_increment: float = 0.0) -> None:
+    def touch(
+        self, source: Optional[str] = None, weight_increment: float = 0.0
+    ) -> None:
         """Update co-occurrence count, weight, and timestamp."""
         self.last_seen = datetime.now(timezone.utc)
         self.co_occurrences += 1
@@ -367,6 +374,7 @@ class IdentityGraph:
         fingerprint (truncated SHA-256) is included for verification.
         """
         import hashlib
+
         salt_fp = hashlib.sha256(self._salt.encode()).hexdigest()[:16]
         return {
             "salt_fingerprint": salt_fp,

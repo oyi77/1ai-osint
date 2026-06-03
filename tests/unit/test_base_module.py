@@ -6,11 +6,12 @@ from datetime import datetime
 
 import pytest
 
-from src.models import Finding, ScanResult
+from src.core.models import Finding, ScanResult
 from src.modules.base.base import BaseOSINTTool, ZKITNode
 
 
 # --- Concrete subclass for testing abstract base ---
+
 
 class ConcreteTool(BaseOSINTTool):
     """Minimal concrete implementation for testing the abstract base."""
@@ -43,6 +44,7 @@ class ConcreteTool(BaseOSINTTool):
 
 
 # --- BaseOSINTTool tests ---
+
 
 class TestBaseOSINTToolInterface:
     """Test the abstract base class interface."""
@@ -79,10 +81,13 @@ class TestBaseOSINTToolAbstractMethods:
         class Incomplete(BaseOSINTTool):
             async def scan(self, target, **kwargs):
                 pass
+
             async def analyze(self, data, **kwargs):
                 pass
+
             async def learn(self, feedback, **kwargs):
                 pass
+
         with pytest.raises(TypeError):
             Incomplete()
 
@@ -90,10 +95,13 @@ class TestBaseOSINTToolAbstractMethods:
         class Incomplete(BaseOSINTTool):
             async def search(self, query, **kwargs):
                 pass
+
             async def analyze(self, data, **kwargs):
                 pass
+
             async def learn(self, feedback, **kwargs):
                 pass
+
         with pytest.raises(TypeError):
             Incomplete()
 
@@ -101,10 +109,13 @@ class TestBaseOSINTToolAbstractMethods:
         class Incomplete(BaseOSINTTool):
             async def search(self, query, **kwargs):
                 pass
+
             async def scan(self, target, **kwargs):
                 pass
+
             async def learn(self, feedback, **kwargs):
                 pass
+
         with pytest.raises(TypeError):
             Incomplete()
 
@@ -112,10 +123,13 @@ class TestBaseOSINTToolAbstractMethods:
         class Incomplete(BaseOSINTTool):
             async def search(self, query, **kwargs):
                 pass
+
             async def scan(self, target, **kwargs):
                 pass
+
             async def analyze(self, data, **kwargs):
                 pass
+
         with pytest.raises(TypeError):
             Incomplete()
 
@@ -206,7 +220,9 @@ class TestBaseOSINTToolZKITNode:
     def test_to_zkit_node_basic(self):
         tool = ConcreteTool(zkit_salt="salt")
         finding = Finding(
-            id="f1", module="mod", title="Test",
+            id="f1",
+            module="mod",
+            title="Test",
             raw_data={"email": "user@example.com"},
         )
         node = tool.to_zkit_node(finding, attribute_type="email")
@@ -218,7 +234,9 @@ class TestBaseOSINTToolZKITNode:
     def test_to_zkit_node_prefers_email(self):
         tool = ConcreteTool(zkit_salt="salt")
         finding = Finding(
-            id="f1", module="mod", title="Test",
+            id="f1",
+            module="mod",
+            title="Test",
             raw_data={"email": "a@b.com", "username": "user"},
         )
         node = tool.to_zkit_node(finding)
@@ -228,7 +246,9 @@ class TestBaseOSINTToolZKITNode:
     def test_to_zkit_node_fallback_to_username(self):
         tool = ConcreteTool(zkit_salt="salt")
         finding = Finding(
-            id="f1", module="mod", title="Test",
+            id="f1",
+            module="mod",
+            title="Test",
             raw_data={"username": "someuser"},
         )
         node = tool.to_zkit_node(finding)
@@ -285,6 +305,7 @@ class TestBaseOSINTToolHelpers:
 
 
 # --- ZKITNode model tests ---
+
 
 class TestZKITNode:
     """Test the ZKITNode Pydantic model."""

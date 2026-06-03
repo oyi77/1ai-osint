@@ -1,4 +1,5 @@
 """Feodo Tracker source adapter for botnet C2 intelligence."""
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -23,7 +24,9 @@ class FeodoSource:
     async def fetch_raw_leaks(self) -> list[RawLeak]:
         """Fetch Feodo Tracker IP blocklist."""
         leaks: list[RawLeak] = []
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             try:
                 await self._rate_limit()
                 resp = await client.get(f"{self.BASE_URL}/ipblocklist_recommended.txt")
@@ -31,11 +34,13 @@ class FeodoSource:
                     for line in resp.text.splitlines():
                         line = line.strip()
                         if line and not line.startswith("#"):
-                            leaks.append(RawLeak(
-                                text=f"C2 IP: {line}",
-                                source_name="feodo",
-                                source_url=f"https://feodotracker.abuse.ch/browse/ip/{line}/",
-                            ))
+                            leaks.append(
+                                RawLeak(
+                                    text=f"C2 IP: {line}",
+                                    source_name="feodo",
+                                    source_url=f"https://feodotracker.abuse.ch/browse/ip/{line}/",
+                                )
+                            )
             except Exception as exc:
                 logger.debug("Feodo Tracker error: %s", exc)
         return leaks
@@ -43,17 +48,21 @@ class FeodoSource:
     async def search_for_address(self, address: str) -> list[RawLeak]:
         """Search Feodo Tracker for a specific IP."""
         leaks: list[RawLeak] = []
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             try:
                 await self._rate_limit()
                 resp = await client.get(f"{self.BASE_URL}/ipblocklist_recommended.txt")
                 if resp.status_code == 200:
                     if address in resp.text:
-                        leaks.append(RawLeak(
-                            text=f"C2 IP found: {address}",
-                            source_name="feodo",
-                            source_url=f"https://feodotracker.abuse.ch/browse/ip/{address}/",
-                        ))
+                        leaks.append(
+                            RawLeak(
+                                text=f"C2 IP found: {address}",
+                                source_name="feodo",
+                                source_url=f"https://feodotracker.abuse.ch/browse/ip/{address}/",
+                            )
+                        )
             except Exception as exc:
                 logger.debug("Feodo Tracker search error: %s", exc)
         return leaks

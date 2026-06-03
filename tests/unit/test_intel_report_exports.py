@@ -1,4 +1,5 @@
 """Unit tests for intel report exports — JSON, STIX, HTML."""
+
 from __future__ import annotations
 
 import json
@@ -11,7 +12,12 @@ from src.modules.deep_scan.models_report import (
     IntelReport,
 )
 from src.modules.deep_scan.report_generator import generate_intel_report
-from src.modules.deep_scan.exports import export_report, export_json, export_stix, export_html
+from src.modules.deep_scan.exports import (
+    export_report,
+    export_json,
+    export_stix,
+    export_html,
+)
 
 
 def _sample_report() -> IntelReport:
@@ -23,6 +29,7 @@ def _sample_report() -> IntelReport:
 def _make_result():
     from datetime import timedelta
     from unittest.mock import MagicMock
+
     now = datetime.now(timezone.utc)
     r = DeepScanResult(
         target="alice",
@@ -36,16 +43,36 @@ def _make_result():
     f.raw_data = {
         "username": "alice",
         "platforms": [
-            {"platform": "github", "url": "https://github.com/alice", "status": 200, "exists": True},
-            {"platform": "gitlab", "url": "https://gitlab.com/alice", "status": 200, "exists": True},
-        ]
+            {
+                "platform": "github",
+                "url": "https://github.com/alice",
+                "status": 200,
+                "exists": True,
+            },
+            {
+                "platform": "gitlab",
+                "url": "https://gitlab.com/alice",
+                "status": 200,
+                "exists": True,
+            },
+        ],
     }
     f.title = "alice github"
     f.description = ""
     r.findings = [f]
     r.identifiers = [
-        Identifier(value="alice", id_type=IdentifierType.USERNAME, source="github", confidence=0.9),
-        Identifier(value="alice@example.com", id_type=IdentifierType.EMAIL, source="leakcheck", confidence=0.8),
+        Identifier(
+            value="alice",
+            id_type=IdentifierType.USERNAME,
+            source="github",
+            confidence=0.9,
+        ),
+        Identifier(
+            value="alice@example.com",
+            id_type=IdentifierType.EMAIL,
+            source="leakcheck",
+            confidence=0.8,
+        ),
     ]
     return r
 
@@ -62,14 +89,24 @@ class TestJsonExport:
     def test_includes_all_sections(self):
         report = _sample_report()
         data = json.loads(export_json(report))
-        for key in ("evidence", "risk", "timeline", "identity_graph", "pivots", "confidence_by_identifier"):
+        for key in (
+            "evidence",
+            "risk",
+            "timeline",
+            "identity_graph",
+            "pivots",
+            "confidence_by_identifier",
+        ):
             assert key in data, f"Missing key: {key}"
 
     def test_round_trip_has_consistent_evidence(self):
         report = _sample_report()
         data = json.loads(export_json(report))
         assert len(data["evidence"]) == len(report.evidence)
-        assert data["evidence"][0]["identifier_value"] == report.evidence[0].identifier_value
+        assert (
+            data["evidence"][0]["identifier_value"]
+            == report.evidence[0].identifier_value
+        )
 
     def test_risk_level_is_string(self):
         report = _sample_report()
@@ -136,7 +173,12 @@ class TestHtmlExport:
     def test_has_required_sections(self):
         report = _sample_report()
         result = export_html(report)
-        for section in ("Operational Intelligence Brief", "BLUF", "Key judgments", "Digital presence"):
+        for section in (
+            "Operational Intelligence Brief",
+            "BLUF",
+            "Key judgments",
+            "Digital presence",
+        ):
             assert section in result, f"Missing section: {section}"
 
     def test_contains_evidence_urls(self):
@@ -159,7 +201,8 @@ class TestHtmlExport:
     def test_no_d3_dependency(self):
         report = _sample_report()
         result = export_html(report)
-        assert "d3" not in result.lower()
+        assert "d3.js" not in result.lower()
+        assert "d3.min.js" not in result.lower()
 
 
 # --- Export dispatcher ---

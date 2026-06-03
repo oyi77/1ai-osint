@@ -18,6 +18,7 @@ from src.modules.identity_tracking.zkit_engine import (
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture
 def salt() -> str:
     return "test-salt-for-zkit-engine"
@@ -34,7 +35,11 @@ def sample_records() -> list[dict]:
         {"email": "Alice@Example.com", "username": "alice_dev", "source": "sherlock"},
         {"email": "alice@example.com", "phone": "+1 555 123 4567", "source": "holehe"},
         {"email": "bob@test.org", "username": "bob_security", "source": "maigret"},
-        {"domain": "https://www.Example.com/", "email": "alice@example.com", "source": "shodan"},
+        {
+            "domain": "https://www.Example.com/",
+            "email": "alice@example.com",
+            "source": "shodan",
+        },
     ]
 
 
@@ -51,6 +56,7 @@ def engine_with_graph(engine: ZKITEngine, sample_records: list[dict]) -> ZKITEng
 # Test normalization
 # ---------------------------------------------------------------------------
 
+
 class TestNormalizeAttribute:
     def test_email_lowercased(self):
         assert _normalize_attribute("email", "Alice@Example.COM") == "alice@example.com"
@@ -59,7 +65,9 @@ class TestNormalizeAttribute:
         assert _normalize_attribute("email", "  alice@test.org  ") == "alice@test.org"
 
     def test_domain_lowercase_no_protocol(self):
-        assert _normalize_attribute("domain", "https://www.Example.com/") == "example.com"
+        assert (
+            _normalize_attribute("domain", "https://www.Example.com/") == "example.com"
+        )
 
     def test_domain_http_prefix(self):
         assert _normalize_attribute("domain", "http://test.org") == "test.org"
@@ -77,6 +85,7 @@ class TestNormalizeAttribute:
 # ---------------------------------------------------------------------------
 # Test salt management
 # ---------------------------------------------------------------------------
+
 
 class TestSaltManagement:
     def test_new_salt_is_64_hex(self):
@@ -111,6 +120,7 @@ class TestSaltManagement:
 # ---------------------------------------------------------------------------
 # Test ingest stage
 # ---------------------------------------------------------------------------
+
 
 class TestIngest:
     def test_ingest_normalizes_email(self, engine: ZKITEngine):
@@ -161,6 +171,7 @@ class TestIngest:
 # Test hash stage
 # ---------------------------------------------------------------------------
 
+
 class TestHashRecords:
     def test_hash_produces_64_char_hex(self, engine: ZKITEngine):
         ingested = engine.ingest([{"email": "test@example.com"}])
@@ -201,6 +212,7 @@ class TestHashRecords:
 # Test graph stage
 # ---------------------------------------------------------------------------
 
+
 class TestBuildGraph:
     def test_creates_nodes(self, engine: ZKITEngine):
         ingested = engine.ingest([{"email": "a@b.com", "username": "ab"}])
@@ -215,10 +227,12 @@ class TestBuildGraph:
         assert graph.edge_count == 1
 
     def test_co_occurrence_increments(self, engine: ZKITEngine):
-        ingested = engine.ingest([
-            {"email": "a@b.com", "username": "ab", "source": "s1"},
-            {"email": "a@b.com", "username": "ab", "source": "s2"},
-        ])
+        ingested = engine.ingest(
+            [
+                {"email": "a@b.com", "username": "ab", "source": "s1"},
+                {"email": "a@b.com", "username": "ab", "source": "s2"},
+            ]
+        )
         hashed = engine.hash_records(ingested)
         graph = engine.build_graph(hashed)
         # Same nodes, edge should be updated not duplicated
@@ -228,10 +242,12 @@ class TestBuildGraph:
         assert edges[0].co_occurrences == 2
 
     def test_multiple_records_link_shared_nodes(self, engine: ZKITEngine):
-        ingested = engine.ingest([
-            {"email": "a@b.com", "username": "ab"},
-            {"email": "a@b.com", "phone": "+123"},
-        ])
+        ingested = engine.ingest(
+            [
+                {"email": "a@b.com", "username": "ab"},
+                {"email": "a@b.com", "phone": "+123"},
+            ]
+        )
         hashed = engine.hash_records(ingested)
         graph = engine.build_graph(hashed)
         # email node is shared, so 3 nodes: email, username, phone
@@ -249,6 +265,7 @@ class TestBuildGraph:
 # Test correlate stage
 # ---------------------------------------------------------------------------
 
+
 class TestCorrelate:
     def test_single_component_for_shared_email(self, engine_with_graph: ZKITEngine):
         components = engine_with_graph.correlate()
@@ -260,10 +277,12 @@ class TestCorrelate:
         assert len(largest) >= 3  # at least email + username + phone or domain
 
     def test_separate_components_for_disjoint(self, engine: ZKITEngine):
-        ingested = engine.ingest([
-            {"email": "unrelated1@a.com", "username": "u1"},
-            {"email": "unrelated2@b.com", "username": "u2"},
-        ])
+        ingested = engine.ingest(
+            [
+                {"email": "unrelated1@a.com", "username": "u1"},
+                {"email": "unrelated2@b.com", "username": "u2"},
+            ]
+        )
         hashed = engine.hash_records(ingested)
         engine.build_graph(hashed)
         components = engine.correlate()
@@ -278,6 +297,7 @@ class TestCorrelate:
 # Test score stage
 # ---------------------------------------------------------------------------
 
+
 class TestScoreComponents:
     def test_score_range(self, engine_with_graph: ZKITEngine):
         components = engine_with_graph.correlate()
@@ -289,11 +309,13 @@ class TestScoreComponents:
         # Cluster with many observations should score higher than single observation
         records = []
         for i in range(10):
-            records.append({
-                "email": "frequent@example.com",
-                "username": "freq_user",
-                "source": f"source_{i}",
-            })
+            records.append(
+                {
+                    "email": "frequent@example.com",
+                    "username": "freq_user",
+                    "source": f"source_{i}",
+                }
+            )
         ingested = engine.ingest(records)
         hashed = engine.hash_records(ingested)
         engine.build_graph(hashed)
@@ -327,13 +349,15 @@ class TestScoreComponents:
         # Force high diversity + high co-occurrence
         records = []
         for i in range(8):
-            records.append({
-                "email": "high@example.com",
-                "username": "high_user",
-                "phone": "+15550000000",
-                "domain": "example.com",
-                "source": f"src_{i}",
-            })
+            records.append(
+                {
+                    "email": "high@example.com",
+                    "username": "high_user",
+                    "phone": "+15550000000",
+                    "domain": "example.com",
+                    "source": f"src_{i}",
+                }
+            )
         ingested = engine.ingest(records)
         hashed = engine.hash_records(ingested)
         engine.build_graph(hashed)
@@ -341,7 +365,10 @@ class TestScoreComponents:
         clusters = engine.score_components(components)
         assert len(clusters) == 1
         # High diversity + many sources should yield at least MEDIUM
-        assert clusters[0].confidence in (CorrelationConfidence.HIGH, CorrelationConfidence.MEDIUM)
+        assert clusters[0].confidence in (
+            CorrelationConfidence.HIGH,
+            CorrelationConfidence.MEDIUM,
+        )
 
     def test_clusters_sorted_by_score_desc(self, engine_with_graph: ZKITEngine):
         components = engine_with_graph.correlate()
@@ -353,6 +380,7 @@ class TestScoreComponents:
 # ---------------------------------------------------------------------------
 # Test output / privacy enforcement
 # ---------------------------------------------------------------------------
+
 
 class TestProduceOutput:
     def test_output_has_no_raw_pii(self, engine_with_graph: ZKITEngine):
@@ -370,7 +398,9 @@ class TestProduceOutput:
         output = engine_with_graph.produce_output(clusters)
         assert isinstance(output, ZKITOutput)
 
-    def test_output_has_salt_fingerprint_not_salt(self, engine_with_graph: ZKITEngine, salt: str):
+    def test_output_has_salt_fingerprint_not_salt(
+        self, engine_with_graph: ZKITEngine, salt: str
+    ):
         components = engine_with_graph.correlate()
         clusters = engine_with_graph.score_components(components)
         output = engine_with_graph.produce_output(clusters)
@@ -411,12 +441,17 @@ class TestProduceOutput:
 # Test full pipeline (run)
 # ---------------------------------------------------------------------------
 
+
 class TestFullPipeline:
-    def test_run_returns_zkit_output(self, engine: ZKITEngine, sample_records: list[dict]):
+    def test_run_returns_zkit_output(
+        self, engine: ZKITEngine, sample_records: list[dict]
+    ):
         output = engine.run(sample_records)
         assert isinstance(output, ZKITOutput)
 
-    def test_run_clusters_have_hashes_not_raw(self, engine: ZKITEngine, sample_records: list[dict]):
+    def test_run_clusters_have_hashes_not_raw(
+        self, engine: ZKITEngine, sample_records: list[dict]
+    ):
         output = engine.run(sample_records)
         for cluster in output.clusters:
             for h in cluster.hash_members:
@@ -437,7 +472,9 @@ class TestFullPipeline:
         output = engine.run([{"email": "a@b.com"}], default_source="default")
         assert len(output.clusters) == 1
 
-    def test_run_no_pii_in_output_repr(self, engine: ZKITEngine, sample_records: list[dict]):
+    def test_run_no_pii_in_output_repr(
+        self, engine: ZKITEngine, sample_records: list[dict]
+    ):
         output = engine.run(sample_records)
         output_str = repr(output)
         # Verify none of the raw values appear
@@ -450,6 +487,7 @@ class TestFullPipeline:
 # ---------------------------------------------------------------------------
 # Test repr
 # ---------------------------------------------------------------------------
+
 
 class TestRepr:
     def test_engine_repr(self, engine: ZKITEngine):

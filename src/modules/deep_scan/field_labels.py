@@ -1,4 +1,5 @@
 """Emoji field labels for intel report presentation (LeakBase-style)."""
+
 from __future__ import annotations
 
 import html
@@ -43,13 +44,25 @@ FIELD_SPECS: tuple[tuple[str, str, str], ...] = (
     ("type", "🏷️", "Record type"),
 )
 
-_SKIP_KEYS = frozenset({
-    "platforms", "_source", "_id", "profile", "type",
-})
+_SKIP_KEYS = frozenset(
+    {
+        "platforms",
+        "_source",
+        "_id",
+        "profile",
+        "type",
+    }
+)
 
 _SOURCE_META: dict[str, tuple[str, str]] = {
-    "social_osint": ("🌐", "Cross-platform social profile presence and username availability."),
-    "people_finder": ("🔍", "Username enumeration across public social platforms (Sherlock/Maigret)."),
+    "social_osint": (
+        "🌐",
+        "Cross-platform social profile presence and username availability.",
+    ),
+    "people_finder": (
+        "🔍",
+        "Username enumeration across public social platforms (Sherlock/Maigret).",
+    ),
     "data_leaks": ("💧", "Aggregated breach and leak database matches."),
     "source_dehashed": ("🔓", "DeHashed breach intelligence API."),
     "source_hibp": ("💀", "Have I Been Pwned breach exposure."),
@@ -67,13 +80,17 @@ def source_display_name(module: str) -> str:
     key = (module or "unknown").lower()
     if key.startswith("source_"):
         key = key[7:]
-    emoji, blurb = _SOURCE_META.get(module.lower(), _SOURCE_META.get(f"source_{key}", ("📁", "")))
+    emoji, blurb = _SOURCE_META.get(
+        module.lower(), _SOURCE_META.get(f"source_{key}", ("📁", ""))
+    )
     if module.lower() in _SOURCE_META:
         emoji, _ = _SOURCE_META[module.lower()]
     name = key.replace("_", " ").title()
     if module.lower() in _SOURCE_META:
         return f"{emoji}{name}"
-    if key in {k.replace("source_", "") for k in _SOURCE_META if k.startswith("source_")}:
+    if key in {
+        k.replace("source_", "") for k in _SOURCE_META if k.startswith("source_")
+    }:
         for mk, (em, _) in _SOURCE_META.items():
             if mk.endswith(key):
                 return f"{em}{name}"
@@ -156,7 +173,7 @@ def format_platform_block(platforms: list[dict[str, Any]], username: str) -> str
         flag = "✅" if exists else "❌"
         chunks.append(
             f"<b>📱Platform: </b> {html.escape(str(name))} {flag}<br>"
-            f"<b>🔗URL: </b> <a href=\"{html.escape(url)}\" target=\"_blank\">"
+            f'<b>🔗URL: </b> <a href="{html.escape(url)}" target="_blank">'
             f"<code>{html.escape(url)}</code></a><br>"
             f"<b>📊HTTP: </b> <code>{html.escape(str(status))}</code><br>"
         )

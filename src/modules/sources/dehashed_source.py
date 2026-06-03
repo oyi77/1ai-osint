@@ -1,4 +1,5 @@
 """DeHashed source adapter for credential leak lookup."""
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -17,7 +18,12 @@ class DehashedSource:
 
     BASE_URL = "https://api.dehashed.com/search"
 
-    def __init__(self, api_key: Optional[str] = None, request_delay: float = 2.0, timeout: float = 30.0):
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        request_delay: float = 2.0,
+        timeout: float = 30.0,
+    ):
         self.api_key = api_key or os.getenv("DEHASHED_API_KEY", "")
         self.request_delay = request_delay
         self.timeout = timeout
@@ -41,7 +47,9 @@ class DehashedSource:
         else:
             auth = (self.api_key, "")
 
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             try:
                 await self._rate_limit()
                 resp = await client.get(
@@ -55,19 +63,38 @@ class DehashedSource:
                     for entry in entries:
                         structured: dict[str, str] = {}
                         if isinstance(entry, dict):
-                            for field in ("email", "username", "phone", "name", "domain", "password",
-                                          "hashed_password", "ip_address", "address", "database_name"):
+                            for field in (
+                                "email",
+                                "username",
+                                "phone",
+                                "name",
+                                "domain",
+                                "password",
+                                "hashed_password",
+                                "ip_address",
+                                "address",
+                                "database_name",
+                            ):
                                 val = entry.get(field, "")
                                 if val:
-                                    key = "password_hash" if field == "hashed_password" else (
-                                          "breach_name" if field == "database_name" else field)
+                                    key = (
+                                        "password_hash"
+                                        if field == "hashed_password"
+                                        else (
+                                            "breach_name"
+                                            if field == "database_name"
+                                            else field
+                                        )
+                                    )
                                     structured[key] = str(val)
-                        leaks.append(RawLeak(
-                            text=str(entry)[:5000],
-                            source_name="dehashed",
-                            source_url=f"https://dehashed.com/search?query={address}",
-                            metadata=structured,
-                        ))
+                        leaks.append(
+                            RawLeak(
+                                text=str(entry)[:5000],
+                                source_name="dehashed",
+                                source_url=f"https://dehashed.com/search?query={address}",
+                                metadata=structured,
+                            )
+                        )
             except Exception as exc:
                 logger.debug("DeHashed error for '%s': %s", address, exc)
         return leaks

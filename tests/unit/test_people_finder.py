@@ -177,11 +177,15 @@ class TestPeopleFinderSearch:
         mock_whatsmyname = MagicMock()
         mock_whatsmyname.search.return_value = whatsmyname_result
 
-        with patch.object(finder, "_get_providers", return_value={
-            "sherlock": mock_sherlock,
-            "maigret": mock_maigret,
-            "whatsmyname": mock_whatsmyname,
-        }):
+        with patch.object(
+            finder,
+            "_get_providers",
+            return_value={
+                "sherlock": mock_sherlock,
+                "maigret": mock_maigret,
+                "whatsmyname": mock_whatsmyname,
+            },
+        ):
             result = await finder.search("testuser")
 
         assert result.module == "people_finder"
@@ -190,9 +194,7 @@ class TestPeopleFinderSearch:
         assert result.finding_count > 0
         assert result.metadata["total_profiles"] > 0
         # GitHub should be deduplicated (found by sherlock + maigret)
-        github_findings = [
-            f for f in result.findings if "GitHub" in f.title
-        ]
+        github_findings = [f for f in result.findings if "GitHub" in f.title]
         assert len(github_findings) == 1
         assert github_findings[0].confidence > 0.5
 
@@ -203,10 +205,14 @@ class TestPeopleFinderSearch:
         mock_maigret = MagicMock()
         mock_maigret.search.return_value = {"error": "Maigret failed"}
 
-        with patch.object(finder, "_get_providers", return_value={
-            "sherlock": mock_sherlock,
-            "maigret": mock_maigret,
-        }):
+        with patch.object(
+            finder,
+            "_get_providers",
+            return_value={
+                "sherlock": mock_sherlock,
+                "maigret": mock_maigret,
+            },
+        ):
             result = await finder.search("testuser")
 
         assert result.status == "partial"
@@ -222,9 +228,13 @@ class TestPeopleFinderSearch:
 
     @pytest.mark.asyncio
     async def test_analyze(self, finder, sherlock_result):
-        with patch.object(finder, "_get_providers", return_value={
-            "sherlock": MagicMock(search=MagicMock(return_value=sherlock_result)),
-        }):
+        with patch.object(
+            finder,
+            "_get_providers",
+            return_value={
+                "sherlock": MagicMock(search=MagicMock(return_value=sherlock_result)),
+            },
+        ):
             scan = await finder.search("testuser")
 
         analysis = await finder.analyze(scan)
@@ -242,9 +252,13 @@ class TestPeopleFinderSearch:
         mock_sherlock = MagicMock()
         mock_sherlock.search.return_value = sherlock_result
 
-        with patch.object(finder, "_get_providers", return_value={
-            "sherlock": mock_sherlock,
-        }):
+        with patch.object(
+            finder,
+            "_get_providers",
+            return_value={
+                "sherlock": mock_sherlock,
+            },
+        ):
             result = await finder.scan("testuser")
 
         assert result.module == "people_finder"

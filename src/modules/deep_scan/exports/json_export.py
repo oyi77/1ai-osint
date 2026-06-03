@@ -3,6 +3,7 @@
 Outputs a deterministic JSON structure with embedded schema version
 for forward compatibility.
 """
+
 from __future__ import annotations
 
 import json
@@ -31,7 +32,9 @@ def _to_dict(report: IntelReport) -> dict[str, Any]:
         "report_id": report.report_id,
         "target": report.target,
         "started_at": report.started_at.isoformat() if report.started_at else None,
-        "completed_at": report.completed_at.isoformat() if report.completed_at else None,
+        "completed_at": report.completed_at.isoformat()
+        if report.completed_at
+        else None,
         "duration_sec": report.duration_sec,
         "iterations": report.iterations,
         "modules_run": report.modules_run,
@@ -137,7 +140,9 @@ def _to_dict(report: IntelReport) -> dict[str, Any]:
             "bluf": report.briefing.bluf,
             "key_judgments": report.briefing.key_judgments,
             "subject": report.briefing.subject.model_dump(),
-            "digital_accounts": [a.model_dump() for a in report.briefing.digital_accounts],
+            "digital_accounts": [
+                a.model_dump() for a in report.briefing.digital_accounts
+            ],
             "breach_records": [b.model_dump() for b in report.briefing.breach_records],
             "intelligence_gaps": report.briefing.intelligence_gaps,
             "recommended_actions": report.briefing.recommended_actions,
@@ -160,6 +165,7 @@ def _to_dict(report: IntelReport) -> dict[str, Any]:
                 "source": ev.source,
                 "confidence": ev.confidence,
             }
-            for ev in report.evidence if ev.identifier_type == "breach"
+            for ev in report.evidence
+            if ev.identifier_type == "breach"
         ],
     }

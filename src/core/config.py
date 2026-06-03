@@ -76,7 +76,10 @@ class Settings(BaseSettings):
     @property
     def effective_openai_base_url(self) -> str:
         """Return OmniRoute base URL if configured, else direct OpenAI."""
-        if self.omniroute_api_key or self.omniroute_base_url != "http://localhost:3000/v1":
+        if (
+            self.omniroute_api_key
+            or self.omniroute_base_url != "http://localhost:3000/v1"
+        ):
             return self.omniroute_base_url
         return self.openai_base_url
 

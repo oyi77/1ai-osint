@@ -34,11 +34,26 @@ ATTRIBUTE_TYPE_MAP: dict[str, NodeType] = {
 }
 
 # Known PII field names that must never appear in output
-_PII_FIELDS = frozenset({
-    "email", "username", "phone", "domain", "ip", "ip_address",
-    "password", "password_plain", "password_hash", "address",
-    "ssn", "credit_card", "name", "full_name", "first_name", "last_name",
-})
+_PII_FIELDS = frozenset(
+    {
+        "email",
+        "username",
+        "phone",
+        "domain",
+        "ip",
+        "ip_address",
+        "password",
+        "password_plain",
+        "password_hash",
+        "address",
+        "ssn",
+        "credit_card",
+        "name",
+        "full_name",
+        "first_name",
+        "last_name",
+    }
+)
 
 
 def _normalize_attribute(attr_type: str, value: str) -> str:
@@ -56,10 +71,16 @@ def _normalize_attribute(attr_type: str, value: str) -> str:
         v = value.strip().lower()
         for prefix in ("https://", "http://", "www."):
             if v.startswith(prefix):
-                v = v[len(prefix):]
+                v = v[len(prefix) :]
         return v.rstrip("/")
     if attr_type == "phone":
-        return value.strip().replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
+        return (
+            value.strip()
+            .replace(" ", "")
+            .replace("-", "")
+            .replace("(", "")
+            .replace(")", "")
+        )
     return value.strip()
 
 
@@ -67,17 +88,20 @@ def _normalize_attribute(attr_type: str, value: str) -> str:
 # Pipeline data types
 # ---------------------------------------------------------------------------
 
+
 class CorrelationConfidence(str, Enum):
     """Confidence tiers for identity correlations."""
-    HIGH = "high"        # score >= 0.75
-    MEDIUM = "medium"    # score >= 0.4
-    LOW = "low"          # score < 0.4
+
+    HIGH = "high"  # score >= 0.75
+    MEDIUM = "medium"  # score >= 0.4
+    LOW = "low"  # score < 0.4
 
 
 @dataclass
 class IngestedRecord:
     """A normalized record ready for hashing."""
-    attributes: dict[str, str]   # attr_type -> raw_value (transient, never persisted)
+
+    attributes: dict[str, str]  # attr_type -> raw_value (transient, never persisted)
     source: str = ""
     metadata: dict[str, Any] = field(default_factory=dict)
 
@@ -85,10 +109,11 @@ class IngestedRecord:
 @dataclass
 class CorrelatedCluster:
     """A cluster of identity hashes believed to belong to the same entity."""
+
     cluster_id: str
-    hash_members: list[str]             # zkit hashes in this cluster
-    attribute_types: set[str]           # e.g. {"email_hash", "username_hash"}
-    score: float                        # [0.0, 1.0]
+    hash_members: list[str]  # zkit hashes in this cluster
+    attribute_types: set[str]  # e.g. {"email_hash", "username_hash"}
+    score: float  # [0.0, 1.0]
     confidence: CorrelationConfidence
     edge_count: int
     total_co_occurrences: int
@@ -99,8 +124,9 @@ class CorrelatedCluster:
 @dataclass
 class ZKITOutput:
     """Final sanitized output — no raw PII."""
+
     investigation_id: str
-    salt_fingerprint: str                   # first 16 chars of salt SHA-256 (not the salt itself)
+    salt_fingerprint: str  # first 16 chars of salt SHA-256 (not the salt itself)
     clusters: list[CorrelatedCluster]
     graph_stats: dict[str, Any]
     generated_at: datetime = field(default_factory=datetime.utcnow)
@@ -109,6 +135,7 @@ class ZKITOutput:
 # ---------------------------------------------------------------------------
 # ZKIT Engine
 # ---------------------------------------------------------------------------
+
 
 class ZKITEngine:
     """
@@ -127,7 +154,9 @@ class ZKITEngine:
             investigation_id: Optional label for this investigation.
         """
         if not salt:
-            raise ValueError("Salt must not be empty — generate with ZKITEngine.new_salt()")
+            raise ValueError(
+                "Salt must not be empty — generate with ZKITEngine.new_salt()"
+            )
         self._salt = salt
         self._investigation_id = investigation_id or secrets.token_hex(8)
         self._graph = IdentityGraph(salt=salt)
@@ -153,6 +182,7 @@ class ZKITEngine:
         operators verify which salt was used without exposing the salt.
         """
         import hashlib
+
         return hashlib.sha256(self._salt.encode("utf-8")).hexdigest()[:16]
 
     @property
@@ -203,15 +233,16 @@ class ZKITEngine:
 
             # Metadata: copy everything that is NOT a PII field or source
             meta = {
-                k: v for k, v in rec.items()
-                if k not in _PII_FIELDS and k != "source"
+                k: v for k, v in rec.items() if k not in _PII_FIELDS and k != "source"
             }
 
-            ingested.append(IngestedRecord(
-                attributes=attrs,
-                source=str(source),
-                metadata=meta,
-            ))
+            ingested.append(
+                IngestedRecord(
+                    attributes=attrs,
+                    source=str(source),
+                    metadata=meta,
+                )
+            )
 
         return ingested
 
@@ -274,8 +305,10 @@ class ZKITEngine:
             for i in range(len(hashes)):
                 for j in range(i + 1, len(hashes)):
                     self._graph.add_edge(
-                        hashes[i][0], hashes[j][0],
-                        weight=1.0, source=source,
+                        hashes[i][0],
+                        hashes[j][0],
+                        weight=1.0,
+                        source=source,
                     )
 
         return self._graph
@@ -356,7 +389,8 @@ class ZKITEngine:
             # Gather edges within this component
             all_edges = g.get_all_edges()
             component_edges = [
-                e for e in all_edges
+                e
+                for e in all_edges
                 if e.source_id in component and e.target_id in component
             ]
 
@@ -364,7 +398,8 @@ class ZKITEngine:
             total_co_occurrences = sum(e.co_occurrences for e in component_edges)
             avg_edge_weight = (
                 sum(e.weight for e in component_edges) / edge_count
-                if edge_count > 0 else 0.0
+                if edge_count > 0
+                else 0.0
             )
 
             # Attribute type diversity
@@ -387,6 +422,7 @@ class ZKITEngine:
 
             # Co-occurrence strength: log-scaled, capped
             import math
+
             co_occ_score = min(math.log2(total_co_occurrences + 1) / 6.0, 1.0)
 
             # Type diversity: more types = stronger signal (max ~4 types)
@@ -415,16 +451,18 @@ class ZKITEngine:
             else:
                 confidence = CorrelationConfidence.LOW
 
-            clusters.append(CorrelatedCluster(
-                cluster_id=f"cluster-{idx:04d}",
-                hash_members=sorted(component),
-                attribute_types=attr_types,
-                score=round(score, 4),
-                confidence=confidence,
-                edge_count=edge_count,
-                total_co_occurrences=total_co_occurrences,
-                sources=sorted(all_sources),
-            ))
+            clusters.append(
+                CorrelatedCluster(
+                    cluster_id=f"cluster-{idx:04d}",
+                    hash_members=sorted(component),
+                    attribute_types=attr_types,
+                    score=round(score, 4),
+                    confidence=confidence,
+                    edge_count=edge_count,
+                    total_co_occurrences=total_co_occurrences,
+                    sources=sorted(all_sources),
+                )
+            )
 
         # Sort by score descending
         clusters.sort(key=lambda c: c.score, reverse=True)

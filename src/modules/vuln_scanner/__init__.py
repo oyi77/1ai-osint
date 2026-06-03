@@ -7,7 +7,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
-from src.models import Finding, ScanResult, Severity
+from src.core.models import Finding, ScanResult, Severity
 from src.modules.base.base import BaseOSINTTool
 
 logger = logging.getLogger(__name__)

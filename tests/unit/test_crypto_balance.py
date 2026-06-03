@@ -1,6 +1,5 @@
 """Tests for the crypto balance checker module."""
 
-
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
 
@@ -33,7 +32,7 @@ from src.modules.crypto.balance.chains import (
     ChainType,
 )
 from src.modules.crypto.balance import CryptoBalanceTool
-from src.models import Severity
+from src.core.models import Severity
 
 
 # --- Test Data ---
@@ -331,7 +330,7 @@ class TestCryptoBalanceTool:
                 assert len(result.findings) >= 1
 
     async def test_analyze(self):
-        from src.models import Finding, Severity
+        from src.core.models import Finding, Severity
 
         findings = [
             Finding(
@@ -773,6 +772,7 @@ class TestScannerEngine:
                 ),
             ]
             from src.modules.crypto.balance.multicall import BatchBalanceResult
+
             with patch(
                 "src.modules.crypto.balance.multicall.batch_check_balances",
                 new_callable=AsyncMock,
@@ -800,6 +800,7 @@ class TestScannerEngine:
                 ),
             ]
             from src.modules.crypto.balance.multicall import BatchBalanceResult
+
             with patch(
                 "src.modules.crypto.balance.multicall.batch_check_balances",
                 new_callable=AsyncMock,
@@ -1106,7 +1107,9 @@ class TestSweeper:
         s = Sweeper()
         mock_client = MagicMock()
         mock_resp = MagicMock()
-        mock_resp.json.return_value = {"result": {"value": {"owner": "11111111111111111111111111111111"}}}
+        mock_resp.json.return_value = {
+            "result": {"value": {"owner": "11111111111111111111111111111111"}}
+        }
         mock_client.post = AsyncMock(return_value=mock_resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=None)
@@ -1119,7 +1122,11 @@ class TestSweeper:
         s = Sweeper()
         mock_client = MagicMock()
         mock_resp = MagicMock()
-        mock_resp.json.return_value = {"result": {"value": {"owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"}}}
+        mock_resp.json.return_value = {
+            "result": {
+                "value": {"owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"}
+            }
+        }
         mock_client.post = AsyncMock(return_value=mock_resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=None)
@@ -1182,6 +1189,7 @@ class TestBtcChangeAddresses:
     def test_derive_btc_includes_change(self):
         mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
         from src.modules.crypto.balance.deriver import derive_from_mnemonic
+
         results = derive_from_mnemonic(mnemonic, chains=[BITCOIN])
         # Should have external + change addresses
         change_addrs = [r for r in results if "(change)" in r.derivation_path]
@@ -1190,6 +1198,7 @@ class TestBtcChangeAddresses:
     def test_derive_eth_no_change(self):
         mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
         from src.modules.crypto.balance.deriver import derive_from_mnemonic
+
         results = derive_from_mnemonic(mnemonic, chains=[ETHEREUM])
         change_addrs = [r for r in results if "(change)" in r.derivation_path]
         assert len(change_addrs) == 0, "EVM chains should not have change addresses"
@@ -1200,6 +1209,7 @@ class TestNewProviderProfiles:
 
     def test_metamask_profile(self):
         from src.modules.crypto.balance.provider_profiles import METAMASK
+
         assert METAMASK.name == "MetaMask"
         assert len(METAMASK.evm_paths) == 3
         assert len(METAMASK.btc_paths) == 0  # MetaMask doesn't support BTC
@@ -1207,6 +1217,7 @@ class TestNewProviderProfiles:
 
     def test_coinbase_profile(self):
         from src.modules.crypto.balance.provider_profiles import COINBASE
+
         assert COINBASE.name == "Coinbase Wallet"
         assert len(COINBASE.evm_paths) >= 1
         assert len(COINBASE.btc_paths) >= 1
@@ -1214,6 +1225,7 @@ class TestNewProviderProfiles:
 
     def test_all_providers_includes_new(self):
         from src.modules.crypto.balance.provider_profiles import ALL_PROVIDERS
+
         names = [p.name for p in ALL_PROVIDERS]
         assert "MetaMask" in names
         assert "Coinbase Wallet" in names
@@ -1225,12 +1237,14 @@ class TestEncodeBalanceOf:
 
     def test_encode_known_address(self):
         from src.modules.crypto.balance.checker import encode_balance_of
+
         data = encode_balance_of("0x5cFa8609b0Ca0f65C6672A93Aa94F6132Ad6894F")
         assert data.startswith("0x70a08231")
         assert len(data) == 74  # 0x + 8 selector + 64 padded address
 
     def test_encode_lowercase(self):
         from src.modules.crypto.balance.checker import encode_balance_of
+
         data = encode_balance_of("0x5cfa8609b0ca0f65c6672a93aa94f6132ad6894f")
         assert data.startswith("0x70a08231")
 
@@ -1241,12 +1255,14 @@ class TestCheckEvmTokenBalances:
     @pytest.mark.asyncio
     async def test_no_tokens_returns_empty(self):
         from src.modules.crypto.balance.checker import check_evm_token_balances
+
         result = await check_evm_token_balances("0xaddr", BITCOIN)
         assert result == []
 
     @pytest.mark.asyncio
     async def test_no_rpc_returns_empty(self):
         from src.modules.crypto.balance.checker import check_evm_token_balances
+
         chain = type("C", (), {"rpc_url": None, "tokens": [1]})()
         result = await check_evm_token_balances("0xaddr", chain)
         assert result == []
@@ -1255,20 +1271,23 @@ class TestCheckEvmTokenBalances:
     async def test_token_balance_with_mock(self):
         from src.modules.crypto.balance.checker import check_evm_token_balances
         from unittest.mock import AsyncMock, MagicMock
+
         mock_client = MagicMock()
         mock_resp = MagicMock()
         # USDT balance of 1000 (6 decimals) = 0x3B9ACA00
         mock_resp.json.return_value = [
             {"id": 0, "result": "0x3B9ACA00"},  # USDT = 1000
-            {"id": 1, "result": "0x0"},          # USDC = 0
-            {"id": 2, "result": "0x0"},          # DAI = 0
-            {"id": 3, "result": "0x0"},          # WETH = 0
+            {"id": 1, "result": "0x0"},  # USDC = 0
+            {"id": 2, "result": "0x0"},  # DAI = 0
+            {"id": 3, "result": "0x0"},  # WETH = 0
         ]
         mock_resp.raise_for_status = MagicMock()
         mock_client.post = AsyncMock(return_value=mock_resp)
         mock_client.aclose = AsyncMock()
 
-        result = await check_evm_token_balances("0x5cFa8609b0Ca0f65C6672A93Aa94F6132Ad6894F", ETHEREUM, client=mock_client)
+        result = await check_evm_token_balances(
+            "0x5cFa8609b0Ca0f65C6672A93Aa94F6132Ad6894F", ETHEREUM, client=mock_client
+        )
 
         assert len(result) == 1
         assert result[0]["symbol"] == "USDT"
@@ -1280,26 +1299,50 @@ class TestBatchTokenBalances:
 
     def test_token_balance_result_properties(self):
         from src.modules.crypto.balance.multicall import TokenBalanceResult
-        r = TokenBalanceResult(address="0x1", token_symbol="USDT", token_address="0x2", balance_raw=1000000, decimals=6)
+
+        r = TokenBalanceResult(
+            address="0x1",
+            token_symbol="USDT",
+            token_address="0x2",
+            balance_raw=1000000,
+            decimals=6,
+        )
         assert r.balance == 1.0
 
     def test_token_balance_result_zero(self):
         from src.modules.crypto.balance.multicall import TokenBalanceResult
-        r = TokenBalanceResult(address="0x1", token_symbol="USDT", token_address="0x2", balance_raw=0, decimals=6)
+
+        r = TokenBalanceResult(
+            address="0x1",
+            token_symbol="USDT",
+            token_address="0x2",
+            balance_raw=0,
+            decimals=6,
+        )
         assert r.balance == 0.0
 
     @pytest.mark.asyncio
     async def test_batch_no_tokens_returns_empty(self):
         from src.modules.crypto.balance.multicall import batch_check_token_balances
+
         result = await batch_check_token_balances(["0xaddr"], [], ETHEREUM)
         assert result == []
 
     @pytest.mark.asyncio
     async def test_batch_no_rpc_returns_empty(self):
         from src.modules.crypto.balance.multicall import batch_check_token_balances
-        from src.modules.crypto.balance.chains import ChainConfig, ChainType, TokenContract
-        chain = ChainConfig(name="Test", symbol="T", chain_type=ChainType.EVM, coin_id="test")
-        result = await batch_check_token_balances(["0xaddr"], [TokenContract("USDT", "0x123", 6)], chain)
+        from src.modules.crypto.balance.chains import (
+            ChainConfig,
+            ChainType,
+            TokenContract,
+        )
+
+        chain = ChainConfig(
+            name="Test", symbol="T", chain_type=ChainType.EVM, coin_id="test"
+        )
+        result = await batch_check_token_balances(
+            ["0xaddr"], [TokenContract("USDT", "0x123", 6)], chain
+        )
         assert result == []
 
 
@@ -1308,12 +1351,14 @@ class TestTokenBalanceOfEncoding:
 
     def test_encode_standard_address(self):
         from src.modules.crypto.balance.checker import encode_balance_of
+
         data = encode_balance_of("0x5cFa8609b0Ca0f65C6672A93Aa94F6132Ad6894F")
         assert data.startswith("0x70a08231")
         assert len(data) == 74
 
     def test_encode_lowercase(self):
         from src.modules.crypto.balance.checker import encode_balance_of
+
         data = encode_balance_of("0x5cfa8609b0ca0f65c6672a93aa94f6132ad6894f")
         assert data.startswith("0x70a08231")
         assert len(data) == 74
@@ -1324,6 +1369,7 @@ class TestEncodeBalanceOfStandalone:
 
     def test_encode_function(self):
         from src.modules.crypto.balance.checker import encode_balance_of
+
         result = encode_balance_of("0x1234567890abcdef1234567890abcdef12345678")
         assert result.startswith("0x70a08231")
         assert len(result) == 74
@@ -1347,11 +1393,13 @@ class TestSmartGeneratorPositional:
 
     def test_bigram_patterns_loaded(self):
         from src.modules.crypto.balance.smart_generator import _BIGRAM_PATTERNS
+
         assert "abandon" in _BIGRAM_PATTERNS
         assert len(_BIGRAM_PATTERNS["abandon"]) >= 3
 
     def test_common_starters_loaded(self):
         from src.modules.crypto.balance.smart_generator import _COMMON_STARTERS
+
         assert "abandon" in _COMMON_STARTERS
         assert "ability" in _COMMON_STARTERS
 
@@ -1360,12 +1408,14 @@ class TestSmartGeneratorPositional:
         gen = SmartMnemonicGenerator()
         starters = [gen.generate(12).split()[0] for _ in range(100)]
         from src.modules.crypto.balance.smart_generator import _COMMON_STARTERS
+
         common_count = sum(1 for s in starters if s in _COMMON_STARTERS)
         assert common_count > 5  # Should be biased toward common starters
 
     def test_generate_with_analyzer(self):
         """Test generator with a WordFrequencyAnalyzer instance."""
         from src.modules.crypto.balance.ai_analyzer import WordFrequencyAnalyzer
+
         analyzer = WordFrequencyAnalyzer()
         gen = SmartMnemonicGenerator(analyzer)
         m = gen.generate(12)
@@ -1462,6 +1512,7 @@ class TestSmartGenerator24:
 
     def test_hit_pattern_feedback(self):
         import os
+
         # Clean state file to avoid loading stale patterns
         if os.path.exists("state/hit_patterns.json"):
             os.remove("state/hit_patterns.json")

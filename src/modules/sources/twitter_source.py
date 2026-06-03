@@ -3,6 +3,7 @@
 Requires: uv tool install twitter-cli (or pipx install twitter-cli)
 Auth: Set TWITTER_AUTH_TOKEN + TWITTER_CT0 env vars, or use browser cookie extraction.
 """
+
 from __future__ import annotations
 import asyncio
 import json
@@ -46,9 +47,15 @@ class TwitterSource:
                     text = tweet.get("text", "")
                     tweet_id = tweet.get("id", "")
                     username = tweet.get("author", {}).get("screen_name", "")
-                    url = f"https://x.com/{username}/status/{tweet_id}" if username and tweet_id else ""
+                    url = (
+                        f"https://x.com/{username}/status/{tweet_id}"
+                        if username and tweet_id
+                        else ""
+                    )
                     if text:
-                        leaks.append(RawLeak(text=text, source_name="twitter", source_url=url))
+                        leaks.append(
+                            RawLeak(text=text, source_name="twitter", source_url=url)
+                        )
             except Exception as exc:
                 logger.error("Twitter search error for '%s': %s", query, exc)
 
@@ -65,7 +72,8 @@ class TwitterSource:
                     source_name="twitter",
                     source_url=f"https://x.com/{t.get('author', {}).get('screen_name', '')}/status/{t.get('id', '')}",
                 )
-                for t in results if t.get("text")
+                for t in results
+                if t.get("text")
             ]
         except Exception:
             return []
@@ -73,15 +81,21 @@ class TwitterSource:
     async def _search(self, query: str) -> list[dict]:
         """Run twitter search and return parsed tweet objects."""
         cmd = [
-            self._cli_path, "search", query,
-            "--json", "--max", str(self.max_per_query),
+            self._cli_path,
+            "search",
+            query,
+            "--json",
+            "--max",
+            str(self.max_per_query),
         ]
         proc = await asyncio.create_subprocess_exec(
             *cmd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
-        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=self.timeout)
+        stdout, stderr = await asyncio.wait_for(
+            proc.communicate(), timeout=self.timeout
+        )
 
         if proc.returncode != 0:
             err_msg = stderr.decode().strip()

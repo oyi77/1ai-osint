@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import re
 import uuid
+import logging
 from collections import Counter
 from typing import Any
 
@@ -36,23 +37,91 @@ from src.modules.deep_scan.briefing_builder import build_operational_briefing
 from src.modules.deep_scan.field_labels import source_blurb, source_display_name
 from src.modules.deep_scan import IdentifierType
 
+logger = logging.getLogger(__name__)
+
 
 # Risk rules — checked in order
 _RISK_RULES: list[tuple[str, str, str, float, RiskLevel]] = [
     # (rule_id, condition_check_fn_name, description, weight, level_if_triggered)
-    ("nik_plus_name_plus_phone", "_has_nik_name_phone", "NIK + name + phone combined (full PII exposure)", 0.7, RiskLevel.CRITICAL),
-    ("nik_present", "_has_nik", "Indonesian NIK (national ID) found", 0.5, RiskLevel.HIGH),
-    ("crypto_mixer", "_has_mixer_tagged_crypto", "Crypto address tagged as mixer (sanctioned risk)", 0.9, RiskLevel.CRITICAL),
-    ("seed_phrase_leak", "_has_seed_phrase", "Seed phrase / private key exposed", 1.0, RiskLevel.CRITICAL),
-    ("password_leak", "_has_password", "Plaintext password discovered", 0.8, RiskLevel.CRITICAL),
-    ("multi_platform_corroboration", "_has_3plus_platforms", "Username confirmed on 3+ platforms (high visibility)", 0.3, RiskLevel.MEDIUM),
+    (
+        "nik_plus_name_plus_phone",
+        "_has_nik_name_phone",
+        "NIK + name + phone combined (full PII exposure)",
+        0.7,
+        RiskLevel.CRITICAL,
+    ),
+    (
+        "nik_present",
+        "_has_nik",
+        "Indonesian NIK (national ID) found",
+        0.5,
+        RiskLevel.HIGH,
+    ),
+    (
+        "crypto_mixer",
+        "_has_mixer_tagged_crypto",
+        "Crypto address tagged as mixer (sanctioned risk)",
+        0.9,
+        RiskLevel.CRITICAL,
+    ),
+    (
+        "seed_phrase_leak",
+        "_has_seed_phrase",
+        "Seed phrase / private key exposed",
+        1.0,
+        RiskLevel.CRITICAL,
+    ),
+    (
+        "password_leak",
+        "_has_password",
+        "Plaintext password discovered",
+        0.8,
+        RiskLevel.CRITICAL,
+    ),
+    (
+        "multi_platform_corroboration",
+        "_has_3plus_platforms",
+        "Username confirmed on 3+ platforms (high visibility)",
+        0.3,
+        RiskLevel.MEDIUM,
+    ),
     ("phone_present", "_has_phone", "Phone number exposed", 0.3, RiskLevel.MEDIUM),
     ("email_present", "_has_email", "Email exposed", 0.2, RiskLevel.LOW),
-    ("nik_plus_address_plus_phone", "_has_nik_address_phone", "NIK + address + phone (full KYC exposure)", 0.8, RiskLevel.CRITICAL),
-    ("multi_breach_credentials", "_has_multi_breach_password", "Password found in 2+ breaches", 0.9, RiskLevel.CRITICAL),
-    ("password_plus_email", "_has_password_email", "Password + email combo leaked", 0.8, RiskLevel.CRITICAL),
-    ("dob_plus_nik", "_has_dob_nik", "Date of birth + NIK (identity theft risk)", 0.6, RiskLevel.HIGH),
-    ("crypto_key_leak", "_has_crypto_key", "Crypto private key or seed phrase in raw data", 0.9, RiskLevel.CRITICAL),
+    (
+        "nik_plus_address_plus_phone",
+        "_has_nik_address_phone",
+        "NIK + address + phone (full KYC exposure)",
+        0.8,
+        RiskLevel.CRITICAL,
+    ),
+    (
+        "multi_breach_credentials",
+        "_has_multi_breach_password",
+        "Password found in 2+ breaches",
+        0.9,
+        RiskLevel.CRITICAL,
+    ),
+    (
+        "password_plus_email",
+        "_has_password_email",
+        "Password + email combo leaked",
+        0.8,
+        RiskLevel.CRITICAL,
+    ),
+    (
+        "dob_plus_nik",
+        "_has_dob_nik",
+        "Date of birth + NIK (identity theft risk)",
+        0.6,
+        RiskLevel.HIGH,
+    ),
+    (
+        "crypto_key_leak",
+        "_has_crypto_key",
+        "Crypto private key or seed phrase in raw data",
+        0.9,
+        RiskLevel.CRITICAL,
+    ),
 ]
 
 
@@ -90,9 +159,13 @@ def generate_intel_report(result: Any) -> IntelReport:
     report.pivots = _suggest_pivots(result, evidence)
 
     # ZKIT correlation
-    if getattr(result, 'zkit_result', None):
+    if getattr(result, "zkit_result", None):
         report.correlation_clusters = _build_correlation(result.zkit_result)
-        report.correlation_stats = result.zkit_result.graph_stats if hasattr(result.zkit_result, 'graph_stats') else {}
+        report.correlation_stats = (
+            result.zkit_result.graph_stats
+            if hasattr(result.zkit_result, "graph_stats")
+            else {}
+        )
 
     # Summary + warnings
     report.summary = _summarize(result, evidence, report.risk)
@@ -112,6 +185,9 @@ def generate_intel_report(result: Any) -> IntelReport:
     except Exception:
         pass
 
+    # Phase 5: CIA-level analytical layers (synchronous, all gracefully degrade on error)
+    _run_phase5_analysis(report, result)
+
     return report
 
 
@@ -123,6 +199,106 @@ def generate_intel_report_with_ai(result: Any, *, use_ai: bool = False) -> Any:
 
         enhance_briefing_with_ai(report, result)
     return report
+
+
+# ---------------------------------------------------------------------------
+# Phase 5: CIA-level analytical pipeline
+# ---------------------------------------------------------------------------
+def _run_phase5_analysis(report: Any, result: Any) -> None:
+    """Run all Phase 5 CIA-level analytical layers on the completed report.
+
+    Each layer degrades gracefully — a failure in one pillar never blocks others.
+    Results are written directly to report fields.
+    """
+    # Pillar 6: Predictive Threat Modeling
+    try:
+        from src.modules.deep_scan.threat_model import PredictiveThreatModeler
+
+        modeler = PredictiveThreatModeler()
+        trajectory = modeler.predict_trajectory(report)
+        report.threat_trajectory = trajectory
+        report.briefing.threat_trajectory_summary = (
+            f"Archetype: {trajectory.most_likely_archetype.value.replace('_', ' ').title()} "
+            f"({trajectory.confidence} confidence). "
+            + (
+                trajectory.predicted_next_actions[0]
+                if trajectory.predicted_next_actions
+                else ""
+            )
+        )
+    except Exception as exc:
+        logger.warning("Phase 5 threat model failed: %s", exc)
+
+    # Pillar 7: Counterintelligence & Legend Detection
+    try:
+        from src.modules.identity_tracking.counterintel import CounterIntelAnalyzer
+
+        ci_analyzer = CounterIntelAnalyzer()
+        ci_assessment = ci_analyzer.assess_legend_probability(result)
+        report.counterintel = ci_assessment
+        report.briefing.counterintel_summary = (
+            f"OPSEC: {ci_assessment.opsec_level.value.upper()} | "
+            f"Legend probability: {ci_assessment.legend_confidence:.0%} | "
+            + (
+                "LEGEND SUSPECTED"
+                if ci_assessment.is_likely_legend
+                else "No legend detected"
+            )
+        )
+    except Exception as exc:
+        logger.warning("Phase 5 counterintel failed: %s", exc)
+
+    # Pillar 2: Behavioral Fingerprint (requires social evidence text)
+    try:
+        from src.modules.identity_tracking.behavioral_fingerprint import (
+            LinguisticFingerprintAnalyzer,
+        )
+
+        analyzer = LinguisticFingerprintAnalyzer()
+        texts = [
+            ev.snippet for ev in report.evidence if ev.snippet and len(ev.snippet) > 20
+        ]
+
+        # Phase 6 Injection: add actual deep scraped texts
+        if hasattr(result, "scraped_texts") and result.scraped_texts:
+            texts.extend(result.scraped_texts)
+
+        if texts:
+            fp = analyzer.analyze_texts(texts[:50], subject_id=report.target)
+            report.behavioral_fingerprint = fp
+    except Exception as exc:
+        logger.warning("Phase 5 behavioral fingerprint failed: %s", exc)
+
+    # Pillar 4: Geospatial OSINT
+    try:
+        from src.modules.deep_scan.geo_osint import GeoOSINTEngine
+
+        geo_engine = GeoOSINTEngine()
+        location_events = geo_engine.build_location_timeline(report.evidence)
+        if location_events:
+            geo_clusters = geo_engine._cluster_events(location_events)
+            report.geo_clusters = [
+                c.model_dump() if hasattr(c, "model_dump") else c for c in geo_clusters
+            ]
+            if geo_clusters:
+                report.briefing.geospatial_summary = (
+                    f"{len(geo_clusters)} location cluster(s) identified. "
+                    f"Primary cluster: {geo_clusters[0].label} "
+                    f"({geo_clusters[0].evidence_count} evidence points, geohash {geo_clusters[0].geohash})."
+                )
+    except Exception as exc:
+        logger.warning("Phase 5 geo OSINT failed: %s", exc)
+
+    # Phase 6 Vision AI Injection
+    try:
+        if hasattr(result, "vision_scores") and result.vision_scores:
+            avg_score = sum(result.vision_scores) / len(result.vision_scores)
+            report.briefing.cia_bluf_plus = (
+                (report.briefing.cia_bluf_plus or "")
+                + f" [VISION AI: Identities correlated across profiles with {avg_score:.0%} confidence.]"
+            )
+    except Exception as exc:
+        logger.warning("Phase 6 vision injection failed: %s", exc)
 
 
 # ---------------------------------------------------------------------------
@@ -141,55 +317,72 @@ def _extract_evidence(result: Any) -> list[EvidenceItem]:
         # Collect all identifiers present in raw_data (not just first match)
         identifiers_found: list[tuple[str, str]] = []
         for key, target_type in [
-            ("username", "username"), ("email", "email"), ("phone", "phone"),
-            ("nik", "nik"), ("address", "crypto"), ("domain", "domain"),
+            ("username", "username"),
+            ("email", "email"),
+            ("phone", "phone"),
+            ("nik", "nik"),
+            ("address", "crypto"),
+            ("domain", "domain"),
         ]:
             if key in rd:
                 identifiers_found.append((str(rd[key]), target_type))
 
         # Walk platform lists (e.g., social_osint) — emit per-platform evidence
         if "platforms" in rd and isinstance(rd["platforms"], list):
-            primary_ident = next((rd.get(k) for k in ["username", "email"] if k in rd), None)
+            primary_ident = next(
+                (rd.get(k) for k in ["username", "email"] if k in rd), None
+            )
             for plat in rd["platforms"]:
                 if not isinstance(plat, dict):
                     continue
                 platform = plat.get("platform", "?")
-                url = plat.get("url") or _build_platform_url(platform, str(primary_ident or finding.title))
+                url = plat.get("url") or _build_platform_url(
+                    platform, str(primary_ident or finding.title)
+                )
                 status = plat.get("status")
                 exists = plat.get("exists")
+                # Do not include non-existent accounts in the final report
+                if exists is False:
+                    continue
                 ev_key = (str(url), source, platform)
                 if ev_key in seen:
                     continue
                 seen.add(ev_key)
-                evidence.append(EvidenceItem(
-                    id=f"ev-{uuid.uuid4().hex[:8]}",
-                    identifier_value=str(primary_ident or platform),
-                    identifier_type="username" if primary_ident else "platform",
-                    source=source,
-                    source_reliability=reliability,
-                    url=url,
-                    http_status=int(status) if isinstance(status, (int, float)) else None,
-                    snippet=f"Status {status} (exists={exists})" if status is not None else None,
-                    raw_data=plat,
-                    confidence=0.9 if exists else 0.2,
-                    notes=platform,
-                ))
+                evidence.append(
+                    EvidenceItem(
+                        id=f"ev-{uuid.uuid4().hex[:8]}",
+                        identifier_value=str(primary_ident or platform),
+                        identifier_type="username" if primary_ident else "platform",
+                        source=source,
+                        source_reliability=reliability,
+                        url=url,
+                        http_status=int(status)
+                        if isinstance(status, (int, float))
+                        else None,
+                        snippet="Profile confirmed active" if exists else "Profile visibility unconfirmed",
+                        raw_data=plat,
+                        confidence=0.9 if exists else 0.2,
+                        notes=platform,
+                    )
+                )
             # Platforms also emit the identifier value itself
             if primary_ident:
                 ident_key = (str(primary_ident), source, "username")
                 if ident_key not in seen:
                     seen.add(ident_key)
-                    evidence.append(EvidenceItem(
-                        id=f"ev-{uuid.uuid4().hex[:8]}",
-                        identifier_value=str(primary_ident),
-                        identifier_type="username",
-                        source=source,
-                        source_reliability=reliability,
-                        url=rd.get("url"),
-                        snippet=rd.get("snippet") or finding.description,
-                        raw_data=rd,
-                        confidence=0.7,
-                    ))
+                    evidence.append(
+                        EvidenceItem(
+                            id=f"ev-{uuid.uuid4().hex[:8]}",
+                            identifier_value=str(primary_ident),
+                            identifier_type="username",
+                            source=source,
+                            source_reliability=reliability,
+                            url=rd.get("url"),
+                            snippet=rd.get("snippet") or finding.description,
+                            raw_data=rd,
+                            confidence=0.7,
+                        )
+                    )
 
         # Emit evidence for each identifier found (non-platform case)
         else:
@@ -198,39 +391,49 @@ def _extract_evidence(result: Any) -> list[EvidenceItem]:
                 if ev_key in seen:
                     continue
                 seen.add(ev_key)
-                evidence.append(EvidenceItem(
-                    id=f"ev-{uuid.uuid4().hex[:8]}",
-                    identifier_value=ident_value,
-                    identifier_type=ident_type,
-                    source=source,
-                    source_reliability=reliability,
-                    url=rd.get("url") or rd.get("source_url"),
-                    snippet=rd.get("snippet") or finding.description,
-                    raw_data=rd,
-                    confidence=0.7,
-                ))
+                evidence.append(
+                    EvidenceItem(
+                        id=f"ev-{uuid.uuid4().hex[:8]}",
+                        identifier_value=ident_value,
+                        identifier_type=ident_type,
+                        source=source,
+                        source_reliability=reliability,
+                        url=rd.get("url") or rd.get("source_url"),
+                        snippet=rd.get("snippet") or finding.description,
+                        raw_data=rd,
+                        confidence=0.7,
+                    )
+                )
 
             # Full structured record (breach / leak / people_finder rows)
             if rd and len(rd) > 1:
                 primary = (
-                    rd.get("email") or rd.get("username") or rd.get("phone")
-                    or rd.get("name") or rd.get("target") or finding.title
+                    rd.get("email")
+                    or rd.get("username")
+                    or rd.get("phone")
+                    or rd.get("name")
+                    or rd.get("target")
+                    or finding.title
                 )
                 record_key = (source, str(primary), "record")
                 if record_key not in seen:
                     seen.add(record_key)
-                    evidence.append(EvidenceItem(
-                        id=f"ev-{uuid.uuid4().hex[:8]}",
-                        identifier_value=str(primary),
-                        identifier_type="breach_record" if source.startswith("source_") else "record",
-                        source=source,
-                        source_reliability=reliability,
-                        url=rd.get("source_url") or rd.get("url"),
-                        snippet=finding.description or "",
-                        raw_data=rd,
-                        confidence=getattr(finding, "confidence", 0.7) or 0.7,
-                        notes=rd.get("source") or rd.get("breach_name") or "",
-                    ))
+                    evidence.append(
+                        EvidenceItem(
+                            id=f"ev-{uuid.uuid4().hex[:8]}",
+                            identifier_value=str(primary),
+                            identifier_type="breach_record"
+                            if source.startswith("source_")
+                            else "record",
+                            source=source,
+                            source_reliability=reliability,
+                            url=rd.get("source_url") or rd.get("url"),
+                            snippet=finding.description or "",
+                            raw_data=rd,
+                            confidence=getattr(finding, "confidence", 0.7) or 0.7,
+                            notes=rd.get("source") or rd.get("breach_name") or "",
+                        )
+                    )
 
     return evidence
 
@@ -261,13 +464,15 @@ def _build_source_blocks(result: Any) -> list[SourceIntelBlock]:
     blocks: list[SourceIntelBlock] = []
     for idx, module in enumerate(sorted(grouped.keys()), start=1):
         records = grouped[module]
-        blocks.append(SourceIntelBlock(
-            block_id=f"p{idx}",
-            module=module,
-            title=source_display_name(module),
-            description=source_blurb(module),
-            records=records,
-        ))
+        blocks.append(
+            SourceIntelBlock(
+                block_id=f"p{idx}",
+                module=module,
+                title=source_display_name(module),
+                description=source_blurb(module),
+                records=records,
+            )
+        )
     return blocks
 
 
@@ -299,7 +504,9 @@ def _slugify(value: str) -> str:
 # ---------------------------------------------------------------------------
 # Confidence breakdown
 # ---------------------------------------------------------------------------
-def _compute_confidence(result: Any, evidence: list[EvidenceItem]) -> dict[str, ConfidenceBreakdown]:
+def _compute_confidence(
+    result: Any, evidence: list[EvidenceItem]
+) -> dict[str, ConfidenceBreakdown]:
     by_value: dict[str, ConfidenceBreakdown] = {}
 
     # Group evidence by identifier value
@@ -348,12 +555,14 @@ def _assess_risk(result: Any, evidence: list[EvidenceItem]) -> RiskAssessment:
     for rule_id, fn_name, desc, weight, level in _RISK_RULES:
         check = globals().get(fn_name, lambda vs: False)
         triggered = bool(check(values))
-        factors.append(RiskFactor(
-            rule=rule_id,
-            description=desc,
-            weight=weight,
-            triggered=triggered,
-        ))
+        factors.append(
+            RiskFactor(
+                rule=rule_id,
+                description=desc,
+                weight=weight,
+                triggered=triggered,
+            )
+        )
 
     assessment.factors = factors
 
@@ -442,7 +651,8 @@ def _has_password_email(values: set) -> bool:
 def _has_dob_nik(values: set) -> bool:
     has_nik = any(re.match(r"^\d{16}$", v.replace(" ", "")) for v in values)
     has_dob = any(
-        re.match(r"\d{4}[-/]\d{2}[-/]\d{2}", v) or re.match(r"\d{2}[-/]\d{2}[-/]\d{4}", v)
+        re.match(r"\d{4}[-/]\d{2}[-/]\d{2}", v)
+        or re.match(r"\d{2}[-/]\d{2}[-/]\d{4}", v)
         for v in values
     )
     return has_dob and has_nik
@@ -450,9 +660,12 @@ def _has_dob_nik(values: set) -> bool:
 
 def _has_crypto_key(values: set) -> bool:
     return any(
-        "private_key" in v.lower() or "privatekey" in v.lower()
-        or "seed phrase" in v.lower() or "mnemonic" in v.lower()
-        or "0x" in v and len(v) == 66  # raw private key hex
+        "private_key" in v.lower()
+        or "privatekey" in v.lower()
+        or "seed phrase" in v.lower()
+        or "mnemonic" in v.lower()
+        or "0x" in v
+        and len(v) == 66  # raw private key hex
         for v in values
     )
 
@@ -461,24 +674,50 @@ def _has_crypto_key(values: set) -> bool:
 # Timeline
 # ---------------------------------------------------------------------------
 def _build_timeline(result: Any, evidence: list[EvidenceItem]) -> list[TimelineEntry]:
-    entries: list[TimelineEntry] = []
-    seen: set[tuple] = set()
+    from datetime import datetime, timezone
+    from src.modules.deep_scan.timeline_builder import TimelineBuilder
 
-    # Sort evidence by captured_at
-    sorted_ev = sorted(evidence, key=lambda e: e.captured_at)
-    for ev in sorted_ev:
-        key = (ev.captured_at, ev.source, ev.identifier_value)
-        if key in seen:
-            continue
-        seen.add(key)
-        entries.append(TimelineEntry(
-            timestamp=ev.captured_at,
-            source=ev.source,
-            event="evidence_captured",
-            detail=f"{ev.identifier_type}={ev.identifier_value} on {ev.source}" + (f" ({ev.url})" if ev.url else ""),
-            confidence=ev.confidence,
-        ))
+    # Extract findings and breach records from result if available
+    findings = getattr(result, "findings", []) or []
+    scan_results = getattr(result, "scan_results", []) or []
+    breach_records = []
+    for sr in scan_results:
+        if hasattr(sr, "breach_records"):
+            breach_records.extend(sr.breach_records)
 
+    # Build rich timeline entries
+    entries = TimelineBuilder.build(findings, breach_records)
+
+    # Create seen set based on timestamp and detail
+    seen_keys = {
+        (t.timestamp.isoformat() if t.timestamp else "", t.detail) for t in entries
+    }
+
+    # Fallback/complement: add evidence captured events
+    for ev in evidence:
+        ts = ev.captured_at
+        detail = f"{ev.identifier_type}={ev.identifier_value} on {ev.source}" + (
+            f" ({ev.url})" if ev.url else ""
+        )
+        key = (ts.isoformat() if ts else "", detail)
+        if key not in seen_keys:
+            seen_keys.add(key)
+            entries.append(
+                TimelineEntry(
+                    timestamp=ts,
+                    source=ev.source,
+                    event="evidence_captured",
+                    detail=detail,
+                    confidence=ev.confidence,
+                )
+            )
+
+    # Sort final timeline chronologically
+    entries.sort(
+        key=lambda x: (
+            x.timestamp if x.timestamp else datetime.min.replace(tzinfo=timezone.utc)
+        )
+    )
     return entries
 
 
@@ -490,9 +729,14 @@ def _build_graph(result: Any, evidence: list[EvidenceItem]) -> IdentityGraph:
 
     # Central node: target
     target_id = "target"
-    graph.nodes.append(IdentityNode(
-        id=target_id, label=result.target, type="name", weight=1.0,
-    ))
+    graph.nodes.append(
+        IdentityNode(
+            id=target_id,
+            label=result.target,
+            type="name",
+            weight=1.0,
+        )
+    )
 
     seen_node_ids: set[str] = set()
     for ident in result.identifiers:
@@ -500,19 +744,25 @@ def _build_graph(result: Any, evidence: list[EvidenceItem]) -> IdentityGraph:
         if node_id in seen_node_ids:
             continue
         seen_node_ids.add(node_id)
-        graph.nodes.append(IdentityNode(
-            id=node_id,
-            label=ident.value if len(ident.value) <= 30 else ident.value[:27] + "...",
-            type=ident.id_type.value,
-            weight=ident.confidence,
-            metadata=ident.metadata or {},
-        ))
-        graph.edges.append(IdentityEdge(
-            source_id=target_id,
-            target_id=node_id,
-            relationship="linked_to",
-            weight=ident.confidence,
-        ))
+        graph.nodes.append(
+            IdentityNode(
+                id=node_id,
+                label=ident.value
+                if len(ident.value) <= 30
+                else ident.value[:27] + "...",
+                type=ident.id_type.value,
+                weight=ident.confidence,
+                metadata=ident.metadata or {},
+            )
+        )
+        graph.edges.append(
+            IdentityEdge(
+                source_id=target_id,
+                target_id=node_id,
+                relationship="linked_to",
+                weight=ident.confidence,
+            )
+        )
 
     # Platform nodes + edges from evidence
     for ev in evidence:
@@ -521,12 +771,14 @@ def _build_graph(result: Any, evidence: list[EvidenceItem]) -> IdentityGraph:
         plat_id = f"plat-{ev.notes or ev.source}"
         if plat_id not in seen_node_ids:
             seen_node_ids.add(plat_id)
-            graph.nodes.append(IdentityNode(
-                id=plat_id,
-                label=ev.notes or ev.source,
-                type="social",
-                weight=0.5,
-            ))
+            graph.nodes.append(
+                IdentityNode(
+                    id=plat_id,
+                    label=ev.notes or ev.source,
+                    type="social",
+                    weight=0.5,
+                )
+            )
 
         # Find which identifier this evidence is about
         ident_id = None
@@ -537,13 +789,15 @@ def _build_graph(result: Any, evidence: list[EvidenceItem]) -> IdentityGraph:
         if not ident_id:
             ident_id = target_id
 
-        graph.edges.append(IdentityEdge(
-            source_id=ident_id,
-            target_id=plat_id,
-            relationship="found_on",
-            weight=ev.confidence,
-            evidence_ids=[ev.id],
-        ))
+        graph.edges.append(
+            IdentityEdge(
+                source_id=ident_id,
+                target_id=plat_id,
+                relationship="found_on",
+                weight=ev.confidence,
+                evidence_ids=[ev.id],
+            )
+        )
 
     return graph
 
@@ -555,47 +809,75 @@ def _suggest_pivots(result: Any, evidence: list[EvidenceItem]) -> list[PivotSugg
     pivots: list[PivotSuggestion] = []
     seen: set[tuple[str, str]] = set()
 
-    def _add(target_type: str, value: str, rationale: str, priority: int, sources: list[str]):
+    def _add(
+        target_type: str, value: str, rationale: str, priority: int, sources: list[str]
+    ):
         if not value or value.startswith(("http://", "https://")):
             return
         key = (target_type, value)
         if key in seen:
             return
         seen.add(key)
-        pivots.append(PivotSuggestion(
-            target_type=target_type,
-            target_value=value,
-            rationale=rationale,
-            priority=priority,
-            expected_sources=sources,
-        ))
+        pivots.append(
+            PivotSuggestion(
+                target_type=target_type,
+                target_value=value,
+                rationale=rationale,
+                priority=priority,
+                expected_sources=sources,
+            )
+        )
 
     for ident in result.identifiers:
         if ident.id_type == IdentifierType.USERNAME:
             if ident.value.startswith(("http://", "https://")):
                 continue
-            _add("email", _guess_email(ident.value, result.target),
-                 f"Username '{ident.value}' likely has a Gravatar or GitHub email",
-                 priority=2, sources=["github", "gravatar", "hunter"])
-            _add("phone", f"Username {ident.value} on phone lookup",
-                 f"Username '{ident.value}' may have associated phone",
-                 priority=3, sources=["truecaller", "leakcheck"])
+            _add(
+                "email",
+                _guess_email(ident.value, result.target),
+                f"Username '{ident.value}' likely has a Gravatar or GitHub email",
+                priority=2,
+                sources=["github", "gravatar", "hunter"],
+            )
+            _add(
+                "phone",
+                f"Username {ident.value} on phone lookup",
+                f"Username '{ident.value}' may have associated phone",
+                priority=3,
+                sources=["truecaller", "leakcheck"],
+            )
         elif ident.id_type == IdentifierType.EMAIL:
             user = ident.value.split("@")[0]
-            _add("username", user,
-                 f"Extract local-part '{user}' for username search",
-                 priority=1, sources=["github", "twitter", "instagram"])
-            _add("domain", ident.value.split("@", 1)[1],
-                 f"Investigate domain {ident.value.split('@', 1)[1]}",
-                 priority=2, sources=["whois", "domain_recon"])
+            _add(
+                "username",
+                user,
+                f"Extract local-part '{user}' for username search",
+                priority=1,
+                sources=["github", "twitter", "instagram"],
+            )
+            _add(
+                "domain",
+                ident.value.split("@", 1)[1],
+                f"Investigate domain {ident.value.split('@', 1)[1]}",
+                priority=2,
+                sources=["whois", "domain_recon"],
+            )
         elif ident.id_type == IdentifierType.PHONE:
-            _add("email", f"phone:{ident.value}",
-                 f"Run reverse phone lookup for {ident.value}",
-                 priority=2, sources=["leakcheck", "dehashed"])
+            _add(
+                "email",
+                f"phone:{ident.value}",
+                f"Run reverse phone lookup for {ident.value}",
+                priority=2,
+                sources=["leakcheck", "dehashed"],
+            )
         elif ident.id_type == IdentifierType.CRYPTO_ADDRESS:
-            _add("username", f"address:{ident.value[:10]}",
-                 f"Track funding source for {ident.value[:10]}...",
-                 priority=1, sources=["etherscan", "blockchain_info"])
+            _add(
+                "username",
+                f"address:{ident.value[:10]}",
+                f"Track funding source for {ident.value[:10]}...",
+                priority=1,
+                sources=["etherscan", "blockchain_info"],
+            )
 
     return pivots
 
@@ -631,7 +913,9 @@ def _collect_warnings(result: Any, evidence: list[EvidenceItem]) -> list[str]:
         warnings.append("No evidence collected — all sources returned 0 results")
     low_conf = [e for e in evidence if e.confidence < 0.3]
     if low_conf:
-        warnings.append(f"{len(low_conf)} low-confidence evidence item(s) — verify manually")
+        warnings.append(
+            f"{len(low_conf)} low-confidence evidence item(s) — verify manually"
+        )
     return warnings
 
 
@@ -641,13 +925,15 @@ def _collect_warnings(result: Any, evidence: list[EvidenceItem]) -> list[str]:
 def _build_correlation(zkit_result: Any) -> list[dict]:
     """Convert ZKIT CorrelationResult to serializable dicts for the report."""
     clusters: list[dict] = []
-    for entity in getattr(zkit_result, 'resolved_entities', []):
-        clusters.append({
-            "entity_id": getattr(entity, 'entity_id', ''),
-            "zkit_hashes": getattr(entity, 'zkit_hashes', []),
-            "attribute_types": getattr(entity, 'attribute_types', {}),
-            "confidence": getattr(entity, 'confidence', 0.0),
-            "source_modules": getattr(entity, 'source_modules', []),
-            "evidence": getattr(entity, 'correlation_evidence', []),
-        })
+    for entity in getattr(zkit_result, "resolved_entities", []):
+        clusters.append(
+            {
+                "entity_id": getattr(entity, "entity_id", ""),
+                "zkit_hashes": getattr(entity, "zkit_hashes", []),
+                "attribute_types": getattr(entity, "attribute_types", {}),
+                "confidence": getattr(entity, "confidence", 0.0),
+                "source_modules": getattr(entity, "source_modules", []),
+                "evidence": getattr(entity, "correlation_evidence", []),
+            }
+        )
     return clusters

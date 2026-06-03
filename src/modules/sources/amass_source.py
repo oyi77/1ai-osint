@@ -1,4 +1,5 @@
 """Amass source adapter for subdomain enumeration."""
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -29,21 +30,25 @@ class AmassSource:
 
         try:
             proc = await asyncio.create_subprocess_exec(
-                amass_path, "enum", "-passive", "-d", address,
+                amass_path,
+                "enum",
+                "-passive",
+                "-d",
+                address,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
-            stdout, _ = await asyncio.wait_for(
-                proc.communicate(), timeout=self.timeout
-            )
+            stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=self.timeout)
             if stdout:
                 text = stdout.decode()
                 if text.strip():
-                    leaks.append(RawLeak(
-                        text=text,
-                        source_name="amass",
-                        source_url="",
-                    ))
+                    leaks.append(
+                        RawLeak(
+                            text=text,
+                            source_name="amass",
+                            source_url="",
+                        )
+                    )
         except asyncio.TimeoutError:
             logger.debug("Amass: timeout for '%s'", address)
         except Exception as exc:

@@ -1,16 +1,23 @@
 """Tests for deep_scan module."""
+
 from __future__ import annotations
 import pytest
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from src.modules.deep_scan import (
-    DeepScanResult, Identifier, IdentifierType,
+    DeepScanResult,
+    Identifier,
+    IdentifierType,
 )
-from src.modules.deep_scan.extractor import extract_identifiers, _is_valid_nik, _parse_nik
+from src.modules.deep_scan.extractor import (
+    extract_identifiers,
+    _is_valid_nik,
+    _parse_nik,
+)
 from src.modules.deep_scan.report import generate_html_report, generate_pdf_report, _esc
 from src.modules.deep_scan.extractor import extract_usernames_from_profiles
-from src.models import Finding, ScanResult, Severity
+from src.core.models import Finding, ScanResult, Severity
 
 
 # ---------------------------------------------------------------------------
@@ -18,13 +25,17 @@ from src.models import Finding, ScanResult, Severity
 # ---------------------------------------------------------------------------
 class TestIdentifier:
     def test_create(self):
-        ident = Identifier(value="test@example.com", id_type=IdentifierType.EMAIL, source="test")
+        ident = Identifier(
+            value="test@example.com", id_type=IdentifierType.EMAIL, source="test"
+        )
         assert ident.value == "test@example.com"
         assert ident.id_type == IdentifierType.EMAIL
         assert ident.confidence == 1.0
 
     def test_hash(self):
-        ident = Identifier(value="test@example.com", id_type=IdentifierType.EMAIL, source="test")
+        ident = Identifier(
+            value="test@example.com", id_type=IdentifierType.EMAIL, source="test"
+        )
         assert len(ident.hash) == 16
 
 
@@ -37,13 +48,19 @@ class TestDeepScanResult:
 
     def test_get_emails(self):
         result = DeepScanResult(target="test", started_at=datetime.now(timezone.utc))
-        result.identifiers.append(Identifier(value="a@b.com", id_type=IdentifierType.EMAIL, source="t"))
-        result.identifiers.append(Identifier(value="user", id_type=IdentifierType.USERNAME, source="t"))
+        result.identifiers.append(
+            Identifier(value="a@b.com", id_type=IdentifierType.EMAIL, source="t")
+        )
+        result.identifiers.append(
+            Identifier(value="user", id_type=IdentifierType.USERNAME, source="t")
+        )
         assert result.get_emails() == ["a@b.com"]
 
     def test_get_usernames(self):
         result = DeepScanResult(target="test", started_at=datetime.now(timezone.utc))
-        result.identifiers.append(Identifier(value="user1", id_type=IdentifierType.USERNAME, source="t"))
+        result.identifiers.append(
+            Identifier(value="user1", id_type=IdentifierType.USERNAME, source="t")
+        )
         assert result.get_usernames() == ["user1"]
 
     def test_to_dict(self):
@@ -70,7 +87,9 @@ class TestExtractor:
         assert emails[0].value == "test@example.com"
 
     def test_extract_eth_address(self):
-        ids = extract_identifiers("Wallet: 0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18", "test")
+        ids = extract_identifiers(
+            "Wallet: 0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18", "test"
+        )
         crypto = [i for i in ids if i.id_type == IdentifierType.CRYPTO_ADDRESS]
         assert len(crypto) == 1
         assert crypto[0].metadata.get("chain") == "ethereum"
@@ -180,9 +199,17 @@ class TestNikParser:
 # ---------------------------------------------------------------------------
 class TestReport:
     def test_html_report(self):
-        result = DeepScanResult(target="test@example.com", started_at=datetime.now(timezone.utc))
-        result.identifiers.append(Identifier(value="test@example.com", id_type=IdentifierType.EMAIL, source="test"))
-        result.identifiers.append(Identifier(value="testuser", id_type=IdentifierType.USERNAME, source="test"))
+        result = DeepScanResult(
+            target="test@example.com", started_at=datetime.now(timezone.utc)
+        )
+        result.identifiers.append(
+            Identifier(
+                value="test@example.com", id_type=IdentifierType.EMAIL, source="test"
+            )
+        )
+        result.identifiers.append(
+            Identifier(value="testuser", id_type=IdentifierType.USERNAME, source="test")
+        )
         html = generate_html_report(result)
         assert "test@example.com" in html
         assert "testuser" in html
@@ -190,10 +217,21 @@ class TestReport:
 
     def test_html_report_with_nik(self):
         result = DeepScanResult(target="test", started_at=datetime.now(timezone.utc))
-        result.identifiers.append(Identifier(
-            value="3502150606950001", id_type=IdentifierType.NIK, source="test",
-            metadata={"province_code": "35", "city_code": "02", "birth_day": 15, "birth_month": 6, "birth_year": 1995, "gender": "male"},
-        ))
+        result.identifiers.append(
+            Identifier(
+                value="3502150606950001",
+                id_type=IdentifierType.NIK,
+                source="test",
+                metadata={
+                    "province_code": "35",
+                    "city_code": "02",
+                    "birth_day": 15,
+                    "birth_month": 6,
+                    "birth_year": 1995,
+                    "gender": "male",
+                },
+            )
+        )
         html = generate_html_report(result)
         assert "3502150606950001" in html
 
@@ -213,7 +251,10 @@ class TestReport:
 class TestDeepScanEngine:
     def _make_engine(self):
         from src.modules.deep_scan.engine import DeepScanEngine
-        return DeepScanEngine(max_iterations=1, max_identifiers=50, timeout_per_module=5)
+
+        return DeepScanEngine(
+            max_iterations=1, max_identifiers=50, timeout_per_module=5
+        )
 
     def test_detect_email(self):
         engine = self._make_engine()
@@ -263,10 +304,17 @@ class TestDeepScanEngine:
     @pytest.mark.asyncio
     async def test_scan_basic(self):
         engine = self._make_engine()
-        with patch("src.modules.deep_scan.engine.asyncio.wait_for", new_callable=AsyncMock) as mock_wait:
+        with patch(
+            "src.modules.deep_scan.engine.asyncio.wait_for", new_callable=AsyncMock
+        ) as mock_wait:
             mock_wait.return_value = ScanResult(
-                scan_id="t", module="test", target="test", status="ok", findings=[],
-                started_at=datetime.now(timezone.utc), completed_at=datetime.now(timezone.utc),
+                scan_id="t",
+                module="test",
+                target="test",
+                status="ok",
+                findings=[],
+                started_at=datetime.now(timezone.utc),
+                completed_at=datetime.now(timezone.utc),
             )
             result = await engine.scan("test@example.com")
         assert result is not None
@@ -279,9 +327,13 @@ class TestDeepScanEngine:
 class TestReportEngine:
     def test_from_scan_results(self):
         from src.modules.report_engine import ReportEngine
+
         engine = ReportEngine()
         sr = ScanResult(
-            scan_id="t", module="test", target="test", status="ok",
+            scan_id="t",
+            module="test",
+            target="test",
+            status="ok",
             findings=[],
             started_at=datetime.now(timezone.utc),
             completed_at=datetime.now(timezone.utc),
@@ -292,12 +344,16 @@ class TestReportEngine:
 
     def test_parse_report_json(self):
         from src.modules.report_engine import ReportEngine
+
         engine = ReportEngine()
-        report = engine.parse_report_json('{"target": "test", "title": "Test", "identifiers": [], "metadata": {}}')
+        report = engine.parse_report_json(
+            '{"target": "test", "title": "Test", "identifiers": [], "metadata": {}}'
+        )
         assert report.target == "test"
 
     def test_extract_identifiers_for_scan(self):
         from src.modules.report_engine import ReportEngine, ReportData
+
         engine = ReportEngine()
         report = ReportData(target="test", title="Test")
         report.identifiers = [{"value": "a@b.com", "type": "email"}]
@@ -313,6 +369,7 @@ class TestHTMLTemplate:
     def test_render_html(self):
         from src.modules.report_engine import ReportData
         from src.modules.report_engine.html_template import render_html
+
         report = ReportData(target="test@example.com", title="Test Report")
         html = render_html(report)
         assert "<!DOCTYPE html>" in html
@@ -325,14 +382,30 @@ class TestHTMLTemplate:
 class TestReportEngineExtra:
     def test_from_scan_with_findings(self):
         from src.modules.report_engine import ReportEngine
+
         engine = ReportEngine()
         sr = ScanResult(
-            scan_id="t", module="test", target="test", status="ok",
-            findings=[Finding(
-                id="f1", module="test", title="Test", description="Desc",
-                severity=Severity.INFO,
-                raw_data={"email": "a@b.com", "username": "testuser", "phone": "+1234567890", "domain": "example.com", "ip": "1.2.3.4", "wallet": "0x" + "a" * 40},
-            )],
+            scan_id="t",
+            module="test",
+            target="test",
+            status="ok",
+            findings=[
+                Finding(
+                    id="f1",
+                    module="test",
+                    title="Test",
+                    description="Desc",
+                    severity=Severity.INFO,
+                    raw_data={
+                        "email": "a@b.com",
+                        "username": "testuser",
+                        "phone": "+1234567890",
+                        "domain": "example.com",
+                        "ip": "1.2.3.4",
+                        "wallet": "0x" + "a" * 40,
+                    },
+                )
+            ],
             started_at=datetime.now(timezone.utc),
             completed_at=datetime.now(timezone.utc),
         )
@@ -342,36 +415,62 @@ class TestReportEngineExtra:
 
     def test_report_data_to_dict(self):
         from src.modules.report_engine import ReportData
+
         report = ReportData(target="test", title="Test")
         d = report.to_dict()
         assert d["target"] == "test"
 
     def test_report_data_add_section(self):
         from src.modules.report_engine import ReportData
+
         report = ReportData(target="test", title="Test")
         report.add_section("Emails", ["a@b.com"])
         assert len(report.sections) == 1
 
     def test_report_data_critical_count(self):
         from src.modules.report_engine import ReportData
+
         report = ReportData(target="test", title="Test")
-        report.add_findings([Finding(
-            id="f1", module="test", title="Crit", description="D",
-            severity=Severity.CRITICAL,
-        )])
+        report.add_findings(
+            [
+                Finding(
+                    id="f1",
+                    module="test",
+                    title="Crit",
+                    description="D",
+                    severity=Severity.CRITICAL,
+                )
+            ]
+        )
         assert report.critical_count == 1
 
     def test_report_data_add_findings(self):
         from src.modules.report_engine import ReportData
+
         report = ReportData(target="test", title="Test")
-        report.add_findings([
-            Finding(id="f1", module="t", title="A", description="D", severity=Severity.INFO),
-            Finding(id="f2", module="t", title="B", description="D", severity=Severity.HIGH),
-        ])
+        report.add_findings(
+            [
+                Finding(
+                    id="f1",
+                    module="t",
+                    title="A",
+                    description="D",
+                    severity=Severity.INFO,
+                ),
+                Finding(
+                    id="f2",
+                    module="t",
+                    title="B",
+                    description="D",
+                    severity=Severity.HIGH,
+                ),
+            ]
+        )
         assert report.finding_count == 2
 
     def test_parse_report_json_with_identifiers(self):
         from src.modules.report_engine import ReportEngine
+
         engine = ReportEngine()
         report = engine.parse_report_json(
             '{"target": "t", "title": "T", "identifiers": [{"value": "x@y.com", "type": "email"}], "metadata": {"k": "v"}}'
@@ -380,6 +479,7 @@ class TestReportEngineExtra:
 
     def test_extract_identifiers_empty(self):
         from src.modules.report_engine import ReportEngine, ReportData
+
         engine = ReportEngine()
         report = ReportData(target="t", title="T")
         assert engine.extract_identifiers_for_scan(report) == []
@@ -391,41 +491,60 @@ class TestReportEngineExtra:
 class TestReportExtended:
     def test_html_report_social_profiles(self):
         result = DeepScanResult(target="test", started_at=datetime.now(timezone.utc))
-        result.identifiers.append(Identifier(
-            value="https://twitter.com/test", id_type=IdentifierType.SOCIAL_PROFILE,
-            source="test", metadata={"platform": "twitter"},
-        ))
+        result.identifiers.append(
+            Identifier(
+                value="https://twitter.com/test",
+                id_type=IdentifierType.SOCIAL_PROFILE,
+                source="test",
+                metadata={"platform": "twitter"},
+            )
+        )
         html = generate_html_report(result)
         assert "twitter" in html
 
     def test_html_report_phones(self):
         result = DeepScanResult(target="test", started_at=datetime.now(timezone.utc))
-        result.identifiers.append(Identifier(value="+1234567890", id_type=IdentifierType.PHONE, source="test"))
+        result.identifiers.append(
+            Identifier(value="+1234567890", id_type=IdentifierType.PHONE, source="test")
+        )
         html = generate_html_report(result)
         assert "+1234567890" in html
 
     def test_html_report_crypto(self):
         result = DeepScanResult(target="test", started_at=datetime.now(timezone.utc))
-        result.identifiers.append(Identifier(
-            value="0x" + "a" * 40, id_type=IdentifierType.CRYPTO_ADDRESS,
-            source="test", metadata={"chain": "ethereum"},
-        ))
+        result.identifiers.append(
+            Identifier(
+                value="0x" + "a" * 40,
+                id_type=IdentifierType.CRYPTO_ADDRESS,
+                source="test",
+                metadata={"chain": "ethereum"},
+            )
+        )
         html = generate_html_report(result)
         assert "ethereum" in html
 
     def test_html_report_domains(self):
         result = DeepScanResult(target="test", started_at=datetime.now(timezone.utc))
-        result.identifiers.append(Identifier(value="example.com", id_type=IdentifierType.DOMAIN, source="test"))
+        result.identifiers.append(
+            Identifier(
+                value="example.com", id_type=IdentifierType.DOMAIN, source="test"
+            )
+        )
         html = generate_html_report(result)
         # Domains only shown in stat count, not as a section
         assert "1" in html
 
     def test_html_report_findings(self):
         result = DeepScanResult(target="test", started_at=datetime.now(timezone.utc))
-        result.findings.append(Finding(
-            id="f1", module="test", title="Vuln Found", description="Critical issue",
-            severity=Severity.CRITICAL,
-        ))
+        result.findings.append(
+            Finding(
+                id="f1",
+                module="test",
+                title="Vuln Found",
+                description="Critical issue",
+                severity=Severity.CRITICAL,
+            )
+        )
         html = generate_html_report(result)
         assert "Vuln Found" in html
         assert "badge-critical" in html
@@ -443,12 +562,23 @@ class TestReportExtended:
         assert "0.0s" in html
 
     def test_pdf_report_with_data(self):
-        result = DeepScanResult(target="test@example.com", started_at=datetime.now(timezone.utc))
-        result.identifiers.append(Identifier(value="test@example.com", id_type=IdentifierType.EMAIL, source="test"))
-        result.findings.append(Finding(
-            id="f1", module="test", title="Finding", description="Desc",
-            severity=Severity.INFO,
-        ))
+        result = DeepScanResult(
+            target="test@example.com", started_at=datetime.now(timezone.utc)
+        )
+        result.identifiers.append(
+            Identifier(
+                value="test@example.com", id_type=IdentifierType.EMAIL, source="test"
+            )
+        )
+        result.findings.append(
+            Finding(
+                id="f1",
+                module="test",
+                title="Finding",
+                description="Desc",
+                severity=Severity.INFO,
+            )
+        )
         pdf = generate_pdf_report(result)
         # PDF may be empty if reportlab not installed
         assert isinstance(pdf, bytes)
@@ -461,6 +591,7 @@ class TestHTMLTemplateExtended:
     def test_render_with_sections(self):
         from src.modules.report_engine import ReportData
         from src.modules.report_engine.html_template import render_html
+
         report = ReportData(target="test@example.com", title="Full Report")
         report.add_section("Emails", ["a@b.com", "c@d.com"])
         report.add_section("Usernames", ["user1"])
@@ -468,19 +599,51 @@ class TestHTMLTemplateExtended:
         report.add_section("Domains", ["example.com"])
         report.add_section("IP Addresses", ["1.2.3.4"])
         report.add_section("Crypto Addresses", ["0x" + "a" * 40])
-        report.add_findings([
-            Finding(id="f1", module="test", title="Critical Bug", description="Bad",
-                    severity=Severity.CRITICAL),
-            Finding(id="f2", module="test", title="High Bug", description="Also bad",
-                    severity=Severity.HIGH),
-            Finding(id="f3", module="test", title="Med Bug", description="Meh",
-                    severity=Severity.MEDIUM),
-            Finding(id="f4", module="test", title="Low Bug", description="Fine",
-                    severity=Severity.LOW),
-            Finding(id="f5", module="test", title="Info", description="Info",
-                    severity=Severity.INFO),
-        ])
-        report.metadata = {"scan_count": 3, "total_findings": 5, "critical_findings": 1, "report_id": "r123"}
+        report.add_findings(
+            [
+                Finding(
+                    id="f1",
+                    module="test",
+                    title="Critical Bug",
+                    description="Bad",
+                    severity=Severity.CRITICAL,
+                ),
+                Finding(
+                    id="f2",
+                    module="test",
+                    title="High Bug",
+                    description="Also bad",
+                    severity=Severity.HIGH,
+                ),
+                Finding(
+                    id="f3",
+                    module="test",
+                    title="Med Bug",
+                    description="Meh",
+                    severity=Severity.MEDIUM,
+                ),
+                Finding(
+                    id="f4",
+                    module="test",
+                    title="Low Bug",
+                    description="Fine",
+                    severity=Severity.LOW,
+                ),
+                Finding(
+                    id="f5",
+                    module="test",
+                    title="Info",
+                    description="Info",
+                    severity=Severity.INFO,
+                ),
+            ]
+        )
+        report.metadata = {
+            "scan_count": 3,
+            "total_findings": 5,
+            "critical_findings": 1,
+            "report_id": "r123",
+        }
         html = render_html(report)
         assert "a@b.com" in html
         assert "user1" in html
@@ -491,6 +654,7 @@ class TestHTMLTemplateExtended:
     def test_render_many_items_truncation(self):
         from src.modules.report_engine import ReportData
         from src.modules.report_engine.html_template import render_html
+
         report = ReportData(target="test", title="Big")
         report.add_section("Emails", [f"user{i}@test.com" for i in range(50)])
         html = render_html(report)
@@ -503,7 +667,10 @@ class TestHTMLTemplateExtended:
 class TestDeepScanEngineExtended:
     def _make_engine(self, **kw):
         from src.modules.deep_scan.engine import DeepScanEngine
-        return DeepScanEngine(max_iterations=2, max_identifiers=50, timeout_per_module=5, **kw)
+
+        return DeepScanEngine(
+            max_iterations=2, max_identifiers=50, timeout_per_module=5, **kw
+        )
 
     def test_detect_none_for_empty(self):
         engine = self._make_engine()
@@ -512,7 +679,9 @@ class TestDeepScanEngineExtended:
     def test_detect_solana_address(self):
         engine = self._make_engine()
         # Long base58 string matches username regex (3-50 alphanumeric)
-        ident = engine._detect_identifier("HAgk6YWDPri5UyX4Y18XzYrFf5C7R5m9v6kQ2J3j8tXr", "input")
+        ident = engine._detect_identifier(
+            "HAgk6YWDPri5UyX4Y18XzYrFf5C7R5m9v6kQ2J3j8tXr", "input"
+        )
         assert ident is not None  # matches username or name
 
     def test_add_identifier_dedup(self):
@@ -526,23 +695,41 @@ class TestDeepScanEngineExtended:
 
     def test_add_identifier_max_limit(self):
         from src.modules.deep_scan.engine import DeepScanEngine
-        engine = DeepScanEngine(max_iterations=1, max_identifiers=1, timeout_per_module=5)
+
+        engine = DeepScanEngine(
+            max_iterations=1, max_identifiers=1, timeout_per_module=5
+        )
         result = DeepScanResult(target="t", started_at=datetime.now(timezone.utc))
-        engine._add_identifier(result, Identifier(value="a@b.com", id_type=IdentifierType.EMAIL, source="s"))
-        engine._add_identifier(result, Identifier(value="c@d.com", id_type=IdentifierType.EMAIL, source="s"))
+        engine._add_identifier(
+            result,
+            Identifier(value="a@b.com", id_type=IdentifierType.EMAIL, source="s"),
+        )
+        engine._add_identifier(
+            result,
+            Identifier(value="c@d.com", id_type=IdentifierType.EMAIL, source="s"),
+        )
         assert len(result.identifiers) == 1
 
     def test_get_new_targets_skips_seen(self):
         engine = self._make_engine()
         result = DeepScanResult(target="t", started_at=datetime.now(timezone.utc))
-        result.identifiers.append(Identifier(value="a@b.com", id_type=IdentifierType.EMAIL, source="s"))
+        result.identifiers.append(
+            Identifier(value="a@b.com", id_type=IdentifierType.EMAIL, source="s")
+        )
         targets = engine._get_new_targets(result, {"a@b.com"})
         assert "a@b.com" not in targets
 
     def test_get_new_targets_skips_low_confidence(self):
         engine = self._make_engine()
         result = DeepScanResult(target="t", started_at=datetime.now(timezone.utc))
-        result.identifiers.append(Identifier(value="x@y.com", id_type=IdentifierType.EMAIL, source="s", confidence=0.1))
+        result.identifiers.append(
+            Identifier(
+                value="x@y.com",
+                id_type=IdentifierType.EMAIL,
+                source="s",
+                confidence=0.1,
+            )
+        )
         targets = engine._get_new_targets(result, set())
         assert len(targets) == 0
 
@@ -555,9 +742,15 @@ class TestDeepScanEngineExtended:
     def test_filter_targets_for_email_module(self):
         engine = self._make_engine()
         result = DeepScanResult(target="t", started_at=datetime.now(timezone.utc))
-        result.identifiers.append(Identifier(value="a@b.com", id_type=IdentifierType.EMAIL, source="s"))
-        result.identifiers.append(Identifier(value="user1", id_type=IdentifierType.USERNAME, source="s"))
-        filtered = engine._filter_targets_for_module("email_osint", {"a@b.com", "user1"}, result)
+        result.identifiers.append(
+            Identifier(value="a@b.com", id_type=IdentifierType.EMAIL, source="s")
+        )
+        result.identifiers.append(
+            Identifier(value="user1", id_type=IdentifierType.USERNAME, source="s")
+        )
+        filtered = engine._filter_targets_for_module(
+            "email_osint", {"a@b.com", "user1"}, result
+        )
         assert "a@b.com" in filtered
         assert "user1" not in filtered
 
@@ -565,7 +758,9 @@ class TestDeepScanEngineExtended:
         engine = self._make_engine()
         result = DeepScanResult(target="t", started_at=datetime.now(timezone.utc))
         # target not in identifiers, but detectable as email
-        filtered = engine._filter_targets_for_module("email_osint", {"new@test.com"}, result)
+        filtered = engine._filter_targets_for_module(
+            "email_osint", {"new@test.com"}, result
+        )
         assert "new@test.com" in filtered
 
     def test_filter_targets_empty_accepted_passes_all(self):
@@ -573,10 +768,13 @@ class TestDeepScanEngineExtended:
         result = DeepScanResult(target="t", started_at=datetime.now(timezone.utc))
         # Empty set is falsy → `not accepted_types` is True → returns all targets
         from src.modules.deep_scan.engine import _MODULE_INPUTS
+
         old = _MODULE_INPUTS.get("test_empty")
         _MODULE_INPUTS["test_empty"] = set()
         try:
-            filtered = engine._filter_targets_for_module("test_empty", {"a@b.com"}, result)
+            filtered = engine._filter_targets_for_module(
+                "test_empty", {"a@b.com"}, result
+            )
             assert filtered == {"a@b.com"}  # empty set means pass-all
         finally:
             if old is None:
@@ -586,18 +784,23 @@ class TestDeepScanEngineExtended:
 
     def test_get_active_modules_custom(self):
         engine = self._make_engine(modules=["email_osint", "social_osint"])
-        assert engine._get_active_modules() == ["email_osint", "social_osint"]
+        assert set(engine._get_active_modules()) == {"email_osint", "social_osint"}
 
     @pytest.mark.asyncio
     async def test_scan_module_timeout(self):
         from src.modules.deep_scan.engine import DeepScanEngine
-        engine = DeepScanEngine(max_iterations=1, max_identifiers=50, timeout_per_module=0.001)
+
+        engine = DeepScanEngine(
+            max_iterations=1, max_identifiers=50, timeout_per_module=0.001
+        )
         result = DeepScanResult(target="t", started_at=datetime.now(timezone.utc))
         mod = MagicMock()
 
         async def slow_scan(*_a, **_kw):
             import asyncio
+
             await asyncio.sleep(10)
+
         mod.scan = slow_scan
         await engine._scan_module("test_mod", mod, "target", result)
         assert any("timeout" in e for e in result.errors)
@@ -610,6 +813,7 @@ class TestDeepScanEngineExtended:
 
         async def fail_scan(*_a, **_kw):
             raise ValueError("boom")
+
         mod.scan = fail_scan
         await engine._scan_module("test_mod", mod, "target", result)
         assert any("boom" in e for e in result.errors)
@@ -620,13 +824,26 @@ class TestDeepScanEngineExtended:
         result = DeepScanResult(target="t", started_at=datetime.now(timezone.utc))
         mod = MagicMock()
         sr = ScanResult(
-            scan_id="s", module="test", target="t", status="ok",
-            findings=[Finding(id="f1", module="test", title="F", description="D", severity=Severity.INFO)],
-            started_at=datetime.now(timezone.utc), completed_at=datetime.now(timezone.utc),
+            scan_id="s",
+            module="test",
+            target="t",
+            status="ok",
+            findings=[
+                Finding(
+                    id="f1",
+                    module="test",
+                    title="F",
+                    description="D",
+                    severity=Severity.INFO,
+                )
+            ],
+            started_at=datetime.now(timezone.utc),
+            completed_at=datetime.now(timezone.utc),
         )
 
         async def ok_scan(*_a, **_kw):
             return sr
+
         mod.scan = ok_scan
         await engine._scan_module("test_mod", mod, "target", result)
         assert len(result.scan_results) == 1
@@ -636,14 +853,97 @@ class TestDeepScanEngineExtended:
     async def test_scan_full_with_mocked_modules(self):
         """Full scan with all modules mocked."""
         from src.modules.deep_scan.engine import DeepScanEngine
-        engine = DeepScanEngine(max_iterations=1, max_identifiers=50, timeout_per_module=5)
-        with patch("src.modules.deep_scan.engine._MODULE_INPUTS", {"email_osint": {IdentifierType.EMAIL}}):
-            with patch.object(engine, "_get_active_modules", return_value=["email_osint"]):
-                with patch("src.modules.deep_scan.engine.asyncio.gather", new_callable=AsyncMock) as mock_gather:
+
+        engine = DeepScanEngine(
+            max_iterations=1, max_identifiers=50, timeout_per_module=5
+        )
+        with patch(
+            "src.modules.deep_scan.engine._MODULE_INPUTS",
+            {"email_osint": {IdentifierType.EMAIL}},
+        ):
+            with patch.object(
+                engine, "_get_active_modules", return_value=["email_osint"]
+            ):
+                with patch(
+                    "src.modules.deep_scan.engine.asyncio.gather",
+                    new_callable=AsyncMock,
+                ) as mock_gather:
                     mock_gather.return_value = []
                     result = await engine.scan("test@example.com")
         assert result.target == "test@example.com"
         assert result.completed_at is not None
+
+    @pytest.mark.asyncio
+    async def test_scan_phase_4_correlation(self):
+        from src.modules.deep_scan.engine import DeepScanEngine
+
+        engine = DeepScanEngine(
+            max_iterations=1, max_identifiers=50, timeout_per_module=5
+        )
+
+        # Mock gather to return social findings
+        finding = Finding(
+            id="f1",
+            module="social_osint",
+            title="LinkedIn Profile",
+            description="D",
+            severity=Severity.INFO,
+            raw_data={
+                "type": "social_account",
+                "platform": "linkedin",
+                "url": "https://linkedin.com/in/testuser",
+            },
+        )
+
+        async def mock_run_iteration(result_obj, targets_set):
+            result_obj.findings.append(finding)
+            # Also add to identifiers to prevent Phase 3 logic from crashing or being skipped
+            result_obj.identifiers.append(
+                Identifier(
+                    value="testuser", id_type=IdentifierType.USERNAME, source="test"
+                )
+            )
+
+        mock_scrape = AsyncMock(
+            return_value={
+                "text_content": "Full Name: John Doe",
+                "profile_picture_url": "pfp",
+            }
+        )
+        mock_correlate = AsyncMock(return_value=0.8)
+        mock_ext_scan = AsyncMock(
+            return_value=ScanResult(
+                scan_id="ext", module="external_tools_username", target="testuser"
+            )
+        )
+
+        with (
+            patch(
+                "src.modules.deep_scan.engine._MODULE_INPUTS",
+                {"social_osint": {IdentifierType.USERNAME}},
+            ),
+            patch.object(engine, "_get_active_modules", return_value=["social_osint"]),
+            patch.object(engine, "_run_iteration", side_effect=mock_run_iteration),
+            patch(
+                "src.modules.vendor.external_tools.ExternalToolIntel.scan_username",
+                mock_ext_scan,
+            ),
+            patch(
+                "src.modules.deep_scan.deep_scraper.DeepScraperEngine.scrape_profile",
+                mock_scrape,
+            ),
+            patch(
+                "src.modules.deep_scan.vision_correlator.VisionCorrelator.correlate_profiles",
+                mock_correlate,
+            ),
+        ):
+            result = await engine.scan("testuser")
+
+        assert len(result.findings) == 1
+        assert result.findings[0].raw_data.get("verified") is True
+        assert result.findings[0].raw_data.get("correlation_confidence") == 0.8
+        assert result.findings[0].raw_data.get("bio") == "Full Name: John Doe"
+        mock_scrape.assert_called_once_with("https://linkedin.com/in/testuser")
 
     def test_extract_identifiers_from_findings_text(self):
         """Extractor pulls identifiers from raw finding data."""
@@ -662,7 +962,11 @@ class TestDeepScanEngineExtended:
         finding.raw_data = {
             "username": "fikriizzuddin",
             "platforms": [
-                {"exists": True, "url": "https://twitter.com/user1", "platform": "twitter"},
+                {
+                    "exists": True,
+                    "url": "https://twitter.com/user1",
+                    "platform": "twitter",
+                },
                 {"exists": False, "url": "", "platform": "github"},
             ],
         }

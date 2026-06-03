@@ -3,7 +3,7 @@
 import pytest
 
 from src.ai.analyzers.risk_scorer import RiskScorer
-from src.models import Finding, ScanResult, Severity
+from src.core.models import Finding, ScanResult, Severity
 
 
 @pytest.fixture
@@ -110,7 +110,13 @@ class TestRiskScorer:
                 module="data_leaks",
                 target="test",
                 findings=[
-                    Finding(id="f1", module="data_leaks", title="t", severity=Severity.HIGH, confidence=0.9),
+                    Finding(
+                        id="f1",
+                        module="data_leaks",
+                        title="t",
+                        severity=Severity.HIGH,
+                        confidence=0.9,
+                    ),
                 ],
             )
         ]
@@ -134,7 +140,13 @@ class TestRiskScorer:
                 module="data_leaks",
                 target="test",
                 findings=[
-                    Finding(id="f1", module="data_leaks", title="info", severity=Severity.INFO, confidence=0.3),
+                    Finding(
+                        id="f1",
+                        module="data_leaks",
+                        title="info",
+                        severity=Severity.INFO,
+                        confidence=0.3,
+                    ),
                 ],
             )
         ]

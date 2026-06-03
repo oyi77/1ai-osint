@@ -1,4 +1,5 @@
 """PyPI source adapter for finding leaked keys in Python packages."""
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -22,12 +23,15 @@ _QUERIES = [
     "crypto bot",
 ]
 
+
 class PypiSource:
     """Scan PyPI for packages with leaked crypto keys."""
 
     BASE_URL = "https://pypi.org"
 
-    def __init__(self, max_per_query: int = 20, request_delay: float = 1.0, timeout: float = 15.0):
+    def __init__(
+        self, max_per_query: int = 20, request_delay: float = 1.0, timeout: float = 15.0
+    ):
         self.max_per_query = max_per_query
         self.request_delay = request_delay
         self.timeout = timeout
@@ -37,7 +41,9 @@ class PypiSource:
         """Search PyPI for packages with crypto key leaks."""
         leaks: list[RawLeak] = []
         seen_packages: set[str] = set()
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             for query in _QUERIES[:5]:
                 try:
                     await self._rate_limit()
@@ -47,9 +53,10 @@ class PypiSource:
                     )
                     if resp.status_code == 200:
                         import re
+
                         # Extract package names from search results
                         packages = re.findall(r'/project/([^/"]+)/', resp.text)
-                        for pkg in packages[:self.max_per_query]:
+                        for pkg in packages[: self.max_per_query]:
                             if pkg in seen_packages:
                                 continue
                             seen_packages.add(pkg)
@@ -59,7 +66,9 @@ class PypiSource:
                     logger.debug("PyPI search '%s' error: %s", query, exc)
         return leaks
 
-    async def _inspect_package(self, client: httpx.AsyncClient, pkg_name: str) -> list[RawLeak]:
+    async def _inspect_package(
+        self, client: httpx.AsyncClient, pkg_name: str
+    ) -> list[RawLeak]:
         """Fetch a package's description and look for leaked keys."""
         leaks: list[RawLeak] = []
         try:
@@ -71,11 +80,13 @@ class PypiSource:
             info = data.get("info", {})
             description = info.get("description", "")
             if description:
-                leaks.append(RawLeak(
-                    text=description,
-                    source_name="pypi",
-                    source_url=f"https://pypi.org/project/{pkg_name}/",
-                ))
+                leaks.append(
+                    RawLeak(
+                        text=description,
+                        source_name="pypi",
+                        source_url=f"https://pypi.org/project/{pkg_name}/",
+                    )
+                )
         except Exception as exc:
             logger.debug("PyPI inspect '%s' error: %s", pkg_name, exc)
         return leaks
@@ -83,7 +94,9 @@ class PypiSource:
     async def search_for_address(self, address: str) -> list[RawLeak]:
         """Search PyPI for a specific address."""
         leaks: list[RawLeak] = []
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             try:
                 await self._rate_limit()
                 resp = await client.get(f"{self.BASE_URL}/pypi/{address}/json")
@@ -91,11 +104,13 @@ class PypiSource:
                     data = resp.json()
                     description = data.get("info", {}).get("description", "")
                     if description:
-                        leaks.append(RawLeak(
-                            text=description,
-                            source_name="pypi",
-                            source_url=f"https://pypi.org/project/{address}/",
-                        ))
+                        leaks.append(
+                            RawLeak(
+                                text=description,
+                                source_name="pypi",
+                                source_url=f"https://pypi.org/project/{address}/",
+                            )
+                        )
             except Exception as exc:
                 logger.debug("PyPI address search error: %s", exc)
         return leaks

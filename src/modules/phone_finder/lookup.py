@@ -7,7 +7,7 @@ from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
-from src.models import Finding, ScanResult, Severity
+from src.core.models import Finding, ScanResult, Severity
 from src.modules.base.base import BaseOSINTTool
 
 
@@ -28,9 +28,7 @@ class PhoneInfo(BaseModel):
     country_code: Optional[str] = Field(
         default=None, description="Country calling code"
     )
-    country_name: Optional[str] = Field(
-        default=None, description="Country name"
-    )
+    country_name: Optional[str] = Field(default=None, description="Country name")
     carrier: Optional[str] = Field(
         default=None, description="Telecommunications carrier"
     )
@@ -72,24 +70,11 @@ class PhoneFinderLookup(BaseOSINTTool):
         Returns:
             Tuple of (is_valid, e164_formatted_or_none)
         """
-        # Strip whitespace and common formatting characters
-        cleaned = re.sub(r"[\s\-\(\)\.]", "", phone.strip())
+        from src.utils.phone_normalize import normalize_phone_e164
 
-        # If already E.164
-        if _E164_PATTERN.match(cleaned):
-            return True, cleaned
-
-        # Try adding + prefix if it looks like an international number
-        if cleaned.startswith("00"):
-            candidate = "+" + cleaned[2:]
-            if _E164_PATTERN.match(candidate):
-                return True, candidate
-
-        # Try with + prefix for digit-only strings starting with valid country code
-        if cleaned.isdigit() and len(cleaned) >= 7:
-            candidate = "+" + cleaned
-            if _E164_PATTERN.match(candidate):
-                return True, candidate
+        normalized = normalize_phone_e164(phone, default_region="ID")
+        if normalized and _E164_PATTERN.match(normalized):
+            return True, normalized
 
         return False, None
 

@@ -25,7 +25,9 @@ def format_pdf(results: list) -> bytes:
     elements.append(Paragraph("1ai-osint Scan Report", styles["Title"]))
     elements.append(Spacer(1, 12))
     elements.append(
-        Paragraph(f"Generated: {datetime.now(timezone.utc).isoformat()}Z", styles["Normal"])
+        Paragraph(
+            f"Generated: {datetime.now(timezone.utc).isoformat()}Z", styles["Normal"]
+        )
     )
     elements.append(Spacer(1, 24))
 

@@ -81,7 +81,11 @@ class TestDorkQueryGeneration:
             '"12 words" wallet recovery',
         ]
         for q in queries:
-            assert "github" in q.lower() or "wallet" in q.lower() or "mnemonic" in q.lower()
+            assert (
+                "github" in q.lower()
+                or "wallet" in q.lower()
+                or "mnemonic" in q.lower()
+            )
 
     def test_google_dork_formats(self):
         """Generate Google dork formats for credential leaks."""
@@ -110,9 +114,7 @@ class TestLeakScannerMocked:
                     "name": "wallet_backup.txt",
                     "path": "repo/wallet_backup.txt",
                     "html_url": "https://github.com/user/repo/blob/main/wallet_backup.txt",
-                    "text_matches": [
-                        {"fragment": "abandon abandon abandon..."}
-                    ],
+                    "text_matches": [{"fragment": "abandon abandon abandon..."}],
                 }
             ],
         }

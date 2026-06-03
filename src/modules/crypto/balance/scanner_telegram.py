@@ -70,37 +70,40 @@ class TelegramLeakScanner:
                     # Check for mnemonics
                     candidates = MnemonicPatternDetector.find_mnemonics(text)
                     if candidates:
-                        findings.append(LeakFinding(
-                            source="telegram",
-                            source_url=f"telegram_msg_{message.get('message_id', '')}",
-                            mnemonic_candidate=candidates[0],
-                            is_valid=True,
-                            source_type="mnemonic",
-                        ))
+                        findings.append(
+                            LeakFinding(
+                                source="telegram",
+                                source_url=f"telegram_msg_{message.get('message_id', '')}",
+                                mnemonic_candidate=candidates[0],
+                                is_valid=True,
+                                source_type="mnemonic",
+                            )
+                        )
                         continue
 
                     # Check for private keys
                     from src.modules.crypto.privatekey.scanner import detect_key_format
+
                     keys = detect_key_format(text)
                     if keys:
                         for k in keys:
                             if k["format"] in ("hex_32byte", "hex_0x", "wif", "base58"):
-                                findings.append(LeakFinding(
-                                    source="telegram",
-                                    source_url=f"telegram_msg_{message.get('message_id', '')}",
-                                    mnemonic_candidate=k["match"],
-                                    is_valid=False,
-                                    source_type="private_key",
-                                ))
+                                findings.append(
+                                    LeakFinding(
+                                        source="telegram",
+                                        source_url=f"telegram_msg_{message.get('message_id', '')}",
+                                        mnemonic_candidate=k["match"],
+                                        is_valid=False,
+                                        source_type="private_key",
+                                    )
+                                )
                                 break
             except Exception as e:
                 logger.error("Telegram scan error: %s", e)
 
         return findings
 
-    async def _get_updates(
-        self, client: httpx.AsyncClient, limit: int
-    ) -> list[dict]:
+    async def _get_updates(self, client: httpx.AsyncClient, limit: int) -> list[dict]:
         """Fetch updates from the Telegram Bot API."""
         try:
             resp = await client.get(
@@ -114,7 +117,9 @@ class TelegramLeakScanner:
             resp.raise_for_status()
             data = resp.json()
             if not data.get("ok"):
-                logger.warning("Telegram API error: %s", data.get("description", "unknown"))
+                logger.warning(
+                    "Telegram API error: %s", data.get("description", "unknown")
+                )
                 return []
 
             updates = data.get("result", [])

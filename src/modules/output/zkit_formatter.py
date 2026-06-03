@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from dataclasses import dataclass, field
 from typing import Any
 
-from src.models import Finding, ScanResult, BreachRecord, Identity
+from src.core.models import Finding, ScanResult, BreachRecord, Identity
 from src.modules.identity_tracking.zkit_engine import (
     CorrelatedCluster,
 )
@@ -22,6 +22,7 @@ from src.modules.identity_tracking.zkit_engine import (
 @dataclass
 class RedactionAuditEntry:
     """A single redaction event in the audit log."""
+
     field_name: str
     original_length: int
     redacted_at: datetime = field(default_factory=datetime.utcnow)
@@ -31,17 +32,20 @@ class RedactionAuditEntry:
 @dataclass
 class RedactionAudit:
     """Audit log of all PII redactions performed."""
+
     entries: list[RedactionAuditEntry] = field(default_factory=list)
     total_redactions: int = 0
     pii_fields_redacted: set[str] = field(default_factory=set)
 
     def add(self, field_name: str, original_length: int, source: str = "") -> None:
         """Record a redaction event."""
-        self.entries.append(RedactionAuditEntry(
-            field_name=field_name,
-            original_length=original_length,
-            source_module=source,
-        ))
+        self.entries.append(
+            RedactionAuditEntry(
+                field_name=field_name,
+                original_length=original_length,
+                source_module=source,
+            )
+        )
         self.total_redactions += 1
         self.pii_fields_redacted.add(field_name)
 
@@ -76,11 +80,26 @@ class ZKITFormatter:
     """
 
     # PII field names that must be hashed in output
-    _PII_KEYS = frozenset({
-        "email", "username", "phone", "domain", "ip", "ip_address",
-        "password", "password_plain", "password_hash", "address",
-        "ssn", "credit_card", "name", "full_name", "first_name", "last_name",
-    })
+    _PII_KEYS = frozenset(
+        {
+            "email",
+            "username",
+            "phone",
+            "domain",
+            "ip",
+            "ip_address",
+            "password",
+            "password_plain",
+            "password_hash",
+            "address",
+            "ssn",
+            "credit_card",
+            "name",
+            "full_name",
+            "first_name",
+            "last_name",
+        }
+    )
 
     def __init__(self, salt: str = "") -> None:
         """
@@ -185,9 +204,7 @@ class ZKITFormatter:
             "scan_count": len(results),
             "total_findings": sum(r.finding_count for r in results),
             "scans": [self._format_scan_result(r) for r in results],
-            "correlation_clusters": [
-                self._format_cluster(c) for c in clusters
-            ],
+            "correlation_clusters": [self._format_cluster(c) for c in clusters],
             "redaction_audit": self._audit.to_dict(),
         }
         return json.dumps(report, indent=2, default=str)
@@ -206,12 +223,12 @@ class ZKITFormatter:
             "breach_records": [
                 self._format_breach(br, source) for br in result.breach_records
             ],
-            "identities": [
-                self._format_identity(ident) for ident in result.identities
-            ],
+            "identities": [self._format_identity(ident) for ident in result.identities],
             "metadata": result.metadata,
             "started_at": result.started_at.isoformat(),
-            "completed_at": result.completed_at.isoformat() if result.completed_at else None,
+            "completed_at": result.completed_at.isoformat()
+            if result.completed_at
+            else None,
             "error": result.error,
         }
 
@@ -312,11 +329,15 @@ class ZKITFormatter:
                 # Check if a PII field name appears as a key with a non-hash value
                 if key in self._PII_KEYS and isinstance(value, str):
                     # A hash is 64 hex chars; anything shorter is suspicious
-                    if len(value) != 64 or not all(c in "0123456789abcdef" for c in value):
+                    if len(value) != 64 or not all(
+                        c in "0123456789abcdef" for c in value
+                    ):
                         violations.append(current_path)
                 # Check for hash-prefixed fields (email_hash etc.) with non-hash values
                 if key.endswith("_hash") and isinstance(value, str):
-                    if len(value) != 64 or not all(c in "0123456789abcdef" for c in value):
+                    if len(value) != 64 or not all(
+                        c in "0123456789abcdef" for c in value
+                    ):
                         violations.append(current_path)
                 self._scan_for_pii(value, violations, current_path)
         elif isinstance(data, list):

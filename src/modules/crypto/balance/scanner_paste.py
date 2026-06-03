@@ -62,7 +62,7 @@ class PasteSiteScanner:
             resp = await client.get(archive_url)
             resp.raise_for_status()
             # Extract paste links (simplified — would need site-specific parsing)
-            urls = re.findall(r'https?://pastebin\.com/[a-zA-Z0-9]+', resp.text)
+            urls = re.findall(r"https?://pastebin\.com/[a-zA-Z0-9]+", resp.text)
             return list(dict.fromkeys(urls))[:limit]  # deduplicate, limit
         except Exception:
             return []
@@ -90,6 +90,7 @@ class PasteSiteScanner:
 
             # Pass 2: private key detection
             from src.modules.crypto.privatekey.scanner import detect_key_format
+
             keys = detect_key_format(text)
             if keys:
                 for k in keys:

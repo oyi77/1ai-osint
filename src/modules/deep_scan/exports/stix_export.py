@@ -37,42 +37,48 @@ def export_stix(report: IntelReport, indent: int = 2) -> str:
 
     # Identity SDOs from identity_graph nodes
     for node in report.identity_graph.nodes:
-        objects.append({
-            "type": "identity",
-            "spec_version": STIX_VERSION,
-            "id": f"identity--{uuid.uuid4()}",
-            "created": now,
-            "modified": now,
-            "name": node.label,
-            "identity_class": "individual",
-            "confidence": _confidence_to_stix(node.weight),
-            "labels": [node.type],
-        })
+        objects.append(
+            {
+                "type": "identity",
+                "spec_version": STIX_VERSION,
+                "id": f"identity--{uuid.uuid4()}",
+                "created": now,
+                "modified": now,
+                "name": node.label,
+                "identity_class": "individual",
+                "confidence": _confidence_to_stix(node.weight),
+                "labels": [node.type],
+            }
+        )
 
     # URL SDOs from evidence
     for ev in report.evidence:
         if not ev.url:
             continue
-        objects.append({
-            "type": "url",
-            "spec_version": STIX_VERSION,
-            "id": f"url--{uuid.uuid4()}",
-            "value": ev.url,
-        })
+        objects.append(
+            {
+                "type": "url",
+                "spec_version": STIX_VERSION,
+                "id": f"url--{uuid.uuid4()}",
+                "value": ev.url,
+            }
+        )
 
     # Relationship SDOs from identity_graph edges
     for edge in report.identity_graph.edges:
-        objects.append({
-            "type": "relationship",
-            "spec_version": STIX_VERSION,
-            "id": f"relationship--{uuid.uuid4()}",
-            "created": now,
-            "modified": now,
-            "relationship_type": edge.relationship,
-            "source_ref": edge.source_id,
-            "target_ref": edge.target_id,
-            "confidence": _confidence_to_stix(edge.weight),
-        })
+        objects.append(
+            {
+                "type": "relationship",
+                "spec_version": STIX_VERSION,
+                "id": f"relationship--{uuid.uuid4()}",
+                "created": now,
+                "modified": now,
+                "relationship_type": edge.relationship,
+                "source_ref": edge.source_id,
+                "target_ref": edge.target_id,
+                "confidence": _confidence_to_stix(edge.weight),
+            }
+        )
 
     bundle = {
         "type": "bundle",

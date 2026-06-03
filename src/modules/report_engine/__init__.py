@@ -3,6 +3,7 @@
 Can generate reports from ANY module's ScanResult, and can parse
 existing reports to extract identifiers for new scans.
 """
+
 from __future__ import annotations
 import json
 import logging
@@ -12,7 +13,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Optional
 
-from src.models import Finding, ScanResult, Severity
+from src.core.models import Finding, ScanResult, Severity
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +28,7 @@ class ReportFormat(str, Enum):
 @dataclass
 class ReportSection:
     """A section of the report (e.g., Emails, Usernames, Findings)."""
+
     title: str
     items: list[str | dict[str, Any]]
     severity: Optional[str] = None
@@ -36,6 +38,7 @@ class ReportSection:
 @dataclass
 class ReportData:
     """Structured report data that can be generated from any ScanResult."""
+
     target: str
     title: str
     generated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
@@ -65,13 +68,21 @@ class ReportData:
             "title": self.title,
             "generated_at": self.generated_at.isoformat(),
             "sections": [
-                {"title": s.title, "items": s.items, "severity": s.severity, "icon": s.icon}
+                {
+                    "title": s.title,
+                    "items": s.items,
+                    "severity": s.severity,
+                    "icon": s.icon,
+                }
                 for s in self.sections
             ],
             "findings": [
                 {
-                    "id": f.id, "module": f.module, "title": f.title,
-                    "description": f.description, "severity": f.severity.value,
+                    "id": f.id,
+                    "module": f.module,
+                    "title": f.title,
+                    "description": f.description,
+                    "severity": f.severity.value,
                     "confidence": f.confidence,
                 }
                 for f in self.findings
@@ -109,7 +120,9 @@ class ReportEngine:
                 text = str(raw)
 
                 # Emails
-                for m in re.finditer(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", text):
+                for m in re.finditer(
+                    r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", text
+                ):
                     all_emails.add(m.group())
 
                 # Usernames
@@ -121,7 +134,9 @@ class ReportEngine:
                     all_phones.add(m.group())
 
                 # Domains
-                for m in re.finditer(r"(?:https?://)?([a-zA-Z0-9][-a-zA-Z0-9]*\.)+[a-zA-Z]{2,}", text):
+                for m in re.finditer(
+                    r"(?:https?://)?([a-zA-Z0-9][-a-zA-Z0-9]*\.)+[a-zA-Z]{2,}", text
+                ):
                     all_domains.add(m.group())
 
                 # IPs
@@ -149,24 +164,21 @@ class ReportEngine:
         report.add_findings(all_findings)
 
         # Store identifiers for report-to-scan input
-        report.identifiers = [
-            {"value": e, "type": "email"} for e in all_emails
-        ] + [
-            {"value": u, "type": "username"} for u in all_usernames
-        ] + [
-            {"value": p, "type": "phone"} for p in all_phones
-        ] + [
-            {"value": d, "type": "domain"} for d in all_domains
-        ] + [
-            {"value": i, "type": "ip"} for i in all_ips
-        ] + [
-            {"value": c, "type": "crypto_address"} for c in all_crypto
-        ]
+        report.identifiers = (
+            [{"value": e, "type": "email"} for e in all_emails]
+            + [{"value": u, "type": "username"} for u in all_usernames]
+            + [{"value": p, "type": "phone"} for p in all_phones]
+            + [{"value": d, "type": "domain"} for d in all_domains]
+            + [{"value": i, "type": "ip"} for i in all_ips]
+            + [{"value": c, "type": "crypto_address"} for c in all_crypto]
+        )
 
         report.metadata = {
             "scan_count": len(results),
             "total_findings": len(all_findings),
-            "critical_findings": sum(1 for f in all_findings if f.severity == Severity.CRITICAL),
+            "critical_findings": sum(
+                1 for f in all_findings if f.severity == Severity.CRITICAL
+            ),
             "sources_used": list({sr.module for sr in results}),
         }
 

@@ -25,20 +25,26 @@ class RedditLeakTool(OSINTTool):
                 timeout=30,
             )
             if resp.status_code != 200:
-                return {"status": "error", "tool": self.name, "error": f"HTTP {resp.status_code}"}
+                return {
+                    "status": "error",
+                    "tool": self.name,
+                    "error": f"HTTP {resp.status_code}",
+                }
             data = resp.json()
             posts = data.get("data", {}).get("children", [])
             results = []
             for post in posts:
                 p = post.get("data", {})
-                results.append({
-                    "title": p.get("title", ""),
-                    "url": f"https://reddit.com{p.get('permalink', '')}",
-                    "subreddit": p.get("subreddit", ""),
-                    "author": p.get("author", ""),
-                    "created_utc": p.get("created_utc", 0),
-                    "selftext": p.get("selftext", "")[:500],
-                })
+                results.append(
+                    {
+                        "title": p.get("title", ""),
+                        "url": f"https://reddit.com{p.get('permalink', '')}",
+                        "subreddit": p.get("subreddit", ""),
+                        "author": p.get("author", ""),
+                        "created_utc": p.get("created_utc", 0),
+                        "selftext": p.get("selftext", "")[:500],
+                    }
+                )
             return {
                 "status": "ok",
                 "tool": self.name,

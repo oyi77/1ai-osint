@@ -1,4 +1,8 @@
-from src.modules.deep_scan.module_discovery import list_breach_modules, list_scan_modules, module_accepts
+from src.modules.deep_scan.module_discovery import (
+    list_breach_modules,
+    list_scan_modules,
+    module_accepts,
+)
 
 
 def test_lists_non_empty():

@@ -1,4 +1,5 @@
 """Subfinder source adapter for subdomain enumeration."""
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -29,21 +30,24 @@ class SubfinderSource:
 
         try:
             proc = await asyncio.create_subprocess_exec(
-                subfinder_path, "-d", address, "-silent",
+                subfinder_path,
+                "-d",
+                address,
+                "-silent",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
-            stdout, _ = await asyncio.wait_for(
-                proc.communicate(), timeout=self.timeout
-            )
+            stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=self.timeout)
             if stdout:
                 text = stdout.decode()
                 if text.strip():
-                    leaks.append(RawLeak(
-                        text=text,
-                        source_name="subfinder",
-                        source_url="",
-                    ))
+                    leaks.append(
+                        RawLeak(
+                            text=text,
+                            source_name="subfinder",
+                            source_url="",
+                        )
+                    )
         except asyncio.TimeoutError:
             logger.debug("Subfinder: timeout for '%s'", address)
         except Exception as exc:

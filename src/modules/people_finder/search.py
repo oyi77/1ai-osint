@@ -7,7 +7,7 @@ from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
-from src.models import Finding, ScanResult, Severity
+from src.core.models import Finding, ScanResult, Severity
 from src.modules.base.base import BaseOSINTTool
 
 
@@ -136,9 +136,7 @@ class PeopleFinderSearch(BaseOSINTTool):
             )
 
         # Filter low-confidence profiles
-        profiles = [
-            p for p in profiles if p.confidence >= _CONFIDENCE_THRESHOLD
-        ]
+        profiles = [p for p in profiles if p.confidence >= _CONFIDENCE_THRESHOLD]
 
         # Build findings from profiles
         findings = []
@@ -208,9 +206,7 @@ class PeopleFinderSearch(BaseOSINTTool):
         """Learn from feedback (future: adjust confidence weights)."""
         pass
 
-    async def _query_provider(
-        self, name: str, provider: Any, query: str
-    ) -> dict:
+    async def _query_provider(self, name: str, provider: Any, query: str) -> dict:
         """Query a single provider in thread pool."""
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, provider.search, query)
@@ -332,9 +328,7 @@ class PeopleFinderSearch(BaseOSINTTool):
         return profiles
 
     @staticmethod
-    def _score_confidence(
-        source_providers: list[str], total_available: int
-    ) -> float:
+    def _score_confidence(source_providers: list[str], total_available: int) -> float:
         """
         Score confidence based on how many providers found the profile.
 

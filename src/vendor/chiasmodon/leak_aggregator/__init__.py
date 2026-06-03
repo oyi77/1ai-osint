@@ -35,6 +35,7 @@ class LeakAggregatorTool(OSINTTool):
         ]:
             try:
                 import importlib
+
                 mod = importlib.import_module(module_path)
                 cls = getattr(mod, class_name)
                 sources.append(cls())
@@ -46,7 +47,13 @@ class LeakAggregatorTool(OSINTTool):
     def search(self, query, **kwargs):
         sources = self._get_sources()
         if not sources:
-            return {"status": "ok", "tool": self.name, "query": query, "result": [], "note": "No sources available"}
+            return {
+                "status": "ok",
+                "tool": self.name,
+                "query": query,
+                "result": [],
+                "note": "No sources available",
+            }
         all_results = []
         errors = []
         for source in sources:
@@ -58,7 +65,9 @@ class LeakAggregatorTool(OSINTTool):
                         item["_source"] = source.name
                     all_results.extend(items)
                 else:
-                    errors.append({"source": source.name, "error": result.get("error", "unknown")})
+                    errors.append(
+                        {"source": source.name, "error": result.get("error", "unknown")}
+                    )
             except Exception as e:
                 errors.append({"source": source.name, "error": str(e)})
         return {

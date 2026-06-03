@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 
 class Severity(str, Enum):
     """Severity levels for findings."""
+
     CRITICAL = "critical"
     HIGH = "high"
     MEDIUM = "medium"
@@ -18,6 +19,7 @@ class Severity(str, Enum):
 
 class Finding(BaseModel):
     """A single OSINT finding from any module."""
+
     id: str = Field(..., description="Unique finding identifier")
     module: str = Field(..., description="Source module name")
     title: str = Field(..., description="Short finding description")
@@ -31,6 +33,7 @@ class Finding(BaseModel):
 
 class BreachRecord(BaseModel):
     """A record from a breach/leak database."""
+
     source: str = Field(..., description="Breach source name")
     email: Optional[str] = None
     username: Optional[str] = None
@@ -48,6 +51,7 @@ class BreachRecord(BaseModel):
 
 class Identity(BaseModel):
     """An identity entity tracked by ZKIT."""
+
     zkit_hash: str = Field(..., description="ZKIT salted SHA-256 hash")
     attributes: dict[str, str] = Field(
         default_factory=dict,
@@ -62,6 +66,7 @@ class Identity(BaseModel):
 
 class ScanResult(BaseModel):
     """Top-level result container for any scan operation."""
+
     scan_id: str = Field(..., description="Unique scan identifier")
     module: str = Field(..., description="Module that produced this result")
     target: str = Field(..., description="Scan target (query, URL, path, etc.)")

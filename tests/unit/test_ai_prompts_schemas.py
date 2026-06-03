@@ -53,7 +53,9 @@ class TestEntityType:
 
 class TestExtractedEntity:
     def test_create(self):
-        entity = ExtractedEntity(entity_type=EntityType.EMAIL, value="test@example.com", confidence=0.9)
+        entity = ExtractedEntity(
+            entity_type=EntityType.EMAIL, value="test@example.com", confidence=0.9
+        )
         assert entity.entity_type == EntityType.EMAIL
         assert entity.value == "test@example.com"
         assert entity.confidence == 0.9
@@ -78,7 +80,12 @@ class TestEntityExtractionResult:
 
 class TestFindingAssessment:
     def test_create(self):
-        fa = FindingAssessment(finding_id="f1", is_false_positive=True, confidence=0.95, reasoning="test data")
+        fa = FindingAssessment(
+            finding_id="f1",
+            is_false_positive=True,
+            confidence=0.95,
+            reasoning="test data",
+        )
         assert fa.finding_id == "f1"
         assert fa.is_false_positive is True
         assert fa.adjusted_severity is None
@@ -108,10 +115,18 @@ class TestBaseOSINTTool:
 
         class ConcreteTool(BaseOSINTTool):
             name = "test"
-            async def search(self, query, **kwargs): pass
-            async def scan(self, target, **kwargs): pass
-            async def analyze(self, data, **kwargs): pass
-            async def learn(self, feedback, **kwargs): pass
+
+            async def search(self, query, **kwargs):
+                pass
+
+            async def scan(self, target, **kwargs):
+                pass
+
+            async def analyze(self, data, **kwargs):
+                pass
+
+            async def learn(self, feedback, **kwargs):
+                pass
 
         tool = ConcreteTool(zkit_salt="test-salt")
         h1 = tool.hash_identity("test@example.com")
@@ -121,17 +136,27 @@ class TestBaseOSINTTool:
 
     def test_to_zkit_node(self):
         from src.modules.base.base import BaseOSINTTool
-        from src.models import Finding
+        from src.core.models import Finding
 
         class ConcreteTool(BaseOSINTTool):
             name = "test"
-            async def search(self, query, **kwargs): pass
-            async def scan(self, target, **kwargs): pass
-            async def analyze(self, data, **kwargs): pass
-            async def learn(self, feedback, **kwargs): pass
+
+            async def search(self, query, **kwargs):
+                pass
+
+            async def scan(self, target, **kwargs):
+                pass
+
+            async def analyze(self, data, **kwargs):
+                pass
+
+            async def learn(self, feedback, **kwargs):
+                pass
 
         tool = ConcreteTool(zkit_salt="salt")
-        finding = Finding(id="f1", module="test", title="Test", raw_data={"email": "a@b.com"})
+        finding = Finding(
+            id="f1", module="test", title="Test", raw_data={"email": "a@b.com"}
+        )
         node = tool.to_zkit_node(finding, attribute_type="email")
         assert node.attribute_type == "email"
         assert len(node.zkit_hash) == 64
@@ -142,10 +167,18 @@ class TestBaseOSINTTool:
 
         class ConcreteTool(BaseOSINTTool):
             name = "test"
-            async def search(self, query, **kwargs): pass
-            async def scan(self, target, **kwargs): pass
-            async def analyze(self, data, **kwargs): pass
-            async def learn(self, feedback, **kwargs): pass
+
+            async def search(self, query, **kwargs):
+                pass
+
+            async def scan(self, target, **kwargs):
+                pass
+
+            async def analyze(self, data, **kwargs):
+                pass
+
+            async def learn(self, feedback, **kwargs):
+                pass
 
         tool = ConcreteTool()
         sid1 = tool._make_scan_id()
@@ -158,10 +191,18 @@ class TestBaseOSINTTool:
 
         class ConcreteTool(BaseOSINTTool):
             name = "test"
-            async def search(self, query, **kwargs): pass
-            async def scan(self, target, **kwargs): pass
-            async def analyze(self, data, **kwargs): pass
-            async def learn(self, feedback, **kwargs): pass
+
+            async def search(self, query, **kwargs):
+                pass
+
+            async def scan(self, target, **kwargs):
+                pass
+
+            async def analyze(self, data, **kwargs):
+                pass
+
+            async def learn(self, feedback, **kwargs):
+                pass
 
         tool = ConcreteTool()
         assert "ConcreteTool" in repr(tool)

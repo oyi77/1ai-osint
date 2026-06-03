@@ -4,7 +4,7 @@ import pytest
 from unittest.mock import patch, MagicMock, AsyncMock
 
 from src.modules.phone_finder import PhoneFinderTool
-from src.models import Finding, ScanResult, Severity
+from src.core.models import Finding, ScanResult, Severity
 
 
 @pytest.fixture
@@ -46,7 +46,9 @@ class TestPhoneFinderToolScan:
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
 
-        with patch("src.modules.phone_finder.httpx.AsyncClient", return_value=mock_client):
+        with patch(
+            "src.modules.phone_finder.httpx.AsyncClient", return_value=mock_client
+        ):
             result = await tool.scan("+447911123456")
 
         assert result.status == "ok"
@@ -72,7 +74,9 @@ class TestPhoneFinderToolScan:
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
 
-        with patch("src.modules.phone_finder.httpx.AsyncClient", return_value=mock_client):
+        with patch(
+            "src.modules.phone_finder.httpx.AsyncClient", return_value=mock_client
+        ):
             result = await tool.scan("+14155552671")
 
         assert result.finding_count >= 2
@@ -82,12 +86,15 @@ class TestPhoneFinderToolScan:
     @pytest.mark.asyncio
     async def test_scan_fallback_basic(self, tool):
         import httpx
+
         mock_client = AsyncMock()
         mock_client.get = AsyncMock(side_effect=httpx.ConnectError("refused"))
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
 
-        with patch("src.modules.phone_finder.httpx.AsyncClient", return_value=mock_client):
+        with patch(
+            "src.modules.phone_finder.httpx.AsyncClient", return_value=mock_client
+        ):
             result = await tool.scan("+14155552671")
 
         assert result.status == "partial"
@@ -96,12 +103,15 @@ class TestPhoneFinderToolScan:
     @pytest.mark.asyncio
     async def test_scan_cleans_phone_number(self, tool):
         import httpx
+
         mock_client = AsyncMock()
         mock_client.get = AsyncMock(side_effect=httpx.ConnectError("refused"))
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
 
-        with patch("src.modules.phone_finder.httpx.AsyncClient", return_value=mock_client):
+        with patch(
+            "src.modules.phone_finder.httpx.AsyncClient", return_value=mock_client
+        ):
             result = await tool.scan("(415) 555-2671")
 
         assert result.metadata["phone"].startswith("+")
@@ -109,12 +119,15 @@ class TestPhoneFinderToolScan:
     @pytest.mark.asyncio
     async def test_search_delegates_to_scan(self, tool):
         import httpx
+
         mock_client = AsyncMock()
         mock_client.get = AsyncMock(side_effect=httpx.ConnectError("refused"))
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
 
-        with patch("src.modules.phone_finder.httpx.AsyncClient", return_value=mock_client):
+        with patch(
+            "src.modules.phone_finder.httpx.AsyncClient", return_value=mock_client
+        ):
             result = await tool.search("+14155552671")
 
         assert result.module == "phone_finder"
@@ -128,10 +141,20 @@ class TestPhoneFinderToolAnalyze:
             module="phone_finder",
             target="+14155552671",
             findings=[
-                Finding(id="f1", module="phone_finder", title="Phone info",
-                        tags=["phone", "carrier"], severity=Severity.INFO),
-                Finding(id="f2", module="phone_finder", title="Scam report",
-                        tags=["phone", "scam", "fraud"], severity=Severity.HIGH),
+                Finding(
+                    id="f1",
+                    module="phone_finder",
+                    title="Phone info",
+                    tags=["phone", "carrier"],
+                    severity=Severity.INFO,
+                ),
+                Finding(
+                    id="f2",
+                    module="phone_finder",
+                    title="Scam report",
+                    tags=["phone", "scam", "fraud"],
+                    severity=Severity.HIGH,
+                ),
             ],
         )
         result = await tool.analyze(scan)
@@ -146,8 +169,13 @@ class TestPhoneFinderToolAnalyze:
             module="phone_finder",
             target="+14155552671",
             findings=[
-                Finding(id="f1", module="phone_finder", title="Phone info",
-                        tags=["phone", "carrier"], severity=Severity.INFO),
+                Finding(
+                    id="f1",
+                    module="phone_finder",
+                    title="Phone info",
+                    tags=["phone", "carrier"],
+                    severity=Severity.INFO,
+                ),
             ],
         )
         result = await tool.analyze(scan)
@@ -155,7 +183,11 @@ class TestPhoneFinderToolAnalyze:
 
     @pytest.mark.asyncio
     async def test_analyze_list(self, tool):
-        findings = [Finding(id="f1", module="m", title="t", tags=["phone"], severity=Severity.INFO)]
+        findings = [
+            Finding(
+                id="f1", module="m", title="t", tags=["phone"], severity=Severity.INFO
+            )
+        ]
         result = await tool.analyze(findings)
         assert result["total_findings"] == 1
 

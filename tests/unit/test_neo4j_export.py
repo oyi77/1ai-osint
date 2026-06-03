@@ -1,4 +1,8 @@
-from src.modules.deep_scan.models_report import IdentityEdge, IdentityGraph, IdentityNode
+from src.modules.deep_scan.models_report import (
+    IdentityEdge,
+    IdentityGraph,
+    IdentityNode,
+)
 from src.modules.identity_tracking.neo4j_export import export_neo4j_json
 
 

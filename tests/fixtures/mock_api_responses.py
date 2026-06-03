@@ -92,7 +92,7 @@ MOCK_BREACHDIRECTORY_RESPONSE = {
             "hash": "abc123",
             "sources": ["TestBreach"],
         }
-    ]
+    ],
 }
 
 

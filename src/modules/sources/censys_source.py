@@ -1,4 +1,5 @@
 """Censys source adapter for certificate and host discovery."""
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -17,7 +18,12 @@ class CensysSource:
 
     BASE_URL = "https://search.censys.io/api/v2"
 
-    def __init__(self, api_key: Optional[str] = None, request_delay: float = 2.0, timeout: float = 30.0):
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        request_delay: float = 2.0,
+        timeout: float = 30.0,
+    ):
         self.api_key = api_key or os.getenv("CENSYS_API_KEY", "")
         self.request_delay = request_delay
         self.timeout = timeout
@@ -41,7 +47,9 @@ class CensysSource:
         else:
             auth = (self.api_key, "")
 
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             # Search hosts
             try:
                 await self._rate_limit()
@@ -53,11 +61,13 @@ class CensysSource:
                 if resp.status_code == 200:
                     data = resp.json()
                     for hit in data.get("result", {}).get("hits", []):
-                        leaks.append(RawLeak(
-                            text=str(hit)[:10000],
-                            source_name="censys",
-                            source_url=f"https://search.censys.io/hosts/{address}",
-                        ))
+                        leaks.append(
+                            RawLeak(
+                                text=str(hit)[:10000],
+                                source_name="censys",
+                                source_url=f"https://search.censys.io/hosts/{address}",
+                            )
+                        )
             except Exception as exc:
                 logger.debug("Censys hosts error: %s", exc)
 
@@ -72,11 +82,13 @@ class CensysSource:
                 if resp.status_code == 200:
                     data = resp.json()
                     for hit in data.get("result", {}).get("hits", []):
-                        leaks.append(RawLeak(
-                            text=str(hit)[:10000],
-                            source_name="censys",
-                            source_url="https://search.censys.io/certificates",
-                        ))
+                        leaks.append(
+                            RawLeak(
+                                text=str(hit)[:10000],
+                                source_name="censys",
+                                source_url="https://search.censys.io/certificates",
+                            )
+                        )
             except Exception as exc:
                 logger.debug("Censys certificates error: %s", exc)
 

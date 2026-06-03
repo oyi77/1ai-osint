@@ -1,6 +1,6 @@
 """Tests for configuration module."""
 
-from src.config import Settings
+from src.core.config import Settings
 
 
 class TestSettings:
@@ -11,7 +11,9 @@ class TestSettings:
         assert s.omniroute_base_url == "http://localhost:3000/v1"
 
     def test_effective_openai_base_url_omniroute(self):
-        s = Settings(omniroute_api_key="test-key", omniroute_base_url="http://custom:4000/v1")
+        s = Settings(
+            omniroute_api_key="test-key", omniroute_base_url="http://custom:4000/v1"
+        )
         assert s.effective_openai_base_url == "http://custom:4000/v1"
 
     def test_effective_openai_base_url_direct(self):

@@ -266,7 +266,9 @@ class TestHitLogger:
         await hit_logger.close()
 
     @patch("src.modules.crypto.balance.hit_logger.httpx.AsyncClient")
-    async def test_telegram_alert_sent_for_nonzero_balance(self, mock_client_cls, tmp_path):
+    async def test_telegram_alert_sent_for_nonzero_balance(
+        self, mock_client_cls, tmp_path
+    ):
         mock_http = AsyncMock()
         mock_resp = MagicMock()
         mock_resp.raise_for_status = MagicMock()
@@ -282,7 +284,9 @@ class TestHitLogger:
         )
         await hit_logger.start()
 
-        await hit_logger.log_hit(address="0xabc", chain="Ethereum", balance=1.0, usd_value=2000.0)
+        await hit_logger.log_hit(
+            address="0xabc", chain="Ethereum", balance=1.0, usd_value=2000.0
+        )
         await hit_logger.flush()
 
         mock_http.post.assert_called_once()
@@ -306,7 +310,9 @@ class TestHitLogger:
         )
         await hit_logger.start()
 
-        await hit_logger.log_hit(address="0xabc", chain="Ethereum", balance=0.0, usd_value=0.0)
+        await hit_logger.log_hit(
+            address="0xabc", chain="Ethereum", balance=0.0, usd_value=0.0
+        )
         await hit_logger.flush()
 
         # No alert for zero balance
@@ -320,7 +326,9 @@ class TestHitLogger:
         hit_logger = HitLogger(db_path=db_path)
         await hit_logger.start()
 
-        await hit_logger.log_hit(address="0xabc", chain="Ethereum", balance=1.0, usd_value=2000.0)
+        await hit_logger.log_hit(
+            address="0xabc", chain="Ethereum", balance=1.0, usd_value=2000.0
+        )
         await hit_logger.flush()  # Should not raise
 
         await hit_logger.close()
@@ -387,17 +395,30 @@ class TestRandomScanner:
         scanner = RandomScanner(workers=1, chains=[ETHEREUM])
         mock_addrs = [
             DerivedAddress(
-                address="0x123", chain="Ethereum", symbol="ETH",
+                address="0x123",
+                chain="Ethereum",
+                symbol="ETH",
                 derivation_path="m/44'/60'/0'/0/0",
             )
         ]
-        with patch.object(scanner, "_check_balances", new_callable=AsyncMock) as mock_check, \
-             patch("src.modules.crypto.balance.deriver.derive_from_mnemonic", return_value=mock_addrs):
+        with (
+            patch.object(
+                scanner, "_check_balances", new_callable=AsyncMock
+            ) as mock_check,
+            patch(
+                "src.modules.crypto.balance.deriver.derive_from_mnemonic",
+                return_value=mock_addrs,
+            ),
+        ):
             mock_check.return_value = [
                 BalanceResult(
-                    address="0x123", chain="Ethereum", symbol="ETH",
-                    balance=0.0, balance_raw=0,
-                    usd_price=0.0, usd_value=0.0,
+                    address="0x123",
+                    chain="Ethereum",
+                    symbol="ETH",
+                    balance=0.0,
+                    balance_raw=0,
+                    usd_price=0.0,
+                    usd_value=0.0,
                     derivation_path="m/44'/60'/0'/0/0",
                 )
             ]
@@ -409,17 +430,30 @@ class TestRandomScanner:
         scanner = RandomScanner(workers=1, chains=[ETHEREUM])
         mock_addrs = [
             DerivedAddress(
-                address="0x123", chain="Ethereum", symbol="ETH",
+                address="0x123",
+                chain="Ethereum",
+                symbol="ETH",
                 derivation_path="m/44'/60'/0'/0/0",
             )
         ]
-        with patch.object(scanner, "_check_balances", new_callable=AsyncMock) as mock_check, \
-             patch("src.modules.crypto.balance.deriver.derive_from_mnemonic", return_value=mock_addrs):
+        with (
+            patch.object(
+                scanner, "_check_balances", new_callable=AsyncMock
+            ) as mock_check,
+            patch(
+                "src.modules.crypto.balance.deriver.derive_from_mnemonic",
+                return_value=mock_addrs,
+            ),
+        ):
             mock_check.return_value = [
                 BalanceResult(
-                    address="0x123", chain="Ethereum", symbol="ETH",
-                    balance=0.0, balance_raw=0,
-                    usd_price=0.0, usd_value=0.0,
+                    address="0x123",
+                    chain="Ethereum",
+                    symbol="ETH",
+                    balance=0.0,
+                    balance_raw=0,
+                    usd_price=0.0,
+                    usd_value=0.0,
                     derivation_path="m/44'/60'/0'/0/0",
                 )
             ]
@@ -431,12 +465,21 @@ class TestRandomScanner:
         scanner = RandomScanner(workers=1, chains=[ETHEREUM])
         mock_addrs = [
             DerivedAddress(
-                address="0x123", chain="Ethereum", symbol="ETH",
+                address="0x123",
+                chain="Ethereum",
+                symbol="ETH",
                 derivation_path="m/44'/60'/0'/0/0",
             )
         ]
-        with patch.object(scanner, "_check_balances", new_callable=AsyncMock) as mock_check, \
-             patch("src.modules.crypto.balance.deriver.derive_from_mnemonic", return_value=mock_addrs):
+        with (
+            patch.object(
+                scanner, "_check_balances", new_callable=AsyncMock
+            ) as mock_check,
+            patch(
+                "src.modules.crypto.balance.deriver.derive_from_mnemonic",
+                return_value=mock_addrs,
+            ),
+        ):
             mock_check.side_effect = Exception("API down")
             stats = await scanner.run(max_mnemonics=2)
             assert stats.api_errors >= 0  # Errors counted, not crashed

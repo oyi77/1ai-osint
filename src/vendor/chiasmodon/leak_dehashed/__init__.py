@@ -12,7 +12,11 @@ class DeHashedTool(OSINTTool):
     def search(self, query, **kwargs):
         api_key = os.environ.get("DEHASHED_API_KEY")
         if not api_key:
-            return {"status": "error", "tool": self.name, "error": "Missing DEHASHED_API_KEY"}
+            return {
+                "status": "error",
+                "tool": self.name,
+                "error": "Missing DEHASHED_API_KEY",
+            }
         try:
             resp = requests.get(
                 self.API_URL,
@@ -22,7 +26,11 @@ class DeHashedTool(OSINTTool):
                 timeout=30,
             )
             if resp.status_code != 200:
-                return {"status": "error", "tool": self.name, "error": f"HTTP {resp.status_code}"}
+                return {
+                    "status": "error",
+                    "tool": self.name,
+                    "error": f"HTTP {resp.status_code}",
+                }
             data = resp.json()
             entries = data.get("entries", [])
             return {

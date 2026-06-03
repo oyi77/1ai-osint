@@ -83,7 +83,9 @@ class KeyLeakScanner:
 
                     for item in data.get("items", []):
                         file_url = item.get("html_url", "")
-                        finding = await self._fetch_and_scan_key(client, file_url, headers)
+                        finding = await self._fetch_and_scan_key(
+                            client, file_url, headers
+                        )
                         if finding:
                             findings.append(finding)
                 except httpx.HTTPStatusError as e:
@@ -115,7 +117,9 @@ class KeyLeakScanner:
                     logger.error("Paste key scan error (%s): %s", source, e)
         return findings
 
-    async def scan(self, max_results: int = 100, max_pastes: int = 50) -> list[LeakFinding]:
+    async def scan(
+        self, max_results: int = 100, max_pastes: int = 50
+    ) -> list[LeakFinding]:
         """Run full key leak scan across GitHub and paste sites.
 
         Returns:
@@ -134,12 +138,15 @@ class KeyLeakScanner:
         """Fetch a GitHub file and scan for private keys."""
         await self._rate_limit()
         try:
-            raw_url = file_url.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/")
+            raw_url = file_url.replace(
+                "github.com", "raw.githubusercontent.com"
+            ).replace("/blob/", "/")
             resp = await client.get(raw_url, headers=headers)
             resp.raise_for_status()
             text = resp.text
 
             from src.modules.crypto.privatekey.scanner import detect_key_format
+
             keys = detect_key_format(text)
             if keys:
                 for k in keys:
@@ -166,6 +173,7 @@ class KeyLeakScanner:
             text = resp.text
 
             from src.modules.crypto.privatekey.scanner import detect_key_format
+
             keys = detect_key_format(text)
             if keys:
                 for k in keys:
@@ -188,7 +196,7 @@ class KeyLeakScanner:
         try:
             resp = await client.get(archive_url)
             resp.raise_for_status()
-            urls = re.findall(r'https?://pastebin\.com/[a-zA-Z0-9]+', resp.text)
+            urls = re.findall(r"https?://pastebin\.com/[a-zA-Z0-9]+", resp.text)
             return list(dict.fromkeys(urls))[:limit]
         except Exception:
             return []
@@ -196,6 +204,7 @@ class KeyLeakScanner:
     async def _rate_limit(self):
         """Enforce GitHub API rate limit (30 req/min)."""
         import time
+
         now = time.monotonic()
         self._request_times = [t for t in self._request_times if now - t < 60]
         if len(self._request_times) >= self.RATE_LIMIT:

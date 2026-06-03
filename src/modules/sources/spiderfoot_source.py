@@ -1,4 +1,5 @@
 """SpiderFoot source adapter for automated OSINT."""
+
 from __future__ import annotations
 import asyncio
 import json
@@ -30,31 +31,39 @@ class SpiderFootSource:
 
         try:
             proc = await asyncio.create_subprocess_exec(
-                sf_path, "-s", address, "-m", "sfp_whois", "-o", "json",
+                sf_path,
+                "-s",
+                address,
+                "-m",
+                "sfp_whois",
+                "-o",
+                "json",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
-            stdout, _ = await asyncio.wait_for(
-                proc.communicate(), timeout=self.timeout
-            )
+            stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=self.timeout)
             if stdout:
                 try:
                     results = json.loads(stdout.decode())
                     if isinstance(results, list):
                         for entry in results:
-                            leaks.append(RawLeak(
-                                text=json.dumps(entry),
-                                source_name="spiderfoot",
-                                source_url="",
-                            ))
+                            leaks.append(
+                                RawLeak(
+                                    text=json.dumps(entry),
+                                    source_name="spiderfoot",
+                                    source_url="",
+                                )
+                            )
                 except json.JSONDecodeError:
                     text = stdout.decode()
                     if text.strip():
-                        leaks.append(RawLeak(
-                            text=text,
-                            source_name="spiderfoot",
-                            source_url="",
-                        ))
+                        leaks.append(
+                            RawLeak(
+                                text=text,
+                                source_name="spiderfoot",
+                                source_url="",
+                            )
+                        )
         except asyncio.TimeoutError:
             logger.debug("SpiderFoot: timeout for '%s'", address)
         except Exception as exc:

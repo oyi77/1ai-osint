@@ -25,17 +25,72 @@ logger = logging.getLogger(__name__)
 
 # Common first words in real mnemonics (observed in leaked corpora)
 _COMMON_STARTERS = [
-    "abandon", "ability", "able", "about", "above", "absent",
-    "absorb", "abstract", "absurd", "abuse", "access", "accident",
-    "account", "accuse", "achieve", "acid", "acoustic", "acquire",
-    "across", "act", "action", "actor", "actress", "actual",
-    "adapt", "add", "addict", "address", "adjust", "admit",
-    "adult", "advance", "advice", "aerobic", "affair", "afford",
-    "afraid", "again", "age", "agent", "agree", "ahead",
-    "aim", "air", "airport", "aisle", "alarm", "album",
-    "alcohol", "alert", "alien", "all", "alley", "allow",
-    "almost", "alone", "alpha", "already", "also", "alter",
-    "always", "amateur", "amazing", "among", "amount", "amused",
+    "abandon",
+    "ability",
+    "able",
+    "about",
+    "above",
+    "absent",
+    "absorb",
+    "abstract",
+    "absurd",
+    "abuse",
+    "access",
+    "accident",
+    "account",
+    "accuse",
+    "achieve",
+    "acid",
+    "acoustic",
+    "acquire",
+    "across",
+    "act",
+    "action",
+    "actor",
+    "actress",
+    "actual",
+    "adapt",
+    "add",
+    "addict",
+    "address",
+    "adjust",
+    "admit",
+    "adult",
+    "advance",
+    "advice",
+    "aerobic",
+    "affair",
+    "afford",
+    "afraid",
+    "again",
+    "age",
+    "agent",
+    "agree",
+    "ahead",
+    "aim",
+    "air",
+    "airport",
+    "aisle",
+    "alarm",
+    "album",
+    "alcohol",
+    "alert",
+    "alien",
+    "all",
+    "alley",
+    "allow",
+    "almost",
+    "alone",
+    "alpha",
+    "already",
+    "also",
+    "alter",
+    "always",
+    "amateur",
+    "amazing",
+    "among",
+    "amount",
+    "amused",
 ]
 
 # Bigram patterns: word -> list of common next words
@@ -66,12 +121,48 @@ _BIGRAM_PATTERNS: dict[str, list[str]] = {
 _POSITIONAL_STARTERS: dict[int, list[str]] = {
     0: _COMMON_STARTERS[:40],
     1: _COMMON_STARTERS[10:44],
-    11: ["about", "abstract", "absurd", "abuse", "access", "accident",
-         "achieve", "acid", "acoustic", "acquire", "across", "act",
-         "action", "actor", "actual", "adapt", "add", "address", "adjust",
-         "admit", "adult", "advance", "advice", "afraid", "again", "age",
-         "agree", "ahead", "aim", "air", "alarm", "alien", "alley",
-         "allow", "alpha", "already", "also", "alter", "always", "amazing"],
+    11: [
+        "about",
+        "abstract",
+        "absurd",
+        "abuse",
+        "access",
+        "accident",
+        "achieve",
+        "acid",
+        "acoustic",
+        "acquire",
+        "across",
+        "act",
+        "action",
+        "actor",
+        "actual",
+        "adapt",
+        "add",
+        "address",
+        "adjust",
+        "admit",
+        "adult",
+        "advance",
+        "advice",
+        "afraid",
+        "again",
+        "age",
+        "agree",
+        "ahead",
+        "aim",
+        "air",
+        "alarm",
+        "alien",
+        "alley",
+        "allow",
+        "alpha",
+        "already",
+        "also",
+        "alter",
+        "always",
+        "amazing",
+    ],
 }
 
 # Checksum bits per word count
@@ -102,6 +193,7 @@ class SmartMnemonicGenerator:
             self._weights = [wt for _, wt in analyzer.get_weighted_wordlist()]
         else:
             from bip_utils import Bip39MnemonicEncoder
+
             enc = Bip39MnemonicEncoder(Bip39Languages.ENGLISH)
             wl = enc.m_words_list
             self._wordlist = [wl.GetWordAtIdx(i) for i in range(wl.Length())]
@@ -127,7 +219,11 @@ class SmartMnemonicGenerator:
         if len(words) < 12:
             return
         self._hit_patterns.append(words)
-        logger.info("Added hit pattern (%d words), total patterns: %d", len(words), len(self._hit_patterns))
+        logger.info(
+            "Added hit pattern (%d words), total patterns: %d",
+            len(words),
+            len(self._hit_patterns),
+        )
 
         # Boost weights for every word in the hit pattern
         for i, word in enumerate(words):
@@ -157,7 +253,9 @@ class SmartMnemonicGenerator:
                 for i, word in enumerate(words):
                     if word in self._word_index:
                         pos_key = f"{word}:{i}"
-                        self._hit_weights[pos_key] = self._hit_weights.get(pos_key, 1.0) + 5.0
+                        self._hit_weights[pos_key] = (
+                            self._hit_weights.get(pos_key, 1.0) + 5.0
+                        )
                         self._hit_weights[word] = self._hit_weights.get(word, 1.0) + 2.0
             logger.info("Loaded %d hit patterns from disk", len(self._hit_patterns))
         except (FileNotFoundError, json.JSONDecodeError):
@@ -278,7 +376,9 @@ class SmartMnemonicGenerator:
         checksum_bits = _CHECKSUM_BITS.get(word_count, 4)
         entropy_bits = word_count * 11 - checksum_bits
 
-        weighted_candidates = sorted(range(2048), key=lambda i: self._weights[i], reverse=True)
+        weighted_candidates = sorted(
+            range(2048), key=lambda i: self._weights[i], reverse=True
+        )
         random.shuffle(weighted_candidates[:200])
 
         for cand_idx in weighted_candidates:
@@ -286,7 +386,9 @@ class SmartMnemonicGenerator:
             entropy_val = full_value >> checksum_bits
             checksum_val = full_value & ((1 << checksum_bits) - 1)
 
-            entropy_bytes = entropy_val.to_bytes((entropy_bits + 7) // 8, byteorder="big")
+            entropy_bytes = entropy_val.to_bytes(
+                (entropy_bits + 7) // 8, byteorder="big"
+            )
             sha = hashlib.sha256(entropy_bytes).digest()
             expected = (sha[0] >> (8 - checksum_bits)) if checksum_bits < 8 else sha[0]
 

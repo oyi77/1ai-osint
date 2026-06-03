@@ -1,4 +1,5 @@
 """GreyNoise source adapter for IP intelligence."""
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -17,7 +18,12 @@ class GreyNoiseSource:
 
     BASE_URL = "https://api.greynoise.io/v3"
 
-    def __init__(self, api_key: Optional[str] = None, request_delay: float = 1.0, timeout: float = 30.0):
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        request_delay: float = 1.0,
+        timeout: float = 30.0,
+    ):
         self.api_key = api_key or os.getenv("GREYNOISE_API_KEY", "")
         self.request_delay = request_delay
         self.timeout = timeout
@@ -34,7 +40,9 @@ class GreyNoiseSource:
             return []
         leaks: list[RawLeak] = []
         headers = {"key": self.api_key}
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             try:
                 await self._rate_limit()
                 resp = await client.get(
@@ -43,11 +51,13 @@ class GreyNoiseSource:
                 )
                 if resp.status_code == 200:
                     data = resp.json()
-                    leaks.append(RawLeak(
-                        text=f"IP: {address}\nNoise: {data.get('noise', False)}\nClassification: {data.get('classification', 'unknown')}",
-                        source_name="greynoise",
-                        source_url=f"https://viz.greynoise.io/ip/{address}",
-                    ))
+                    leaks.append(
+                        RawLeak(
+                            text=f"IP: {address}\nNoise: {data.get('noise', False)}\nClassification: {data.get('classification', 'unknown')}",
+                            source_name="greynoise",
+                            source_url=f"https://viz.greynoise.io/ip/{address}",
+                        )
+                    )
             except Exception as exc:
                 logger.debug("GreyNoise error: %s", exc)
         return leaks

@@ -13,7 +13,9 @@ class SherlockProvider:
         tmp_path: str | None = None
         try:
             with tempfile.NamedTemporaryFile(
-                mode="w", suffix=".json", delete=False,
+                mode="w",
+                suffix=".json",
+                delete=False,
             ) as tmp:
                 tmp_path = tmp.name
             result = subprocess.run(
@@ -30,7 +32,9 @@ class SherlockProvider:
                 check=False,
             )
             if not os.path.isfile(tmp_path) or os.path.getsize(tmp_path) == 0:
-                err = result.stderr.strip() or result.stdout.strip() or "Sherlock failed"
+                err = (
+                    result.stderr.strip() or result.stdout.strip() or "Sherlock failed"
+                )
                 return {"error": err}
             with open(tmp_path, encoding="utf-8") as f:
                 raw = f.read().strip()

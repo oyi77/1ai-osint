@@ -3,6 +3,7 @@
 Uses GitLab's free public search API (no auth needed).
 Searches public repos and snippets for leaked private keys and mnemonics.
 """
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -30,7 +31,9 @@ class GitLabSource:
     SEARCH_URL = "https://gitlab.com/api/v4/search"
     SNIPPETS_URL = "https://gitlab.com/api/v4/snippets/public"
 
-    def __init__(self, max_per_query: int = 20, request_delay: float = 2.0, timeout: float = 30.0):
+    def __init__(
+        self, max_per_query: int = 20, request_delay: float = 2.0, timeout: float = 30.0
+    ):
         self.max_per_query = max_per_query
         self.request_delay = request_delay
         self.timeout = timeout
@@ -39,25 +42,39 @@ class GitLabSource:
     async def fetch_raw_leaks(self) -> list[RawLeak]:
         leaks: list[RawLeak] = []
         headers = {"User-Agent": "osint:crypto-leak-scanner:v1.0"}
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             # 1. Search code in public projects
             for query in _QUERIES:
                 try:
                     await self._rate_limit()
                     resp = await client.get(
                         f"{self.SEARCH_URL}/blobs",
-                        params={"search": query, "scope": "blobs", "per_page": self.max_per_query},
+                        params={
+                            "search": query,
+                            "scope": "blobs",
+                            "per_page": self.max_per_query,
+                        },
                         headers=headers,
                     )
                     if resp.status_code != 200:
-                        logger.debug("GitLab search '%s' returned %d", query, resp.status_code)
+                        logger.debug(
+                            "GitLab search '%s' returned %d", query, resp.status_code
+                        )
                         continue
                     for item in resp.json():
                         project_id = item.get("project_id", "")
                         data = item.get("data", "")
                         if data:
-                            url = f"https://gitlab.com/-/snippets/{project_id}" if project_id else ""
-                            leaks.append(RawLeak(text=data, source_name="gitlab", source_url=url))
+                            url = (
+                                f"https://gitlab.com/-/snippets/{project_id}"
+                                if project_id
+                                else ""
+                            )
+                            leaks.append(
+                                RawLeak(text=data, source_name="gitlab", source_url=url)
+                            )
                 except Exception as exc:
                     logger.error("GitLab search error: %s", exc)
 
@@ -80,7 +97,13 @@ class GitLabSource:
                             )
                             if raw_resp.status_code == 200 and raw_resp.text.strip():
                                 url = f"https://gitlab.com/-/snippets/{snippet_id}"
-                                leaks.append(RawLeak(text=raw_resp.text, source_name="gitlab_snippet", source_url=url))
+                                leaks.append(
+                                    RawLeak(
+                                        text=raw_resp.text,
+                                        source_name="gitlab_snippet",
+                                        source_url=url,
+                                    )
+                                )
                         except Exception:
                             pass
             except Exception as exc:

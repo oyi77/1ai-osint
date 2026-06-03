@@ -1,12 +1,19 @@
 import subprocess
 import json
 
+
 class SpiderFootProvider:
-    def __init__(self, spiderfoot_path='sf.py'):
+    def __init__(self, spiderfoot_path="sf.py"):
         self.spiderfoot_path = spiderfoot_path
+
     def search(self, target):
         try:
-            result = subprocess.run(['python3', self.spiderfoot_path, '-q', target, '--json'], capture_output=True, text=True, check=False)
+            result = subprocess.run(
+                ["python3", self.spiderfoot_path, "-q", target, "--json"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
             if result.returncode != 0:
                 return {"error": result.stderr.strip() or "SpiderFoot failed"}
             return json.loads(result.stdout)

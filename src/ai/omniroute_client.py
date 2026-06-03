@@ -6,7 +6,7 @@ from typing import Optional
 
 from openai import OpenAI, APITimeoutError, APIConnectionError, RateLimitError
 
-from src.config import settings
+from src.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +64,10 @@ class OmniRouteClient:
                 last_error = e
                 logger.warning(
                     "OmniRoute attempt %d/%d failed: %s. Retrying in %.1fs",
-                    attempt, self.max_retries, e, delay,
+                    attempt,
+                    self.max_retries,
+                    e,
+                    delay,
                 )
                 time.sleep(delay)
                 delay *= 2

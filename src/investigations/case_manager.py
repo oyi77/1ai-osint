@@ -1,4 +1,5 @@
 """Investigation case folders — persistent case storage."""
+
 from __future__ import annotations
 
 import json
@@ -6,7 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from src.config import Settings
+from src.core.config import Settings
 
 
 class CaseManager:
@@ -28,11 +29,14 @@ class CaseManager:
         meta_file = path / "case.json"
         if not meta_file.exists():
             meta_file.write_text(
-                json.dumps({
-                    "case_id": case_id,
-                    "primary_target": target,
-                    "created_at": datetime.now(timezone.utc).isoformat(),
-                }, indent=2),
+                json.dumps(
+                    {
+                        "case_id": case_id,
+                        "primary_target": target,
+                        "created_at": datetime.now(timezone.utc).isoformat(),
+                    },
+                    indent=2,
+                ),
                 encoding="utf-8",
             )
         return path

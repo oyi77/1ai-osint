@@ -1,0 +1,2030 @@
+{
+  "schema_version": "1.0.0",
+  "report_id": "intel-49f180d95434",
+  "target": "Fikri Izzuddin",
+  "started_at": "2026-06-03T06:53:06.174804+00:00",
+  "completed_at": "2026-06-03T06:53:13.070425+00:00",
+  "duration_sec": 6.895621,
+  "iterations": 2,
+  "modules_run": [
+    "social_osint"
+  ],
+  "summary": "Scan of 'Fikri Izzuddin' completed in 6.9s across 1 module(s) and 2 iteration(s). Collected 28 evidence item(s) from 6 distinct platform(s). Overall risk: MEDIUM (score 0.30).",
+  "warnings": [
+    "12 low-confidence evidence item(s) \u2014 verify manually"
+  ],
+  "risk": {
+    "level": "medium",
+    "score": 0.3,
+    "reasoning": "Username confirmed on 3+ platforms (high visibility)",
+    "factors": [
+      {
+        "rule": "nik_plus_name_plus_phone",
+        "description": "NIK + name + phone combined (full PII exposure)",
+        "weight": 0.7,
+        "triggered": false
+      },
+      {
+        "rule": "nik_present",
+        "description": "Indonesian NIK (national ID) found",
+        "weight": 0.5,
+        "triggered": false
+      },
+      {
+        "rule": "crypto_mixer",
+        "description": "Crypto address tagged as mixer (sanctioned risk)",
+        "weight": 0.9,
+        "triggered": false
+      },
+      {
+        "rule": "seed_phrase_leak",
+        "description": "Seed phrase / private key exposed",
+        "weight": 1.0,
+        "triggered": false
+      },
+      {
+        "rule": "password_leak",
+        "description": "Plaintext password discovered",
+        "weight": 0.8,
+        "triggered": false
+      },
+      {
+        "rule": "multi_platform_corroboration",
+        "description": "Username confirmed on 3+ platforms (high visibility)",
+        "weight": 0.3,
+        "triggered": true
+      },
+      {
+        "rule": "phone_present",
+        "description": "Phone number exposed",
+        "weight": 0.3,
+        "triggered": false
+      },
+      {
+        "rule": "email_present",
+        "description": "Email exposed",
+        "weight": 0.2,
+        "triggered": false
+      },
+      {
+        "rule": "nik_plus_address_plus_phone",
+        "description": "NIK + address + phone (full KYC exposure)",
+        "weight": 0.8,
+        "triggered": false
+      },
+      {
+        "rule": "multi_breach_credentials",
+        "description": "Password found in 2+ breaches",
+        "weight": 0.9,
+        "triggered": false
+      },
+      {
+        "rule": "password_plus_email",
+        "description": "Password + email combo leaked",
+        "weight": 0.8,
+        "triggered": false
+      },
+      {
+        "rule": "dob_plus_nik",
+        "description": "Date of birth + NIK (identity theft risk)",
+        "weight": 0.6,
+        "triggered": false
+      },
+      {
+        "rule": "crypto_key_leak",
+        "description": "Crypto private key or seed phrase in raw data",
+        "weight": 0.9,
+        "triggered": false
+      }
+    ]
+  },
+  "confidence_by_identifier": {
+    "fikri.izzuddin": {
+      "existence": 0.9,
+      "uniqueness": 0.4,
+      "cross_module": 1.0,
+      "temporal": 0.7,
+      "total": 0.795,
+      "grade": "medium"
+    },
+    "fikri_izzuddin": {
+      "existence": 0.9,
+      "uniqueness": 0.4,
+      "cross_module": 1.0,
+      "temporal": 0.7,
+      "total": 0.795,
+      "grade": "medium"
+    },
+    "fikriizzuddin": {
+      "existence": 0.9,
+      "uniqueness": 0.4,
+      "cross_module": 1.0,
+      "temporal": 0.7,
+      "total": 0.795,
+      "grade": "medium"
+    },
+    "fikri.": {
+      "existence": 0.9,
+      "uniqueness": 0.4,
+      "cross_module": 1.0,
+      "temporal": 0.7,
+      "total": 0.795,
+      "grade": "medium"
+    }
+  },
+  "evidence": [
+    {
+      "id": "ev-72045f55",
+      "identifier_value": "fikri.izzuddin",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://github.com/fikri.izzuddin",
+      "http_status": 404,
+      "snippet": "Status 404 (exists=False)",
+      "confidence": 0.2,
+      "notes": "github",
+      "captured_at": "2026-06-03T06:53:13.071212+00:00"
+    },
+    {
+      "id": "ev-5b516f3f",
+      "identifier_value": "fikri.izzuddin",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://gitlab.com/fikri.izzuddin",
+      "http_status": 200,
+      "snippet": "Status 200 (exists=True)",
+      "confidence": 0.9,
+      "notes": "gitlab",
+      "captured_at": "2026-06-03T06:53:13.071248+00:00"
+    },
+    {
+      "id": "ev-e8c15078",
+      "identifier_value": "fikri.izzuddin",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://reddit.com/user/fikri.izzuddin",
+      "http_status": 403,
+      "snippet": "Status 403 (exists=False)",
+      "confidence": 0.2,
+      "notes": "reddit",
+      "captured_at": "2026-06-03T06:53:13.071270+00:00"
+    },
+    {
+      "id": "ev-c30f79b8",
+      "identifier_value": "fikri.izzuddin",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://twitter.com/fikri.izzuddin",
+      "http_status": 200,
+      "snippet": "Status 200 (exists=True)",
+      "confidence": 0.9,
+      "notes": "twitter",
+      "captured_at": "2026-06-03T06:53:13.071290+00:00"
+    },
+    {
+      "id": "ev-76f7a942",
+      "identifier_value": "fikri.izzuddin",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://instagram.com/fikri.izzuddin",
+      "http_status": 200,
+      "snippet": "Status 200 (exists=True)",
+      "confidence": 0.9,
+      "notes": "instagram",
+      "captured_at": "2026-06-03T06:53:13.071309+00:00"
+    },
+    {
+      "id": "ev-0c9d9ced",
+      "identifier_value": "fikri.izzuddin",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://linkedin.com/in/fikri.izzuddin",
+      "http_status": 999,
+      "snippet": "Status 999 (exists=False)",
+      "confidence": 0.2,
+      "notes": "linkedin",
+      "captured_at": "2026-06-03T06:53:13.071330+00:00"
+    },
+    {
+      "id": "ev-4d0eeacc",
+      "identifier_value": "fikri.izzuddin",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": null,
+      "http_status": null,
+      "snippet": "Found on 3 platforms",
+      "confidence": 0.7,
+      "notes": "",
+      "captured_at": "2026-06-03T06:53:13.071348+00:00"
+    },
+    {
+      "id": "ev-728d43aa",
+      "identifier_value": "fikri_izzuddin",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://github.com/fikri_izzuddin",
+      "http_status": 404,
+      "snippet": "Status 404 (exists=False)",
+      "confidence": 0.2,
+      "notes": "github",
+      "captured_at": "2026-06-03T06:53:13.071379+00:00"
+    },
+    {
+      "id": "ev-9ec45741",
+      "identifier_value": "fikri_izzuddin",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://gitlab.com/fikri_izzuddin",
+      "http_status": 200,
+      "snippet": "Status 200 (exists=True)",
+      "confidence": 0.9,
+      "notes": "gitlab",
+      "captured_at": "2026-06-03T06:53:13.071398+00:00"
+    },
+    {
+      "id": "ev-1831634c",
+      "identifier_value": "fikri_izzuddin",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://reddit.com/user/fikri_izzuddin",
+      "http_status": 403,
+      "snippet": "Status 403 (exists=False)",
+      "confidence": 0.2,
+      "notes": "reddit",
+      "captured_at": "2026-06-03T06:53:13.071417+00:00"
+    },
+    {
+      "id": "ev-d13a4b8c",
+      "identifier_value": "fikri_izzuddin",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://twitter.com/fikri_izzuddin",
+      "http_status": 200,
+      "snippet": "Status 200 (exists=True)",
+      "confidence": 0.9,
+      "notes": "twitter",
+      "captured_at": "2026-06-03T06:53:13.071435+00:00"
+    },
+    {
+      "id": "ev-861ea2a5",
+      "identifier_value": "fikri_izzuddin",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://instagram.com/fikri_izzuddin",
+      "http_status": 200,
+      "snippet": "Status 200 (exists=True)",
+      "confidence": 0.9,
+      "notes": "instagram",
+      "captured_at": "2026-06-03T06:53:13.071454+00:00"
+    },
+    {
+      "id": "ev-5bd2fdba",
+      "identifier_value": "fikri_izzuddin",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://linkedin.com/in/fikri_izzuddin",
+      "http_status": 999,
+      "snippet": "Status 999 (exists=False)",
+      "confidence": 0.2,
+      "notes": "linkedin",
+      "captured_at": "2026-06-03T06:53:13.071471+00:00"
+    },
+    {
+      "id": "ev-9cf63045",
+      "identifier_value": "fikri_izzuddin",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": null,
+      "http_status": null,
+      "snippet": "Found on 3 platforms",
+      "confidence": 0.7,
+      "notes": "",
+      "captured_at": "2026-06-03T06:53:13.071487+00:00"
+    },
+    {
+      "id": "ev-70cffb96",
+      "identifier_value": "fikriizzuddin",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://github.com/fikriizzuddin",
+      "http_status": 404,
+      "snippet": "Status 404 (exists=False)",
+      "confidence": 0.2,
+      "notes": "github",
+      "captured_at": "2026-06-03T06:53:13.071525+00:00"
+    },
+    {
+      "id": "ev-eda4ec2f",
+      "identifier_value": "fikriizzuddin",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://gitlab.com/fikriizzuddin",
+      "http_status": 200,
+      "snippet": "Status 200 (exists=True)",
+      "confidence": 0.9,
+      "notes": "gitlab",
+      "captured_at": "2026-06-03T06:53:13.071544+00:00"
+    },
+    {
+      "id": "ev-926e1d07",
+      "identifier_value": "fikriizzuddin",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://reddit.com/user/fikriizzuddin",
+      "http_status": 403,
+      "snippet": "Status 403 (exists=False)",
+      "confidence": 0.2,
+      "notes": "reddit",
+      "captured_at": "2026-06-03T06:53:13.071563+00:00"
+    },
+    {
+      "id": "ev-5f7a8ea4",
+      "identifier_value": "fikriizzuddin",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://twitter.com/fikriizzuddin",
+      "http_status": 200,
+      "snippet": "Status 200 (exists=True)",
+      "confidence": 0.9,
+      "notes": "twitter",
+      "captured_at": "2026-06-03T06:53:13.071583+00:00"
+    },
+    {
+      "id": "ev-2eb69342",
+      "identifier_value": "fikriizzuddin",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://instagram.com/fikriizzuddin",
+      "http_status": 200,
+      "snippet": "Status 200 (exists=True)",
+      "confidence": 0.9,
+      "notes": "instagram",
+      "captured_at": "2026-06-03T06:53:13.071603+00:00"
+    },
+    {
+      "id": "ev-5b95b58f",
+      "identifier_value": "fikriizzuddin",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://linkedin.com/in/fikriizzuddin",
+      "http_status": 999,
+      "snippet": "Status 999 (exists=False)",
+      "confidence": 0.2,
+      "notes": "linkedin",
+      "captured_at": "2026-06-03T06:53:13.071622+00:00"
+    },
+    {
+      "id": "ev-99963773",
+      "identifier_value": "fikriizzuddin",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": null,
+      "http_status": null,
+      "snippet": "Found on 3 platforms",
+      "confidence": 0.7,
+      "notes": "",
+      "captured_at": "2026-06-03T06:53:13.071637+00:00"
+    },
+    {
+      "id": "ev-e44187e3",
+      "identifier_value": "fikri.",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://github.com/fikri.",
+      "http_status": 404,
+      "snippet": "Status 404 (exists=False)",
+      "confidence": 0.2,
+      "notes": "github",
+      "captured_at": "2026-06-03T06:53:13.071689+00:00"
+    },
+    {
+      "id": "ev-fb508c43",
+      "identifier_value": "fikri.",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://gitlab.com/fikri.",
+      "http_status": 200,
+      "snippet": "Status 200 (exists=True)",
+      "confidence": 0.9,
+      "notes": "gitlab",
+      "captured_at": "2026-06-03T06:53:13.071706+00:00"
+    },
+    {
+      "id": "ev-66ec6eb8",
+      "identifier_value": "fikri.",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://reddit.com/user/fikri.",
+      "http_status": 403,
+      "snippet": "Status 403 (exists=False)",
+      "confidence": 0.2,
+      "notes": "reddit",
+      "captured_at": "2026-06-03T06:53:13.071723+00:00"
+    },
+    {
+      "id": "ev-9151a4cd",
+      "identifier_value": "fikri.",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://twitter.com/fikri.",
+      "http_status": 200,
+      "snippet": "Status 200 (exists=True)",
+      "confidence": 0.9,
+      "notes": "twitter",
+      "captured_at": "2026-06-03T06:53:13.071739+00:00"
+    },
+    {
+      "id": "ev-23c93f77",
+      "identifier_value": "fikri.",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://instagram.com/fikri.",
+      "http_status": 200,
+      "snippet": "Status 200 (exists=True)",
+      "confidence": 0.9,
+      "notes": "instagram",
+      "captured_at": "2026-06-03T06:53:13.071756+00:00"
+    },
+    {
+      "id": "ev-34849d6c",
+      "identifier_value": "fikri.",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": "https://linkedin.com/in/fikri.",
+      "http_status": 999,
+      "snippet": "Status 999 (exists=False)",
+      "confidence": 0.2,
+      "notes": "linkedin",
+      "captured_at": "2026-06-03T06:53:13.071772+00:00"
+    },
+    {
+      "id": "ev-cf3359bb",
+      "identifier_value": "fikri.",
+      "identifier_type": "username",
+      "source": "social_osint",
+      "source_reliability": "C",
+      "url": null,
+      "http_status": null,
+      "snippet": "Found on 3 platforms",
+      "confidence": 0.7,
+      "notes": "",
+      "captured_at": "2026-06-03T06:53:13.071785+00:00"
+    }
+  ],
+  "timeline": [
+    {
+      "timestamp": "2026-06-03T06:53:09.371128+00:00",
+      "source": "social_osint",
+      "event": "Username Found: fikri.izzuddin",
+      "detail": "Found on 3 platforms",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": "2026-06-03T06:53:09.373350+00:00",
+      "source": "social_osint",
+      "event": "Username Found: fikri_izzuddin",
+      "detail": "Found on 3 platforms",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": "2026-06-03T06:53:10.378199+00:00",
+      "source": "social_osint",
+      "event": "Username Found: fikriizzuddin",
+      "detail": "Found on 3 platforms",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": "2026-06-03T06:53:10.415739+00:00",
+      "source": "social_osint",
+      "event": "Username Found: fikriizzuddin",
+      "detail": "Found on 3 platforms",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": "2026-06-03T06:53:13.065005+00:00",
+      "source": "social_osint",
+      "event": "Username Found: fikri.",
+      "detail": "Found on 3 platforms",
+      "confidence": 0.5
+    },
+    {
+      "timestamp": "2026-06-03T06:53:13.071212+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=fikri.izzuddin on social_osint (https://github.com/fikri.izzuddin)",
+      "confidence": 0.2
+    },
+    {
+      "timestamp": "2026-06-03T06:53:13.071248+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=fikri.izzuddin on social_osint (https://gitlab.com/fikri.izzuddin)",
+      "confidence": 0.9
+    },
+    {
+      "timestamp": "2026-06-03T06:53:13.071270+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=fikri.izzuddin on social_osint (https://reddit.com/user/fikri.izzuddin)",
+      "confidence": 0.2
+    },
+    {
+      "timestamp": "2026-06-03T06:53:13.071290+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=fikri.izzuddin on social_osint (https://twitter.com/fikri.izzuddin)",
+      "confidence": 0.9
+    },
+    {
+      "timestamp": "2026-06-03T06:53:13.071309+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=fikri.izzuddin on social_osint (https://instagram.com/fikri.izzuddin)",
+      "confidence": 0.9
+    },
+    {
+      "timestamp": "2026-06-03T06:53:13.071330+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=fikri.izzuddin on social_osint (https://linkedin.com/in/fikri.izzuddin)",
+      "confidence": 0.2
+    },
+    {
+      "timestamp": "2026-06-03T06:53:13.071348+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=fikri.izzuddin on social_osint",
+      "confidence": 0.7
+    },
+    {
+      "timestamp": "2026-06-03T06:53:13.071379+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=fikri_izzuddin on social_osint (https://github.com/fikri_izzuddin)",
+      "confidence": 0.2
+    },
+    {
+      "timestamp": "2026-06-03T06:53:13.071398+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=fikri_izzuddin on social_osint (https://gitlab.com/fikri_izzuddin)",
+      "confidence": 0.9
+    },
+    {
+      "timestamp": "2026-06-03T06:53:13.071417+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=fikri_izzuddin on social_osint (https://reddit.com/user/fikri_izzuddin)",
+      "confidence": 0.2
+    },
+    {
+      "timestamp": "2026-06-03T06:53:13.071435+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=fikri_izzuddin on social_osint (https://twitter.com/fikri_izzuddin)",
+      "confidence": 0.9
+    },
+    {
+      "timestamp": "2026-06-03T06:53:13.071454+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=fikri_izzuddin on social_osint (https://instagram.com/fikri_izzuddin)",
+      "confidence": 0.9
+    },
+    {
+      "timestamp": "2026-06-03T06:53:13.071471+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=fikri_izzuddin on social_osint (https://linkedin.com/in/fikri_izzuddin)",
+      "confidence": 0.2
+    },
+    {
+      "timestamp": "2026-06-03T06:53:13.071487+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=fikri_izzuddin on social_osint",
+      "confidence": 0.7
+    },
+    {
+      "timestamp": "2026-06-03T06:53:13.071525+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=fikriizzuddin on social_osint (https://github.com/fikriizzuddin)",
+      "confidence": 0.2
+    },
+    {
+      "timestamp": "2026-06-03T06:53:13.071544+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=fikriizzuddin on social_osint (https://gitlab.com/fikriizzuddin)",
+      "confidence": 0.9
+    },
+    {
+      "timestamp": "2026-06-03T06:53:13.071563+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=fikriizzuddin on social_osint (https://reddit.com/user/fikriizzuddin)",
+      "confidence": 0.2
+    },
+    {
+      "timestamp": "2026-06-03T06:53:13.071583+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=fikriizzuddin on social_osint (https://twitter.com/fikriizzuddin)",
+      "confidence": 0.9
+    },
+    {
+      "timestamp": "2026-06-03T06:53:13.071603+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=fikriizzuddin on social_osint (https://instagram.com/fikriizzuddin)",
+      "confidence": 0.9
+    },
+    {
+      "timestamp": "2026-06-03T06:53:13.071622+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=fikriizzuddin on social_osint (https://linkedin.com/in/fikriizzuddin)",
+      "confidence": 0.2
+    },
+    {
+      "timestamp": "2026-06-03T06:53:13.071637+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=fikriizzuddin on social_osint",
+      "confidence": 0.7
+    },
+    {
+      "timestamp": "2026-06-03T06:53:13.071689+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=fikri. on social_osint (https://github.com/fikri.)",
+      "confidence": 0.2
+    },
+    {
+      "timestamp": "2026-06-03T06:53:13.071706+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=fikri. on social_osint (https://gitlab.com/fikri.)",
+      "confidence": 0.9
+    },
+    {
+      "timestamp": "2026-06-03T06:53:13.071723+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=fikri. on social_osint (https://reddit.com/user/fikri.)",
+      "confidence": 0.2
+    },
+    {
+      "timestamp": "2026-06-03T06:53:13.071739+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=fikri. on social_osint (https://twitter.com/fikri.)",
+      "confidence": 0.9
+    },
+    {
+      "timestamp": "2026-06-03T06:53:13.071756+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=fikri. on social_osint (https://instagram.com/fikri.)",
+      "confidence": 0.9
+    },
+    {
+      "timestamp": "2026-06-03T06:53:13.071772+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=fikri. on social_osint (https://linkedin.com/in/fikri.)",
+      "confidence": 0.2
+    },
+    {
+      "timestamp": "2026-06-03T06:53:13.071785+00:00",
+      "source": "social_osint",
+      "event": "evidence_captured",
+      "detail": "username=fikri. on social_osint",
+      "confidence": 0.7
+    }
+  ],
+  "identity_graph": {
+    "nodes": [
+      {
+        "id": "target",
+        "label": "Fikri Izzuddin",
+        "type": "name",
+        "weight": 1.0
+      },
+      {
+        "id": "ident-name-Fikri Izzuddin",
+        "label": "Fikri Izzuddin",
+        "type": "name",
+        "weight": 1.0
+      },
+      {
+        "id": "ident-username-fikriizzuddin",
+        "label": "fikriizzuddin",
+        "type": "username",
+        "weight": 0.95
+      },
+      {
+        "id": "ident-username-fikri_izzuddin",
+        "label": "fikri_izzuddin",
+        "type": "username",
+        "weight": 0.85
+      },
+      {
+        "id": "ident-username-fikri.izzuddin",
+        "label": "fikri.izzuddin",
+        "type": "username",
+        "weight": 0.8
+      },
+      {
+        "id": "ident-domain-fikri.",
+        "label": "fikri.",
+        "type": "domain",
+        "weight": 1.0
+      },
+      {
+        "id": "ident-username-fikri.",
+        "label": "fikri.",
+        "type": "username",
+        "weight": 0.9
+      },
+      {
+        "id": "plat-github",
+        "label": "github",
+        "type": "social",
+        "weight": 0.5
+      },
+      {
+        "id": "plat-gitlab",
+        "label": "gitlab",
+        "type": "social",
+        "weight": 0.5
+      },
+      {
+        "id": "plat-reddit",
+        "label": "reddit",
+        "type": "social",
+        "weight": 0.5
+      },
+      {
+        "id": "plat-twitter",
+        "label": "twitter",
+        "type": "social",
+        "weight": 0.5
+      },
+      {
+        "id": "plat-instagram",
+        "label": "instagram",
+        "type": "social",
+        "weight": 0.5
+      },
+      {
+        "id": "plat-linkedin",
+        "label": "linkedin",
+        "type": "social",
+        "weight": 0.5
+      }
+    ],
+    "edges": [
+      {
+        "source_id": "target",
+        "target_id": "ident-name-Fikri Izzuddin",
+        "relationship": "linked_to",
+        "weight": 1.0,
+        "evidence_ids": []
+      },
+      {
+        "source_id": "target",
+        "target_id": "ident-username-fikriizzuddin",
+        "relationship": "linked_to",
+        "weight": 0.95,
+        "evidence_ids": []
+      },
+      {
+        "source_id": "target",
+        "target_id": "ident-username-fikri_izzuddin",
+        "relationship": "linked_to",
+        "weight": 0.85,
+        "evidence_ids": []
+      },
+      {
+        "source_id": "target",
+        "target_id": "ident-username-fikri.izzuddin",
+        "relationship": "linked_to",
+        "weight": 0.8,
+        "evidence_ids": []
+      },
+      {
+        "source_id": "target",
+        "target_id": "ident-domain-fikri.",
+        "relationship": "linked_to",
+        "weight": 1.0,
+        "evidence_ids": []
+      },
+      {
+        "source_id": "target",
+        "target_id": "ident-username-fikri.",
+        "relationship": "linked_to",
+        "weight": 0.9,
+        "evidence_ids": []
+      },
+      {
+        "source_id": "ident-username-fikri.izzuddin",
+        "target_id": "plat-github",
+        "relationship": "found_on",
+        "weight": 0.2,
+        "evidence_ids": [
+          "ev-72045f55"
+        ]
+      },
+      {
+        "source_id": "ident-username-fikri.izzuddin",
+        "target_id": "plat-gitlab",
+        "relationship": "found_on",
+        "weight": 0.9,
+        "evidence_ids": [
+          "ev-5b516f3f"
+        ]
+      },
+      {
+        "source_id": "ident-username-fikri.izzuddin",
+        "target_id": "plat-reddit",
+        "relationship": "found_on",
+        "weight": 0.2,
+        "evidence_ids": [
+          "ev-e8c15078"
+        ]
+      },
+      {
+        "source_id": "ident-username-fikri.izzuddin",
+        "target_id": "plat-twitter",
+        "relationship": "found_on",
+        "weight": 0.9,
+        "evidence_ids": [
+          "ev-c30f79b8"
+        ]
+      },
+      {
+        "source_id": "ident-username-fikri.izzuddin",
+        "target_id": "plat-instagram",
+        "relationship": "found_on",
+        "weight": 0.9,
+        "evidence_ids": [
+          "ev-76f7a942"
+        ]
+      },
+      {
+        "source_id": "ident-username-fikri.izzuddin",
+        "target_id": "plat-linkedin",
+        "relationship": "found_on",
+        "weight": 0.2,
+        "evidence_ids": [
+          "ev-0c9d9ced"
+        ]
+      },
+      {
+        "source_id": "ident-username-fikri_izzuddin",
+        "target_id": "plat-github",
+        "relationship": "found_on",
+        "weight": 0.2,
+        "evidence_ids": [
+          "ev-728d43aa"
+        ]
+      },
+      {
+        "source_id": "ident-username-fikri_izzuddin",
+        "target_id": "plat-gitlab",
+        "relationship": "found_on",
+        "weight": 0.9,
+        "evidence_ids": [
+          "ev-9ec45741"
+        ]
+      },
+      {
+        "source_id": "ident-username-fikri_izzuddin",
+        "target_id": "plat-reddit",
+        "relationship": "found_on",
+        "weight": 0.2,
+        "evidence_ids": [
+          "ev-1831634c"
+        ]
+      },
+      {
+        "source_id": "ident-username-fikri_izzuddin",
+        "target_id": "plat-twitter",
+        "relationship": "found_on",
+        "weight": 0.9,
+        "evidence_ids": [
+          "ev-d13a4b8c"
+        ]
+      },
+      {
+        "source_id": "ident-username-fikri_izzuddin",
+        "target_id": "plat-instagram",
+        "relationship": "found_on",
+        "weight": 0.9,
+        "evidence_ids": [
+          "ev-861ea2a5"
+        ]
+      },
+      {
+        "source_id": "ident-username-fikri_izzuddin",
+        "target_id": "plat-linkedin",
+        "relationship": "found_on",
+        "weight": 0.2,
+        "evidence_ids": [
+          "ev-5bd2fdba"
+        ]
+      },
+      {
+        "source_id": "ident-username-fikriizzuddin",
+        "target_id": "plat-github",
+        "relationship": "found_on",
+        "weight": 0.2,
+        "evidence_ids": [
+          "ev-70cffb96"
+        ]
+      },
+      {
+        "source_id": "ident-username-fikriizzuddin",
+        "target_id": "plat-gitlab",
+        "relationship": "found_on",
+        "weight": 0.9,
+        "evidence_ids": [
+          "ev-eda4ec2f"
+        ]
+      },
+      {
+        "source_id": "ident-username-fikriizzuddin",
+        "target_id": "plat-reddit",
+        "relationship": "found_on",
+        "weight": 0.2,
+        "evidence_ids": [
+          "ev-926e1d07"
+        ]
+      },
+      {
+        "source_id": "ident-username-fikriizzuddin",
+        "target_id": "plat-twitter",
+        "relationship": "found_on",
+        "weight": 0.9,
+        "evidence_ids": [
+          "ev-5f7a8ea4"
+        ]
+      },
+      {
+        "source_id": "ident-username-fikriizzuddin",
+        "target_id": "plat-instagram",
+        "relationship": "found_on",
+        "weight": 0.9,
+        "evidence_ids": [
+          "ev-2eb69342"
+        ]
+      },
+      {
+        "source_id": "ident-username-fikriizzuddin",
+        "target_id": "plat-linkedin",
+        "relationship": "found_on",
+        "weight": 0.2,
+        "evidence_ids": [
+          "ev-5b95b58f"
+        ]
+      },
+      {
+        "source_id": "ident-domain-fikri.",
+        "target_id": "plat-github",
+        "relationship": "found_on",
+        "weight": 0.2,
+        "evidence_ids": [
+          "ev-e44187e3"
+        ]
+      },
+      {
+        "source_id": "ident-domain-fikri.",
+        "target_id": "plat-gitlab",
+        "relationship": "found_on",
+        "weight": 0.9,
+        "evidence_ids": [
+          "ev-fb508c43"
+        ]
+      },
+      {
+        "source_id": "ident-domain-fikri.",
+        "target_id": "plat-reddit",
+        "relationship": "found_on",
+        "weight": 0.2,
+        "evidence_ids": [
+          "ev-66ec6eb8"
+        ]
+      },
+      {
+        "source_id": "ident-domain-fikri.",
+        "target_id": "plat-twitter",
+        "relationship": "found_on",
+        "weight": 0.9,
+        "evidence_ids": [
+          "ev-9151a4cd"
+        ]
+      },
+      {
+        "source_id": "ident-domain-fikri.",
+        "target_id": "plat-instagram",
+        "relationship": "found_on",
+        "weight": 0.9,
+        "evidence_ids": [
+          "ev-23c93f77"
+        ]
+      },
+      {
+        "source_id": "ident-domain-fikri.",
+        "target_id": "plat-linkedin",
+        "relationship": "found_on",
+        "weight": 0.2,
+        "evidence_ids": [
+          "ev-34849d6c"
+        ]
+      }
+    ]
+  },
+  "pivots": [
+    {
+      "target_type": "email",
+      "target_value": "fikriizzuddin@",
+      "rationale": "Username 'fikriizzuddin' likely has a Gravatar or GitHub email",
+      "priority": 2,
+      "expected_sources": [
+        "github",
+        "gravatar",
+        "hunter"
+      ]
+    },
+    {
+      "target_type": "phone",
+      "target_value": "Username fikriizzuddin on phone lookup",
+      "rationale": "Username 'fikriizzuddin' may have associated phone",
+      "priority": 3,
+      "expected_sources": [
+        "truecaller",
+        "leakcheck"
+      ]
+    },
+    {
+      "target_type": "email",
+      "target_value": "fikri_izzuddin@",
+      "rationale": "Username 'fikri_izzuddin' likely has a Gravatar or GitHub email",
+      "priority": 2,
+      "expected_sources": [
+        "github",
+        "gravatar",
+        "hunter"
+      ]
+    },
+    {
+      "target_type": "phone",
+      "target_value": "Username fikri_izzuddin on phone lookup",
+      "rationale": "Username 'fikri_izzuddin' may have associated phone",
+      "priority": 3,
+      "expected_sources": [
+        "truecaller",
+        "leakcheck"
+      ]
+    },
+    {
+      "target_type": "email",
+      "target_value": "fikri.izzuddin@",
+      "rationale": "Username 'fikri.izzuddin' likely has a Gravatar or GitHub email",
+      "priority": 2,
+      "expected_sources": [
+        "github",
+        "gravatar",
+        "hunter"
+      ]
+    },
+    {
+      "target_type": "phone",
+      "target_value": "Username fikri.izzuddin on phone lookup",
+      "rationale": "Username 'fikri.izzuddin' may have associated phone",
+      "priority": 3,
+      "expected_sources": [
+        "truecaller",
+        "leakcheck"
+      ]
+    },
+    {
+      "target_type": "email",
+      "target_value": "fikri.@",
+      "rationale": "Username 'fikri.' likely has a Gravatar or GitHub email",
+      "priority": 2,
+      "expected_sources": [
+        "github",
+        "gravatar",
+        "hunter"
+      ]
+    },
+    {
+      "target_type": "phone",
+      "target_value": "Username fikri. on phone lookup",
+      "rationale": "Username 'fikri.' may have associated phone",
+      "priority": 3,
+      "expected_sources": [
+        "truecaller",
+        "leakcheck"
+      ]
+    }
+  ],
+  "correlation": {
+    "clusters": [],
+    "stats": {
+      "node_count": 1,
+      "edge_count": 0,
+      "entity_count": 0,
+      "unresolved_count": 1,
+      "neo4j": {
+        "nodes": [
+          {
+            "id": "target",
+            "labels": [
+              "NAME"
+            ],
+            "properties": {
+              "label": "Fikri Izzuddin",
+              "weight": 1.0
+            }
+          },
+          {
+            "id": "ident-name-Fikri Izzuddin",
+            "labels": [
+              "NAME"
+            ],
+            "properties": {
+              "label": "Fikri Izzuddin",
+              "weight": 1.0
+            }
+          },
+          {
+            "id": "ident-username-fikriizzuddin",
+            "labels": [
+              "USERNAME"
+            ],
+            "properties": {
+              "label": "fikriizzuddin",
+              "weight": 0.95
+            }
+          },
+          {
+            "id": "ident-username-fikri_izzuddin",
+            "labels": [
+              "USERNAME"
+            ],
+            "properties": {
+              "label": "fikri_izzuddin",
+              "weight": 0.85
+            }
+          },
+          {
+            "id": "ident-username-fikri.izzuddin",
+            "labels": [
+              "USERNAME"
+            ],
+            "properties": {
+              "label": "fikri.izzuddin",
+              "weight": 0.8
+            }
+          },
+          {
+            "id": "ident-domain-fikri.",
+            "labels": [
+              "DOMAIN"
+            ],
+            "properties": {
+              "label": "fikri.",
+              "weight": 1.0
+            }
+          },
+          {
+            "id": "ident-username-fikri.",
+            "labels": [
+              "USERNAME"
+            ],
+            "properties": {
+              "label": "fikri.",
+              "weight": 0.9
+            }
+          },
+          {
+            "id": "plat-github",
+            "labels": [
+              "SOCIAL"
+            ],
+            "properties": {
+              "label": "github",
+              "weight": 0.5
+            }
+          },
+          {
+            "id": "plat-gitlab",
+            "labels": [
+              "SOCIAL"
+            ],
+            "properties": {
+              "label": "gitlab",
+              "weight": 0.5
+            }
+          },
+          {
+            "id": "plat-reddit",
+            "labels": [
+              "SOCIAL"
+            ],
+            "properties": {
+              "label": "reddit",
+              "weight": 0.5
+            }
+          },
+          {
+            "id": "plat-twitter",
+            "labels": [
+              "SOCIAL"
+            ],
+            "properties": {
+              "label": "twitter",
+              "weight": 0.5
+            }
+          },
+          {
+            "id": "plat-instagram",
+            "labels": [
+              "SOCIAL"
+            ],
+            "properties": {
+              "label": "instagram",
+              "weight": 0.5
+            }
+          },
+          {
+            "id": "plat-linkedin",
+            "labels": [
+              "SOCIAL"
+            ],
+            "properties": {
+              "label": "linkedin",
+              "weight": 0.5
+            }
+          }
+        ],
+        "relationships": [
+          {
+            "type": "LINKED_TO",
+            "start": "target",
+            "end": "ident-name-Fikri Izzuddin",
+            "properties": {
+              "weight": 1.0
+            }
+          },
+          {
+            "type": "LINKED_TO",
+            "start": "target",
+            "end": "ident-username-fikriizzuddin",
+            "properties": {
+              "weight": 0.95
+            }
+          },
+          {
+            "type": "LINKED_TO",
+            "start": "target",
+            "end": "ident-username-fikri_izzuddin",
+            "properties": {
+              "weight": 0.85
+            }
+          },
+          {
+            "type": "LINKED_TO",
+            "start": "target",
+            "end": "ident-username-fikri.izzuddin",
+            "properties": {
+              "weight": 0.8
+            }
+          },
+          {
+            "type": "LINKED_TO",
+            "start": "target",
+            "end": "ident-domain-fikri.",
+            "properties": {
+              "weight": 1.0
+            }
+          },
+          {
+            "type": "LINKED_TO",
+            "start": "target",
+            "end": "ident-username-fikri.",
+            "properties": {
+              "weight": 0.9
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-username-fikri.izzuddin",
+            "end": "plat-github",
+            "properties": {
+              "weight": 0.2
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-username-fikri.izzuddin",
+            "end": "plat-gitlab",
+            "properties": {
+              "weight": 0.9
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-username-fikri.izzuddin",
+            "end": "plat-reddit",
+            "properties": {
+              "weight": 0.2
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-username-fikri.izzuddin",
+            "end": "plat-twitter",
+            "properties": {
+              "weight": 0.9
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-username-fikri.izzuddin",
+            "end": "plat-instagram",
+            "properties": {
+              "weight": 0.9
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-username-fikri.izzuddin",
+            "end": "plat-linkedin",
+            "properties": {
+              "weight": 0.2
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-username-fikri_izzuddin",
+            "end": "plat-github",
+            "properties": {
+              "weight": 0.2
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-username-fikri_izzuddin",
+            "end": "plat-gitlab",
+            "properties": {
+              "weight": 0.9
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-username-fikri_izzuddin",
+            "end": "plat-reddit",
+            "properties": {
+              "weight": 0.2
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-username-fikri_izzuddin",
+            "end": "plat-twitter",
+            "properties": {
+              "weight": 0.9
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-username-fikri_izzuddin",
+            "end": "plat-instagram",
+            "properties": {
+              "weight": 0.9
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-username-fikri_izzuddin",
+            "end": "plat-linkedin",
+            "properties": {
+              "weight": 0.2
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-username-fikriizzuddin",
+            "end": "plat-github",
+            "properties": {
+              "weight": 0.2
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-username-fikriizzuddin",
+            "end": "plat-gitlab",
+            "properties": {
+              "weight": 0.9
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-username-fikriizzuddin",
+            "end": "plat-reddit",
+            "properties": {
+              "weight": 0.2
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-username-fikriizzuddin",
+            "end": "plat-twitter",
+            "properties": {
+              "weight": 0.9
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-username-fikriizzuddin",
+            "end": "plat-instagram",
+            "properties": {
+              "weight": 0.9
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-username-fikriizzuddin",
+            "end": "plat-linkedin",
+            "properties": {
+              "weight": 0.2
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-domain-fikri.",
+            "end": "plat-github",
+            "properties": {
+              "weight": 0.2
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-domain-fikri.",
+            "end": "plat-gitlab",
+            "properties": {
+              "weight": 0.9
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-domain-fikri.",
+            "end": "plat-reddit",
+            "properties": {
+              "weight": 0.2
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-domain-fikri.",
+            "end": "plat-twitter",
+            "properties": {
+              "weight": 0.9
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-domain-fikri.",
+            "end": "plat-instagram",
+            "properties": {
+              "weight": 0.9
+            }
+          },
+          {
+            "type": "FOUND_ON",
+            "start": "ident-domain-fikri.",
+            "end": "plat-linkedin",
+            "properties": {
+              "weight": 0.2
+            }
+          }
+        ]
+      }
+    }
+  },
+  "briefing": {
+    "classification": "UNCLASSIFIED // OPEN SOURCE INTELLIGENCE // LAWFUL USE ONLY",
+    "bluf": "Open-source scan on 'Fikri Izzuddin' completed in 7s with 28 observations across 1 module(s). Key handles: fikri., fikri.izzuddin, fikri_izzuddin. 12 confirmed platform presence(s). Overall exposure: MEDIUM (30%).",
+    "key_judgments": [
+      "Subject likely operates accounts on: gitlab, instagram, twitter (12 high-confidence hits).",
+      "Primary handle candidates: fikri., fikri.izzuddin, fikri_izzuddin, fikriizzuddin.",
+      "Risk drivers: Username confirmed on 3+ platforms (high visibility)."
+    ],
+    "subject": {
+      "primary_name": "Fikri Izzuddin",
+      "known_aliases": [],
+      "known_handles": [
+        "fikri.",
+        "fikri.izzuddin",
+        "fikri_izzuddin",
+        "fikriizzuddin"
+      ],
+      "emails": [],
+      "phones": [],
+      "niks": [],
+      "locations": [],
+      "crypto_addresses": []
+    },
+    "digital_accounts": [
+      {
+        "platform": "gitlab",
+        "username": "fikri.izzuddin",
+        "url": "https://gitlab.com/fikri.izzuddin",
+        "status": "confirmed",
+        "confidence": 0.85,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "gitlab",
+        "username": "fikri_izzuddin",
+        "url": "https://gitlab.com/fikri_izzuddin",
+        "status": "confirmed",
+        "confidence": 0.85,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "gitlab",
+        "username": "fikriizzuddin",
+        "url": "https://gitlab.com/fikriizzuddin",
+        "status": "confirmed",
+        "confidence": 0.85,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "gitlab",
+        "username": "fikri.",
+        "url": "https://gitlab.com/fikri.",
+        "status": "confirmed",
+        "confidence": 0.85,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "instagram",
+        "username": "fikri.izzuddin",
+        "url": "https://instagram.com/fikri.izzuddin",
+        "status": "confirmed",
+        "confidence": 0.85,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "instagram",
+        "username": "fikri_izzuddin",
+        "url": "https://instagram.com/fikri_izzuddin",
+        "status": "confirmed",
+        "confidence": 0.85,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "instagram",
+        "username": "fikriizzuddin",
+        "url": "https://instagram.com/fikriizzuddin",
+        "status": "confirmed",
+        "confidence": 0.85,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "instagram",
+        "username": "fikri.",
+        "url": "https://instagram.com/fikri.",
+        "status": "confirmed",
+        "confidence": 0.85,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "twitter",
+        "username": "fikri.izzuddin",
+        "url": "https://twitter.com/fikri.izzuddin",
+        "status": "confirmed",
+        "confidence": 0.85,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "twitter",
+        "username": "fikri_izzuddin",
+        "url": "https://twitter.com/fikri_izzuddin",
+        "status": "confirmed",
+        "confidence": 0.85,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "twitter",
+        "username": "fikriizzuddin",
+        "url": "https://twitter.com/fikriizzuddin",
+        "status": "confirmed",
+        "confidence": 0.85,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "twitter",
+        "username": "fikri.",
+        "url": "https://twitter.com/fikri.",
+        "status": "confirmed",
+        "confidence": 0.85,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "github",
+        "username": "fikri.izzuddin",
+        "url": "https://github.com/fikri.izzuddin",
+        "status": "not_found",
+        "confidence": 0.25,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "github",
+        "username": "fikri_izzuddin",
+        "url": "https://github.com/fikri_izzuddin",
+        "status": "not_found",
+        "confidence": 0.25,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "github",
+        "username": "fikriizzuddin",
+        "url": "https://github.com/fikriizzuddin",
+        "status": "not_found",
+        "confidence": 0.25,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "github",
+        "username": "fikri.",
+        "url": "https://github.com/fikri.",
+        "status": "not_found",
+        "confidence": 0.25,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "linkedin",
+        "username": "fikri.izzuddin",
+        "url": "https://linkedin.com/in/fikri.izzuddin",
+        "status": "not_found",
+        "confidence": 0.25,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "linkedin",
+        "username": "fikri_izzuddin",
+        "url": "https://linkedin.com/in/fikri_izzuddin",
+        "status": "not_found",
+        "confidence": 0.25,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "linkedin",
+        "username": "fikriizzuddin",
+        "url": "https://linkedin.com/in/fikriizzuddin",
+        "status": "not_found",
+        "confidence": 0.25,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "linkedin",
+        "username": "fikri.",
+        "url": "https://linkedin.com/in/fikri.",
+        "status": "not_found",
+        "confidence": 0.25,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "reddit",
+        "username": "fikri.izzuddin",
+        "url": "https://reddit.com/user/fikri.izzuddin",
+        "status": "not_found",
+        "confidence": 0.25,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "reddit",
+        "username": "fikri_izzuddin",
+        "url": "https://reddit.com/user/fikri_izzuddin",
+        "status": "not_found",
+        "confidence": 0.25,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "reddit",
+        "username": "fikriizzuddin",
+        "url": "https://reddit.com/user/fikriizzuddin",
+        "status": "not_found",
+        "confidence": 0.25,
+        "sources": [
+          "social_osint"
+        ]
+      },
+      {
+        "platform": "reddit",
+        "username": "fikri.",
+        "url": "https://reddit.com/user/fikri.",
+        "status": "not_found",
+        "confidence": 0.25,
+        "sources": [
+          "social_osint"
+        ]
+      }
+    ],
+    "breach_records": [],
+    "intelligence_gaps": [
+      "No verified email addresses \u2014 run breach APIs (HIBP, DeHashed, LeakCheck) after email discovery.",
+      "No phone numbers identified \u2014 consider phone_finder / regional registries.",
+      "No breach corpus hits \u2014 configure DEHASHED_API_KEY, HIBP_API_KEY, LEAKCHECK_API_KEY in .env.",
+      "No NIK / national ID \u2014 Indonesian civil registry sources not queried.",
+      "No geolocation indicators \u2014 expand to domain/WHOIS and address fields in breach data."
+    ],
+    "recommended_actions": [
+      "[P2] EMAIL: fikriizzuddin@ \u2014 Username 'fikriizzuddin' likely has a Gravatar or GitHub email",
+      "[P2] EMAIL: fikri_izzuddin@ \u2014 Username 'fikri_izzuddin' likely has a Gravatar or GitHub email",
+      "[P2] EMAIL: fikri.izzuddin@ \u2014 Username 'fikri.izzuddin' likely has a Gravatar or GitHub email",
+      "[P2] EMAIL: fikri.@ \u2014 Username 'fikri.' likely has a Gravatar or GitHub email",
+      "[P3] PHONE: Username fikriizzuddin on phone lookup \u2014 Username 'fikriizzuddin' may have associated phone",
+      "[P3] PHONE: Username fikri_izzuddin on phone lookup \u2014 Username 'fikri_izzuddin' may have associated phone",
+      "[P3] PHONE: Username fikri.izzuddin on phone lookup \u2014 Username 'fikri.izzuddin' may have associated phone",
+      "[P3] PHONE: Username fikri. on phone lookup \u2014 Username 'fikri.' may have associated phone",
+      "Enumerate fikri. across archived web (Wayback) and code repos (GitHub dorks).",
+      "Enumerate fikri.izzuddin across archived web (Wayback) and code repos (GitHub dorks).",
+      "Enumerate fikri_izzuddin across archived web (Wayback) and code repos (GitHub dorks)."
+    ]
+  },
+  "source_blocks": [
+    {
+      "block_id": "p1",
+      "module": "social_osint",
+      "title": "\ud83c\udf10Social Osint",
+      "description": "Cross-platform social profile presence and username availability.",
+      "records": [
+        {
+          "type": "username_check",
+          "username": "fikri.izzuddin",
+          "display_name": "fikri.izzuddin",
+          "platforms": [
+            {
+              "platform": "github",
+              "status": 404,
+              "exists": false
+            },
+            {
+              "platform": "gitlab",
+              "status": 200,
+              "exists": true
+            },
+            {
+              "platform": "reddit",
+              "status": 403,
+              "exists": false
+            },
+            {
+              "platform": "twitter",
+              "status": 200,
+              "exists": true
+            },
+            {
+              "platform": "instagram",
+              "status": 200,
+              "exists": true
+            },
+            {
+              "platform": "linkedin",
+              "status": 999,
+              "exists": false
+            }
+          ]
+        },
+        {
+          "type": "username_check",
+          "username": "fikri_izzuddin",
+          "display_name": "fikri_izzuddin",
+          "platforms": [
+            {
+              "platform": "github",
+              "status": 404,
+              "exists": false
+            },
+            {
+              "platform": "gitlab",
+              "status": 200,
+              "exists": true
+            },
+            {
+              "platform": "reddit",
+              "status": 403,
+              "exists": false
+            },
+            {
+              "platform": "twitter",
+              "status": 200,
+              "exists": true
+            },
+            {
+              "platform": "instagram",
+              "status": 200,
+              "exists": true
+            },
+            {
+              "platform": "linkedin",
+              "status": 999,
+              "exists": false
+            }
+          ]
+        },
+        {
+          "type": "username_check",
+          "username": "fikriizzuddin",
+          "display_name": "fikriizzuddin",
+          "platforms": [
+            {
+              "platform": "github",
+              "status": 404,
+              "exists": false
+            },
+            {
+              "platform": "gitlab",
+              "status": 200,
+              "exists": true
+            },
+            {
+              "platform": "reddit",
+              "status": 403,
+              "exists": false
+            },
+            {
+              "platform": "twitter",
+              "status": 200,
+              "exists": true
+            },
+            {
+              "platform": "instagram",
+              "status": 200,
+              "exists": true
+            },
+            {
+              "platform": "linkedin",
+              "status": 999,
+              "exists": false
+            }
+          ]
+        },
+        {
+          "type": "username_check",
+          "username": "fikriizzuddin",
+          "display_name": "Fikri Izzuddin",
+          "platforms": [
+            {
+              "platform": "github",
+              "status": 404,
+              "exists": false
+            },
+            {
+              "platform": "gitlab",
+              "status": 200,
+              "exists": true
+            },
+            {
+              "platform": "reddit",
+              "status": 403,
+              "exists": false
+            },
+            {
+              "platform": "twitter",
+              "status": 200,
+              "exists": true
+            },
+            {
+              "platform": "instagram",
+              "status": 200,
+              "exists": true
+            },
+            {
+              "platform": "linkedin",
+              "status": 999,
+              "exists": false
+            }
+          ]
+        },
+        {
+          "type": "username_check",
+          "username": "fikri.",
+          "display_name": "fikri.",
+          "platforms": [
+            {
+              "platform": "github",
+              "status": 404,
+              "exists": false
+            },
+            {
+              "platform": "gitlab",
+              "status": 200,
+              "exists": true
+            },
+            {
+              "platform": "reddit",
+              "status": 403,
+              "exists": false
+            },
+            {
+              "platform": "twitter",
+              "status": 200,
+              "exists": true
+            },
+            {
+              "platform": "instagram",
+              "status": 200,
+              "exists": true
+            },
+            {
+              "platform": "linkedin",
+              "status": 999,
+              "exists": false
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "breaches": []
+}

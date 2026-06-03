@@ -1,4 +1,5 @@
 """WiGLE source adapter for wireless network intelligence."""
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -17,7 +18,12 @@ class WiGLESource:
 
     BASE_URL = "https://api.wigle.net/api/v2"
 
-    def __init__(self, api_key: Optional[str] = None, request_delay: float = 1.0, timeout: float = 30.0):
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        request_delay: float = 1.0,
+        timeout: float = 30.0,
+    ):
         self.api_key = api_key or os.getenv("WIGLE_API_KEY", "")
         self.request_delay = request_delay
         self.timeout = timeout
@@ -31,9 +37,12 @@ class WiGLESource:
             return []
         leaks: list[RawLeak] = []
         import base64
+
         auth = base64.b64encode(self.api_key.encode()).decode()
         headers = {"Authorization": f"Basic {auth}"}
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             try:
                 await self._rate_limit()
                 resp = await client.get(
@@ -44,11 +53,13 @@ class WiGLESource:
                 if resp.status_code == 200:
                     data = resp.json()
                     for entry in data.get("results", []):
-                        leaks.append(RawLeak(
-                            text=f"SSID: {entry.get('ssid', '')}\nBSSID: {entry.get('netid', '')}\nChannel: {entry.get('channel', '')}",
-                            source_name="wigle",
-                            source_url=f"https://wigle.net/search?ssid={address}",
-                        ))
+                        leaks.append(
+                            RawLeak(
+                                text=f"SSID: {entry.get('ssid', '')}\nBSSID: {entry.get('netid', '')}\nChannel: {entry.get('channel', '')}",
+                                source_name="wigle",
+                                source_url=f"https://wigle.net/search?ssid={address}",
+                            )
+                        )
             except Exception as exc:
                 logger.debug("WiGLE error: %s", exc)
         return leaks

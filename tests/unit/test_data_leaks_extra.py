@@ -4,7 +4,7 @@ import pytest
 from unittest.mock import patch, MagicMock, AsyncMock
 
 from src.modules.data_leaks.aggregator import DataLeaksAggregator
-from src.models import BreachRecord, ScanResult, Severity
+from src.core.models import BreachRecord, ScanResult, Severity
 
 
 @pytest.fixture
@@ -43,16 +43,21 @@ class TestProviderQuery:
     async def test_query_provider_calls_search(self, aggregator):
         mock_provider = MagicMock()
         mock_provider.search.return_value = {"result": []}
-        result = await aggregator._query_provider("test", mock_provider, "test@example.com")
+        result = await aggregator._query_provider(
+            "test", mock_provider, "test@example.com"
+        )
         mock_provider.search.assert_called_once_with("test@example.com")
         assert isinstance(result, dict)
 
 
 class TestParseProviderResults:
     def test_parse_dict_with_result_list(self, aggregator):
-        raw = {"status": "ok", "result": [
-            {"email": "a@b.com", "source": "TestBreach"},
-        ]}
+        raw = {
+            "status": "ok",
+            "result": [
+                {"email": "a@b.com", "source": "TestBreach"},
+            ],
+        }
         records = aggregator._parse_provider_results("provider", raw)
         assert len(records) == 1
         assert records[0].email == "a@b.com"
@@ -88,7 +93,14 @@ class TestParseProviderResults:
         assert len(records) == 1
 
     def test_parse_with_uppercase_fields(self, aggregator):
-        raw = [{"Email": "a@b.com", "Username": "user1", "Domain": "example.com", "Description": "test"}]
+        raw = [
+            {
+                "Email": "a@b.com",
+                "Username": "user1",
+                "Domain": "example.com",
+                "Description": "test",
+            }
+        ]
         records = aggregator._parse_provider_results("p", raw)
         assert records[0].email == "a@b.com"
         assert records[0].username == "user1"
@@ -154,11 +166,19 @@ class TestSearchIntegration:
     async def test_search_with_providers(self, aggregator):
         mock_provider = MagicMock()
         mock_provider.search.return_value = {
-            "result": [{"email": "a@b.com", "source": "TestBreach", "description": "test"}]
+            "result": [
+                {"email": "a@b.com", "source": "TestBreach", "description": "test"}
+            ]
         }
 
-        with patch.object(aggregator, "_get_providers", return_value={"test": mock_provider}), \
-             patch.object(aggregator._checker, "score_severity", return_value=Severity.HIGH):
+        with (
+            patch.object(
+                aggregator, "_get_providers", return_value={"test": mock_provider}
+            ),
+            patch.object(
+                aggregator._checker, "score_severity", return_value=Severity.HIGH
+            ),
+        ):
             result = await aggregator.search("test@example.com")
 
         assert result.status == "ok"
@@ -171,7 +191,9 @@ class TestSearchIntegration:
         mock_provider = MagicMock()
         mock_provider.search.side_effect = RuntimeError("connection failed")
 
-        with patch.object(aggregator, "_get_providers", return_value={"bad": mock_provider}):
+        with patch.object(
+            aggregator, "_get_providers", return_value={"bad": mock_provider}
+        ):
             result = await aggregator.search("test@example.com")
 
         assert result.status == "partial"
@@ -182,7 +204,9 @@ class TestSearchIntegration:
         mock_provider = MagicMock()
         mock_provider.search.return_value = {"status": "error", "error": "rate limited"}
 
-        with patch.object(aggregator, "_get_providers", return_value={"p": mock_provider}):
+        with patch.object(
+            aggregator, "_get_providers", return_value={"p": mock_provider}
+        ):
             result = await aggregator.search("test@example.com")
 
         assert result.status == "partial"
@@ -192,11 +216,23 @@ class TestSearchIntegration:
     async def test_search_high_severity_creates_finding(self, aggregator):
         mock_provider = MagicMock()
         mock_provider.search.return_value = {
-            "result": [{"email": "a@b.com", "source": "BigBreach", "description": "critical leak"}]
+            "result": [
+                {
+                    "email": "a@b.com",
+                    "source": "BigBreach",
+                    "description": "critical leak",
+                }
+            ]
         }
 
-        with patch.object(aggregator, "_get_providers", return_value={"p": mock_provider}), \
-             patch.object(aggregator._checker, "score_severity", return_value=Severity.CRITICAL):
+        with (
+            patch.object(
+                aggregator, "_get_providers", return_value={"p": mock_provider}
+            ),
+            patch.object(
+                aggregator._checker, "score_severity", return_value=Severity.CRITICAL
+            ),
+        ):
             result = await aggregator.search("a@b.com")
 
         assert result.finding_count >= 1
@@ -216,10 +252,19 @@ class TestAnalyze:
     @pytest.mark.asyncio
     async def test_analyze_scan_result(self, aggregator):
         scan = ScanResult(
-            scan_id="t", module="data_leaks", target="test@example.com",
+            scan_id="t",
+            module="data_leaks",
+            target="test@example.com",
             breach_records=[
-                BreachRecord(source="hibp", email="a@b.com", domain="b.com", severity=Severity.HIGH),
-                BreachRecord(source="leakcheck", email="a@b.com", severity=Severity.CRITICAL),
+                BreachRecord(
+                    source="hibp",
+                    email="a@b.com",
+                    domain="b.com",
+                    severity=Severity.HIGH,
+                ),
+                BreachRecord(
+                    source="leakcheck", email="a@b.com", severity=Severity.CRITICAL
+                ),
             ],
             findings=[],
         )

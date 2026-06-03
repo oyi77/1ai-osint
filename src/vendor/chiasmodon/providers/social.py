@@ -1,12 +1,14 @@
 import requests
 
+
 class SocialProvider:
     SOCIAL_URLS = {
-        'twitter': 'https://twitter.com/{}',
-        'linkedin': 'https://www.linkedin.com/in/{}',
-        'github': 'https://github.com/{}',
-        'facebook': 'https://facebook.com/{}',
+        "twitter": "https://twitter.com/{}",
+        "linkedin": "https://www.linkedin.com/in/{}",
+        "github": "https://github.com/{}",
+        "facebook": "https://facebook.com/{}",
     }
+
     def search(self, username):
         results = {}
         for platform, url in self.SOCIAL_URLS.items():

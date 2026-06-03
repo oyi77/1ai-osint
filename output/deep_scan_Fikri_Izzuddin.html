@@ -1,0 +1,1690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Operational Intelligence Brief — Fikri Izzuddin</title>
+<style>
+  :root { --ink: #1a1a1a; --muted: #4a5568; --line: #cbd5e1; --accent: #1e40af; --bg: #f8fafc; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Georgia', 'Times New Roman', serif; background: var(--bg); color: var(--ink); font-size: 15px; line-height: 1.55; }
+  .banner { background: #111; color: #fbbf24; text-align: center; padding: 8px; font: bold 11px/1.4 'Courier New', monospace; letter-spacing: 0.08em; }
+  .page { max-width: 920px; margin: 0 auto; padding: 28px 32px 48px; background: white; min-height: 100vh; box-shadow: 0 0 24px rgba(0,0,0,.06); }
+  h1 { font-size: 22px; margin: 0 0 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .subtitle { color: var(--muted); font-size: 13px; margin-bottom: 20px; font-family: -apple-system, sans-serif; }
+  .meta-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 16px 0 24px; font-family: -apple-system, sans-serif; font-size: 12px; }
+  .meta-box { border: 1px solid var(--line); padding: 10px; border-radius: 4px; }
+  .meta-box b { display: block; font-size: 10px; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+  section { margin: 28px 0; page-break-inside: avoid; }
+  section h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 2px solid var(--accent); padding-bottom: 6px; margin: 0 0 12px; color: var(--accent); font-family: -apple-system, sans-serif; }
+  .bluf { background: #eff6ff; border-left: 4px solid var(--accent); padding: 14px 16px; font-size: 15px; }
+  .bluf strong { font-family: -apple-system, sans-serif; font-size: 11px; text-transform: uppercase; display: block; margin-bottom: 6px; color: var(--accent); }
+  ul.judgments li, ul.gaps li, ul.actions li { margin: 6px 0; }
+  table { width: 100%; border-collapse: collapse; font-family: -apple-system, sans-serif; font-size: 13px; }
+  th, td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { background: #f1f5f9; font-size: 11px; text-transform: uppercase; color: var(--muted); }
+  tr:nth-child(even) td { background: #fafafa; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 600; }
+  .tag-ok { background: #dcfce7; color: #166534; }
+  .tag-warn { background: #fef9c3; color: #854d0e; }
+  .tag-bad { background: #fee2e2; color: #991b1b; }
+  .breach-card { border: 1px solid var(--line); margin: 10px 0; padding: 12px; border-radius: 4px; }
+  .breach-card h4 { margin: 0 0 8px; font-size: 13px; font-family: -apple-system, sans-serif; }
+  .field-line { font-family: -apple-system, sans-serif; font-size: 12px; margin: 3px 0; }
+  .field-line code { background: #f1f5f9; padding: 1px 5px; }
+  .graph { text-align: center; margin: 12px 0; overflow-x: auto; }
+  .footer { margin-top: 40px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 11px; color: var(--muted); font-family: -apple-system, sans-serif; }
+  @media print { body { background: white; } .page { box-shadow: none; max-width: 100%; } .banner { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style>
+</head>
+<body>
+<div class="banner">UNCLASSIFIED // OPEN SOURCE INTELLIGENCE // LAWFUL USE ONLY</div>
+<div class="page">
+
+  <h1>Operational Intelligence Brief</h1>
+  <p class="subtitle">Subject: <strong>Fikri Izzuddin</strong> · Report intel-b728a6e8f303 · 2026-06-03 18:46:48.674669+00:00</p>
+
+  <div class="meta-grid">
+    <div class="meta-box"><b>Collection window</b>43.9s · 1 pass(es)</div>
+    <div class="meta-box"><b>Modules</b>phone_finder, social_osint</div>
+    <div class="meta-box"><b>Exposure</b>HIGH (60%)</div>
+    <div class="meta-box"><b>Evidence</b>50 items</div>
+    <div class="meta-box"><b>Accounts</b>54</div>
+    <div class="meta-box"><b>Breach rows</b>0</div>
+  </div>
+
+  <section id="bluf">
+    <div class="bluf">
+      <strong>Bottom line up front (BLUF)</strong>
+      Open-source scan on 'Fikri Izzuddin' completed in 44s with 50 observations across 2 module(s). Key handles: f_izzuddin, fikri., fikri.izzuddin. 29 confirmed platform presence(s). Overall exposure: HIGH (60%).
+    </div>
+  </section>
+
+  <section id="judgments">
+    <h2>I. Key judgments</h2>
+    <ul class="judgments">
+      
+      <li>Subject likely operates accounts on: github, gitlab, instagram, twitter (29 high-confidence hits).</li>
+      
+      <li>Primary handle candidates: f_izzuddin, fikri., fikri.izzuddin, fikri_izzuddin, fikriizzuddin.</li>
+      
+      <li>Risk drivers: Username confirmed on 3+ platforms (high visibility); Phone number exposed.</li>
+      
+    </ul>
+  </section>
+
+  <section id="subject">
+    <h2>II. Subject identification &amp; resolution</h2>
+    <table>
+      <tr><th>Primary name</th><td>Fikri Izzuddin</td></tr>
+      <tr><th>Aliases</th><td><em>None collected</em></td></tr>
+      <tr><th>Usernames / handles</th><td><code>f_izzuddin</code>, <code>fikri.</code>, <code>fikri.izzuddin</code>, <code>fikri_izzuddin</code>, <code>fikriizzuddin</code>, <code>fizzuddin</code>, <code>github.</code>, <code>githubusercontent.</code>, <code>izzuddinfikri</code></td></tr>
+      <tr><th>Email addresses</th><td><em>None</em></td></tr>
+      <tr><th>Telephone</th><td>134500483, 146048960, 20230524, 20230926, 20240325</td></tr>
+      <tr><th>NIK / national ID</th><td><em>None</em></td></tr>
+      <tr><th>Crypto Addresses</th><td><em>None</em></td></tr>
+      <tr><th>Location indicators</th><td><em>None</em></td></tr>
+    </table>
+  </section>
+
+  <section id="digital">
+    <h2>III. Digital presence &amp; account matrix</h2>
+    
+    <table>
+      <tr><th>Platform</th><th>Handle</th><th>Status</th><th>Confidence</th><th>Sources</th><th>URL</th></tr>
+      
+      <tr>
+        <td>github</td>
+        <td><code>fizzuddin</code></td>
+        <td>
+          <span class="tag tag-ok">confirmed</span>
+          
+        </td>
+        <td>85%</td>
+        <td>social_osint</td>
+        <td><a href="https://github.com/fizzuddin">https://github.com/fizzuddin</a></td>
+      </tr>
+      
+      <tr>
+        <td>github</td>
+        <td><code>izzuddinfikri</code></td>
+        <td>
+          <span class="tag tag-ok">confirmed</span>
+          
+        </td>
+        <td>85%</td>
+        <td>social_osint</td>
+        <td><a href="https://github.com/izzuddinfikri">https://github.com/izzuddinfikri</a></td>
+      </tr>
+      
+      <tr>
+        <td>gitlab</td>
+        <td><code>fizzuddin</code></td>
+        <td>
+          <span class="tag tag-ok">confirmed</span>
+          
+        </td>
+        <td>85%</td>
+        <td>social_osint</td>
+        <td><a href="https://gitlab.com/fizzuddin">https://gitlab.com/fizzuddin</a></td>
+      </tr>
+      
+      <tr>
+        <td>gitlab</td>
+        <td><code>f_izzuddin</code></td>
+        <td>
+          <span class="tag tag-ok">confirmed</span>
+          
+        </td>
+        <td>85%</td>
+        <td>social_osint</td>
+        <td><a href="https://gitlab.com/f_izzuddin">https://gitlab.com/f_izzuddin</a></td>
+      </tr>
+      
+      <tr>
+        <td>gitlab</td>
+        <td><code>fikri.izzuddin</code></td>
+        <td>
+          <span class="tag tag-ok">confirmed</span>
+          
+        </td>
+        <td>85%</td>
+        <td>social_osint</td>
+        <td><a href="https://gitlab.com/fikri.izzuddin">https://gitlab.com/fikri.izzuddin</a></td>
+      </tr>
+      
+      <tr>
+        <td>gitlab</td>
+        <td><code>fikri_izzuddin</code></td>
+        <td>
+          <span class="tag tag-ok">confirmed</span>
+          
+        </td>
+        <td>85%</td>
+        <td>social_osint</td>
+        <td><a href="https://gitlab.com/fikri_izzuddin">https://gitlab.com/fikri_izzuddin</a></td>
+      </tr>
+      
+      <tr>
+        <td>gitlab</td>
+        <td><code>fikriizzuddin</code></td>
+        <td>
+          <span class="tag tag-ok">confirmed</span>
+          
+        </td>
+        <td>85%</td>
+        <td>social_osint</td>
+        <td><a href="https://gitlab.com/fikriizzuddin">https://gitlab.com/fikriizzuddin</a></td>
+      </tr>
+      
+      <tr>
+        <td>gitlab</td>
+        <td><code>izzuddinfikri</code></td>
+        <td>
+          <span class="tag tag-ok">confirmed</span>
+          
+        </td>
+        <td>85%</td>
+        <td>social_osint</td>
+        <td><a href="https://gitlab.com/izzuddinfikri">https://gitlab.com/izzuddinfikri</a></td>
+      </tr>
+      
+      <tr>
+        <td>gitlab</td>
+        <td><code>githubusercontent.</code></td>
+        <td>
+          <span class="tag tag-ok">confirmed</span>
+          
+        </td>
+        <td>85%</td>
+        <td>social_osint</td>
+        <td><a href="https://gitlab.com/githubusercontent.">https://gitlab.com/githubusercontent.</a></td>
+      </tr>
+      
+      <tr>
+        <td>gitlab</td>
+        <td><code>github.</code></td>
+        <td>
+          <span class="tag tag-ok">confirmed</span>
+          
+        </td>
+        <td>85%</td>
+        <td>social_osint</td>
+        <td><a href="https://gitlab.com/github.">https://gitlab.com/github.</a></td>
+      </tr>
+      
+      <tr>
+        <td>gitlab</td>
+        <td><code>fikri.</code></td>
+        <td>
+          <span class="tag tag-ok">confirmed</span>
+          
+        </td>
+        <td>85%</td>
+        <td>social_osint</td>
+        <td><a href="https://gitlab.com/fikri.">https://gitlab.com/fikri.</a></td>
+      </tr>
+      
+      <tr>
+        <td>instagram</td>
+        <td><code>fizzuddin</code></td>
+        <td>
+          <span class="tag tag-ok">confirmed</span>
+          
+        </td>
+        <td>85%</td>
+        <td>social_osint</td>
+        <td><a href="https://instagram.com/fizzuddin">https://instagram.com/fizzuddin</a></td>
+      </tr>
+      
+      <tr>
+        <td>instagram</td>
+        <td><code>f_izzuddin</code></td>
+        <td>
+          <span class="tag tag-ok">confirmed</span>
+          
+        </td>
+        <td>85%</td>
+        <td>social_osint</td>
+        <td><a href="https://instagram.com/f_izzuddin">https://instagram.com/f_izzuddin</a></td>
+      </tr>
+      
+      <tr>
+        <td>instagram</td>
+        <td><code>fikri.izzuddin</code></td>
+        <td>
+          <span class="tag tag-ok">confirmed</span>
+          
+        </td>
+        <td>85%</td>
+        <td>social_osint</td>
+        <td><a href="https://instagram.com/fikri.izzuddin">https://instagram.com/fikri.izzuddin</a></td>
+      </tr>
+      
+      <tr>
+        <td>instagram</td>
+        <td><code>fikri_izzuddin</code></td>
+        <td>
+          <span class="tag tag-ok">confirmed</span>
+          
+        </td>
+        <td>85%</td>
+        <td>social_osint</td>
+        <td><a href="https://instagram.com/fikri_izzuddin">https://instagram.com/fikri_izzuddin</a></td>
+      </tr>
+      
+      <tr>
+        <td>instagram</td>
+        <td><code>fikriizzuddin</code></td>
+        <td>
+          <span class="tag tag-ok">confirmed</span>
+          
+        </td>
+        <td>85%</td>
+        <td>social_osint</td>
+        <td><a href="https://instagram.com/fikriizzuddin">https://instagram.com/fikriizzuddin</a></td>
+      </tr>
+      
+      <tr>
+        <td>instagram</td>
+        <td><code>izzuddinfikri</code></td>
+        <td>
+          <span class="tag tag-ok">confirmed</span>
+          
+        </td>
+        <td>85%</td>
+        <td>social_osint</td>
+        <td><a href="https://instagram.com/izzuddinfikri">https://instagram.com/izzuddinfikri</a></td>
+      </tr>
+      
+      <tr>
+        <td>instagram</td>
+        <td><code>githubusercontent.</code></td>
+        <td>
+          <span class="tag tag-ok">confirmed</span>
+          
+        </td>
+        <td>85%</td>
+        <td>social_osint</td>
+        <td><a href="https://instagram.com/githubusercontent.">https://instagram.com/githubusercontent.</a></td>
+      </tr>
+      
+      <tr>
+        <td>instagram</td>
+        <td><code>github.</code></td>
+        <td>
+          <span class="tag tag-ok">confirmed</span>
+          
+        </td>
+        <td>85%</td>
+        <td>social_osint</td>
+        <td><a href="https://instagram.com/github.">https://instagram.com/github.</a></td>
+      </tr>
+      
+      <tr>
+        <td>instagram</td>
+        <td><code>fikri.</code></td>
+        <td>
+          <span class="tag tag-ok">confirmed</span>
+          
+        </td>
+        <td>85%</td>
+        <td>social_osint</td>
+        <td><a href="https://instagram.com/fikri.">https://instagram.com/fikri.</a></td>
+      </tr>
+      
+      <tr>
+        <td>twitter</td>
+        <td><code>fizzuddin</code></td>
+        <td>
+          <span class="tag tag-ok">confirmed</span>
+          
+        </td>
+        <td>85%</td>
+        <td>social_osint</td>
+        <td><a href="https://twitter.com/fizzuddin">https://twitter.com/fizzuddin</a></td>
+      </tr>
+      
+      <tr>
+        <td>twitter</td>
+        <td><code>f_izzuddin</code></td>
+        <td>
+          <span class="tag tag-ok">confirmed</span>
+          
+        </td>
+        <td>85%</td>
+        <td>social_osint</td>
+        <td><a href="https://twitter.com/f_izzuddin">https://twitter.com/f_izzuddin</a></td>
+      </tr>
+      
+      <tr>
+        <td>twitter</td>
+        <td><code>fikri.izzuddin</code></td>
+        <td>
+          <span class="tag tag-ok">confirmed</span>
+          
+        </td>
+        <td>85%</td>
+        <td>social_osint</td>
+        <td><a href="https://twitter.com/fikri.izzuddin">https://twitter.com/fikri.izzuddin</a></td>
+      </tr>
+      
+      <tr>
+        <td>twitter</td>
+        <td><code>fikri_izzuddin</code></td>
+        <td>
+          <span class="tag tag-ok">confirmed</span>
+          
+        </td>
+        <td>85%</td>
+        <td>social_osint</td>
+        <td><a href="https://twitter.com/fikri_izzuddin">https://twitter.com/fikri_izzuddin</a></td>
+      </tr>
+      
+      <tr>
+        <td>twitter</td>
+        <td><code>fikriizzuddin</code></td>
+        <td>
+          <span class="tag tag-ok">confirmed</span>
+          
+        </td>
+        <td>85%</td>
+        <td>social_osint</td>
+        <td><a href="https://twitter.com/fikriizzuddin">https://twitter.com/fikriizzuddin</a></td>
+      </tr>
+      
+      <tr>
+        <td>twitter</td>
+        <td><code>izzuddinfikri</code></td>
+        <td>
+          <span class="tag tag-ok">confirmed</span>
+          
+        </td>
+        <td>85%</td>
+        <td>social_osint</td>
+        <td><a href="https://twitter.com/izzuddinfikri">https://twitter.com/izzuddinfikri</a></td>
+      </tr>
+      
+      <tr>
+        <td>twitter</td>
+        <td><code>githubusercontent.</code></td>
+        <td>
+          <span class="tag tag-ok">confirmed</span>
+          
+        </td>
+        <td>85%</td>
+        <td>social_osint</td>
+        <td><a href="https://twitter.com/githubusercontent.">https://twitter.com/githubusercontent.</a></td>
+      </tr>
+      
+      <tr>
+        <td>twitter</td>
+        <td><code>github.</code></td>
+        <td>
+          <span class="tag tag-ok">confirmed</span>
+          
+        </td>
+        <td>85%</td>
+        <td>social_osint</td>
+        <td><a href="https://twitter.com/github.">https://twitter.com/github.</a></td>
+      </tr>
+      
+      <tr>
+        <td>twitter</td>
+        <td><code>fikri.</code></td>
+        <td>
+          <span class="tag tag-ok">confirmed</span>
+          
+        </td>
+        <td>85%</td>
+        <td>social_osint</td>
+        <td><a href="https://twitter.com/fikri.">https://twitter.com/fikri.</a></td>
+      </tr>
+      
+      <tr>
+        <td>github</td>
+        <td><code>f_izzuddin</code></td>
+        <td>
+          <span class="tag tag-bad">not_found</span>
+          
+        </td>
+        <td>25%</td>
+        <td>social_osint</td>
+        <td><a href="https://github.com/f_izzuddin">https://github.com/f_izzuddin</a></td>
+      </tr>
+      
+      <tr>
+        <td>github</td>
+        <td><code>fikri.izzuddin</code></td>
+        <td>
+          <span class="tag tag-bad">not_found</span>
+          
+        </td>
+        <td>25%</td>
+        <td>social_osint</td>
+        <td><a href="https://github.com/fikri.izzuddin">https://github.com/fikri.izzuddin</a></td>
+      </tr>
+      
+      <tr>
+        <td>github</td>
+        <td><code>fikri_izzuddin</code></td>
+        <td>
+          <span class="tag tag-bad">not_found</span>
+          
+        </td>
+        <td>25%</td>
+        <td>social_osint</td>
+        <td><a href="https://github.com/fikri_izzuddin">https://github.com/fikri_izzuddin</a></td>
+      </tr>
+      
+      <tr>
+        <td>github</td>
+        <td><code>fikriizzuddin</code></td>
+        <td>
+          <span class="tag tag-bad">not_found</span>
+          
+        </td>
+        <td>25%</td>
+        <td>social_osint</td>
+        <td><a href="https://github.com/fikriizzuddin">https://github.com/fikriizzuddin</a></td>
+      </tr>
+      
+      <tr>
+        <td>github</td>
+        <td><code>githubusercontent.</code></td>
+        <td>
+          <span class="tag tag-bad">not_found</span>
+          
+        </td>
+        <td>25%</td>
+        <td>social_osint</td>
+        <td><a href="https://github.com/githubusercontent.">https://github.com/githubusercontent.</a></td>
+      </tr>
+      
+      <tr>
+        <td>github</td>
+        <td><code>github.</code></td>
+        <td>
+          <span class="tag tag-bad">not_found</span>
+          
+        </td>
+        <td>25%</td>
+        <td>social_osint</td>
+        <td><a href="https://github.com/github.">https://github.com/github.</a></td>
+      </tr>
+      
+      <tr>
+        <td>github</td>
+        <td><code>fikri.</code></td>
+        <td>
+          <span class="tag tag-bad">not_found</span>
+          
+        </td>
+        <td>25%</td>
+        <td>social_osint</td>
+        <td><a href="https://github.com/fikri.">https://github.com/fikri.</a></td>
+      </tr>
+      
+      <tr>
+        <td>linkedin</td>
+        <td><code>fizzuddin</code></td>
+        <td>
+          <span class="tag tag-bad">not_found</span>
+          
+        </td>
+        <td>25%</td>
+        <td>social_osint</td>
+        <td><a href="https://linkedin.com/in/fizzuddin">https://linkedin.com/in/fizzuddin</a></td>
+      </tr>
+      
+      <tr>
+        <td>linkedin</td>
+        <td><code>f_izzuddin</code></td>
+        <td>
+          <span class="tag tag-bad">not_found</span>
+          
+        </td>
+        <td>25%</td>
+        <td>social_osint</td>
+        <td><a href="https://linkedin.com/in/f_izzuddin">https://linkedin.com/in/f_izzuddin</a></td>
+      </tr>
+      
+      <tr>
+        <td>linkedin</td>
+        <td><code>fikri.izzuddin</code></td>
+        <td>
+          <span class="tag tag-bad">not_found</span>
+          
+        </td>
+        <td>25%</td>
+        <td>social_osint</td>
+        <td><a href="https://linkedin.com/in/fikri.izzuddin">https://linkedin.com/in/fikri.izzuddin</a></td>
+      </tr>
+      
+      <tr>
+        <td>linkedin</td>
+        <td><code>fikri_izzuddin</code></td>
+        <td>
+          <span class="tag tag-bad">not_found</span>
+          
+        </td>
+        <td>25%</td>
+        <td>social_osint</td>
+        <td><a href="https://linkedin.com/in/fikri_izzuddin">https://linkedin.com/in/fikri_izzuddin</a></td>
+      </tr>
+      
+      <tr>
+        <td>linkedin</td>
+        <td><code>fikriizzuddin</code></td>
+        <td>
+          <span class="tag tag-bad">not_found</span>
+          
+        </td>
+        <td>25%</td>
+        <td>social_osint</td>
+        <td><a href="https://linkedin.com/in/fikriizzuddin">https://linkedin.com/in/fikriizzuddin</a></td>
+      </tr>
+      
+      <tr>
+        <td>linkedin</td>
+        <td><code>izzuddinfikri</code></td>
+        <td>
+          <span class="tag tag-bad">not_found</span>
+          
+        </td>
+        <td>25%</td>
+        <td>social_osint</td>
+        <td><a href="https://linkedin.com/in/izzuddinfikri">https://linkedin.com/in/izzuddinfikri</a></td>
+      </tr>
+      
+      <tr>
+        <td>linkedin</td>
+        <td><code>githubusercontent.</code></td>
+        <td>
+          <span class="tag tag-bad">not_found</span>
+          
+        </td>
+        <td>25%</td>
+        <td>social_osint</td>
+        <td><a href="https://linkedin.com/in/githubusercontent.">https://linkedin.com/in/githubusercontent.</a></td>
+      </tr>
+      
+      <tr>
+        <td>linkedin</td>
+        <td><code>github.</code></td>
+        <td>
+          <span class="tag tag-bad">not_found</span>
+          
+        </td>
+        <td>25%</td>
+        <td>social_osint</td>
+        <td><a href="https://linkedin.com/in/github.">https://linkedin.com/in/github.</a></td>
+      </tr>
+      
+      <tr>
+        <td>linkedin</td>
+        <td><code>fikri.</code></td>
+        <td>
+          <span class="tag tag-bad">not_found</span>
+          
+        </td>
+        <td>25%</td>
+        <td>social_osint</td>
+        <td><a href="https://linkedin.com/in/fikri.">https://linkedin.com/in/fikri.</a></td>
+      </tr>
+      
+      <tr>
+        <td>reddit</td>
+        <td><code>fizzuddin</code></td>
+        <td>
+          <span class="tag tag-bad">not_found</span>
+          
+        </td>
+        <td>25%</td>
+        <td>social_osint</td>
+        <td><a href="https://reddit.com/user/fizzuddin">https://reddit.com/user/fizzuddin</a></td>
+      </tr>
+      
+      <tr>
+        <td>reddit</td>
+        <td><code>f_izzuddin</code></td>
+        <td>
+          <span class="tag tag-bad">not_found</span>
+          
+        </td>
+        <td>25%</td>
+        <td>social_osint</td>
+        <td><a href="https://reddit.com/user/f_izzuddin">https://reddit.com/user/f_izzuddin</a></td>
+      </tr>
+      
+      <tr>
+        <td>reddit</td>
+        <td><code>fikri.izzuddin</code></td>
+        <td>
+          <span class="tag tag-bad">not_found</span>
+          
+        </td>
+        <td>25%</td>
+        <td>social_osint</td>
+        <td><a href="https://reddit.com/user/fikri.izzuddin">https://reddit.com/user/fikri.izzuddin</a></td>
+      </tr>
+      
+      <tr>
+        <td>reddit</td>
+        <td><code>fikri_izzuddin</code></td>
+        <td>
+          <span class="tag tag-bad">not_found</span>
+          
+        </td>
+        <td>25%</td>
+        <td>social_osint</td>
+        <td><a href="https://reddit.com/user/fikri_izzuddin">https://reddit.com/user/fikri_izzuddin</a></td>
+      </tr>
+      
+      <tr>
+        <td>reddit</td>
+        <td><code>fikriizzuddin</code></td>
+        <td>
+          <span class="tag tag-bad">not_found</span>
+          
+        </td>
+        <td>25%</td>
+        <td>social_osint</td>
+        <td><a href="https://reddit.com/user/fikriizzuddin">https://reddit.com/user/fikriizzuddin</a></td>
+      </tr>
+      
+      <tr>
+        <td>reddit</td>
+        <td><code>izzuddinfikri</code></td>
+        <td>
+          <span class="tag tag-bad">not_found</span>
+          
+        </td>
+        <td>25%</td>
+        <td>social_osint</td>
+        <td><a href="https://reddit.com/user/izzuddinfikri">https://reddit.com/user/izzuddinfikri</a></td>
+      </tr>
+      
+      <tr>
+        <td>reddit</td>
+        <td><code>githubusercontent.</code></td>
+        <td>
+          <span class="tag tag-bad">not_found</span>
+          
+        </td>
+        <td>25%</td>
+        <td>social_osint</td>
+        <td><a href="https://reddit.com/user/githubusercontent.">https://reddit.com/user/githubusercontent.</a></td>
+      </tr>
+      
+      <tr>
+        <td>reddit</td>
+        <td><code>github.</code></td>
+        <td>
+          <span class="tag tag-bad">not_found</span>
+          
+        </td>
+        <td>25%</td>
+        <td>social_osint</td>
+        <td><a href="https://reddit.com/user/github.">https://reddit.com/user/github.</a></td>
+      </tr>
+      
+      <tr>
+        <td>reddit</td>
+        <td><code>fikri.</code></td>
+        <td>
+          <span class="tag tag-bad">not_found</span>
+          
+        </td>
+        <td>25%</td>
+        <td>social_osint</td>
+        <td><a href="https://reddit.com/user/fikri.">https://reddit.com/user/fikri.</a></td>
+      </tr>
+      
+    </table>
+    
+  </section>
+
+  <section id="breach">
+    <h2>IV. Breach &amp; credential intelligence</h2>
+    
+    <p><em>No breach corpus hits. Add API keys (HIBP, DeHashed, LeakCheck) for credential exposure detail comparable to commercial leak indices.</em></p>
+    
+  </section>
+
+  <section id="risk">
+    <h2>V. Threat &amp; exposure assessment</h2>
+    <p><strong>Assessment:</strong> Username confirmed on 3+ platforms (high visibility); Phone number exposed</p>
+    <table>
+      <tr><th>Factor</th><th>Status</th><th>Weight</th></tr>
+      
+      <tr>
+        <td>NIK + name + phone combined (full PII exposure)</td>
+        <td><span class="tag tag-ok">Clear</span></td>
+        <td>0.7</td>
+      </tr>
+      
+      <tr>
+        <td>Indonesian NIK (national ID) found</td>
+        <td><span class="tag tag-ok">Clear</span></td>
+        <td>0.5</td>
+      </tr>
+      
+      <tr>
+        <td>Crypto address tagged as mixer (sanctioned risk)</td>
+        <td><span class="tag tag-ok">Clear</span></td>
+        <td>0.9</td>
+      </tr>
+      
+      <tr>
+        <td>Seed phrase / private key exposed</td>
+        <td><span class="tag tag-ok">Clear</span></td>
+        <td>1.0</td>
+      </tr>
+      
+      <tr>
+        <td>Plaintext password discovered</td>
+        <td><span class="tag tag-ok">Clear</span></td>
+        <td>0.8</td>
+      </tr>
+      
+      <tr>
+        <td>Username confirmed on 3+ platforms (high visibility)</td>
+        <td><span class="tag tag-bad">TRIGGERED</span></td>
+        <td>0.3</td>
+      </tr>
+      
+      <tr>
+        <td>Phone number exposed</td>
+        <td><span class="tag tag-bad">TRIGGERED</span></td>
+        <td>0.3</td>
+      </tr>
+      
+      <tr>
+        <td>Email exposed</td>
+        <td><span class="tag tag-ok">Clear</span></td>
+        <td>0.2</td>
+      </tr>
+      
+      <tr>
+        <td>NIK + address + phone (full KYC exposure)</td>
+        <td><span class="tag tag-ok">Clear</span></td>
+        <td>0.8</td>
+      </tr>
+      
+      <tr>
+        <td>Password found in 2+ breaches</td>
+        <td><span class="tag tag-ok">Clear</span></td>
+        <td>0.9</td>
+      </tr>
+      
+      <tr>
+        <td>Password + email combo leaked</td>
+        <td><span class="tag tag-ok">Clear</span></td>
+        <td>0.8</td>
+      </tr>
+      
+      <tr>
+        <td>Date of birth + NIK (identity theft risk)</td>
+        <td><span class="tag tag-ok">Clear</span></td>
+        <td>0.6</td>
+      </tr>
+      
+      <tr>
+        <td>Crypto private key or seed phrase in raw data</td>
+        <td><span class="tag tag-ok">Clear</span></td>
+        <td>0.9</td>
+      </tr>
+      
+    </table>
+  </section>
+
+  <section id="graph">
+    <h2>VI. Link analysis</h2>
+    <div class="graph"><svg width="600" height="1440" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#64748b"/></marker></defs>
+<line x1="300.0" y1="40" x2="300" y2="120" stroke="#94a3b8" stroke-width="1" marker-end="url(#arrow)"/>
+<line x1="300.0" y1="40" x2="500" y2="120" stroke="#94a3b8" stroke-width="1" marker-end="url(#arrow)"/>
+<line x1="300.0" y1="40" x2="100" y2="180" stroke="#94a3b8" stroke-width="1" marker-end="url(#arrow)"/>
+<line x1="300.0" y1="40" x2="300" y2="180" stroke="#94a3b8" stroke-width="1" marker-end="url(#arrow)"/>
+<line x1="300.0" y1="40" x2="500" y2="180" stroke="#94a3b8" stroke-width="1" marker-end="url(#arrow)"/>
+<line x1="300.0" y1="40" x2="100" y2="240" stroke="#94a3b8" stroke-width="1" marker-end="url(#arrow)"/>
+<line x1="300.0" y1="40" x2="300" y2="240" stroke="#94a3b8" stroke-width="1" marker-end="url(#arrow)"/>
+<line x1="300.0" y1="40" x2="500" y2="240" stroke="#94a3b8" stroke-width="1" marker-end="url(#arrow)"/>
+<line x1="300.0" y1="40" x2="100" y2="300" stroke="#94a3b8" stroke-width="1" marker-end="url(#arrow)"/>
+<line x1="300.0" y1="40" x2="300" y2="300" stroke="#94a3b8" stroke-width="1" marker-end="url(#arrow)"/>
+<line x1="300.0" y1="40" x2="500" y2="300" stroke="#94a3b8" stroke-width="1" marker-end="url(#arrow)"/>
+<line x1="300.0" y1="40" x2="100" y2="360" stroke="#94a3b8" stroke-width="1" marker-end="url(#arrow)"/>
+<line x1="300.0" y1="40" x2="300" y2="360" stroke="#94a3b8" stroke-width="1" marker-end="url(#arrow)"/>
+<line x1="300.0" y1="40" x2="500" y2="360" stroke="#94a3b8" stroke-width="1" marker-end="url(#arrow)"/>
+<line x1="300.0" y1="40" x2="100" y2="420" stroke="#94a3b8" stroke-width="1" marker-end="url(#arrow)"/>
+<line x1="300.0" y1="40" x2="300" y2="420" stroke="#94a3b8" stroke-width="1" marker-end="url(#arrow)"/>
+<line x1="300.0" y1="40" x2="500" y2="420" stroke="#94a3b8" stroke-width="1" marker-end="url(#arrow)"/>
+<line x1="300.0" y1="40" x2="100" y2="480" stroke="#94a3b8" stroke-width="1" marker-end="url(#arrow)"/>
+<line x1="100" y1="240" x2="300" y2="480" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="100" y1="240" x2="500" y2="480" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="100" y1="240" x2="100" y2="540" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="100" y1="240" x2="300" y2="540" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="300" y1="240" x2="500" y2="480" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="300" y1="240" x2="100" y2="540" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="300" y1="240" x2="300" y2="540" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="300" y1="180" x2="500" y2="480" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="300" y1="180" x2="100" y2="540" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="300" y1="180" x2="300" y2="540" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="100" y1="180" x2="500" y2="480" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="100" y1="180" x2="100" y2="540" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="100" y1="180" x2="300" y2="540" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="500" y1="120" x2="500" y2="480" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="500" y1="120" x2="100" y2="540" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="500" y1="120" x2="300" y2="540" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="500" y1="180" x2="300" y2="480" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="500" y1="180" x2="500" y2="480" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="500" y1="180" x2="100" y2="540" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="500" y1="180" x2="300" y2="540" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="300" y1="300" x2="500" y2="480" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="300" y1="300" x2="100" y2="540" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="300" y1="300" x2="300" y2="540" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="500" y1="300" x2="500" y2="480" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="500" y1="300" x2="100" y2="540" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="500" y1="300" x2="300" y2="540" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="100" y1="360" x2="500" y2="480" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="100" y1="360" x2="100" y2="540" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="100" y1="360" x2="300" y2="540" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<circle cx="300.0" cy="40" r="18" fill="#ef4444" opacity="0.8"/>
+<text x="300.0" y="44" text-anchor="middle" fill="white" font-size="9">Fikri Izzudd..</text>
+<circle cx="300" cy="120" r="18" fill="#f59e0b" opacity="0.8"/>
+<text x="300" y="124" text-anchor="middle" fill="white" font-size="9">Fikri Izzudd..</text>
+<circle cx="500" cy="120" r="18" fill="#3b82f6" opacity="0.8"/>
+<text x="500" y="124" text-anchor="middle" fill="white" font-size="9">fikriizzuddi..</text>
+<circle cx="100" cy="180" r="18" fill="#3b82f6" opacity="0.8"/>
+<text x="100" y="184" text-anchor="middle" fill="white" font-size="9">fikri_izzudd..</text>
+<circle cx="300" cy="180" r="18" fill="#3b82f6" opacity="0.8"/>
+<text x="300" y="184" text-anchor="middle" fill="white" font-size="9">fikri.izzudd..</text>
+<circle cx="500" cy="180" r="18" fill="#3b82f6" opacity="0.8"/>
+<text x="500" y="184" text-anchor="middle" fill="white" font-size="9">izzuddinfikr..</text>
+<circle cx="100" cy="240" r="18" fill="#3b82f6" opacity="0.8"/>
+<text x="100" y="244" text-anchor="middle" fill="white" font-size="9">fizzuddin</text>
+<circle cx="300" cy="240" r="18" fill="#3b82f6" opacity="0.8"/>
+<text x="300" y="244" text-anchor="middle" fill="white" font-size="9">f_izzuddin</text>
+<circle cx="500" cy="240" r="18" fill="#3b82f6" opacity="0.8"/>
+<text x="500" y="244" text-anchor="middle" fill="white" font-size="9">134500483</text>
+<circle cx="100" cy="300" r="18" fill="#3b82f6" opacity="0.8"/>
+<text x="100" y="304" text-anchor="middle" fill="white" font-size="9">20230524</text>
+<circle cx="300" cy="300" r="18" fill="#3b82f6" opacity="0.8"/>
+<text x="300" y="304" text-anchor="middle" fill="white" font-size="9">githubuserco..</text>
+<circle cx="500" cy="300" r="18" fill="#3b82f6" opacity="0.8"/>
+<text x="500" y="304" text-anchor="middle" fill="white" font-size="9">github.</text>
+<circle cx="100" cy="360" r="18" fill="#3b82f6" opacity="0.8"/>
+<text x="100" y="364" text-anchor="middle" fill="white" font-size="9">fikri.</text>
+<circle cx="300" cy="360" r="18" fill="#3b82f6" opacity="0.8"/>
+<text x="300" y="364" text-anchor="middle" fill="white" font-size="9">146048960</text>
+<circle cx="500" cy="360" r="18" fill="#3b82f6" opacity="0.8"/>
+<text x="500" y="364" text-anchor="middle" fill="white" font-size="9">20230926</text>
+<circle cx="100" cy="420" r="18" fill="#3b82f6" opacity="0.8"/>
+<text x="100" y="424" text-anchor="middle" fill="white" font-size="9">20240325</text>
+<circle cx="300" cy="420" r="18" fill="#3b82f6" opacity="0.8"/>
+<text x="300" y="424" text-anchor="middle" fill="white" font-size="9">githubuserco..</text>
+<circle cx="500" cy="420" r="18" fill="#3b82f6" opacity="0.8"/>
+<text x="500" y="424" text-anchor="middle" fill="white" font-size="9">github.</text>
+<circle cx="100" cy="480" r="18" fill="#3b82f6" opacity="0.8"/>
+<text x="100" y="484" text-anchor="middle" fill="white" font-size="9">fikri.</text>
+<circle cx="300" cy="480" r="18" fill="#10b981" opacity="0.8"/>
+<text x="300" y="484" text-anchor="middle" fill="white" font-size="9">github</text>
+<circle cx="500" cy="480" r="18" fill="#10b981" opacity="0.8"/>
+<text x="500" y="484" text-anchor="middle" fill="white" font-size="9">gitlab</text>
+<circle cx="100" cy="540" r="18" fill="#10b981" opacity="0.8"/>
+<text x="100" y="544" text-anchor="middle" fill="white" font-size="9">twitter</text>
+<circle cx="300" cy="540" r="18" fill="#10b981" opacity="0.8"/>
+<text x="300" y="544" text-anchor="middle" fill="white" font-size="9">instagram</text>
+</svg></div>
+  </section>
+
+  <section id="chronology">
+    <h2>VII. Chronology</h2>
+    <table>
+      <tr><th>Time (UTC)</th><th>Source</th><th>Event</th><th>Conf.</th></tr>
+      
+      <tr>
+        <td>2026-06-03 18:46</td>
+        <td>social_osint</td>
+        <td>Public repos: 0, Followers: 0</td>
+        <td>50%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-03 18:46</td>
+        <td>social_osint</td>
+        <td>Public repos: 0, Followers: 0</td>
+        <td>50%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-03 18:46</td>
+        <td>social_osint</td>
+        <td>Found on 4 platforms</td>
+        <td>50%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-03 18:46</td>
+        <td>social_osint</td>
+        <td>Found on 3 platforms</td>
+        <td>50%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-03 18:46</td>
+        <td>social_osint</td>
+        <td>Found on 3 platforms</td>
+        <td>50%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-03 18:46</td>
+        <td>social_osint</td>
+        <td>Found on 3 platforms</td>
+        <td>50%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-03 18:46</td>
+        <td>social_osint</td>
+        <td>Found on 3 platforms</td>
+        <td>50%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-03 18:46</td>
+        <td>social_osint</td>
+        <td>Found on 3 platforms</td>
+        <td>50%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-03 18:46</td>
+        <td>social_osint</td>
+        <td>Found on 4 platforms</td>
+        <td>50%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-03 18:46</td>
+        <td>phone_finder</td>
+        <td>PhoneInfoga unavailable. Basic record for 146048960</td>
+        <td>30%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-03 18:46</td>
+        <td>phone_finder</td>
+        <td>PhoneInfoga unavailable. Basic record for 20230524</td>
+        <td>30%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-03 18:46</td>
+        <td>phone_finder</td>
+        <td>PhoneInfoga unavailable. Basic record for 20240325</td>
+        <td>30%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-03 18:46</td>
+        <td>phone_finder</td>
+        <td>PhoneInfoga unavailable. Basic record for 20230926</td>
+        <td>30%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-03 18:46</td>
+        <td>phone_finder</td>
+        <td>PhoneInfoga unavailable. Basic record for 134500483</td>
+        <td>30%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-03 18:46</td>
+        <td>social_osint</td>
+        <td>Found on 3 platforms</td>
+        <td>50%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-03 18:46</td>
+        <td>social_osint</td>
+        <td>Found on 3 platforms</td>
+        <td>50%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-03 18:46</td>
+        <td>social_osint</td>
+        <td>Found on 3 platforms</td>
+        <td>50%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-03 18:47</td>
+        <td>social_osint</td>
+        <td>Discovered active profile on Academia.edu</td>
+        <td>50%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-03 18:47</td>
+        <td>social_osint</td>
+        <td>Discovered active profile on AllMyLinks</td>
+        <td>50%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-03 18:47</td>
+        <td>social_osint</td>
+        <td>Discovered active profile on Blogger</td>
+        <td>50%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-03 18:47</td>
+        <td>social_osint</td>
+        <td>Discovered active profile on Chess</td>
+        <td>50%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-03 18:47</td>
+        <td>social_osint</td>
+        <td>Discovered active profile on Discord</td>
+        <td>50%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-03 18:47</td>
+        <td>social_osint</td>
+        <td>Discovered active profile on Flipboard</td>
+        <td>50%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-03 18:47</td>
+        <td>social_osint</td>
+        <td>Discovered active profile on Freelancer</td>
+        <td>50%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-03 18:47</td>
+        <td>social_osint</td>
+        <td>Discovered active profile on AllMyLinks</td>
+        <td>50%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-03 18:47</td>
+        <td>social_osint</td>
+        <td>Discovered active profile on Blogger</td>
+        <td>50%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-03 18:47</td>
+        <td>social_osint</td>
+        <td>Discovered active profile on Chess</td>
+        <td>50%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-03 18:47</td>
+        <td>social_osint</td>
+        <td>Discovered active profile on Disqus</td>
+        <td>50%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-03 18:47</td>
+        <td>social_osint</td>
+        <td>Discovered active profile on Gumroad</td>
+        <td>50%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-03 18:47</td>
+        <td>social_osint</td>
+        <td>Discovered active profile on MyAnimeList</td>
+        <td>50%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-03 18:47</td>
+        <td>social_osint</td>
+        <td>username=fizzuddin on social_osint</td>
+        <td>70%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-03 18:47</td>
+        <td>social_osint</td>
+        <td>record=fizzuddin on social_osint</td>
+        <td>50%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-03 18:47</td>
+        <td>social_osint</td>
+        <td>username=fizzuddin on social_osint (https://github.com/fizzuddin)</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-03 18:47</td>
+        <td>social_osint</td>
+        <td>username=fizzuddin on social_osint (https://gitlab.com/fizzuddin)</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-03 18:47</td>
+        <td>social_osint</td>
+        <td>username=fizzuddin on social_osint (https://twitter.com/fizzuddin)</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-03 18:47</td>
+        <td>social_osint</td>
+        <td>username=fizzuddin on social_osint (https://instagram.com/fizzuddin)</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-03 18:47</td>
+        <td>social_osint</td>
+        <td>username=f_izzuddin on social_osint (https://gitlab.com/f_izzuddin)</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-03 18:47</td>
+        <td>social_osint</td>
+        <td>username=f_izzuddin on social_osint (https://twitter.com/f_izzuddin)</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-03 18:47</td>
+        <td>social_osint</td>
+        <td>username=f_izzuddin on social_osint (https://instagram.com/f_izzuddin)</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-03 18:47</td>
+        <td>social_osint</td>
+        <td>username=f_izzuddin on social_osint</td>
+        <td>70%</td>
+      </tr>
+      
+    </table>
+  </section>
+
+  <section id="gaps">
+    <h2>VIII. Intelligence gaps</h2>
+    <ul class="gaps">
+      
+      <li>No verified email addresses — run breach APIs (HIBP, DeHashed, LeakCheck) after email discovery.</li>
+      
+      <li>No breach corpus hits — configure DEHASHED_API_KEY, HIBP_API_KEY, LEAKCHECK_API_KEY in .env.</li>
+      
+      <li>No NIK / national ID — Indonesian civil registry sources not queried.</li>
+      
+      <li>No geolocation indicators — expand to domain/WHOIS and address fields in breach data.</li>
+      
+    </ul>
+  </section>
+
+  <section id="actions">
+    <h2>IX. Recommended collection &amp; follow-up</h2>
+    <ul class="actions">
+      
+      <li>[P2] EMAIL: fikriizzuddin@ — Username 'fikriizzuddin' likely has a Gravatar or GitHub email</li>
+      
+      <li>[P2] EMAIL: fikri_izzuddin@ — Username 'fikri_izzuddin' likely has a Gravatar or GitHub email</li>
+      
+      <li>[P2] EMAIL: fikri.izzuddin@ — Username 'fikri.izzuddin' likely has a Gravatar or GitHub email</li>
+      
+      <li>[P2] EMAIL: izzuddinfikri@ — Username 'izzuddinfikri' likely has a Gravatar or GitHub email</li>
+      
+      <li>[P2] EMAIL: fizzuddin@ — Username 'fizzuddin' likely has a Gravatar or GitHub email</li>
+      
+      <li>[P2] EMAIL: f_izzuddin@ — Username 'f_izzuddin' likely has a Gravatar or GitHub email</li>
+      
+      <li>[P2] EMAIL: phone:134500483 — Run reverse phone lookup for 134500483</li>
+      
+      <li>[P2] EMAIL: phone:20230524 — Run reverse phone lookup for 20230524</li>
+      
+      <li>Enumerate f_izzuddin across archived web (Wayback) and code repos (GitHub dorks).</li>
+      
+      <li>Enumerate fikri. across archived web (Wayback) and code repos (GitHub dorks).</li>
+      
+      <li>Enumerate fikri.izzuddin across archived web (Wayback) and code repos (GitHub dorks).</li>
+      
+    </ul>
+  </section>
+
+  <section id="evidence-index">
+    <h2>Appendix A — Evidence register</h2>
+    <table>
+      <tr><th>Value</th><th>Type</th><th>Source</th><th>Rel.</th><th>Conf.</th></tr>
+      
+      <tr>
+        <td><code>fizzuddin</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>70%</td>
+      </tr>
+      
+      <tr>
+        <td><code>fizzuddin</code></td>
+        <td>record</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>50%</td>
+      </tr>
+      
+      <tr>
+        <td><code>fizzuddin</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td><code>fizzuddin</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td><code>fizzuddin</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td><code>fizzuddin</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td><code>f_izzuddin</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td><code>f_izzuddin</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td><code>f_izzuddin</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td><code>f_izzuddin</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>70%</td>
+      </tr>
+      
+      <tr>
+        <td><code>fikri.izzuddin</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td><code>fikri.izzuddin</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td><code>fikri.izzuddin</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td><code>fikri.izzuddin</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>70%</td>
+      </tr>
+      
+      <tr>
+        <td><code>fikri_izzuddin</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td><code>fikri_izzuddin</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td><code>fikri_izzuddin</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td><code>fikri_izzuddin</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>70%</td>
+      </tr>
+      
+      <tr>
+        <td><code>fikriizzuddin</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td><code>fikriizzuddin</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td><code>fikriizzuddin</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td><code>fikriizzuddin</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>70%</td>
+      </tr>
+      
+      <tr>
+        <td><code>izzuddinfikri</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>70%</td>
+      </tr>
+      
+      <tr>
+        <td><code>izzuddinfikri</code></td>
+        <td>record</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>50%</td>
+      </tr>
+      
+      <tr>
+        <td><code>izzuddinfikri</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td><code>izzuddinfikri</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td><code>izzuddinfikri</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td><code>izzuddinfikri</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td><code>146048960</code></td>
+        <td>phone</td>
+        <td>phone_finder</td>
+        <td>F</td>
+        <td>70%</td>
+      </tr>
+      
+      <tr>
+        <td><code>146048960</code></td>
+        <td>record</td>
+        <td>phone_finder</td>
+        <td>F</td>
+        <td>30%</td>
+      </tr>
+      
+      <tr>
+        <td><code>20230524</code></td>
+        <td>phone</td>
+        <td>phone_finder</td>
+        <td>F</td>
+        <td>70%</td>
+      </tr>
+      
+      <tr>
+        <td><code>20230524</code></td>
+        <td>record</td>
+        <td>phone_finder</td>
+        <td>F</td>
+        <td>30%</td>
+      </tr>
+      
+      <tr>
+        <td><code>20240325</code></td>
+        <td>phone</td>
+        <td>phone_finder</td>
+        <td>F</td>
+        <td>70%</td>
+      </tr>
+      
+      <tr>
+        <td><code>20240325</code></td>
+        <td>record</td>
+        <td>phone_finder</td>
+        <td>F</td>
+        <td>30%</td>
+      </tr>
+      
+      <tr>
+        <td><code>20230926</code></td>
+        <td>phone</td>
+        <td>phone_finder</td>
+        <td>F</td>
+        <td>70%</td>
+      </tr>
+      
+      <tr>
+        <td><code>20230926</code></td>
+        <td>record</td>
+        <td>phone_finder</td>
+        <td>F</td>
+        <td>30%</td>
+      </tr>
+      
+      <tr>
+        <td><code>134500483</code></td>
+        <td>phone</td>
+        <td>phone_finder</td>
+        <td>F</td>
+        <td>70%</td>
+      </tr>
+      
+      <tr>
+        <td><code>134500483</code></td>
+        <td>record</td>
+        <td>phone_finder</td>
+        <td>F</td>
+        <td>30%</td>
+      </tr>
+      
+      <tr>
+        <td><code>githubusercontent.</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td><code>githubusercontent.</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td><code>githubusercontent.</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td><code>githubusercontent.</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>70%</td>
+      </tr>
+      
+      <tr>
+        <td><code>github.</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td><code>github.</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td><code>github.</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td><code>github.</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>70%</td>
+      </tr>
+      
+      <tr>
+        <td><code>fikri.</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td><code>fikri.</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td><code>fikri.</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td><code>fikri.</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>70%</td>
+      </tr>
+      
+    </table>
+    
+  </section>
+
+  
+
+  <div class="footer">
+    Generated by 1ai-osint ZKIT Deep Scan · Scan of 'Fikri Izzuddin' completed in 43.9s across 2 module(s) and 1 iteration(s). Collected 50 evidence item(s) from 4 distinct platform(s). Overall risk: HIGH (score 0.60).
+  </div>
+</div>
+</body>
+</html>

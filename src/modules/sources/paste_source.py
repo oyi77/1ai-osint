@@ -1,4 +1,5 @@
 """Paste site source adapter for crypto leak discovery."""
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -9,30 +10,47 @@ from src.modules.sources.base import RawLeak
 
 logger = logging.getLogger(__name__)
 
+
 class PasteSource:
     SOURCES = [
         ("pastebin", "https://pastebin.com/archive", "https://pastebin.com/raw/{id}"),
         ("dpaste", "https://dpaste.org/archive/", "https://dpaste.org/{id}.txt"),
         ("rentry", "https://rentry.co/", "https://rentry.co/{id}/raw"),
     ]
-    def __init__(self, max_pastes_per_source: int = 50, request_delay: float = 1.0, timeout: float = 30.0):
+
+    def __init__(
+        self,
+        max_pastes_per_source: int = 50,
+        request_delay: float = 1.0,
+        timeout: float = 30.0,
+    ):
         self.max_pastes_per_source = max_pastes_per_source
         self.request_delay = request_delay
         self.timeout = timeout
 
     async def fetch_raw_leaks(self) -> list[RawLeak]:
         all_leaks: list[RawLeak] = []
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True, headers={"User-Agent": "Mozilla/5.0"}) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout,
+            follow_redirects=True,
+            headers={"User-Agent": "Mozilla/5.0"},
+        ) as client:
             for name, archive_url, raw_tpl in self.SOURCES:
                 try:
                     paste_ids = await self._get_paste_ids(client, archive_url, name)
-                    for pid in paste_ids[:self.max_pastes_per_source]:
+                    for pid in paste_ids[: self.max_pastes_per_source]:
                         raw_url = raw_tpl.format(id=pid)
                         try:
                             await asyncio.sleep(self.request_delay)
                             resp = await client.get(raw_url)
                             if resp.status_code == 200 and resp.text.strip():
-                                all_leaks.append(RawLeak(text=resp.text, source_name=name, source_url=raw_url))
+                                all_leaks.append(
+                                    RawLeak(
+                                        text=resp.text,
+                                        source_name=name,
+                                        source_url=raw_url,
+                                    )
+                                )
                         except httpx.HTTPError:
                             pass
                 except Exception as exc:
@@ -41,9 +59,13 @@ class PasteSource:
 
     async def search_for_address(self, address: str) -> list[RawLeak]:
         pattern = re.compile(re.escape(address), re.IGNORECASE)
-        return [leak for leak in await self.fetch_raw_leaks() if pattern.search(leak.text)]
+        return [
+            leak for leak in await self.fetch_raw_leaks() if pattern.search(leak.text)
+        ]
 
-    async def _get_paste_ids(self, client: httpx.AsyncClient, archive_url: str, source_name: str) -> list[str]:
+    async def _get_paste_ids(
+        self, client: httpx.AsyncClient, archive_url: str, source_name: str
+    ) -> list[str]:
         resp = await client.get(archive_url)
         resp.raise_for_status()
         if source_name == "pastebin":
@@ -57,7 +79,18 @@ class PasteSource:
     @staticmethod
     def _parse_pastebin_ids(html: str) -> list[str]:
         ids = re.findall(r'href="/([a-zA-Z0-9]{8,10})"', html)
-        excluded = {"archive", "signup", "login", "contact", "tools", "languages", "faq", "pro", "dmca", "trending"}
+        excluded = {
+            "archive",
+            "signup",
+            "login",
+            "contact",
+            "tools",
+            "languages",
+            "faq",
+            "pro",
+            "dmca",
+            "trending",
+        }
         return [pid for pid in dict.fromkeys(ids) if pid.lower() not in excluded]
 
     @staticmethod
@@ -81,4 +114,3 @@ class PasteSource:
                 if slug and slug not in ("api", "login", "new", "edit", "raw"):
                     ids.append(slug)
         return list(dict.fromkeys(ids))
-

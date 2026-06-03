@@ -4,6 +4,7 @@ Adds EvidenceItem, ConfidenceBreakdown, RiskAssessment, IdentityGraph,
 TimelineEntry, IdentityNode/Edge, PivotSuggestion, IntelReport on top of the
 existing DeepScanResult. Also contains the source reliability registry.
 """
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -33,9 +34,28 @@ def rate_source(source: str) -> str:
             break
     if s in {"github", "gitlab", "linkedin"}:
         return "B"
-    if s in {"twitter", "instagram", "facebook", "reddit", "telegram", "youtube", "tiktok", "pinterest", "social"}:
+    if s in {
+        "twitter",
+        "instagram",
+        "facebook",
+        "reddit",
+        "telegram",
+        "youtube",
+        "tiktok",
+        "pinterest",
+        "social",
+    }:
         return "C"
-    if s in {"google", "bing", "duckduckgo", "yandex", "leak_lookup", "leak_aggregator", "dehashed", "leakcheck"}:
+    if s in {
+        "google",
+        "bing",
+        "duckduckgo",
+        "yandex",
+        "leak_lookup",
+        "leak_aggregator",
+        "dehashed",
+        "leakcheck",
+    }:
         return "D"
     if s in {"truecaller", "whocallsme", "everycaller"}:
         return "C"
@@ -49,6 +69,7 @@ def rate_source(source: str) -> str:
 # --- Evidence ---
 class EvidenceItem(BaseModel):
     """A single piece of evidence backing a finding or identifier."""
+
     id: str = ""
     identifier_value: str = ""
     identifier_type: str = ""
@@ -68,6 +89,7 @@ class EvidenceItem(BaseModel):
 # --- Confidence ---
 class ConfidenceBreakdown(BaseModel):
     """Deterministic confidence score components."""
+
     existence: float = 0.0
     uniqueness: float = 0.0
     cross_module: float = 0.0
@@ -76,7 +98,12 @@ class ConfidenceBreakdown(BaseModel):
     @property
     def total(self) -> float:
         """Weighted formula: 0.40·existence + 0.20·uniqueness + 0.25·cross_module + 0.15·temporal."""
-        raw = 0.40 * self.existence + 0.20 * self.uniqueness + 0.25 * self.cross_module + 0.15 * self.temporal
+        raw = (
+            0.40 * self.existence
+            + 0.20 * self.uniqueness
+            + 0.25 * self.cross_module
+            + 0.15 * self.temporal
+        )
         return round(raw, 3)
 
     @property
@@ -110,6 +137,7 @@ class RiskLevel(str, Enum):
 
 class RiskFactor(BaseModel):
     """A single risk assessment factor."""
+
     rule: str = ""
     description: str = ""
     weight: float = 0.0
@@ -118,6 +146,7 @@ class RiskFactor(BaseModel):
 
 class RiskAssessment(BaseModel):
     """Rule-based risk assessment."""
+
     level: RiskLevel = RiskLevel.NONE
     score: float = 0.0
     factors: list[RiskFactor] = Field(default_factory=list)
@@ -127,6 +156,7 @@ class RiskAssessment(BaseModel):
 # --- Timeline ---
 class TimelineEntry(BaseModel):
     """When a piece of evidence was captured."""
+
     timestamp: Optional[datetime] = None
     source: str = ""
     event: str = ""
@@ -137,6 +167,7 @@ class TimelineEntry(BaseModel):
 # --- Identity Graph ---
 class IdentityNode(BaseModel):
     """A node in the identity graph."""
+
     id: str = ""
     label: str = ""
     type: str = ""
@@ -146,6 +177,7 @@ class IdentityNode(BaseModel):
 
 class IdentityEdge(BaseModel):
     """An edge linking two identity nodes."""
+
     source_id: str = ""
     target_id: str = ""
     relationship: str = ""
@@ -155,6 +187,7 @@ class IdentityEdge(BaseModel):
 
 class IdentityGraph(BaseModel):
     """Identity graph with nodes and edges."""
+
     nodes: list[IdentityNode] = Field(default_factory=list)
     edges: list[IdentityEdge] = Field(default_factory=list)
 
@@ -162,6 +195,7 @@ class IdentityGraph(BaseModel):
 # --- Pivots ---
 class PivotSuggestion(BaseModel):
     """Recommended next step for an investigator."""
+
     target_type: str = ""
     target_value: str = ""
     rationale: str = ""
@@ -171,6 +205,7 @@ class PivotSuggestion(BaseModel):
 
 class SourceIntelBlock(BaseModel):
     """Grouped records for one module/source (raw source appendix)."""
+
     block_id: str = ""
     module: str = ""
     title: str = ""
@@ -180,6 +215,7 @@ class SourceIntelBlock(BaseModel):
 
 class SubjectProfile(BaseModel):
     """Resolved subject identity indicators."""
+
     primary_name: str = ""
     known_aliases: list[str] = Field(default_factory=list)
     known_handles: list[str] = Field(default_factory=list)
@@ -187,10 +223,12 @@ class SubjectProfile(BaseModel):
     phones: list[str] = Field(default_factory=list)
     niks: list[str] = Field(default_factory=list)
     locations: list[str] = Field(default_factory=list)
+    crypto_addresses: list[str] = Field(default_factory=list)
 
 
 class DigitalAccount(BaseModel):
     """Confirmed or candidate online account."""
+
     platform: str = ""
     username: str = ""
     url: str = ""
@@ -201,6 +239,7 @@ class DigitalAccount(BaseModel):
 
 class BreachIntelRecord(BaseModel):
     """Structured breach / leak exposure row."""
+
     source: str = ""
     breach_name: str = ""
     fields: dict[str, str] = Field(default_factory=dict)
@@ -209,6 +248,7 @@ class BreachIntelRecord(BaseModel):
 
 class OperationalBriefing(BaseModel):
     """Pre-operational OSINT briefing packet."""
+
     classification: str = "UNCLASSIFIED // OPEN SOURCE INTELLIGENCE // LAWFUL USE ONLY"
     bluf: str = ""
     subject: SubjectProfile = Field(default_factory=SubjectProfile)
@@ -217,11 +257,17 @@ class OperationalBriefing(BaseModel):
     intelligence_gaps: list[str] = Field(default_factory=list)
     recommended_actions: list[str] = Field(default_factory=list)
     key_judgments: list[str] = Field(default_factory=list)
+    # Phase 5: CIA-level enhanced sections
+    cia_bluf_plus: str = ""  # Enriched BLUF from adversarial AI analyst
+    threat_trajectory_summary: str = ""  # Predicted threat archetype and next actions
+    counterintel_summary: str = ""  # Legend detection and OPSEC assessment
+    geospatial_summary: str = ""  # Location clustering and geospatial findings
 
 
 # --- Top-level report ---
 class IntelReport(BaseModel):
     """Top-level intel-grade report."""
+
     report_id: str = ""
     target: str = ""
     started_at: Optional[datetime] = None
@@ -231,7 +277,9 @@ class IntelReport(BaseModel):
     modules_run: list[str] = Field(default_factory=list)
 
     evidence: list[EvidenceItem] = Field(default_factory=list)
-    confidence_by_identifier: dict[str, ConfidenceBreakdown] = Field(default_factory=dict)
+    confidence_by_identifier: dict[str, ConfidenceBreakdown] = Field(
+        default_factory=dict
+    )
     risk: RiskAssessment = Field(default_factory=RiskAssessment)
     timeline: list[TimelineEntry] = Field(default_factory=list)
     identity_graph: IdentityGraph = Field(default_factory=IdentityGraph)
@@ -242,3 +290,12 @@ class IntelReport(BaseModel):
     correlation_stats: dict = Field(default_factory=dict)
     source_blocks: list[SourceIntelBlock] = Field(default_factory=list)
     briefing: OperationalBriefing = Field(default_factory=OperationalBriefing)
+    # Phase 5: CIA-level analytical layers (all Optional — gracefully absent if not run)
+    cia_analysis: Optional[Any] = None  # CIAAnalysis from ai_analyst
+    behavioral_fingerprint: Optional[Any] = None  # BehavioralFingerprint
+    geo_clusters: list[Any] = Field(default_factory=list)  # list[GeoCluster]
+    infra_fingerprints: list[Any] = Field(
+        default_factory=list
+    )  # list[InfraFingerprint]
+    threat_trajectory: Optional[Any] = None  # ThreatTrajectory
+    counterintel: Optional[Any] = None  # CounterIntelAssessment

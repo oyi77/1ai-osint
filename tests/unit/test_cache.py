@@ -1,7 +1,7 @@
 """Tests for cache module."""
 
 import time
-from src.cache import Cache
+from src.core.cache import Cache
 
 
 class TestCache:

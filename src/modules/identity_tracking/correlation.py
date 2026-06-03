@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Optional
 
-from src.models import ScanResult
+from src.core.models import ScanResult
 from src.modules.identity_tracking.identity_graph import (
     IdentityGraph,
 )
@@ -24,6 +24,7 @@ from src.modules.identity_tracking.zkit_engine import (
 
 class CorrelationSource(str, Enum):
     """Sources that can contribute identity data."""
+
     DATA_LEAKS = "data_leaks"
     PEOPLE_FINDER = "people_finder"
     PHONE_FINDER = "phone_finder"
@@ -35,21 +36,23 @@ class CorrelationSource(str, Enum):
 @dataclass
 class ResolvedEntity:
     """A resolved entity representing one real-world identity."""
+
     entity_id: str
     zkit_hashes: list[str]
-    attribute_types: dict[str, str]       # hash -> NodeType value
-    confidence: float                      # [0.0, 1.0]
+    attribute_types: dict[str, str]  # hash -> NodeType value
+    confidence: float  # [0.0, 1.0]
     source_modules: list[str]
-    correlation_evidence: list[str]        # human-readable evidence
+    correlation_evidence: list[str]  # human-readable evidence
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
 class CorrelationResult:
     """Result of cross-module correlation analysis."""
+
     resolved_entities: list[ResolvedEntity]
     graph_stats: dict[str, Any]
-    unresolved_hashes: list[str]           # hashes not linked to any entity
+    unresolved_hashes: list[str]  # hashes not linked to any entity
     investigation_id: str = ""
 
 
@@ -311,9 +314,7 @@ class CrossModuleCorrelator:
         # Attribute diversity evidence
         type_names = sorted(cluster.attribute_types)
         if len(type_names) > 1:
-            evidence.append(
-                f"Linked attribute types: {', '.join(type_names)}"
-            )
+            evidence.append(f"Linked attribute types: {', '.join(type_names)}")
 
         # Co-occurrence evidence
         if cluster.total_co_occurrences > 1:
@@ -330,8 +331,7 @@ class CrossModuleCorrelator:
 
         # Confidence evidence
         evidence.append(
-            f"Confidence: {cluster.confidence.value} "
-            f"(score={cluster.score:.4f})"
+            f"Confidence: {cluster.confidence.value} (score={cluster.score:.4f})"
         )
 
         return evidence

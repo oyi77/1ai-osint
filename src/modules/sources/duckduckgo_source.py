@@ -3,6 +3,7 @@
 Scrapes DuckDuckGo HTML search results with Google dork queries.
 Finds leaked .env files, wallet exports, and config dumps indexed by search engines.
 """
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -37,7 +38,9 @@ class DuckDuckGoSource:
         ("startpage", "https://www.startpage.com/sp/search"),
     ]
 
-    def __init__(self, max_per_query: int = 10, request_delay: float = 2.0, timeout: float = 15.0):
+    def __init__(
+        self, max_per_query: int = 10, request_delay: float = 2.0, timeout: float = 15.0
+    ):
         self.max_per_query = max_per_query
         self.request_delay = request_delay
         self.timeout = timeout
@@ -46,6 +49,7 @@ class DuckDuckGoSource:
     async def fetch_raw_leaks(self) -> list[RawLeak]:
         """Fetch leaks using multiple search engines as fallback."""
         import random as _random
+
         queries = _random.sample(_DORK_QUERIES, min(3, len(_DORK_QUERIES)))
         leaks: list[RawLeak] = []
         headers = {
@@ -61,7 +65,9 @@ class DuckDuckGoSource:
                 )
                 leaks.extend(result)
                 if leaks:
-                    logger.info("DuckDuckGo: got %d leaks via %s", len(leaks), endpoint_name)
+                    logger.info(
+                        "DuckDuckGo: got %d leaks via %s", len(leaks), endpoint_name
+                    )
                     break
             except asyncio.TimeoutError:
                 logger.debug("DuckDuckGo %s timed out", endpoint_name)
@@ -70,10 +76,14 @@ class DuckDuckGoSource:
 
         return leaks
 
-    async def _search_via_endpoint(self, search_url: str, queries: list[str], headers: dict) -> list[RawLeak]:
+    async def _search_via_endpoint(
+        self, search_url: str, queries: list[str], headers: dict
+    ) -> list[RawLeak]:
         """Search via a specific endpoint."""
         leaks: list[RawLeak] = []
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             for query in queries:
                 try:
                     await self._rate_limit()
@@ -88,15 +98,33 @@ class DuckDuckGoSource:
                     # Extract result URLs from HTML
                     urls = re.findall(r'href="(https?://[^"]+)"', resp.text)
                     # Filter out search engine internal links
-                    urls = [u for u in urls if not any(x in u for x in ["duckduckgo.com", "duck.co", "startpage.com", "google.com"])]
-                    urls = list(dict.fromkeys(urls))[:self.max_per_query]
+                    urls = [
+                        u
+                        for u in urls
+                        if not any(
+                            x in u
+                            for x in [
+                                "duckduckgo.com",
+                                "duck.co",
+                                "startpage.com",
+                                "google.com",
+                            ]
+                        )
+                    ]
+                    urls = list(dict.fromkeys(urls))[: self.max_per_query]
 
                     for url in urls:
                         try:
                             await self._rate_limit()
                             page = await client.get(url, headers=headers, timeout=10)
                             if page.status_code == 200 and len(page.text) > 50:
-                                leaks.append(RawLeak(text=page.text, source_name="duckduckgo", source_url=url))
+                                leaks.append(
+                                    RawLeak(
+                                        text=page.text,
+                                        source_name="duckduckgo",
+                                        source_url=url,
+                                    )
+                                )
                         except Exception:
                             pass
                 except Exception as exc:
@@ -109,7 +137,9 @@ class DuckDuckGoSource:
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         }
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             for endpoint_name, search_url in self.SEARCH_ENDPOINTS:
                 try:
                     await self._rate_limit()
@@ -120,15 +150,33 @@ class DuckDuckGoSource:
                     )
                     if resp.status_code == 200:
                         urls = re.findall(r'href="(https?://[^"]+)"', resp.text)
-                        urls = [u for u in urls if not any(x in u for x in ["duckduckgo.com", "duck.co", "startpage.com"])]
+                        urls = [
+                            u
+                            for u in urls
+                            if not any(
+                                x in u
+                                for x in ["duckduckgo.com", "duck.co", "startpage.com"]
+                            )
+                        ]
                         urls = list(dict.fromkeys(urls))[:5]
 
                         for url in urls:
                             try:
                                 await self._rate_limit()
-                                page = await client.get(url, headers=headers, timeout=10)
-                                if page.status_code == 200 and address.lower() in page.text.lower():
-                                    leaks.append(RawLeak(text=page.text, source_name="duckduckgo", source_url=url))
+                                page = await client.get(
+                                    url, headers=headers, timeout=10
+                                )
+                                if (
+                                    page.status_code == 200
+                                    and address.lower() in page.text.lower()
+                                ):
+                                    leaks.append(
+                                        RawLeak(
+                                            text=page.text,
+                                            source_name="duckduckgo",
+                                            source_url=url,
+                                        )
+                                    )
                             except Exception:
                                 pass
                         if leaks:

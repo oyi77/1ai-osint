@@ -1,4 +1,5 @@
 """Reddit source adapter with multiple fallback approaches."""
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -40,7 +41,9 @@ class RedditSource:
         "https://libreddit.kavin.rocks",
     ]
 
-    def __init__(self, max_per_sub: int = 50, request_delay: float = 1.0, timeout: float = 15.0):
+    def __init__(
+        self, max_per_sub: int = 50, request_delay: float = 1.0, timeout: float = 15.0
+    ):
         self.max_per_sub = max_per_sub
         self.request_delay = request_delay
         self.timeout = timeout
@@ -77,7 +80,9 @@ class RedditSource:
         """Approach 1: Reddit's own JSON API."""
         leaks: list[RawLeak] = []
         headers = {"User-Agent": "osint:crypto-leak-scanner:v1.0"}
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             for sub in _SUBREDDITS[:5]:  # Limit to avoid rate limits
                 try:
                     await self._rate_limit()
@@ -86,12 +91,20 @@ class RedditSource:
                     if resp.status_code == 200:
                         for post in resp.json().get("data", {}).get("children", []):
                             data = post.get("data", {})
-                            full_url = f"https://www.reddit.com{data.get('permalink', '')}"
+                            full_url = (
+                                f"https://www.reddit.com{data.get('permalink', '')}"
+                            )
                             if full_url not in seen_urls:
                                 seen_urls.add(full_url)
                                 combined = f"{data.get('title', '')}\n{data.get('selftext', '')}".strip()
                                 if combined:
-                                    leaks.append(RawLeak(text=combined, source_name="reddit", source_url=full_url))
+                                    leaks.append(
+                                        RawLeak(
+                                            text=combined,
+                                            source_name="reddit",
+                                            source_url=full_url,
+                                        )
+                                    )
                 except Exception as exc:
                     logger.debug("Reddit JSON r/%s error: %s", sub, exc)
         return leaks
@@ -100,7 +113,9 @@ class RedditSource:
         """Approach 2: Pullpush.io API."""
         leaks: list[RawLeak] = []
         headers = {"User-Agent": "osint:crypto-leak-scanner:v1.0"}
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             for sub in _SUBREDDITS[:3]:
                 try:
                     await self._rate_limit()
@@ -108,20 +123,32 @@ class RedditSource:
                     resp = await client.get(url, headers=headers)
                     if resp.status_code == 200:
                         for post in resp.json().get("data", []):
-                            full_url = f"https://www.reddit.com{post.get('permalink', '')}"
+                            full_url = (
+                                f"https://www.reddit.com{post.get('permalink', '')}"
+                            )
                             if full_url not in seen_urls:
                                 seen_urls.add(full_url)
                                 combined = f"{post.get('title', '')}\n{post.get('selftext', '')}".strip()
                                 if combined:
-                                    leaks.append(RawLeak(text=combined, source_name="reddit", source_url=full_url))
+                                    leaks.append(
+                                        RawLeak(
+                                            text=combined,
+                                            source_name="reddit",
+                                            source_url=full_url,
+                                        )
+                                    )
                 except Exception as exc:
                     logger.debug("pullpush r/%s error: %s", sub, exc)
         return leaks
 
-    async def _fetch_via_alternative_frontend(self, seen_urls: set[str]) -> list[RawLeak]:
+    async def _fetch_via_alternative_frontend(
+        self, seen_urls: set[str]
+    ) -> list[RawLeak]:
         """Approach 3: Alternative Reddit frontends (redlib, libreddit, etc.)."""
         leaks: list[RawLeak] = []
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             for frontend in self.ALTERNATIVE_FRONTENDS:
                 try:
                     for sub in _SUBREDDITS[:3]:
@@ -133,13 +160,22 @@ class RedditSource:
                             text = resp.text
                             # Look for post titles and content
                             import re
+
                             # Simple extraction - look for post links and content
-                            posts = re.findall(r'<a[^>]*href="(/r/[^"]*)"[^>]*>([^<]*)</a>', text)
+                            posts = re.findall(
+                                r'<a[^>]*href="(/r/[^"]*)"[^>]*>([^<]*)</a>', text
+                            )
                             for path, title in posts[:10]:
                                 full_url = f"https://www.reddit.com{path}"
                                 if full_url not in seen_urls and title.strip():
                                     seen_urls.add(full_url)
-                                    leaks.append(RawLeak(text=title, source_name="reddit", source_url=full_url))
+                                    leaks.append(
+                                        RawLeak(
+                                            text=title,
+                                            source_name="reddit",
+                                            source_url=full_url,
+                                        )
+                                    )
                             if leaks:
                                 return leaks
                 except Exception as exc:
@@ -150,7 +186,9 @@ class RedditSource:
         """Approach 4: Reddit's search API."""
         leaks: list[RawLeak] = []
         headers = {"User-Agent": "osint:crypto-leak-scanner:v1.0"}
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             for kw in _KEYWORDS:
                 try:
                     await self._rate_limit()
@@ -159,12 +197,20 @@ class RedditSource:
                     if resp.status_code == 200:
                         for post in resp.json().get("data", {}).get("children", []):
                             data = post.get("data", {})
-                            full_url = f"https://www.reddit.com{data.get('permalink', '')}"
+                            full_url = (
+                                f"https://www.reddit.com{data.get('permalink', '')}"
+                            )
                             if full_url not in seen_urls:
                                 seen_urls.add(full_url)
                                 combined = f"{data.get('title', '')}\n{data.get('selftext', '')}".strip()
                                 if combined:
-                                    leaks.append(RawLeak(text=combined, source_name="reddit", source_url=full_url))
+                                    leaks.append(
+                                        RawLeak(
+                                            text=combined,
+                                            source_name="reddit",
+                                            source_url=full_url,
+                                        )
+                                    )
                 except Exception as exc:
                     logger.debug("Reddit search '%s' error: %s", kw, exc)
         return leaks
@@ -172,6 +218,7 @@ class RedditSource:
     async def search_for_address(self, address: str) -> list[RawLeak]:
         """Search Reddit for a specific address."""
         import re
+
         pattern = re.compile(re.escape(address), re.IGNORECASE)
         leaks = await self.fetch_raw_leaks()
         return [leak for leak in leaks if pattern.search(leak.text)]

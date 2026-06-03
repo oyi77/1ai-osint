@@ -1,4 +1,5 @@
 """Shodan source adapter for exposed service discovery."""
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -17,7 +18,12 @@ class ShodanSource:
 
     BASE_URL = "https://api.shodan.io"
 
-    def __init__(self, api_key: Optional[str] = None, request_delay: float = 2.0, timeout: float = 30.0):
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        request_delay: float = 2.0,
+        timeout: float = 30.0,
+    ):
         self.api_key = api_key or os.getenv("SHODAN_API_KEY", "")
         self.request_delay = request_delay
         self.timeout = timeout
@@ -35,7 +41,9 @@ class ShodanSource:
 
         leaks: list[RawLeak] = []
         headers = {"Authorization": f"Bearer {self.api_key}"}
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             try:
                 await self._rate_limit()
                 resp = await client.get(
@@ -48,11 +56,13 @@ class ShodanSource:
                     for service in data.get("data", []):
                         banner = service.get("data", "")
                         if banner:
-                            leaks.append(RawLeak(
-                                text=banner[:10000],
-                                source_name="shodan",
-                                source_url=f"https://www.shodan.io/host/{address}",
-                            ))
+                            leaks.append(
+                                RawLeak(
+                                    text=banner[:10000],
+                                    source_name="shodan",
+                                    source_url=f"https://www.shodan.io/host/{address}",
+                                )
+                            )
             except Exception as exc:
                 logger.debug("Shodan error for '%s': %s", address, exc)
         return leaks

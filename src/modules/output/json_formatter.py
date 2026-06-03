@@ -5,7 +5,7 @@ import json
 from datetime import datetime, timezone
 from typing import Any
 
-from src.models import Finding, ScanResult
+from src.core.models import Finding, ScanResult
 
 
 class JSONFormatter:
@@ -23,7 +23,9 @@ class JSONFormatter:
         preimage = f"{self._salt}:{value}".encode("utf-8")
         return hashlib.sha256(preimage).hexdigest()
 
-    def _hash_dict_values(self, data: dict[str, Any], keys_to_hash: set[str]) -> dict[str, Any]:
+    def _hash_dict_values(
+        self, data: dict[str, Any], keys_to_hash: set[str]
+    ) -> dict[str, Any]:
         """Hash specific keys in a dict, leaving others intact."""
         hashed = {}
         for k, v in data.items():
@@ -64,7 +66,9 @@ class JSONFormatter:
                 {
                     "source": br.source,
                     "email_hash": self._hash_value(br.email) if br.email else None,
-                    "username_hash": self._hash_value(br.username) if br.username else None,
+                    "username_hash": self._hash_value(br.username)
+                    if br.username
+                    else None,
                     "domain_hash": self._hash_value(br.domain) if br.domain else None,
                     "severity": br.severity.value,
                     "description": br.description,
@@ -83,7 +87,9 @@ class JSONFormatter:
             ],
             "metadata": result.metadata,
             "started_at": result.started_at.isoformat(),
-            "completed_at": result.completed_at.isoformat() if result.completed_at else None,
+            "completed_at": result.completed_at.isoformat()
+            if result.completed_at
+            else None,
             "error": result.error,
         }
 

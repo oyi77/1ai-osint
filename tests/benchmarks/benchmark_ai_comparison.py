@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 
-from src.models import Finding, Severity
+from src.core.models import Finding, Severity
 
 
 # ---------------------------------------------------------------------------
@@ -24,7 +24,11 @@ SAMPLE_FINDINGS: list[Finding] = [
         title="Email found in breach: Collection1",
         description="alice@example.com appeared in Collection1 breach (2019)",
         severity=Severity.HIGH,
-        raw_data={"email": "alice@example.com", "breach": "Collection1", "records": 772904991},
+        raw_data={
+            "email": "alice@example.com",
+            "breach": "Collection1",
+            "records": 772904991,
+        },
         confidence=0.95,
         tags=["breach", "email"],
     ),
@@ -34,7 +38,11 @@ SAMPLE_FINDINGS: list[Finding] = [
         title="Profile found: alice on GitHub",
         description="Username 'alice' found on github.com",
         severity=Severity.LOW,
-        raw_data={"username": "alice", "site": "github.com", "url": "https://github.com/alice"},
+        raw_data={
+            "username": "alice",
+            "site": "github.com",
+            "url": "https://github.com/alice",
+        },
         confidence=0.8,
         tags=["social", "profile"],
     ),
@@ -54,7 +62,11 @@ SAMPLE_FINDINGS: list[Finding] = [
         title="Profile found: alice on LinkedIn",
         description="Username 'alice' found on linkedin.com",
         severity=Severity.LOW,
-        raw_data={"username": "alice", "site": "linkedin.com", "url": "https://linkedin.com/in/alice"},
+        raw_data={
+            "username": "alice",
+            "site": "linkedin.com",
+            "url": "https://linkedin.com/in/alice",
+        },
         confidence=0.6,
         tags=["social", "profile"],
     ),
@@ -88,6 +100,7 @@ FALSE_POSITIVE_FINDINGS: list[Finding] = [
 # Baseline rule-based processor
 # ---------------------------------------------------------------------------
 
+
 def baseline_process(findings: list[Finding]) -> dict[str, Any]:
     """Rule-based analysis without AI — simple aggregation and dedup."""
     severity_counts: dict[str, int] = {}
@@ -113,9 +126,12 @@ def baseline_process(findings: list[Finding]) -> dict[str, Any]:
         "module_breakdown": modules,
         "risk_score": risk_score,
         "risk_level": (
-            "critical" if risk_score >= 80
-            else "high" if risk_score >= 60
-            else "medium" if risk_score >= 30
+            "critical"
+            if risk_score >= 80
+            else "high"
+            if risk_score >= 60
+            else "medium"
+            if risk_score >= 30
             else "low"
         ),
         "false_positives_filtered": 0,
@@ -127,6 +143,7 @@ def baseline_process(findings: list[Finding]) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 # AI-enriched processor (mocked for deterministic testing)
 # ---------------------------------------------------------------------------
+
 
 def ai_enriched_process(findings: list[Finding]) -> dict[str, Any]:
     """Simulated AI-enriched analysis with entity extraction and FP filtering.
@@ -172,9 +189,12 @@ def ai_enriched_process(findings: list[Finding]) -> dict[str, Any]:
         "severity_breakdown": severity_counts,
         "risk_score": ai_score,
         "risk_level": (
-            "critical" if ai_score >= 80
-            else "high" if ai_score >= 60
-            else "medium" if ai_score >= 30
+            "critical"
+            if ai_score >= 80
+            else "high"
+            if ai_score >= 60
+            else "medium"
+            if ai_score >= 30
             else "low"
         ),
         "false_positives_filtered": fp_removed,
@@ -187,6 +207,7 @@ def ai_enriched_process(findings: list[Finding]) -> dict[str, Any]:
 # Test cases
 # ---------------------------------------------------------------------------
 
+
 class TestAIComparison:
     """Compare AI-enriched vs baseline rule-based analysis."""
 
@@ -196,7 +217,9 @@ class TestAIComparison:
         ai_result = ai_enriched_process(all_findings)
         baseline_result = baseline_process(all_findings)
 
-        assert ai_result["false_positives_filtered"] > 0, "AI should filter at least one FP"
+        assert ai_result["false_positives_filtered"] > 0, (
+            "AI should filter at least one FP"
+        )
         assert ai_result["total_findings"] <= baseline_result["total_findings"]
 
     def test_ai_extracts_entities(self):
@@ -207,7 +230,9 @@ class TestAIComparison:
     def test_ai_finds_correlations(self):
         """AI layer should find cross-module correlations."""
         result = ai_enriched_process(SAMPLE_FINDINGS)
-        assert result["correlations_found"] >= 0, "Correlations count should be non-negative"
+        assert result["correlations_found"] >= 0, (
+            "Correlations count should be non-negative"
+        )
 
     def test_ai_risk_score_higher_with_correlations(self):
         """AI risk score should be >= baseline when correlations exist."""

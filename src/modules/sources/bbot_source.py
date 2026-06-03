@@ -1,4 +1,5 @@
 """BBOT source adapter for recursive OSINT scanning."""
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -36,7 +37,13 @@ class BbotSource:
         for preset in self.PRESETS:
             try:
                 proc = await asyncio.create_subprocess_exec(
-                    bbot_path, "-t", address, "-p", preset, "-y", "-q",
+                    bbot_path,
+                    "-t",
+                    address,
+                    "-p",
+                    preset,
+                    "-y",
+                    "-q",
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
                 )
@@ -46,11 +53,13 @@ class BbotSource:
                 if stdout:
                     text = stdout.decode()
                     if text.strip():
-                        leaks.append(RawLeak(
-                            text=text[:100000],
-                            source_name=f"bbot_{preset}",
-                            source_url="",
-                        ))
+                        leaks.append(
+                            RawLeak(
+                                text=text[:100000],
+                                source_name=f"bbot_{preset}",
+                                source_url="",
+                            )
+                        )
             except asyncio.TimeoutError:
                 logger.debug("BBOT %s: timeout for '%s'", preset, address)
             except Exception as exc:

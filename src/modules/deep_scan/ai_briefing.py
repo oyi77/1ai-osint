@@ -1,4 +1,5 @@
 """Optional AI enhancement for briefing (evidence-cited only)."""
+
 from __future__ import annotations
 
 import logging
@@ -11,7 +12,7 @@ def enhance_briefing_with_ai(report: Any, scan_result: Any) -> Any:
     """Augment key_judgments using AI when Omniroute/OpenAI is configured."""
     try:
         from src.ai.orchestrator import AnalysisOrchestrator
-        from src.config import Settings
+        from src.core.config import Settings
 
         settings = Settings()
         if not settings.effective_openai_api_key:

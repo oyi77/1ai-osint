@@ -16,6 +16,7 @@ class ChainType(str, Enum):
 @dataclass
 class TokenContract:
     """ERC-20/BEP-20 token contract for balance checking."""
+
     symbol: str
     address: str  # Contract address (checksummed)
     decimals: int
@@ -34,7 +35,9 @@ class ChainConfig:
     decimals: int = 18
     bip44_coin_type: int = 60  # BIP-44 coin type
     derivation_paths: list[str] = field(default_factory=lambda: ["m/44'/60'/0'/0/0"])
-    tokens: list[TokenContract] = field(default_factory=list)  # Top ERC-20 tokens to check
+    tokens: list[TokenContract] = field(
+        default_factory=list
+    )  # Top ERC-20 tokens to check
 
 
 # --- Chain Definitions ---
@@ -202,8 +205,16 @@ FANTOM = ChainConfig(
 
 # All supported chains
 ALL_CHAINS: list[ChainConfig] = [
-    ETHEREUM, BSC, POLYGON, ARBITRUM, OPTIMISM, BASE, AVALANCHE, FANTOM,
-    BITCOIN, SOLANA,
+    ETHEREUM,
+    BSC,
+    POLYGON,
+    ARBITRUM,
+    OPTIMISM,
+    BASE,
+    AVALANCHE,
+    FANTOM,
+    BITCOIN,
+    SOLANA,
 ]
 
 # Map for quick lookup by name

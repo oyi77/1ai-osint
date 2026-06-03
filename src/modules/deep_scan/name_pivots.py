@@ -1,4 +1,5 @@
 """Name → username pivot candidates for deep scan recursion."""
+
 from __future__ import annotations
 
 import re

@@ -52,6 +52,7 @@ DISCOVERY_KEYWORDS = [
 @dataclass
 class TelegramMessage:
     """Parsed Telegram message."""
+
     channel: str
     message_id: int
     text: str
@@ -93,9 +94,7 @@ class TelethonLeakScanner:
             return False
 
         try:
-            self._client = TelegramClient(
-                self.session_path, self.api_id, self.api_hash
-            )
+            self._client = TelegramClient(self.session_path, self.api_id, self.api_hash)
             await self._client.connect()
             if not await self._client.is_user_authorized():
                 logger.warning(
@@ -159,16 +158,12 @@ class TelethonLeakScanner:
 
         return findings
 
-    async def _scan_single_channel(
-        self, channel: str, limit: int
-    ) -> list[LeakFinding]:
+    async def _scan_single_channel(self, channel: str, limit: int) -> list[LeakFinding]:
         """Scan a single channel for keys in text AND document attachments."""
         findings = []
         try:
             entity = await self._client.get_entity(channel)
-            async for message in self._client.iter_messages(
-                entity, limit=limit
-            ):
+            async for message in self._client.iter_messages(entity, limit=limit):
                 # Scan message text
                 if message.text:
                     self._extract_from_text(message.text, channel, message.id, findings)
@@ -176,13 +171,21 @@ class TelethonLeakScanner:
                 # Scan document attachments (text/plain, .txt files)
                 if message.document and hasattr(message.document, "mime_type"):
                     mime = message.document.mime_type or ""
-                    size = message.document.size if hasattr(message.document, "size") else 0
-                    if ("text" in mime or "json" in mime) and size < 500_000:  # Max 500KB
+                    size = (
+                        message.document.size
+                        if hasattr(message.document, "size")
+                        else 0
+                    )
+                    if (
+                        "text" in mime or "json" in mime
+                    ) and size < 500_000:  # Max 500KB
                         try:
                             data = await self._client.download_media(message, bytes)
                             if data:
                                 text = data.decode("utf-8", errors="ignore")
-                                self._extract_from_text(text, channel, message.id, findings)
+                                self._extract_from_text(
+                                    text, channel, message.id, findings
+                                )
                                 del data  # Free memory immediately
                         except Exception as e:
                             logger.debug("Document download error: %s", e)
@@ -247,15 +250,23 @@ class TelethonLeakScanner:
                 for dialog in result:
                     if dialog.is_channel and dialog.name:
                         name_lower = dialog.name.lower()
-                        if any(k in name_lower for k in ["leak", "dump", "wallet", "seed", "key", "crypto"]):
-                            if dialog.entity and hasattr(dialog.entity, 'username') and dialog.entity.username:
+                        if any(
+                            k in name_lower
+                            for k in ["leak", "dump", "wallet", "seed", "key", "crypto"]
+                        ):
+                            if (
+                                dialog.entity
+                                and hasattr(dialog.entity, "username")
+                                and dialog.entity.username
+                            ):
                                 found.add(dialog.entity.username)
 
                 # Use global search
                 from telethon.tl.functions.contacts import SearchRequest
+
                 search_result = await self._client(SearchRequest(q=kw, limit=10))
                 for chat in search_result.chats:
-                    if hasattr(chat, 'username') and chat.username:
+                    if hasattr(chat, "username") and chat.username:
                         found.add(chat.username)
 
                 await asyncio.sleep(3)  # Rate limit
@@ -283,7 +294,7 @@ class TelethonLeakScanner:
             ):
                 if message.text:
                     channel = ""
-                    if message.chat and hasattr(message.chat, 'username'):
+                    if message.chat and hasattr(message.chat, "username"):
                         channel = message.chat.username or ""
                     messages.append(
                         TelegramMessage(

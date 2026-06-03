@@ -6,6 +6,7 @@ Supports:
   - STIX 2.1 (Intelligence Bundle with Identity, URL, Relationship SDOs)
   - PDF (via WeasyPrint, optional)
 """
+
 from src.modules.deep_scan.models_report import IntelReport
 
 from .json_export import export_json
@@ -33,5 +34,7 @@ def export_report(report: IntelReport, fmt: str = "html") -> str | bytes:
     }
     exporter = exporters.get(fmt)
     if not exporter:
-        raise ValueError(f"Unknown export format: {fmt}. Supported: {', '.join(exporters)}")
+        raise ValueError(
+            f"Unknown export format: {fmt}. Supported: {', '.join(exporters)}"
+        )
     return exporter(report)

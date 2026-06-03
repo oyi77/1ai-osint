@@ -1,6 +1,7 @@
-"""Breach severity scoring for data leak records."""
+import hashlib
+import httpx
 
-from src.models import BreachRecord, Severity
+from src.core.models import BreachRecord, Severity
 
 
 # Data class severity weights
@@ -79,3 +80,43 @@ class BreachChecker:
         for record in records:
             record.severity = self.score_severity(record)
         return records
+
+
+class BlindQueryResolver:
+    """Range-based privacy-preserving (k-anonymity) target check."""
+
+    def __init__(self, timeout: float = 10.0):
+        self.timeout = timeout
+
+    def hash_target(self, val: str, hash_type: str = "sha1") -> str:
+        """Hash string into uppercase hex SHA-1 or SHA-256."""
+        val_bytes = val.strip().encode("utf-8")
+        if hash_type.lower() == "sha256":
+            return hashlib.sha256(val_bytes).hexdigest().upper()
+        return hashlib.sha1(val_bytes).hexdigest().upper()
+
+    async def check_password_pwned(self, password: str) -> tuple[bool, int]:
+        """Check if a password has been pwned using HaveIBeenPwned range API.
+
+        Transmits ONLY the first 5 characters of the SHA-1 hash.
+        """
+        full_hash = self.hash_target(password, "sha1")
+        prefix = full_hash[:5]
+        suffix = full_hash[5:]
+
+        url = f"https://api.pwnedpasswords.com/range/{prefix}"
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                resp = await client.get(url)
+                if resp.status_code == 200:
+                    lines = resp.text.splitlines()
+                    for line in lines:
+                        if ":" in line:
+                            h_suffix, count_str = line.split(":", 1)
+                            if h_suffix.upper() == suffix:
+                                return True, int(count_str)
+        except Exception:
+            # Under test or network issue
+            pass
+
+        return False, 0

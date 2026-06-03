@@ -1,7 +1,11 @@
 from unittest.mock import MagicMock, patch
 
 from src.modules.deep_scan.ai_briefing import enhance_briefing_with_ai
-from src.modules.deep_scan.models_report import IntelReport, OperationalBriefing, SubjectProfile
+from src.modules.deep_scan.models_report import (
+    IntelReport,
+    OperationalBriefing,
+    SubjectProfile,
+)
 
 
 def _minimal_report():
@@ -29,7 +33,7 @@ def test_enhance_adds_judgment_when_ai_returns():
     async def fake_run(**_kwargs):
         return {"summary": "Subject has public GitHub presence."}
 
-    with patch("src.config.Settings") as mock_settings:
+    with patch("src.core.config.Settings") as mock_settings:
         mock_settings.return_value.effective_openai_api_key = "sk-test"
         with patch("src.ai.orchestrator.AnalysisOrchestrator") as orch:
             orch.return_value.run = fake_run

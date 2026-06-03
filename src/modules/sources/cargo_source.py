@@ -1,4 +1,5 @@
 """Cargo (Rust) source adapter for finding leaked keys in Rust packages."""
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -18,12 +19,15 @@ _QUERIES = [
     "credentials",
 ]
 
+
 class CargoSource:
     """Scan crates.io for packages with leaked crypto keys."""
 
     BASE_URL = "https://crates.io/api/v1"
 
-    def __init__(self, max_per_query: int = 20, request_delay: float = 1.0, timeout: float = 15.0):
+    def __init__(
+        self, max_per_query: int = 20, request_delay: float = 1.0, timeout: float = 15.0
+    ):
         self.max_per_query = max_per_query
         self.request_delay = request_delay
         self.timeout = timeout
@@ -34,13 +38,19 @@ class CargoSource:
         leaks: list[RawLeak] = []
         seen_crates: set[str] = set()
         headers = {"User-Agent": "1ai-osint/0.1.0"}
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True, headers=headers) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True, headers=headers
+        ) as client:
             for query in _QUERIES[:4]:
                 try:
                     await self._rate_limit()
                     resp = await client.get(
                         f"{self.BASE_URL}/crates",
-                        params={"q": query, "per_page": self.max_per_query, "sort": "recent-updates"},
+                        params={
+                            "q": query,
+                            "per_page": self.max_per_query,
+                            "sort": "recent-updates",
+                        },
                     )
                     if resp.status_code == 200:
                         for crate in resp.json().get("crates", []):
@@ -50,11 +60,13 @@ class CargoSource:
                             seen_crates.add(crate_name)
                             desc = crate.get("description", "")
                             if desc:
-                                leaks.append(RawLeak(
-                                    text=desc,
-                                    source_name="cargo",
-                                    source_url=f"https://crates.io/crates/{crate_name}",
-                                ))
+                                leaks.append(
+                                    RawLeak(
+                                        text=desc,
+                                        source_name="cargo",
+                                        source_url=f"https://crates.io/crates/{crate_name}",
+                                    )
+                                )
                 except Exception as exc:
                     logger.debug("Cargo search '%s' error: %s", query, exc)
         return leaks
@@ -63,7 +75,9 @@ class CargoSource:
         """Search crates.io for a specific address."""
         leaks: list[RawLeak] = []
         headers = {"User-Agent": "1ai-osint/0.1.0"}
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True, headers=headers) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True, headers=headers
+        ) as client:
             try:
                 await self._rate_limit()
                 resp = await client.get(
@@ -74,11 +88,13 @@ class CargoSource:
                     for crate in resp.json().get("crates", []):
                         desc = crate.get("description", "")
                         if desc:
-                            leaks.append(RawLeak(
-                                text=desc,
-                                source_name="cargo",
-                                source_url=f"https://crates.io/crates/{crate.get('name', '')}",
-                            ))
+                            leaks.append(
+                                RawLeak(
+                                    text=desc,
+                                    source_name="cargo",
+                                    source_url=f"https://crates.io/crates/{crate.get('name', '')}",
+                                )
+                            )
             except Exception as exc:
                 logger.debug("Cargo address search error: %s", exc)
         return leaks

@@ -1,4 +1,5 @@
 """Mastodon source adapter for fediverse OSINT."""
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -29,7 +30,9 @@ class MastodonSource:
         leaks: list[RawLeak] = []
         queries = ["private key", "mnemonic", "seed phrase", "wallet dump"]
 
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             for instance in self.INSTANCES:
                 for query in queries[:2]:
                     try:
@@ -43,11 +46,13 @@ class MastodonSource:
                                 content = status.get("content", "")
                                 url = status.get("url", "")
                                 if content:
-                                    leaks.append(RawLeak(
-                                        text=content[:5000],
-                                        source_name="mastodon",
-                                        source_url=url,
-                                    ))
+                                    leaks.append(
+                                        RawLeak(
+                                            text=content[:5000],
+                                            source_name="mastodon",
+                                            source_url=url,
+                                        )
+                                    )
                     except Exception as exc:
                         logger.debug("Mastodon %s search error: %s", instance, exc)
         return leaks
@@ -55,7 +60,9 @@ class MastodonSource:
     async def search_for_address(self, address: str) -> list[RawLeak]:
         """Search Mastodon for a specific address."""
         leaks: list[RawLeak] = []
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             for instance in self.INSTANCES:
                 try:
                     await self._rate_limit()
@@ -68,11 +75,13 @@ class MastodonSource:
                             content = status.get("content", "")
                             url = status.get("url", "")
                             if content and address.lower() in content.lower():
-                                leaks.append(RawLeak(
-                                    text=content[:5000],
-                                    source_name="mastodon",
-                                    source_url=url,
-                                ))
+                                leaks.append(
+                                    RawLeak(
+                                        text=content[:5000],
+                                        source_name="mastodon",
+                                        source_url=url,
+                                    )
+                                )
                 except Exception as exc:
                     logger.debug("Mastodon %s address search error: %s", instance, exc)
         return leaks

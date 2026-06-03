@@ -1,12 +1,14 @@
 """CloakBrowser anti-detect scraping client."""
+
 import os
 import logging
-from typing import Optional, AsyncGenerator
+from typing import AsyncGenerator
 from contextlib import asynccontextmanager
 import httpx
-from playwright.async_api import async_playwright, Browser, Page, Playwright
+from playwright.async_api import async_playwright, Page
 
 logger = logging.getLogger(__name__)
+
 
 class CloakScraper:
     """Manages anti-detect browser instances utilizing CloakBrowser or standard Playwright."""
@@ -30,7 +32,9 @@ class CloakScraper:
                         if ws_url:
                             return ws_url
             except Exception as e:
-                logger.debug("Failed to query CloakBrowser API at %s: %s", self.cloak_api, e)
+                logger.debug(
+                    "Failed to query CloakBrowser API at %s: %s", self.cloak_api, e
+                )
         return ""
 
     @asynccontextmanager
@@ -38,24 +42,30 @@ class CloakScraper:
         """Context manager yielding a ready Playwright page. Uses CDP if CloakBrowser is available."""
         async with async_playwright() as p:
             ws_url = await self._get_cloak_websocket()
-            
+
             if self.force_cloak and not ws_url:
-                raise RuntimeError("CloakBrowser is forced but no CDP WebSocket URL could be resolved.")
-                
+                raise RuntimeError(
+                    "CloakBrowser is forced but no CDP WebSocket URL could be resolved."
+                )
+
             browser = None
             page = None
             try:
                 if ws_url:
-                    logger.info("Connecting to CloakBrowser via CDP endpoint: %s", ws_url)
+                    logger.info(
+                        "Connecting to CloakBrowser via CDP endpoint: %s", ws_url
+                    )
                     browser = await p.chromium.connect_over_cdp(ws_url)
                     context = browser.contexts[0] if browser.contexts else browser
                     page = await context.new_page()
                 else:
-                    logger.debug("CloakBrowser not configured — falling back to standard Playwright Chromium")
+                    logger.debug(
+                        "CloakBrowser not configured — falling back to standard Playwright Chromium"
+                    )
                     browser = await p.chromium.launch(headless=True)
                     page = await browser.new_page()
                     await page.set_viewport_size({"width": 1280, "height": 800})
-                    
+
                 yield page
             finally:
                 if page:

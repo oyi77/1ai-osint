@@ -185,8 +185,14 @@ class EndpointRotator:
                     best_time_left = time_left
                     best_reattempt_url = url
         if best_reattempt_url:
-            if not hasattr(self, '_last_degraded_log') or time.monotonic() - self._last_degraded_log > 30:
-                logger.warning("All endpoints disabled — next re-enable in %.0fs", max(0, best_time_left))
+            if (
+                not hasattr(self, "_last_degraded_log")
+                or time.monotonic() - self._last_degraded_log > 30
+            ):
+                logger.warning(
+                    "All endpoints disabled — next re-enable in %.0fs",
+                    max(0, best_time_left),
+                )
                 self._last_degraded_log = time.monotonic()
         url = best_reattempt_url or self._url_list[self._index]
         self._index = (self._index + 1) % n
@@ -223,7 +229,10 @@ class EndpointRotator:
             return
         health.failure_count += 1
         health.consecutive_failures += 1
-        if health.consecutive_failures >= _MAX_CONSECUTIVE_FAILURES and health.disabled_at is None:
+        if (
+            health.consecutive_failures >= _MAX_CONSECUTIVE_FAILURES
+            and health.disabled_at is None
+        ):
             health.disabled_at = time.monotonic()
             logger.warning(
                 "Disabled endpoint %s after %d consecutive failures",

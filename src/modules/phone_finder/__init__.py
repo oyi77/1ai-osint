@@ -4,7 +4,7 @@ from typing import Any, Optional
 
 import httpx
 
-from src.models import Finding, ScanResult, Severity
+from src.core.models import Finding, ScanResult, Severity
 from src.modules.base.base import BaseOSINTTool
 from src.modules.phone_finder.lookup import PhoneFinderLookup
 
@@ -39,15 +39,9 @@ class PhoneFinderTool(BaseOSINTTool):
         findings: list[Finding] = []
 
         # Clean phone number
-        phone = (
-            target.strip()
-            .replace(" ", "")
-            .replace("-", "")
-            .replace("(", "")
-            .replace(")", "")
-        )
-        if not phone.startswith("+"):
-            phone = f"+{phone}"
+        from src.utils.phone_normalize import normalize_phone_e164
+
+        phone = normalize_phone_e164(target, default_region="ID") or target
 
         # Try PhoneInfoga API
         try:

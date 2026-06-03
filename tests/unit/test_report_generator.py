@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from src.models import Finding, ScanResult, Severity
+from src.core.models import Finding, ScanResult, Severity
 from src.modules.output.json_formatter import JSONFormatter
 from src.modules.output.sarif_formatter import SARIFFormatter
 from src.modules.output.pdf_generator import PDFGenerator
@@ -12,6 +12,7 @@ from src.modules.output.report_generator import ReportGenerator, ReportFormat
 
 
 # --- Fixtures ---
+
 
 @pytest.fixture
 def salt():
@@ -93,6 +94,7 @@ def empty_results():
 
 # --- JSONFormatter tests ---
 
+
 class TestJSONFormatter:
     def test_format_returns_valid_json(self, json_formatter, sample_results):
         output = json_formatter.format(sample_results)
@@ -148,6 +150,7 @@ class TestJSONFormatter:
 
 # --- SARIFFormatter tests ---
 
+
 class TestSARIFFormatter:
     def test_format_returns_valid_json(self, sarif_formatter, sample_results):
         output = sarif_formatter.format(sample_results)
@@ -176,7 +179,7 @@ class TestSARIFFormatter:
         parsed = json.loads(sarif_formatter.format(sample_results))
         results = parsed["runs"][0]["results"]
         levels = [r["level"] for r in results]
-        assert "error" in levels   # HIGH -> error
+        assert "error" in levels  # HIGH -> error
         assert "warning" in levels  # MEDIUM -> warning
 
     def test_zkit_hashes_in_results(self, sarif_formatter, sample_results):
@@ -214,6 +217,7 @@ class TestSARIFFormatter:
 
 # --- PDFGenerator tests ---
 
+
 class TestPDFGenerator:
     def test_generate_returns_bytes(self, pdf_generator, sample_results):
         content = pdf_generator.generate(sample_results)
@@ -230,9 +234,19 @@ class TestPDFGenerator:
 
     def test_multiple_scans_pdf(self, pdf_generator):
         scans = [
-            ScanResult(scan_id=f"s{i}", module="m", target="t", findings=[
-                Finding(id=f"f{i}", module="m", title=f"Finding {i}", severity=Severity.LOW)
-            ])
+            ScanResult(
+                scan_id=f"s{i}",
+                module="m",
+                target="t",
+                findings=[
+                    Finding(
+                        id=f"f{i}",
+                        module="m",
+                        title=f"Finding {i}",
+                        severity=Severity.LOW,
+                    )
+                ],
+            )
             for i in range(3)
         ]
         content = pdf_generator.generate(scans)
@@ -240,6 +254,7 @@ class TestPDFGenerator:
 
 
 # --- ReportGenerator orchestrator tests ---
+
 
 class TestReportGenerator:
     def test_generate_json(self, report_generator, sample_results):

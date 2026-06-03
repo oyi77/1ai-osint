@@ -1,4 +1,5 @@
 """Email OSINT module for comprehensive email analysis."""
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -9,7 +10,7 @@ from typing import Any
 import httpx
 
 from src.modules.base.base import BaseOSINTTool
-from src.models import Finding, ScanResult, Severity
+from src.core.models import Finding, ScanResult, Severity
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +80,9 @@ class EmailOSINTTool(BaseOSINTTool):
             metadata={
                 "email": target,
                 "domain": target.split("@")[1],
-                "tasks_completed": len([r for r in results if not isinstance(r, Exception)]),
+                "tasks_completed": len(
+                    [r for r in results if not isinstance(r, Exception)]
+                ),
                 "tasks_failed": len([r for r in results if isinstance(r, Exception)]),
             },
             started_at=started_at,
@@ -106,7 +109,9 @@ class EmailOSINTTool(BaseOSINTTool):
         try:
             domain = email.split("@")[1]
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                resp = await client.get(f"https://dns.google/resolve?name={domain}&type=MX")
+                resp = await client.get(
+                    f"https://dns.google/resolve?name={domain}&type=MX"
+                )
                 if resp.status_code == 200:
                     data = resp.json()
                     answers = data.get("Answer", [])
@@ -117,7 +122,11 @@ class EmailOSINTTool(BaseOSINTTool):
                             title=f"Email Validation: {email}",
                             description=f"Domain {domain} has {len(answers)} MX records",
                             severity=Severity.INFO,
-                            raw_data={"type": "validation", "email": email, "mx_records": answers},
+                            raw_data={
+                                "type": "validation",
+                                "email": email,
+                                "mx_records": answers,
+                            },
                         )
         except Exception as exc:
             logger.debug("Email validation failed for %s: %s", email, exc)
@@ -127,7 +136,9 @@ class EmailOSINTTool(BaseOSINTTool):
         """Check if email appears in known breaches."""
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                resp = await client.get(f"https://haveibeenpwned.com/unifiedsearch/{email}")
+                resp = await client.get(
+                    f"https://haveibeenpwned.com/unifiedsearch/{email}"
+                )
                 if resp.status_code == 200:
                     data = resp.json()
                     breaches = data.get("Breaches", [])
@@ -138,7 +149,11 @@ class EmailOSINTTool(BaseOSINTTool):
                             title=f"Breaches Found for {email}",
                             description=f"Email found in {len(breaches)} breaches",
                             severity=Severity.HIGH,
-                            raw_data={"type": "breaches", "email": email, "breaches": breaches},
+                            raw_data={
+                                "type": "breaches",
+                                "email": email,
+                                "breaches": breaches,
+                            },
                         )
         except Exception as exc:
             logger.debug("Breach check failed for %s: %s", email, exc)
@@ -150,7 +165,9 @@ class EmailOSINTTool(BaseOSINTTool):
             username = email.split("@")[0]
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 # Check GitHub
-                resp = await client.get(f"https://api.github.com/search/users?q={username}")
+                resp = await client.get(
+                    f"https://api.github.com/search/users?q={username}"
+                )
                 if resp.status_code == 200:
                     data = resp.json()
                     users = data.get("items", [])
@@ -161,7 +178,11 @@ class EmailOSINTTool(BaseOSINTTool):
                             title=f"Social Media Found for {email}",
                             description=f"Found {len(users)} potential GitHub matches",
                             severity=Severity.INFO,
-                            raw_data={"type": "social", "email": email, "github_users": users[:5]},
+                            raw_data={
+                                "type": "social",
+                                "email": email,
+                                "github_users": users[:5],
+                            },
                         )
         except Exception as exc:
             logger.debug("Social media check failed for %s: %s", email, exc)
@@ -172,11 +193,15 @@ class EmailOSINTTool(BaseOSINTTool):
         try:
             domain = email.split("@")[1]
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                resp = await client.get(f"https://dns.google/resolve?name={domain}&type=TXT")
+                resp = await client.get(
+                    f"https://dns.google/resolve?name={domain}&type=TXT"
+                )
                 if resp.status_code == 200:
                     data = resp.json()
                     answers = data.get("Answer", [])
-                    txt_records = [a.get("data", "") for a in answers if a.get("type") == 16]
+                    txt_records = [
+                        a.get("data", "") for a in answers if a.get("type") == 16
+                    ]
                     if txt_records:
                         return Finding(
                             id=self._make_finding_id(),
@@ -184,7 +209,11 @@ class EmailOSINTTool(BaseOSINTTool):
                             title=f"Domain Analysis for {domain}",
                             description=f"Found {len(txt_records)} TXT records",
                             severity=Severity.INFO,
-                            raw_data={"type": "domain", "email": email, "txt_records": txt_records},
+                            raw_data={
+                                "type": "domain",
+                                "email": email,
+                                "txt_records": txt_records,
+                            },
                         )
         except Exception as exc:
             logger.debug("Domain analysis failed for %s: %s", email, exc)
@@ -195,8 +224,12 @@ class EmailOSINTTool(BaseOSINTTool):
         try:
             domain = email.split("@")[1]
             disposable_domains = {
-                "tempmail.com", "throwaway.email", "guerrillamail.com",
-                "mailinator.com", "yopmail.com", "10minutemail.com",
+                "tempmail.com",
+                "throwaway.email",
+                "guerrillamail.com",
+                "mailinator.com",
+                "yopmail.com",
+                "10minutemail.com",
             }
             if domain.lower() in disposable_domains:
                 return Finding(

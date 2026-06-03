@@ -54,6 +54,11 @@ class TestE164Validation:
         assert is_valid is True
         assert e164 == "+14155552671"
 
+    def test_indonesia_local_number(self, lookup):
+        is_valid, e164 = PhoneFinderLookup.validate_e164("081234567890")
+        assert is_valid is True
+        assert e164 == "+6281234567890"
+
     def test_invalid_short_number(self, lookup):
         is_valid, e164 = PhoneFinderLookup.validate_e164("123")
         assert is_valid is False
@@ -92,9 +97,7 @@ class TestPhoneFinderLookup:
         assert info.is_voip is False
 
     def test_parse_voip_result(self, lookup, voip_result):
-        info = lookup._parse_result(
-            "+14155552671", "+14155552671", True, voip_result
-        )
+        info = lookup._parse_result("+14155552671", "+14155552671", True, voip_result)
         assert info.carrier == "Skype"
         assert info.is_voip is True
 
@@ -106,9 +109,7 @@ class TestPhoneFinderLookup:
         assert info.is_voip is None
 
     def test_parse_empty_result(self, lookup):
-        info = lookup._parse_result(
-            "+14155552671", "+14155552671", True, {}
-        )
+        info = lookup._parse_result("+14155552671", "+14155552671", True, {})
         assert info.carrier is None
 
     def test_parse_invalid_number(self, lookup):

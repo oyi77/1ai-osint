@@ -8,14 +8,19 @@ from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
-from src.models import Finding, ScanResult
+from src.core.models import Finding, ScanResult
 
 
 class ZKITNode(BaseModel):
     """A node in the ZKIT identity graph."""
+
     zkit_hash: str = Field(..., description="Salted SHA-256 hash of the attribute")
-    attribute_type: str = Field(..., description="Type of attribute (email, username, etc.)")
-    salt_fingerprint: str = Field(default="", description="Truncated SHA-256 of salt (never the raw salt)")
+    attribute_type: str = Field(
+        ..., description="Type of attribute (email, username, etc.)"
+    )
+    salt_fingerprint: str = Field(
+        default="", description="Truncated SHA-256 of salt (never the raw salt)"
+    )
     correlation_id: Optional[str] = None
     first_seen: datetime = Field(default_factory=datetime.utcnow)
     last_seen: datetime = Field(default_factory=datetime.utcnow)

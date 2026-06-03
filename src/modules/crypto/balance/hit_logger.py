@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class WalletHit:
     """A confirmed wallet balance hit for logging and alerting."""
+
     address: str
     chain: str
     symbol: str
@@ -37,7 +38,9 @@ class WalletHit:
     mnemonic_hash: str = ""
     derivation_path: str = ""
     source: str = "scanner"
-    found_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    found_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
 
 
 _BATCH_SIZE = 10
@@ -156,9 +159,14 @@ class HitLogger:
         rows = await cursor.fetchall()
         return [
             {
-                "address": r[0], "chain": r[1], "balance": r[2],
-                "usd_value": r[3], "mnemonic_hash": r[4],
-                "derivation_path": r[5], "found_at": r[6], "source": r[7],
+                "address": r[0],
+                "chain": r[1],
+                "balance": r[2],
+                "usd_value": r[3],
+                "mnemonic_hash": r[4],
+                "derivation_path": r[5],
+                "found_at": r[6],
+                "source": r[7],
             }
             for r in rows
         ]
@@ -236,10 +244,7 @@ class HitLogger:
             f"{float(hit.get('balance', 0)):.8f} "
             f"(~${float(hit.get('usd_value', 0)):,.2f})"
         )
-        url = (
-            f"https://api.telegram.org/bot"
-            f"{self._telegram_token}/sendMessage"
-        )
+        url = f"https://api.telegram.org/bot{self._telegram_token}/sendMessage"
         payload = {
             "chat_id": self._telegram_chat_id,
             "text": text,

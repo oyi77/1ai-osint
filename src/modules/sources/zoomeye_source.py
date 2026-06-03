@@ -1,4 +1,5 @@
 """ZoomEye source adapter for exposed service discovery."""
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -17,7 +18,12 @@ class ZoomEyeSource:
 
     BASE_URL = "https://api.zoomeye.org"
 
-    def __init__(self, api_key: Optional[str] = None, request_delay: float = 2.0, timeout: float = 30.0):
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        request_delay: float = 2.0,
+        timeout: float = 30.0,
+    ):
         self.api_key = api_key or os.getenv("ZOOMEYE_API_KEY", "")
         self.request_delay = request_delay
         self.timeout = timeout
@@ -35,7 +41,9 @@ class ZoomEyeSource:
 
         leaks: list[RawLeak] = []
         headers = {"Authorization": f"JWT {self.api_key}"}
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             try:
                 await self._rate_limit()
                 resp = await client.get(
@@ -48,11 +56,13 @@ class ZoomEyeSource:
                     for match in data.get("matches", []):
                         banner = match.get("description", "")
                         if banner:
-                            leaks.append(RawLeak(
-                                text=banner[:10000],
-                                source_name="zoomeye",
-                                source_url=f"https://www.zoomeye.org/searchResult?q={address}",
-                            ))
+                            leaks.append(
+                                RawLeak(
+                                    text=banner[:10000],
+                                    source_name="zoomeye",
+                                    source_url=f"https://www.zoomeye.org/searchResult?q={address}",
+                                )
+                            )
             except Exception as exc:
                 logger.debug("ZoomEye error for '%s': %s", address, exc)
         return leaks

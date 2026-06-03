@@ -27,6 +27,7 @@ _TIMEOUT = 30
 @dataclass
 class BatchBalanceResult:
     """Result of a batch balance check."""
+
     address: str
     balance_wei: int
     error: Optional[str] = None
@@ -54,7 +55,10 @@ async def batch_check_balances(
         List of BatchBalanceResult, one per address.
     """
     if not chain.rpc_url or not addresses:
-        return [BatchBalanceResult(address=a, balance_wei=0, error="No RPC URL") for a in addresses]
+        return [
+            BatchBalanceResult(address=a, balance_wei=0, error="No RPC URL")
+            for a in addresses
+        ]
 
     all_results: list[BatchBalanceResult] = []
     _created = client is None
@@ -64,9 +68,14 @@ async def batch_check_balances(
     try:
         # Process in chunks to avoid overwhelming free endpoints
         for chunk_start in range(0, len(addresses), _EVM_CHUNK_SIZE):
-            chunk = addresses[chunk_start:chunk_start + _EVM_CHUNK_SIZE]
+            chunk = addresses[chunk_start : chunk_start + _EVM_CHUNK_SIZE]
             batch = [
-                {"jsonrpc": "2.0", "method": "eth_getBalance", "params": [addr, "latest"], "id": i}
+                {
+                    "jsonrpc": "2.0",
+                    "method": "eth_getBalance",
+                    "params": [addr, "latest"],
+                    "id": i,
+                }
                 for i, addr in enumerate(chunk)
             ]
 
@@ -83,18 +92,37 @@ async def batch_check_balances(
                 for i, addr in enumerate(chunk):
                     r = id_to_result.get(i)
                     if r is None:
-                        all_results.append(BatchBalanceResult(address=addr, balance_wei=0, error="No response"))
+                        all_results.append(
+                            BatchBalanceResult(
+                                address=addr, balance_wei=0, error="No response"
+                            )
+                        )
                     elif "error" in r:
-                        all_results.append(BatchBalanceResult(address=addr, balance_wei=0, error=r["error"].get("message", "RPC error")))
+                        all_results.append(
+                            BatchBalanceResult(
+                                address=addr,
+                                balance_wei=0,
+                                error=r["error"].get("message", "RPC error"),
+                            )
+                        )
                     else:
                         try:
                             balance = int(r["result"], 16)
-                            all_results.append(BatchBalanceResult(address=addr, balance_wei=balance))
+                            all_results.append(
+                                BatchBalanceResult(address=addr, balance_wei=balance)
+                            )
                         except (ValueError, TypeError) as e:
-                            all_results.append(BatchBalanceResult(address=addr, balance_wei=0, error=str(e)))
+                            all_results.append(
+                                BatchBalanceResult(
+                                    address=addr, balance_wei=0, error=str(e)
+                                )
+                            )
             except Exception as e:
                 logger.warning("EVM batch chunk failed for %s: %s", chain.name, e)
-                all_results.extend(BatchBalanceResult(address=a, balance_wei=0, error=str(e)) for a in chunk)
+                all_results.extend(
+                    BatchBalanceResult(address=a, balance_wei=0, error=str(e))
+                    for a in chunk
+                )
 
             # Delay between chunks to avoid burst rate limiting
             await asyncio.sleep(0.1)
@@ -135,7 +163,7 @@ async def batch_check_sol_balances(
     try:
         # Process in chunks of 100 (getMultipleAccountsInfo limit)
         for chunk_start in range(0, len(addresses), 100):
-            chunk = addresses[chunk_start:chunk_start + 100]
+            chunk = addresses[chunk_start : chunk_start + 100]
 
             try:
                 # Use getMultipleAccountsInfo — one call for up to 100 accounts
@@ -163,21 +191,33 @@ async def batch_check_sol_balances(
                 for i, addr in enumerate(chunk):
                     if i < len(values) and values[i] is not None:
                         lamports = values[i].get("lamports", 0)
-                        results.append(BatchBalanceResult(address=addr, balance_wei=lamports))
+                        results.append(
+                            BatchBalanceResult(address=addr, balance_wei=lamports)
+                        )
                     elif i < len(values):
                         # Account doesn't exist
                         results.append(BatchBalanceResult(address=addr, balance_wei=0))
                     else:
-                        results.append(BatchBalanceResult(address=addr, balance_wei=0, error="No response"))
+                        results.append(
+                            BatchBalanceResult(
+                                address=addr, balance_wei=0, error="No response"
+                            )
+                        )
             except Exception as e:
                 # On HTTP error (e.g. 403 from WAF), fall back to individual calls
-                logger.debug("SOL getMultipleAccounts failed (%s), falling back to individual calls", e)
+                logger.debug(
+                    "SOL getMultipleAccounts failed (%s), falling back to individual calls",
+                    e,
+                )
                 try:
                     fallback = await _sol_batch_fallback(chunk, rpc_url, client)
                     results.extend(fallback)
                 except Exception as e2:
                     logger.warning("SOL fallback also failed: %s", e2)
-                    results.extend(BatchBalanceResult(address=a, balance_wei=0, error=str(e2)) for a in chunk)
+                    results.extend(
+                        BatchBalanceResult(address=a, balance_wei=0, error=str(e2))
+                        for a in chunk
+                    )
     finally:
         if _created:
             await client.aclose()
@@ -196,12 +236,23 @@ async def _sol_batch_fallback(
         if i > 0:
             await asyncio.sleep(0.05)  # Rate-limit individual calls
         try:
-            payload = {"jsonrpc": "2.0", "method": "getBalance", "params": [addr], "id": i}
+            payload = {
+                "jsonrpc": "2.0",
+                "method": "getBalance",
+                "params": [addr],
+                "id": i,
+            }
             resp = await client.post(rpc_url, json=payload)
             resp.raise_for_status()
             data = resp.json()
             if "error" in data:
-                output.append(BatchBalanceResult(address=addr, balance_wei=0, error=data["error"].get("message", "RPC error")))
+                output.append(
+                    BatchBalanceResult(
+                        address=addr,
+                        balance_wei=0,
+                        error=data["error"].get("message", "RPC error"),
+                    )
+                )
             else:
                 lamports = data.get("result", {}).get("value", 0)
                 output.append(BatchBalanceResult(address=addr, balance_wei=lamports))
@@ -213,6 +264,7 @@ async def _sol_batch_fallback(
 @dataclass
 class TokenBalanceResult:
     """Result of a token balance check."""
+
     address: str
     token_symbol: str
     token_address: str
@@ -223,7 +275,7 @@ class TokenBalanceResult:
     @property
     def balance(self) -> float:
         """Human-readable balance."""
-        return self.balance_raw / (10 ** self.decimals) if self.balance_raw > 0 else 0.0
+        return self.balance_raw / (10**self.decimals) if self.balance_raw > 0 else 0.0
 
 
 async def batch_check_token_balances(
@@ -267,16 +319,18 @@ async def batch_check_token_balances(
         # Process in chunks of 50 calls (same as EVM_CHUNK_SIZE * 2)
         chunk_size = 50
         for chunk_start in range(0, len(calls), chunk_size):
-            chunk = calls[chunk_start:chunk_start + chunk_size]
+            chunk = calls[chunk_start : chunk_start + chunk_size]
             batch = []
             for addr, token, cid in chunk:
                 data = encode_balance_of(addr)
-                batch.append({
-                    "jsonrpc": "2.0",
-                    "method": "eth_call",
-                    "params": [{"to": token.address, "data": data}, "latest"],
-                    "id": cid,
-                })
+                batch.append(
+                    {
+                        "jsonrpc": "2.0",
+                        "method": "eth_call",
+                        "params": [{"to": token.address, "data": data}, "latest"],
+                        "id": cid,
+                    }
+                )
 
             try:
                 resp = await client.post(chain.rpc_url, json=batch)
@@ -299,13 +353,15 @@ async def batch_check_token_balances(
                         hex_result = r.get("result", "0x0")
                         balance_raw = int(hex_result, 16) if hex_result else 0
                         if balance_raw > 0:
-                            results.append(TokenBalanceResult(
-                                address=addr,
-                                token_symbol=token.symbol,
-                                token_address=token.address,
-                                balance_raw=balance_raw,
-                                decimals=token.decimals,
-                            ))
+                            results.append(
+                                TokenBalanceResult(
+                                    address=addr,
+                                    token_symbol=token.symbol,
+                                    token_address=token.address,
+                                    balance_raw=balance_raw,
+                                    decimals=token.decimals,
+                                )
+                            )
                     except (ValueError, TypeError):
                         continue
             except Exception as e:

@@ -1,4 +1,5 @@
 """GitHub source adapter for leak finding."""
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -77,15 +78,24 @@ _QUERIES = [
     '"flashloan" "private" "key"',
 ]
 
+
 class GitHubLeakSource:
     SEARCH_URL = "https://api.github.com/search/code"
-    def __init__(self, github_token: Optional[str] = None, rate_limit: int = 0, timeout: float = 30.0):
+
+    def __init__(
+        self,
+        github_token: Optional[str] = None,
+        rate_limit: int = 0,
+        timeout: float = 30.0,
+    ):
         self.github_token = github_token or ""
         self.rate_limit = rate_limit or (30 if self.github_token else 10)
         self.timeout = timeout
         self._request_times: list[float] = []
 
-    async def fetch_raw_leaks(self, queries: Optional[list[str]] = None, max_per_query: int = 30) -> list[RawLeak]:
+    async def fetch_raw_leaks(
+        self, queries: Optional[list[str]] = None, max_per_query: int = 30
+    ) -> list[RawLeak]:
         # Rotate queries: pick a random subset each run to cover more ground over time
         if queries is None:
             queries = _random.sample(_QUERIES, min(7, len(_QUERIES)))
@@ -97,7 +107,16 @@ class GitHubLeakSource:
                 await self._rate_limit()
                 try:
                     # Sort by recently updated to catch fresh leaks before competitors
-                    resp = await client.get(self.SEARCH_URL, params={"q": query, "per_page": min(max_per_query, 30), "sort": "updated", "order": "desc"}, headers=headers)
+                    resp = await client.get(
+                        self.SEARCH_URL,
+                        params={
+                            "q": query,
+                            "per_page": min(max_per_query, 30),
+                            "sort": "updated",
+                            "order": "desc",
+                        },
+                        headers=headers,
+                    )
                     if resp.status_code == 403:
                         await asyncio.sleep(60)
                         continue
@@ -106,7 +125,11 @@ class GitHubLeakSource:
                         html_url = item.get("html_url", "")
                         text = await self._fetch_raw_file(client, html_url, headers)
                         if text:
-                            leaks.append(RawLeak(text=text, source_name="github", source_url=html_url))
+                            leaks.append(
+                                RawLeak(
+                                    text=text, source_name="github", source_url=html_url
+                                )
+                            )
                 except Exception as exc:
                     logger.error("GitHub search error: %s", exc)
 
@@ -119,11 +142,17 @@ class GitHubLeakSource:
 
         return leaks
 
-    async def _fetch_recent_gists(self, client: httpx.AsyncClient, headers: dict[str, str]) -> list[RawLeak]:
+    async def _fetch_recent_gists(
+        self, client: httpx.AsyncClient, headers: dict[str, str]
+    ) -> list[RawLeak]:
         """Fetch recent public gists and scan for keys/mnemonics."""
         leaks: list[RawLeak] = []
         await self._rate_limit()
-        resp = await client.get("https://api.github.com/gists/public", params={"per_page": 100}, headers=headers)
+        resp = await client.get(
+            "https://api.github.com/gists/public",
+            params={"per_page": 100},
+            headers=headers,
+        )
         if resp.status_code != 200:
             return leaks
         for gist in resp.json():
@@ -136,7 +165,13 @@ class GitHubLeakSource:
                 try:
                     fresp = await client.get(raw_url, headers=headers)
                     if fresp.status_code == 200 and fresp.text.strip():
-                        leaks.append(RawLeak(text=fresp.text, source_name="github_gist", source_url=gist_url))
+                        leaks.append(
+                            RawLeak(
+                                text=fresp.text,
+                                source_name="github_gist",
+                                source_url=gist_url,
+                            )
+                        )
                 except Exception:
                     pass
         return leaks
@@ -150,10 +185,14 @@ class GitHubLeakSource:
             h["Authorization"] = f"token {self.github_token}"
         return h
 
-    async def _fetch_raw_file(self, client: httpx.AsyncClient, html_url: str, headers: dict[str, str]) -> Optional[str]:
+    async def _fetch_raw_file(
+        self, client: httpx.AsyncClient, html_url: str, headers: dict[str, str]
+    ) -> Optional[str]:
         await self._rate_limit()
         try:
-            raw_url = html_url.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/")
+            raw_url = html_url.replace(
+                "github.com", "raw.githubusercontent.com"
+            ).replace("/blob/", "/")
             resp = await client.get(raw_url, headers=headers)
             resp.raise_for_status()
             return resp.text

@@ -1,4 +1,5 @@
 """Discord source adapter for OSINT on Discord servers."""
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -26,7 +27,9 @@ class DiscordSource:
             "site:discord.com mnemonic seed phrase",
             "site:discord.com wallet dump",
         ]
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             for query in queries:
                 try:
                     await self._rate_limit()
@@ -36,13 +39,18 @@ class DiscordSource:
                     )
                     if resp.status_code == 200:
                         import re
-                        urls = re.findall(r'href="(https?://discord\.com[^"]+)"', resp.text)
+
+                        urls = re.findall(
+                            r'href="(https?://discord\.com[^"]+)"', resp.text
+                        )
                         for url in urls[:5]:
-                            leaks.append(RawLeak(
-                                text=f"Discord link found: {url}",
-                                source_name="discord",
-                                source_url=url,
-                            ))
+                            leaks.append(
+                                RawLeak(
+                                    text=f"Discord link found: {url}",
+                                    source_name="discord",
+                                    source_url=url,
+                                )
+                            )
                 except Exception as exc:
                     logger.debug("Discord search error: %s", exc)
         return leaks
@@ -50,7 +58,9 @@ class DiscordSource:
     async def search_for_address(self, address: str) -> list[RawLeak]:
         """Search Discord for a specific address."""
         leaks: list[RawLeak] = []
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             try:
                 await self._rate_limit()
                 resp = await client.get(
@@ -59,13 +69,16 @@ class DiscordSource:
                 )
                 if resp.status_code == 200:
                     import re
+
                     urls = re.findall(r'href="(https?://discord\.com[^"]+)"', resp.text)
                     for url in urls[:5]:
-                        leaks.append(RawLeak(
-                            text=f"Discord mention: {address}",
-                            source_name="discord",
-                            source_url=url,
-                        ))
+                        leaks.append(
+                            RawLeak(
+                                text=f"Discord mention: {address}",
+                                source_name="discord",
+                                source_url=url,
+                            )
+                        )
             except Exception as exc:
                 logger.debug("Discord address search error: %s", exc)
         return leaks

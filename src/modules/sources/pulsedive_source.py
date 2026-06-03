@@ -1,4 +1,5 @@
 """Pulsedive source adapter for threat intelligence."""
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -17,7 +18,12 @@ class PulsediveSource:
 
     BASE_URL = "https://pulsedive.com/api"
 
-    def __init__(self, api_key: Optional[str] = None, request_delay: float = 1.0, timeout: float = 30.0):
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        request_delay: float = 1.0,
+        timeout: float = 30.0,
+    ):
         self.api_key = api_key or os.getenv("PULSEDIVE_API_KEY", "")
         self.request_delay = request_delay
         self.timeout = timeout
@@ -31,7 +37,9 @@ class PulsediveSource:
         params = {"indicator": address}
         if self.api_key:
             params["key"] = self.api_key
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             try:
                 await self._rate_limit()
                 resp = await client.get(
@@ -40,11 +48,13 @@ class PulsediveSource:
                 )
                 if resp.status_code == 200:
                     data = resp.json()
-                    leaks.append(RawLeak(
-                        text=f"Indicator: {address}\nRisk: {data.get('risk', 'unknown')}\nThreats: {data.get('threats', [])}",
-                        source_name="pulsedive",
-                        source_url=f"https://pulsedive.com/indicator/?iid={address}",
-                    ))
+                    leaks.append(
+                        RawLeak(
+                            text=f"Indicator: {address}\nRisk: {data.get('risk', 'unknown')}\nThreats: {data.get('threats', [])}",
+                            source_name="pulsedive",
+                            source_url=f"https://pulsedive.com/indicator/?iid={address}",
+                        )
+                    )
             except Exception as exc:
                 logger.debug("Pulsedive error: %s", exc)
         return leaks

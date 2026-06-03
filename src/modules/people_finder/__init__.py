@@ -3,7 +3,7 @@
 import shutil
 from typing import Any, Optional
 
-from src.models import ScanResult
+from src.core.models import ScanResult
 from src.modules.base.base import BaseOSINTTool
 from src.modules.people_finder.search import PeopleFinderSearch
 

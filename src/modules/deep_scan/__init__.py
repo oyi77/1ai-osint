@@ -4,6 +4,7 @@ Takes an initial identifier (name, email, username, phone, NIK, crypto address)
 and recursively discovers ALL connected identifiers across all modules until
 no new identifiers are found. Generates comprehensive HTML/PDF reports.
 """
+
 from __future__ import annotations
 import hashlib
 import logging
@@ -12,13 +13,14 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Optional
 
-from src.models import Finding, ScanResult
+from src.core.models import Finding, ScanResult
 
 logger = logging.getLogger(__name__)
 
 
 class IdentifierType(str, Enum):
     """Types of identifiers we can discover and track."""
+
     NAME = "name"
     EMAIL = "email"
     USERNAME = "username"
@@ -36,6 +38,7 @@ class IdentifierType(str, Enum):
 @dataclass
 class Identifier:
     """A discovered identifier with metadata."""
+
     value: str
     id_type: IdentifierType
     source: str  # Which module found it
@@ -52,6 +55,7 @@ class Identifier:
 @dataclass
 class DeepScanResult:
     """Complete result of a deep scan investigation."""
+
     target: str
     started_at: datetime
     completed_at: Optional[datetime] = None
@@ -62,6 +66,7 @@ class DeepScanResult:
     max_iterations: int = 10
     errors: list[str] = field(default_factory=list)
     zkit_result: Optional[Any] = None  # CorrelationResult from identity_tracking
+    dossier: Optional[Any] = None  # TargetDossier from Phase 7
 
     @property
     def duration_sec(self) -> float:
@@ -84,7 +89,9 @@ class DeepScanResult:
         return [i.value for i in self.identifiers if i.id_type == IdentifierType.EMAIL]
 
     def get_usernames(self) -> list[str]:
-        return [i.value for i in self.identifiers if i.id_type == IdentifierType.USERNAME]
+        return [
+            i.value for i in self.identifiers if i.id_type == IdentifierType.USERNAME
+        ]
 
     def get_phones(self) -> list[str]:
         return [i.value for i in self.identifiers if i.id_type == IdentifierType.PHONE]
@@ -93,13 +100,20 @@ class DeepScanResult:
         return [i.value for i in self.identifiers if i.id_type == IdentifierType.DOMAIN]
 
     def get_crypto_addresses(self) -> list[str]:
-        return [i.value for i in self.identifiers if i.id_type == IdentifierType.CRYPTO_ADDRESS]
+        return [
+            i.value
+            for i in self.identifiers
+            if i.id_type == IdentifierType.CRYPTO_ADDRESS
+        ]
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "target": self.target,
+            "finding_count": self.finding_count,
             "started_at": self.started_at.isoformat(),
-            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "completed_at": self.completed_at.isoformat()
+            if self.completed_at
+            else None,
             "duration_sec": self.duration_sec,
             "iterations": self.iterations,
             "identifiers": [
@@ -119,6 +133,7 @@ class DeepScanResult:
                     "title": f.title,
                     "description": f.description,
                     "severity": f.severity.value,
+                    "raw_data": f.raw_data,
                 }
                 for f in self.findings
             ],

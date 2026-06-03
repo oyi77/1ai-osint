@@ -5,7 +5,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-from src.models import Finding, ScanResult, Severity
+from src.core.models import Finding, ScanResult, Severity
 from src.modules.base.base import BaseOSINTTool
 from src.modules.crypto.balance.chains import ALL_CHAINS, CHAIN_MAP, ChainConfig
 from src.modules.crypto.balance.deriver import (
@@ -28,7 +28,9 @@ from src.modules.crypto.balance.targeted_search import (
 logger = logging.getLogger(__name__)
 
 
-def _chain_for_address_type(input_type: str, chains: list[ChainConfig]) -> Optional[ChainConfig]:
+def _chain_for_address_type(
+    input_type: str, chains: list[ChainConfig]
+) -> Optional[ChainConfig]:
     """Determine chain from address type."""
     mapping = {
         "btc_address": "Bitcoin",
@@ -690,14 +692,19 @@ class CryptoBalanceTool(BaseOSINTTool):
                                 derivation_path=addr.derivation_path,
                                 source="smart",
                             )
-                            findings.append(Finding(
-                                id=f"smart-{mnemonic_hash[:12]}",
-                                module="crypto.balance",
-                                severity=Severity.HIGH,
-                                title="Funded wallet found via smart generation",
-                                description=f"Balance: {result.balance} on {addr.chain}",
-                                raw_data={"mnemonic_hash": mnemonic_hash, "chain": addr.chain},
-                            ))
+                            findings.append(
+                                Finding(
+                                    id=f"smart-{mnemonic_hash[:12]}",
+                                    module="crypto.balance",
+                                    severity=Severity.HIGH,
+                                    title="Funded wallet found via smart generation",
+                                    description=f"Balance: {result.balance} on {addr.chain}",
+                                    raw_data={
+                                        "mnemonic_hash": mnemonic_hash,
+                                        "chain": addr.chain,
+                                    },
+                                )
+                            )
                     except Exception as e:
                         errors.append(f"{addr.chain}/{addr.address}: {e}")
 

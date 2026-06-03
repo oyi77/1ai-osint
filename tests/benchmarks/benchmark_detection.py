@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import pytest
 
-from src.models import BreachRecord, Severity
+from src.core.models import BreachRecord, Severity
 from src.modules.data_leaks.breach_checker import BreachChecker
 from src.modules.identity_tracking.identity_graph import IdentityGraph
 from src.modules.identity_tracking.zkit_engine import (
@@ -153,6 +153,7 @@ class TestBreachDetectionAccuracy:
 
     def test_overall_metrics(self) -> None:
         """Compute aggregate precision/recall/F1 across all ground-truth cases."""
+
         # Map severity to binary: CRITICAL/HIGH = positive, rest = negative
         def is_positive(s: Severity) -> bool:
             return s in (Severity.CRITICAL, Severity.HIGH)
@@ -368,7 +369,11 @@ class TestPrivacyDetectionAccuracy:
         """Full pipeline output must contain zero raw PII."""
         engine = ZKITEngine(salt=ZKITEngine.new_salt(), investigation_id="privacy-test")
         records = [
-            {"email": "test@example.com", "username": "testuser", "phone": "+15551234567"},
+            {
+                "email": "test@example.com",
+                "username": "testuser",
+                "phone": "+15551234567",
+            },
         ]
 
         output = engine.run(records)
@@ -378,6 +383,4 @@ class TestPrivacyDetectionAccuracy:
         pii_values = ["test@example.com", "testuser", "+15551234567"]
 
         for pii in pii_values:
-            assert pii not in output_str, (
-                f"Raw PII '{pii}' found in output"
-            )
+            assert pii not in output_str, f"Raw PII '{pii}' found in output"

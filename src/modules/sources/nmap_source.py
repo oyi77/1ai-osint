@@ -1,4 +1,5 @@
 """Nmap source adapter for port scanning."""
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -29,21 +30,25 @@ class NmapSource:
 
         try:
             proc = await asyncio.create_subprocess_exec(
-                nmap_path, "-sV", "-oX", "-", address,
+                nmap_path,
+                "-sV",
+                "-oX",
+                "-",
+                address,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
-            stdout, _ = await asyncio.wait_for(
-                proc.communicate(), timeout=self.timeout
-            )
+            stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=self.timeout)
             if stdout:
                 text = stdout.decode()
                 if text.strip():
-                    leaks.append(RawLeak(
-                        text=text,
-                        source_name="nmap",
-                        source_url="",
-                    ))
+                    leaks.append(
+                        RawLeak(
+                            text=text,
+                            source_name="nmap",
+                            source_url="",
+                        )
+                    )
         except asyncio.TimeoutError:
             logger.debug("Nmap: timeout for '%s'", address)
         except Exception as exc:

@@ -19,6 +19,7 @@ from src.modules.crypto.passphrase.checker import (
 
 # --- Generator tests ---
 
+
 class TestMnemonicGenerator:
     def test_generate_12_words(self):
         mnemonic = generate_mnemonic(word_count=12)
@@ -122,6 +123,7 @@ class TestGenerateWithDetails:
 
 # --- Checker tests ---
 
+
 class TestShannonEntropy:
     def test_empty_string(self):
         assert shannon_entropy("") == 0.0
@@ -150,11 +152,13 @@ class TestCharsetEntropy:
 
     def test_lowercase_only(self):
         import math
+
         ent = charset_entropy("abcde")
         assert ent == pytest.approx(math.log2(26) * 5, rel=1e-6)
 
     def test_mixed_case(self):
         import math
+
         ent = charset_entropy("aBcDe")
         assert ent == pytest.approx(math.log2(52) * 5, rel=1e-6)
 
@@ -164,7 +168,9 @@ class TestDictionaryCheck:
         # Use words that are not in the common weak-words list.
         # BIP-39 wordlists can overlap with common words (e.g. "master",
         # "solo", "shadow"), so we test with a known-clean string.
-        matches = dictionary_check("abandon ability able about above absent absorb abstract absurd abuse")
+        matches = dictionary_check(
+            "abandon ability able about above absent absorb abstract absurd abuse"
+        )
         assert matches == []
 
     def test_password_detected(self):
@@ -231,6 +237,7 @@ class TestPassphraseStrength:
     def test_charset_entropy_mixed_case_digits_special(self):
         """charset_entropy with mixed character types."""
         import math
+
         ent = charset_entropy("aB1!")
         # lower(26) + upper(26) + digit(10) + special(!) = 63
         assert ent == pytest.approx(math.log2(63) * 4, rel=1e-6)
@@ -241,17 +248,20 @@ class TestLoadBip39Wordlist:
 
     def test_load_english_wordlist(self):
         from src.modules.crypto.passphrase.checker import load_bip39_wordlist
+
         words = load_bip39_wordlist("english")
         # Should return a non-empty set if bip_utils is available
         assert isinstance(words, set)
 
     def test_load_unknown_language_defaults_to_english(self):
         from src.modules.crypto.passphrase.checker import load_bip39_wordlist
+
         words = load_bip39_wordlist("klingon")
         assert isinstance(words, set)
 
     def test_load_wordlist_returns_set(self):
         from src.modules.crypto.passphrase.checker import load_bip39_wordlist
+
         words = load_bip39_wordlist()
         assert isinstance(words, set)
 
@@ -265,10 +275,16 @@ class TestLoadBip39Wordlist:
 
         fake_words_file = "abandon\nability\nable\n"
 
-        with patch.dict("sys.modules", {
-            "bip_utils": MagicMock(),
-        }):
-            with patch("src.modules.crypto.passphrase.checker.Bip39WordsFileFinder", create=True):
+        with patch.dict(
+            "sys.modules",
+            {
+                "bip_utils": MagicMock(),
+            },
+        ):
+            with patch(
+                "src.modules.crypto.passphrase.checker.Bip39WordsFileFinder",
+                create=True,
+            ):
                 # Patch at the function level
                 with patch.object(checker_mod, "load_bip39_wordlist"):
                     # Override to actually test the function body
@@ -282,14 +298,18 @@ class TestLoadBip39Wordlist:
         mock_finder_cls.return_value.GetFilePath.return_value = "/fake/wordlist.txt"
 
         with P("builtins.open", mock_open(read_data=fake_words_file)):
-            with P.dict("sys.modules", {
-                "bip_utils": MagicMock(
-                    Bip39Languages=MagicMock(ENGLISH=mock_lang_enum),
-                    Bip39WordsFileFinder=mock_finder_cls,
-                ),
-            }):
+            with P.dict(
+                "sys.modules",
+                {
+                    "bip_utils": MagicMock(
+                        Bip39Languages=MagicMock(ENGLISH=mock_lang_enum),
+                        Bip39WordsFileFinder=mock_finder_cls,
+                    ),
+                },
+            ):
                 # Re-import to pick up mocked modules
                 import src.modules.crypto.passphrase.checker as mod
+
                 words = mod.load_bip39_wordlist("english")
                 assert isinstance(words, set)
                 assert len(words) > 0
@@ -311,11 +331,13 @@ class TestCharsetEntropyEdgeCases:
 
     def test_digits_only(self):
         import math
+
         ent = charset_entropy("12345")
         assert ent == pytest.approx(math.log2(10) * 5, rel=1e-6)
 
     def test_uppercase_only(self):
         import math
+
         ent = charset_entropy("ABCDE")
         assert ent == pytest.approx(math.log2(26) * 5, rel=1e-6)
 

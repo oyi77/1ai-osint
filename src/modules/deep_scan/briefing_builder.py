@@ -1,4 +1,5 @@
 """Operational intelligence briefing — pre-deployment style OSINT packet."""
+
 from __future__ import annotations
 
 import re
@@ -42,13 +43,17 @@ def _build_subject(result: Any, report: IntelReport) -> SubjectProfile:
     emails: set[str] = set()
     phones: set[str] = set()
     niks: set[str] = set()
+    crypto_addresses: set[str] = set()
     locations: set[str] = set()
 
     for ident in getattr(result, "identifiers", []) or []:
         val = ident.value.strip()
         if not val or val.startswith(("http://", "https://")):
             continue
-        if ident.id_type == IdentifierType.NAME and val.lower() != result.target.lower():
+        if (
+            ident.id_type == IdentifierType.NAME
+            and val.lower() != result.target.lower()
+        ):
             aliases.add(val)
         elif ident.id_type == IdentifierType.USERNAME:
             handles.add(val)
@@ -61,6 +66,8 @@ def _build_subject(result: Any, report: IntelReport) -> SubjectProfile:
             phones.add(normalized)
         elif ident.id_type == IdentifierType.NIK:
             niks.add(val)
+        elif ident.id_type == IdentifierType.CRYPTO_ADDRESS:
+            crypto_addresses.add(val)
 
     for ev in report.evidence:
         t = ev.identifier_type
@@ -71,20 +78,31 @@ def _build_subject(result: Any, report: IntelReport) -> SubjectProfile:
             phones.add(v)
         elif t == "nik" and v:
             niks.add(v)
+        elif t == "crypto_address" and v:
+            crypto_addresses.add(v)
         elif t == "username" and v and not v.startswith("http"):
             handles.add(v)
 
     for finding in getattr(result, "findings", []) or []:
         rd = finding.raw_data or {}
         for key in ("address", "city", "region", "location", "country"):
-            if rd.get(key):
+            if (
+                rd.get(key) and key != "address"
+            ):  # Avoid mistaking crypto addresses for geolocations
                 locations.add(str(rd[key]))
+            elif rd.get(key) and key == "address":
+                val = str(rd[key])
+                if (
+                    not val.startswith("0x") and len(val) < 20
+                ):  # simple check to keep street address as location
+                    locations.add(val)
 
     profile.known_aliases = sorted(aliases)
     profile.known_handles = sorted(handles)
     profile.emails = sorted(emails)
     profile.phones = sorted(phones)
     profile.niks = sorted(niks)
+    profile.crypto_addresses = sorted(crypto_addresses)
     profile.locations = sorted(locations)
     return profile
 
@@ -105,14 +123,16 @@ def _build_digital_accounts(result: Any) -> list[DigitalAccount]:
             providers = rd.get("source_providers") or []
             if isinstance(providers, str):
                 providers = [providers]
-            accounts.append(DigitalAccount(
-                platform=str(rd["platform"]),
-                username=str(rd.get("username", "")),
-                url=str(rd.get("url", "")),
-                status=str(rd.get("status", "found")),
-                confidence=float(getattr(finding, "confidence", 0.7) or 0.7),
-                sources=list(providers) or ["people_finder"],
-            ))
+            accounts.append(
+                DigitalAccount(
+                    platform=str(rd["platform"]),
+                    username=str(rd.get("username", "")),
+                    url=str(rd.get("url", "")),
+                    status=str(rd.get("status", "found")),
+                    confidence=float(getattr(finding, "confidence", 0.7) or 0.7),
+                    sources=list(providers) or ["people_finder"],
+                )
+            )
             continue
 
         if mod == "social_osint" and isinstance(rd.get("platforms"), list):
@@ -128,14 +148,16 @@ def _build_digital_accounts(result: Any) -> list[DigitalAccount]:
                 exists = plat.get("exists", False)
                 from src.modules.deep_scan.field_labels import _platform_url
 
-                accounts.append(DigitalAccount(
-                    platform=platform,
-                    username=user,
-                    url=plat.get("url") or _platform_url(platform, user),
-                    status="confirmed" if exists else "not_found",
-                    confidence=0.85 if exists else 0.25,
-                    sources=["social_osint"],
-                ))
+                accounts.append(
+                    DigitalAccount(
+                        platform=platform,
+                        username=user,
+                        url=plat.get("url") or _platform_url(platform, user),
+                        status="confirmed" if exists else "not_found",
+                        confidence=0.85 if exists else 0.25,
+                        sources=["social_osint"],
+                    )
+                )
 
     accounts.sort(key=lambda a: (-a.confidence, a.platform))
     return accounts
@@ -151,10 +173,13 @@ def _build_breach_records(result: Any) -> list[BreachIntelRecord]:
         skip = {"platforms", "type", "profile"}
         from src.modules.deep_scan.breach_normalizer import normalize_breach_record
 
-        fields = normalize_breach_record({
-            k: v for k, v in rd.items()
-            if k not in skip and v is not None and str(v).strip()
-        })
+        fields = normalize_breach_record(
+            {
+                k: v
+                for k, v in rd.items()
+                if k not in skip and v is not None and str(v).strip()
+            }
+        )
         if not fields:
             fields = {
                 _label_key(k): str(v)
@@ -163,18 +188,20 @@ def _build_breach_records(result: Any) -> list[BreachIntelRecord]:
             }
         if not fields:
             continue
-        records.append(BreachIntelRecord(
-            source=mod.replace("source_", ""),
-            breach_name=str(
-                fields.get("breach_name")
-                or fields.get("Breach Name")
-                or fields.get("Breach")
-                or rd.get("breach_name")
-                or mod
-            ),
-            fields=fields,
-            confidence=float(getattr(finding, "confidence", 0.6) or 0.6),
-        ))
+        records.append(
+            BreachIntelRecord(
+                source=mod.replace("source_", ""),
+                breach_name=str(
+                    fields.get("breach_name")
+                    or fields.get("Breach Name")
+                    or fields.get("Breach")
+                    or rd.get("breach_name")
+                    or mod
+                ),
+                fields=fields,
+                confidence=float(getattr(finding, "confidence", 0.6) or 0.6),
+            )
+        )
     return records
 
 
@@ -191,22 +218,36 @@ def _build_gaps(
 ) -> list[str]:
     gaps: list[str] = []
     if not subject.emails:
-        gaps.append("No verified email addresses — run breach APIs (HIBP, DeHashed, LeakCheck) after email discovery.")
+        gaps.append(
+            "No verified email addresses — run breach APIs (HIBP, DeHashed, LeakCheck) after email discovery."
+        )
     if not subject.phones:
-        gaps.append("No phone numbers identified — consider phone_finder / regional registries.")
+        gaps.append(
+            "No phone numbers identified — consider phone_finder / regional registries."
+        )
     if not breaches:
-        gaps.append("No breach corpus hits — configure DEHASHED_API_KEY, HIBP_API_KEY, LEAKCHECK_API_KEY in .env.")
+        gaps.append(
+            "No breach corpus hits — configure DEHASHED_API_KEY, HIBP_API_KEY, LEAKCHECK_API_KEY in .env."
+        )
     if len(accounts) < 3:
-        gaps.append("Limited digital footprint — run full deep scan with sherlock + maigret (pip install).")
+        gaps.append(
+            "Limited digital footprint — run full deep scan with sherlock + maigret (pip install)."
+        )
     if not subject.niks and _likely_indonesian(result.target):
-        gaps.append("No NIK / national ID — Indonesian civil registry sources not queried.")
+        gaps.append(
+            "No NIK / national ID — Indonesian civil registry sources not queried."
+        )
     if not subject.locations:
-        gaps.append("No geolocation indicators — expand to domain/WHOIS and address fields in breach data.")
+        gaps.append(
+            "No geolocation indicators — expand to domain/WHOIS and address fields in breach data."
+        )
     for err in getattr(result, "errors", []) or []:
         if "timeout" in str(err).lower():
             gaps.append(f"Collection incomplete: {err}")
     if not gaps:
-        gaps.append("No critical collection gaps flagged — validate high-confidence items manually.")
+        gaps.append(
+            "No critical collection gaps flagged — validate high-confidence items manually."
+        )
     return gaps
 
 
@@ -215,7 +256,9 @@ def _likely_indonesian(name: str) -> bool:
 
 
 def _build_actions(
-    report: IntelReport, subject: SubjectProfile, gaps: list[str],
+    report: IntelReport,
+    subject: SubjectProfile,
+    gaps: list[str],
 ) -> list[str]:
     actions: list[str] = []
     for p in sorted(report.pivots, key=lambda x: x.priority)[:8]:
@@ -224,11 +267,15 @@ def _build_actions(
                 f"[P{p.priority}] {p.target_type.upper()}: {p.target_value} — {p.rationale}"
             )
     for handle in subject.known_handles[:3]:
-        actions.append(f"Enumerate {handle} across archived web (Wayback) and code repos (GitHub dorks).")
+        actions.append(
+            f"Enumerate {handle} across archived web (Wayback) and code repos (GitHub dorks)."
+        )
     for email in subject.emails[:2]:
         actions.append(f"Deep breach pivot on {email} (HIBP, DeHashed, IntelX).")
     if not actions:
-        actions.append("Re-run deep scan with API keys and --fast disabled for full module coverage.")
+        actions.append(
+            "Re-run deep scan with API keys and --fast disabled for full module coverage."
+        )
     return actions[:12]
 
 
@@ -239,7 +286,11 @@ def _build_key_judgments(
     breaches: list[BreachIntelRecord],
 ) -> list[str]:
     judgments: list[str] = []
-    confirmed = [a for a in accounts if a.status in ("found", "confirmed") and a.confidence >= 0.7]
+    confirmed = [
+        a
+        for a in accounts
+        if a.status in ("found", "confirmed") and a.confidence >= 0.7
+    ]
     if confirmed:
         platforms = ", ".join(sorted({a.platform for a in confirmed})[:6])
         judgments.append(
@@ -258,7 +309,9 @@ def _build_key_judgments(
         if triggered:
             judgments.append(f"Risk drivers: {'; '.join(triggered[:3])}.")
     if not judgments:
-        judgments.append("Insufficient corroboration for strong identity attribution — collection phase ongoing.")
+        judgments.append(
+            "Insufficient corroboration for strong identity attribution — collection phase ongoing."
+        )
     return judgments
 
 
@@ -268,7 +321,11 @@ def _build_bluf(
     accounts: list[DigitalAccount],
     breaches: list[BreachIntelRecord],
 ) -> str:
-    confirmed = sum(1 for a in accounts if a.confidence >= 0.7 and a.status in ("found", "confirmed"))
+    confirmed = sum(
+        1
+        for a in accounts
+        if a.confidence >= 0.7 and a.status in ("found", "confirmed")
+    )
     parts = [
         f"Open-source scan on '{report.target}' completed in {report.duration_sec:.0f}s",
         f"with {len(report.evidence)} observations across {len(report.modules_run)} module(s).",
@@ -279,5 +336,7 @@ def _build_bluf(
         parts.append(f"{confirmed} confirmed platform presence(s).")
     if breaches:
         parts.append(f"{len(breaches)} breach record(s) require analyst review.")
-    parts.append(f"Overall exposure: {report.risk.level.value.upper()} ({report.risk.score:.0%}).")
+    parts.append(
+        f"Overall exposure: {report.risk.level.value.upper()} ({report.risk.score:.0%})."
+    )
     return " ".join(parts)

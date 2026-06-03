@@ -1,7 +1,8 @@
 """Breach source router — keyed APIs only, shared by deep scan."""
+
 from __future__ import annotations
 
-from src.config import Settings
+from src.core.config import Settings
 
 # Maps deep-scan module name → Settings field
 BREACH_API_KEYS: dict[str, str] = {
@@ -24,7 +25,9 @@ def configured_breach_modules(settings: Settings | None = None) -> list[str]:
     return out
 
 
-def breach_status_report(settings: Settings | None = None) -> list[tuple[str, bool, str]]:
+def breach_status_report(
+    settings: Settings | None = None,
+) -> list[tuple[str, bool, str]]:
     """For doctor: (module, configured, env_var)."""
     cfg = settings or Settings()
     return [

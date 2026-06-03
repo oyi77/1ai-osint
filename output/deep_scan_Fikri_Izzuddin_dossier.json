@@ -1,0 +1,192 @@
+{
+  "report_id": "dossier-ba68d6b2c15e",
+  "generated_at": "2026-06-03T18:48:00.271307Z",
+  "classification": "UNCLASSIFIED // OSINT // LAWFUL USE ONLY",
+  "full_name": "Fikri Izzuddin",
+  "aliases": [],
+  "profile_pictures": [],
+  "emails": [],
+  "phones": [],
+  "current_employer": "",
+  "job_title": "",
+  "work_history": [],
+  "known_locations": [],
+  "city": "",
+  "country": "",
+  "education": [],
+  "academic_publications": [],
+  "social_accounts": [
+    {
+      "platform": "academia.edu",
+      "username": "izzuddinfikri",
+      "url": "https://independent.academia.edu/izzuddinfikri",
+      "bio": "",
+      "followers": 0,
+      "profile_picture": "",
+      "verified": false,
+      "source": "sherlock"
+    },
+    {
+      "platform": "allmylinks",
+      "username": "izzuddinfikri",
+      "url": "https://allmylinks.com/izzuddinfikri",
+      "bio": "",
+      "followers": 0,
+      "profile_picture": "",
+      "verified": false,
+      "source": "sherlock"
+    },
+    {
+      "platform": "blogger",
+      "username": "izzuddinfikri",
+      "url": "https://izzuddinfikri.blogspot.com",
+      "bio": "",
+      "followers": 0,
+      "profile_picture": "",
+      "verified": false,
+      "source": "sherlock"
+    },
+    {
+      "platform": "chess",
+      "username": "izzuddinfikri",
+      "url": "https://www.chess.com/member/izzuddinfikri",
+      "bio": "",
+      "followers": 0,
+      "profile_picture": "",
+      "verified": false,
+      "source": "sherlock"
+    },
+    {
+      "platform": "discord",
+      "username": "izzuddinfikri",
+      "url": "https://discord.com",
+      "bio": "",
+      "followers": 0,
+      "profile_picture": "",
+      "verified": false,
+      "source": "sherlock"
+    },
+    {
+      "platform": "flipboard",
+      "username": "izzuddinfikri",
+      "url": "https://flipboard.com/@izzuddinfikri",
+      "bio": "",
+      "followers": 0,
+      "profile_picture": "",
+      "verified": false,
+      "source": "sherlock"
+    },
+    {
+      "platform": "freelancer",
+      "username": "izzuddinfikri",
+      "url": "https://www.freelancer.com/u/izzuddinfikri",
+      "bio": "",
+      "followers": 0,
+      "profile_picture": "",
+      "verified": false,
+      "source": "sherlock"
+    },
+    {
+      "platform": "github",
+      "username": "izzuddinfikri",
+      "url": "https://www.github.com/izzuddinfikri",
+      "bio": "",
+      "followers": 0,
+      "profile_picture": "",
+      "verified": false,
+      "source": "sherlock"
+    },
+    {
+      "platform": "allmylinks",
+      "username": "fizzuddin",
+      "url": "https://allmylinks.com/fizzuddin",
+      "bio": "",
+      "followers": 0,
+      "profile_picture": "",
+      "verified": false,
+      "source": "sherlock"
+    },
+    {
+      "platform": "blogger",
+      "username": "fizzuddin",
+      "url": "https://fizzuddin.blogspot.com",
+      "bio": "",
+      "followers": 0,
+      "profile_picture": "",
+      "verified": false,
+      "source": "sherlock"
+    },
+    {
+      "platform": "chess",
+      "username": "fizzuddin",
+      "url": "https://www.chess.com/member/fizzuddin",
+      "bio": "",
+      "followers": 0,
+      "profile_picture": "",
+      "verified": false,
+      "source": "sherlock"
+    },
+    {
+      "platform": "disqus",
+      "username": "fizzuddin",
+      "url": "https://disqus.com/fizzuddin",
+      "bio": "",
+      "followers": 0,
+      "profile_picture": "",
+      "verified": false,
+      "source": "sherlock"
+    },
+    {
+      "platform": "github",
+      "username": "fizzuddin",
+      "url": "https://www.github.com/fizzuddin",
+      "bio": "",
+      "followers": 0,
+      "profile_picture": "",
+      "verified": false,
+      "source": "sherlock"
+    },
+    {
+      "platform": "gumroad",
+      "username": "fizzuddin",
+      "url": "https://www.gumroad.com/fizzuddin",
+      "bio": "",
+      "followers": 0,
+      "profile_picture": "",
+      "verified": false,
+      "source": "sherlock"
+    },
+    {
+      "platform": "myanimelist",
+      "username": "fizzuddin",
+      "url": "https://myanimelist.net/profile/fizzuddin",
+      "bio": "",
+      "followers": 0,
+      "profile_picture": "",
+      "verified": false,
+      "source": "sherlock"
+    }
+  ],
+  "websites": [],
+  "breached_services": [],
+  "exposed_data_types": [],
+  "password_patterns": [],
+  "crypto_addresses": [],
+  "devices": [],
+  "known_associates": [],
+  "data_sources_used": [
+    "External Open-Source Tools"
+  ],
+  "confidence_score": 0.12,
+  "intelligence_gaps": [
+    "No email addresses discovered — try configuring HIBP_API_KEY or DEHASHED_API_KEY",
+    "No phone numbers discovered — try search dorks with local phone formats",
+    "Employment not identified — LinkedIn scraping or TechInAsia lookup needed",
+    "No location data — expand to WHOIS, EXIF, and social media geo-tags",
+    "No breach data — configure HIBP_API_KEY for personalized breach lookups",
+    "WhatsApp verification pending — requires discovered phone number first"
+  ],
+  "requires_api_keys": [
+    "HIBP_API_KEY ($3.50/mo) — personal breach lookup"
+  ]
+}

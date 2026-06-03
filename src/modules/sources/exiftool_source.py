@@ -1,4 +1,5 @@
 """ExifTool source adapter for metadata extraction."""
+
 from __future__ import annotations
 import asyncio
 import json
@@ -30,31 +31,36 @@ class ExiftoolSource:
 
         try:
             proc = await asyncio.create_subprocess_exec(
-                exiftool_path, "-json", "-G", address,
+                exiftool_path,
+                "-json",
+                "-G",
+                address,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
-            stdout, _ = await asyncio.wait_for(
-                proc.communicate(), timeout=self.timeout
-            )
+            stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=self.timeout)
             if stdout:
                 try:
                     results = json.loads(stdout.decode())
                     if isinstance(results, list):
                         for entry in results:
-                            leaks.append(RawLeak(
-                                text=json.dumps(entry, indent=2),
-                                source_name="exiftool",
-                                source_url=address,
-                            ))
+                            leaks.append(
+                                RawLeak(
+                                    text=json.dumps(entry, indent=2),
+                                    source_name="exiftool",
+                                    source_url=address,
+                                )
+                            )
                 except json.JSONDecodeError:
                     text = stdout.decode()
                     if text.strip():
-                        leaks.append(RawLeak(
-                            text=text,
-                            source_name="exiftool",
-                            source_url=address,
-                        ))
+                        leaks.append(
+                            RawLeak(
+                                text=text,
+                                source_name="exiftool",
+                                source_url=address,
+                            )
+                        )
         except asyncio.TimeoutError:
             logger.debug("ExifTool: timeout for '%s'", address)
         except Exception as exc:

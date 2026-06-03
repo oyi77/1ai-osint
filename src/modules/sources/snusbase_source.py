@@ -1,4 +1,5 @@
 """Snusbase source adapter for breach data lookup."""
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -17,7 +18,12 @@ class SnusbaseSource:
 
     BASE_URL = "https://api.snusbase.com/v3/search"
 
-    def __init__(self, api_key: Optional[str] = None, request_delay: float = 2.0, timeout: float = 30.0):
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        request_delay: float = 2.0,
+        timeout: float = 30.0,
+    ):
         self.api_key = api_key or os.getenv("SNUSBASE_API_KEY", "")
         self.request_delay = request_delay
         self.timeout = timeout
@@ -35,7 +41,9 @@ class SnusbaseSource:
 
         leaks: list[RawLeak] = []
         headers = {"Authorization": self.api_key}
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             try:
                 await self._rate_limit()
                 resp = await client.post(
@@ -51,16 +59,25 @@ class SnusbaseSource:
                             for entry in entries:
                                 structured: dict[str, str] = {"breach_name": table}
                                 if isinstance(entry, dict):
-                                    for field in ("email", "username", "phone", "password", "password_hash", "name"):
+                                    for field in (
+                                        "email",
+                                        "username",
+                                        "phone",
+                                        "password",
+                                        "password_hash",
+                                        "name",
+                                    ):
                                         val = entry.get(field, "")
                                         if val:
                                             structured[field] = str(val)
-                                leaks.append(RawLeak(
-                                    text=f"Table: {table}\n{str(entry)[:5000]}",
-                                    source_name="snusbase",
-                                    source_url=f"https://snusbase.com/search?q={address}",
-                                    metadata=structured,
-                                ))
+                                leaks.append(
+                                    RawLeak(
+                                        text=f"Table: {table}\n{str(entry)[:5000]}",
+                                        source_name="snusbase",
+                                        source_url=f"https://snusbase.com/search?q={address}",
+                                        metadata=structured,
+                                    )
+                                )
             except Exception as exc:
                 logger.debug("Snusbase error for '%s': %s", address, exc)
         return leaks

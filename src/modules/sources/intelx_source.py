@@ -1,4 +1,5 @@
 """Intelligence X source adapter for OSINT search."""
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -17,7 +18,12 @@ class IntelxSource:
 
     BASE_URL = "https://2.intelx.io"
 
-    def __init__(self, api_key: Optional[str] = None, request_delay: float = 2.0, timeout: float = 30.0):
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        request_delay: float = 2.0,
+        timeout: float = 30.0,
+    ):
         self.api_key = api_key or os.getenv("INTELX_API_KEY", "")
         self.request_delay = request_delay
         self.timeout = timeout
@@ -35,7 +41,9 @@ class IntelxSource:
 
         leaks: list[RawLeak] = []
         headers = {"x-key": self.api_key}
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             try:
                 await self._rate_limit()
                 resp = await client.post(
@@ -59,16 +67,26 @@ class IntelxSource:
                             for record in results.get("records", []):
                                 structured: dict[str, str] = {}
                                 if isinstance(record, dict):
-                                    for field in ("name", "email", "username", "phone", "domain", "password", "ip"):
+                                    for field in (
+                                        "name",
+                                        "email",
+                                        "username",
+                                        "phone",
+                                        "domain",
+                                        "password",
+                                        "ip",
+                                    ):
                                         val = record.get(field, "")
                                         if val:
                                             structured[field] = str(val)
-                                leaks.append(RawLeak(
-                                    text=str(record),
-                                    source_name="intelx",
-                                    source_url=f"https://intelx.io/?s={address}",
-                                    metadata=structured,
-                                ))
+                                leaks.append(
+                                    RawLeak(
+                                        text=str(record),
+                                        source_name="intelx",
+                                        source_url=f"https://intelx.io/?s={address}",
+                                        metadata=structured,
+                                    )
+                                )
             except Exception as exc:
                 logger.debug("Intelligence X error for '%s': %s", address, exc)
         return leaks

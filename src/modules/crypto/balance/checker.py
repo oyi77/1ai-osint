@@ -36,14 +36,15 @@ _PRICE_CACHE_TTL = 60  # seconds
 @dataclass
 class BalanceResult:
     """Result of a balance check for a single address."""
+
     address: str
     chain: str
     symbol: str
-    balance: float          # Native token balance
-    balance_raw: int        # Raw balance in smallest unit (wei, satoshi, lamports)
-    usd_price: float        # Current USD price per token
-    usd_value: float        # Total USD value
-    derivation_path: str    # How this address was derived
+    balance: float  # Native token balance
+    balance_raw: int  # Raw balance in smallest unit (wei, satoshi, lamports)
+    usd_price: float  # Current USD price per token
+    usd_value: float  # Total USD value
+    derivation_path: str  # How this address was derived
     error: Optional[str] = None
 
 
@@ -90,8 +91,10 @@ async def check_btc_balance(
             address=address,
             chain=BITCOIN.name,
             symbol=BITCOIN.symbol,
-            balance=0.0, balance_raw=0,
-            usd_price=0.0, usd_value=0.0,
+            balance=0.0,
+            balance_raw=0,
+            usd_price=0.0,
+            usd_value=0.0,
             derivation_path=derivation_path,
             error=str(e),
         )
@@ -132,9 +135,15 @@ async def check_evm_balance(
     """Check balance on an EVM-compatible chain (ETH, BSC, Polygon) via JSON-RPC."""
     if not chain.rpc_url:
         return BalanceResult(
-            address=address, chain=chain.name, symbol=chain.symbol,
-            balance=0.0, balance_raw=0, usd_price=0.0, usd_value=0.0,
-            derivation_path=derivation_path, error="No RPC URL configured",
+            address=address,
+            chain=chain.name,
+            symbol=chain.symbol,
+            balance=0.0,
+            balance_raw=0,
+            usd_price=0.0,
+            usd_value=0.0,
+            derivation_path=derivation_path,
+            error="No RPC URL configured",
         )
 
     try:
@@ -156,7 +165,7 @@ async def check_evm_balance(
                 raise ValueError(data["error"].get("message", "RPC error"))
 
             balance_wei = int(data["result"], 16)
-            balance = balance_wei / (10 ** chain.decimals)
+            balance = balance_wei / (10**chain.decimals)
 
             return BalanceResult(
                 address=address,
@@ -173,9 +182,15 @@ async def check_evm_balance(
                 await client.aclose()
     except Exception as e:
         return BalanceResult(
-            address=address, chain=chain.name, symbol=chain.symbol,
-            balance=0.0, balance_raw=0, usd_price=0.0, usd_value=0.0,
-            derivation_path=derivation_path, error=str(e),
+            address=address,
+            chain=chain.name,
+            symbol=chain.symbol,
+            balance=0.0,
+            balance_raw=0,
+            usd_price=0.0,
+            usd_value=0.0,
+            derivation_path=derivation_path,
+            error=str(e),
         )
 
 
@@ -207,12 +222,14 @@ async def check_evm_token_balances(
             batch = []
             for i, token in enumerate(chain.tokens):
                 data = encode_balance_of(address)
-                batch.append({
-                    "jsonrpc": "2.0",
-                    "method": "eth_call",
-                    "params": [{"to": token.address, "data": data}, "latest"],
-                    "id": i,
-                })
+                batch.append(
+                    {
+                        "jsonrpc": "2.0",
+                        "method": "eth_call",
+                        "params": [{"to": token.address, "data": data}, "latest"],
+                        "id": i,
+                    }
+                )
 
             resp = await client.post(chain.rpc_url, json=batch)
             resp.raise_for_status()
@@ -230,12 +247,14 @@ async def check_evm_token_balances(
                 try:
                     balance_raw = int(r["result"], 16)
                     if balance_raw > 0:
-                        results.append({
-                            "symbol": token.symbol,
-                            "balance_raw": balance_raw,
-                            "decimals": token.decimals,
-                            "balance": balance_raw / (10 ** token.decimals),
-                        })
+                        results.append(
+                            {
+                                "symbol": token.symbol,
+                                "balance_raw": balance_raw,
+                                "decimals": token.decimals,
+                                "balance": balance_raw / (10**token.decimals),
+                            }
+                        )
                 except (ValueError, TypeError):
                     continue
 
@@ -244,7 +263,9 @@ async def check_evm_token_balances(
             if _created_client:
                 await client.aclose()
     except Exception as e:
-        logger.debug("Token balance check failed for %s on %s: %s", address[:10], chain.name, e)
+        logger.debug(
+            "Token balance check failed for %s on %s: %s", address[:10], chain.name, e
+        )
         return []
 
 
@@ -291,9 +312,15 @@ async def check_sol_balance(
                 await client.aclose()
     except Exception as e:
         return BalanceResult(
-            address=address, chain=SOLANA.name, symbol=SOLANA.symbol,
-            balance=0.0, balance_raw=0, usd_price=0.0, usd_value=0.0,
-            derivation_path=derivation_path, error=str(e),
+            address=address,
+            chain=SOLANA.name,
+            symbol=SOLANA.symbol,
+            balance=0.0,
+            balance_raw=0,
+            usd_price=0.0,
+            usd_value=0.0,
+            derivation_path=derivation_path,
+            error=str(e),
         )
 
 
@@ -305,15 +332,24 @@ async def check_balance(
 ) -> BalanceResult:
     """Route balance check to the appropriate chain-specific function."""
     if chain.chain_type == ChainType.BITCOIN:
-        return await check_btc_balance(address, chain.api_url or "", derivation_path, client=client)
+        return await check_btc_balance(
+            address, chain.api_url or "", derivation_path, client=client
+        )
     elif chain.chain_type == ChainType.EVM:
         return await check_evm_balance(address, chain, derivation_path, client=client)
     elif chain.chain_type == ChainType.SOLANA:
-        return await check_sol_balance(address, chain.rpc_url or "", derivation_path, client=client)
+        return await check_sol_balance(
+            address, chain.rpc_url or "", derivation_path, client=client
+        )
     else:
         return BalanceResult(
-            address=address, chain=chain.name, symbol=chain.symbol,
-            balance=0.0, balance_raw=0, usd_price=0.0, usd_value=0.0,
+            address=address,
+            chain=chain.name,
+            symbol=chain.symbol,
+            balance=0.0,
+            balance_raw=0,
+            usd_price=0.0,
+            usd_value=0.0,
             derivation_path=derivation_path,
             error=f"Unsupported chain type: {chain.chain_type}",
         )
@@ -380,7 +416,9 @@ async def get_usd_prices(
     return {cid: cached.get(cid, 0.0) for cid in coin_ids}
 
 
-def apply_usd_prices(results: list[BalanceResult], prices: dict[str, float]) -> list[BalanceResult]:
+def apply_usd_prices(
+    results: list[BalanceResult], prices: dict[str, float]
+) -> list[BalanceResult]:
     """Apply USD prices to balance results in-place and compute usd_value."""
     from src.modules.crypto.balance.chains import CHAIN_MAP
 

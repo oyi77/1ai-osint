@@ -6,7 +6,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from src.models import Finding, ScanResult, Identity
+from src.core.models import Finding, ScanResult, Identity
 
 
 _DEFAULT_DB_PATH = Path("1ai-osint.db")
@@ -153,7 +153,9 @@ class Database:
     def get_scan(self, scan_id: str) -> Optional[ScanResult]:
         """Retrieve a scan by ID."""
         conn = self._connect()
-        row = conn.execute("SELECT * FROM scans WHERE scan_id = ?", (scan_id,)).fetchone()
+        row = conn.execute(
+            "SELECT * FROM scans WHERE scan_id = ?", (scan_id,)
+        ).fetchone()
         if not row:
             return None
 
@@ -183,7 +185,9 @@ class Database:
             findings=findings,
             metadata=json.loads(row["metadata"]),
             started_at=datetime.fromisoformat(row["started_at"]),
-            completed_at=datetime.fromisoformat(row["completed_at"]) if row["completed_at"] else None,
+            completed_at=datetime.fromisoformat(row["completed_at"])
+            if row["completed_at"]
+            else None,
             error=row["error"],
         )
 

@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Operational Intelligence Brief — test@example.com</title>
+<style>
+  :root { --ink: #1a1a1a; --muted: #4a5568; --line: #cbd5e1; --accent: #1e40af; --bg: #f8fafc; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Georgia', 'Times New Roman', serif; background: var(--bg); color: var(--ink); font-size: 15px; line-height: 1.55; }
+  .banner { background: #111; color: #fbbf24; text-align: center; padding: 8px; font: bold 11px/1.4 'Courier New', monospace; letter-spacing: 0.08em; }
+  .page { max-width: 920px; margin: 0 auto; padding: 28px 32px 48px; background: white; min-height: 100vh; box-shadow: 0 0 24px rgba(0,0,0,.06); }
+  h1 { font-size: 22px; margin: 0 0 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .subtitle { color: var(--muted); font-size: 13px; margin-bottom: 20px; font-family: -apple-system, sans-serif; }
+  .meta-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 16px 0 24px; font-family: -apple-system, sans-serif; font-size: 12px; }
+  .meta-box { border: 1px solid var(--line); padding: 10px; border-radius: 4px; }
+  .meta-box b { display: block; font-size: 10px; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+  section { margin: 28px 0; page-break-inside: avoid; }
+  section h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 2px solid var(--accent); padding-bottom: 6px; margin: 0 0 12px; color: var(--accent); font-family: -apple-system, sans-serif; }
+  .bluf { background: #eff6ff; border-left: 4px solid var(--accent); padding: 14px 16px; font-size: 15px; }
+  .bluf strong { font-family: -apple-system, sans-serif; font-size: 11px; text-transform: uppercase; display: block; margin-bottom: 6px; color: var(--accent); }
+  ul.judgments li, ul.gaps li, ul.actions li { margin: 6px 0; }
+  table { width: 100%; border-collapse: collapse; font-family: -apple-system, sans-serif; font-size: 13px; }
+  th, td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { background: #f1f5f9; font-size: 11px; text-transform: uppercase; color: var(--muted); }
+  tr:nth-child(even) td { background: #fafafa; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 600; }
+  .tag-ok { background: #dcfce7; color: #166534; }
+  .tag-warn { background: #fef9c3; color: #854d0e; }
+  .tag-bad { background: #fee2e2; color: #991b1b; }
+  .breach-card { border: 1px solid var(--line); margin: 10px 0; padding: 12px; border-radius: 4px; }
+  .breach-card h4 { margin: 0 0 8px; font-size: 13px; font-family: -apple-system, sans-serif; }
+  .field-line { font-family: -apple-system, sans-serif; font-size: 12px; margin: 3px 0; }
+  .field-line code { background: #f1f5f9; padding: 1px 5px; }
+  .graph { text-align: center; margin: 12px 0; overflow-x: auto; }
+  .footer { margin-top: 40px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 11px; color: var(--muted); font-family: -apple-system, sans-serif; }
+  @media print { body { background: white; } .page { box-shadow: none; max-width: 100%; } .banner { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style>
+</head>
+<body>
+<div class="banner">UNCLASSIFIED // OPEN SOURCE INTELLIGENCE // LAWFUL USE ONLY</div>
+<div class="page">
+
+  <h1>Operational Intelligence Brief</h1>
+  <p class="subtitle">Subject: <strong>test@example.com</strong> · Report intel-1a29ef5dc5dd · 2026-06-02 23:46:52.124143+00:00</p>
+
+  <div class="meta-grid">
+    <div class="meta-box"><b>Collection window</b>9.8s · 2 pass(es)</div>
+    <div class="meta-box"><b>Modules</b>email_osint, social_osint</div>
+    <div class="meta-box"><b>Exposure</b>HIGH (50%)</div>
+    <div class="meta-box"><b>Evidence</b>30 items</div>
+    <div class="meta-box"><b>Accounts</b>24</div>
+    <div class="meta-box"><b>Breach rows</b>0</div>
+  </div>
+
+  <section id="bluf">
+    <div class="bluf">
+      <strong>Bottom line up front (BLUF)</strong>
+      Open-source scan on 'test@example.com' completed in 10s with 30 observations across 2 module(s). Key handles: 1y4vw3qtb4skdx9e7dxt97qrmmq9, example., github.. 12 confirmed platform presence(s). Overall exposure: HIGH (50%).
+    </div>
+  </section>
+
+  <section id="judgments">
+    <h2>I. Key judgments</h2>
+    <ul class="judgments">
+      
+      <li>Subject likely operates accounts on: gitlab, instagram, twitter (12 high-confidence hits).</li>
+      
+      <li>Primary handle candidates: 1y4vw3qtb4skdx9e7dxt97qrmmq9, example., github., githubusercontent..</li>
+      
+      <li>Risk drivers: Username confirmed on 3+ platforms (high visibility); Email exposed.</li>
+      
+    </ul>
+  </section>
+
+  <section id="subject">
+    <h2>II. Subject identification &amp; resolution</h2>
+    <table>
+      <tr><th>Primary name</th><td>test@example.com</td></tr>
+      <tr><th>Aliases</th><td><em>None collected</em></td></tr>
+      <tr><th>Usernames / handles</th><td><code>1y4vw3qtb4skdx9e7dxt97qrmmq9</code>, <code>example.</code>, <code>github.</code>, <code>githubusercontent.</code></td></tr>
+      <tr><th>Email addresses</th><td>test@example.com</td></tr>
+      <tr><th>Telephone</th><td>13393021, 20162049, 21636478, 34076873</td></tr>
+      <tr><th>NIK / national ID</th><td><em>None</em></td></tr>
+      <tr><th>Crypto Addresses</th><td>1y4vw3qtb4skdx9e7dxt97qrmmq9</td></tr>
+      <tr><th>Location indicators</th><td><em>None</em></td></tr>
+    </table>
+  </section>
+
+  <section id="digital">
+    <h2>III. Digital presence &amp; account matrix</h2>
+    
+    <table>
+      <tr><th>Platform</th><th>Handle</th><th>Status</th><th>Confidence</th><th>Sources</th><th>URL</th></tr>
+      
+      <tr>
+        <td>gitlab</td>
+        <td><code>1y4vw3qtb4skdx9e7dxt97qrmmq9</code></td>
+        <td>
+          <span class="tag tag-ok">confirmed</span>
+          
+        </td>
+        <td>85%</td>
+        <td>social_osint</td>
+        <td><a href="https://gitlab.com/1y4vw3qtb4skdx9e7dxt97qrmmq9">https://gitlab.com/1y4vw3qtb4skdx9e7dxt97qrmmq9</a></td>
+      </tr>
+      
+      <tr>
+        <td>gitlab</td>
+        <td><code>githubusercontent.</code></td>
+        <td>
+          <span class="tag tag-ok">confirmed</span>
+          
+        </td>
+        <td>85%</td>
+        <td>social_osint</td>
+        <td><a href="https://gitlab.com/githubusercontent.">https://gitlab.com/githubusercontent.</a></td>
+      </tr>
+      
+      <tr>
+        <td>gitlab</td>
+        <td><code>example.</code></td>
+        <td>
+          <span class="tag tag-ok">confirmed</span>
+          
+        </td>
+        <td>85%</td>
+        <td>social_osint</td>
+        <td><a href="https://gitlab.com/example.">https://gitlab.com/example.</a></td>
+      </tr>
+      
+      <tr>
+        <td>gitlab</td>
+        <td><code>github.</code></td>
+        <td>
+          <span class="tag tag-ok">confirmed</span>
+          
+        </td>
+        <td>85%</td>
+        <td>social_osint</td>
+        <td><a href="https://gitlab.com/github.">https://gitlab.com/github.</a></td>
+      </tr>
+      
+      <tr>
+        <td>instagram</td>
+        <td><code>1y4vw3qtb4skdx9e7dxt97qrmmq9</code></td>
+        <td>
+          <span class="tag tag-ok">confirmed</span>
+          
+        </td>
+        <td>85%</td>
+        <td>social_osint</td>
+        <td><a href="https://instagram.com/1y4vw3qtb4skdx9e7dxt97qrmmq9">https://instagram.com/1y4vw3qtb4skdx9e7dxt97qrmm…</a></td>
+      </tr>
+      
+      <tr>
+        <td>instagram</td>
+        <td><code>githubusercontent.</code></td>
+        <td>
+          <span class="tag tag-ok">confirmed</span>
+          
+        </td>
+        <td>85%</td>
+        <td>social_osint</td>
+        <td><a href="https://instagram.com/githubusercontent.">https://instagram.com/githubusercontent.</a></td>
+      </tr>
+      
+      <tr>
+        <td>instagram</td>
+        <td><code>example.</code></td>
+        <td>
+          <span class="tag tag-ok">confirmed</span>
+          
+        </td>
+        <td>85%</td>
+        <td>social_osint</td>
+        <td><a href="https://instagram.com/example.">https://instagram.com/example.</a></td>
+      </tr>
+      
+      <tr>
+        <td>instagram</td>
+        <td><code>github.</code></td>
+        <td>
+          <span class="tag tag-ok">confirmed</span>
+          
+        </td>
+        <td>85%</td>
+        <td>social_osint</td>
+        <td><a href="https://instagram.com/github.">https://instagram.com/github.</a></td>
+      </tr>
+      
+      <tr>
+        <td>twitter</td>
+        <td><code>1y4vw3qtb4skdx9e7dxt97qrmmq9</code></td>
+        <td>
+          <span class="tag tag-ok">confirmed</span>
+          
+        </td>
+        <td>85%</td>
+        <td>social_osint</td>
+        <td><a href="https://twitter.com/1y4vw3qtb4skdx9e7dxt97qrmmq9">https://twitter.com/1y4vw3qtb4skdx9e7dxt97qrmmq9</a></td>
+      </tr>
+      
+      <tr>
+        <td>twitter</td>
+        <td><code>githubusercontent.</code></td>
+        <td>
+          <span class="tag tag-ok">confirmed</span>
+          
+        </td>
+        <td>85%</td>
+        <td>social_osint</td>
+        <td><a href="https://twitter.com/githubusercontent.">https://twitter.com/githubusercontent.</a></td>
+      </tr>
+      
+      <tr>
+        <td>twitter</td>
+        <td><code>example.</code></td>
+        <td>
+          <span class="tag tag-ok">confirmed</span>
+          
+        </td>
+        <td>85%</td>
+        <td>social_osint</td>
+        <td><a href="https://twitter.com/example.">https://twitter.com/example.</a></td>
+      </tr>
+      
+      <tr>
+        <td>twitter</td>
+        <td><code>github.</code></td>
+        <td>
+          <span class="tag tag-ok">confirmed</span>
+          
+        </td>
+        <td>85%</td>
+        <td>social_osint</td>
+        <td><a href="https://twitter.com/github.">https://twitter.com/github.</a></td>
+      </tr>
+      
+      <tr>
+        <td>github</td>
+        <td><code>1y4vw3qtb4skdx9e7dxt97qrmmq9</code></td>
+        <td>
+          <span class="tag tag-bad">not_found</span>
+          
+        </td>
+        <td>25%</td>
+        <td>social_osint</td>
+        <td><a href="https://github.com/1y4vw3qtb4skdx9e7dxt97qrmmq9">https://github.com/1y4vw3qtb4skdx9e7dxt97qrmmq9</a></td>
+      </tr>
+      
+      <tr>
+        <td>github</td>
+        <td><code>githubusercontent.</code></td>
+        <td>
+          <span class="tag tag-bad">not_found</span>
+          
+        </td>
+        <td>25%</td>
+        <td>social_osint</td>
+        <td><a href="https://github.com/githubusercontent.">https://github.com/githubusercontent.</a></td>
+      </tr>
+      
+      <tr>
+        <td>github</td>
+        <td><code>example.</code></td>
+        <td>
+          <span class="tag tag-bad">not_found</span>
+          
+        </td>
+        <td>25%</td>
+        <td>social_osint</td>
+        <td><a href="https://github.com/example.">https://github.com/example.</a></td>
+      </tr>
+      
+      <tr>
+        <td>github</td>
+        <td><code>github.</code></td>
+        <td>
+          <span class="tag tag-bad">not_found</span>
+          
+        </td>
+        <td>25%</td>
+        <td>social_osint</td>
+        <td><a href="https://github.com/github.">https://github.com/github.</a></td>
+      </tr>
+      
+      <tr>
+        <td>linkedin</td>
+        <td><code>1y4vw3qtb4skdx9e7dxt97qrmmq9</code></td>
+        <td>
+          <span class="tag tag-bad">not_found</span>
+          
+        </td>
+        <td>25%</td>
+        <td>social_osint</td>
+        <td><a href="https://linkedin.com/in/1y4vw3qtb4skdx9e7dxt97qrmmq9">https://linkedin.com/in/1y4vw3qtb4skdx9e7dxt97qr…</a></td>
+      </tr>
+      
+      <tr>
+        <td>linkedin</td>
+        <td><code>githubusercontent.</code></td>
+        <td>
+          <span class="tag tag-bad">not_found</span>
+          
+        </td>
+        <td>25%</td>
+        <td>social_osint</td>
+        <td><a href="https://linkedin.com/in/githubusercontent.">https://linkedin.com/in/githubusercontent.</a></td>
+      </tr>
+      
+      <tr>
+        <td>linkedin</td>
+        <td><code>example.</code></td>
+        <td>
+          <span class="tag tag-bad">not_found</span>
+          
+        </td>
+        <td>25%</td>
+        <td>social_osint</td>
+        <td><a href="https://linkedin.com/in/example.">https://linkedin.com/in/example.</a></td>
+      </tr>
+      
+      <tr>
+        <td>linkedin</td>
+        <td><code>github.</code></td>
+        <td>
+          <span class="tag tag-bad">not_found</span>
+          
+        </td>
+        <td>25%</td>
+        <td>social_osint</td>
+        <td><a href="https://linkedin.com/in/github.">https://linkedin.com/in/github.</a></td>
+      </tr>
+      
+      <tr>
+        <td>reddit</td>
+        <td><code>1y4vw3qtb4skdx9e7dxt97qrmmq9</code></td>
+        <td>
+          <span class="tag tag-bad">not_found</span>
+          
+        </td>
+        <td>25%</td>
+        <td>social_osint</td>
+        <td><a href="https://reddit.com/user/1y4vw3qtb4skdx9e7dxt97qrmmq9">https://reddit.com/user/1y4vw3qtb4skdx9e7dxt97qr…</a></td>
+      </tr>
+      
+      <tr>
+        <td>reddit</td>
+        <td><code>githubusercontent.</code></td>
+        <td>
+          <span class="tag tag-bad">not_found</span>
+          
+        </td>
+        <td>25%</td>
+        <td>social_osint</td>
+        <td><a href="https://reddit.com/user/githubusercontent.">https://reddit.com/user/githubusercontent.</a></td>
+      </tr>
+      
+      <tr>
+        <td>reddit</td>
+        <td><code>example.</code></td>
+        <td>
+          <span class="tag tag-bad">not_found</span>
+          
+        </td>
+        <td>25%</td>
+        <td>social_osint</td>
+        <td><a href="https://reddit.com/user/example.">https://reddit.com/user/example.</a></td>
+      </tr>
+      
+      <tr>
+        <td>reddit</td>
+        <td><code>github.</code></td>
+        <td>
+          <span class="tag tag-bad">not_found</span>
+          
+        </td>
+        <td>25%</td>
+        <td>social_osint</td>
+        <td><a href="https://reddit.com/user/github.">https://reddit.com/user/github.</a></td>
+      </tr>
+      
+    </table>
+    
+  </section>
+
+  <section id="breach">
+    <h2>IV. Breach &amp; credential intelligence</h2>
+    
+    <p><em>No breach corpus hits. Add API keys (HIBP, DeHashed, LeakCheck) for credential exposure detail comparable to commercial leak indices.</em></p>
+    
+  </section>
+
+  <section id="risk">
+    <h2>V. Threat &amp; exposure assessment</h2>
+    <p><strong>Assessment:</strong> Username confirmed on 3+ platforms (high visibility); Email exposed</p>
+    <table>
+      <tr><th>Factor</th><th>Status</th><th>Weight</th></tr>
+      
+      <tr>
+        <td>NIK + name + phone combined (full PII exposure)</td>
+        <td><span class="tag tag-ok">Clear</span></td>
+        <td>0.7</td>
+      </tr>
+      
+      <tr>
+        <td>Indonesian NIK (national ID) found</td>
+        <td><span class="tag tag-ok">Clear</span></td>
+        <td>0.5</td>
+      </tr>
+      
+      <tr>
+        <td>Crypto address tagged as mixer (sanctioned risk)</td>
+        <td><span class="tag tag-ok">Clear</span></td>
+        <td>0.9</td>
+      </tr>
+      
+      <tr>
+        <td>Seed phrase / private key exposed</td>
+        <td><span class="tag tag-ok">Clear</span></td>
+        <td>1.0</td>
+      </tr>
+      
+      <tr>
+        <td>Plaintext password discovered</td>
+        <td><span class="tag tag-ok">Clear</span></td>
+        <td>0.8</td>
+      </tr>
+      
+      <tr>
+        <td>Username confirmed on 3+ platforms (high visibility)</td>
+        <td><span class="tag tag-bad">TRIGGERED</span></td>
+        <td>0.3</td>
+      </tr>
+      
+      <tr>
+        <td>Phone number exposed</td>
+        <td><span class="tag tag-ok">Clear</span></td>
+        <td>0.3</td>
+      </tr>
+      
+      <tr>
+        <td>Email exposed</td>
+        <td><span class="tag tag-bad">TRIGGERED</span></td>
+        <td>0.2</td>
+      </tr>
+      
+      <tr>
+        <td>NIK + address + phone (full KYC exposure)</td>
+        <td><span class="tag tag-ok">Clear</span></td>
+        <td>0.8</td>
+      </tr>
+      
+      <tr>
+        <td>Password found in 2+ breaches</td>
+        <td><span class="tag tag-ok">Clear</span></td>
+        <td>0.9</td>
+      </tr>
+      
+      <tr>
+        <td>Password + email combo leaked</td>
+        <td><span class="tag tag-ok">Clear</span></td>
+        <td>0.8</td>
+      </tr>
+      
+      <tr>
+        <td>Date of birth + NIK (identity theft risk)</td>
+        <td><span class="tag tag-ok">Clear</span></td>
+        <td>0.6</td>
+      </tr>
+      
+      <tr>
+        <td>Crypto private key or seed phrase in raw data</td>
+        <td><span class="tag tag-ok">Clear</span></td>
+        <td>0.9</td>
+      </tr>
+      
+    </table>
+  </section>
+
+  <section id="graph">
+    <h2>VI. Link analysis</h2>
+    <div class="graph"><svg width="600" height="1260" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#64748b"/></marker></defs>
+<line x1="300.0" y1="40" x2="300" y2="120" stroke="#94a3b8" stroke-width="1" marker-end="url(#arrow)"/>
+<line x1="300.0" y1="40" x2="500" y2="120" stroke="#94a3b8" stroke-width="1" marker-end="url(#arrow)"/>
+<line x1="300.0" y1="40" x2="100" y2="180" stroke="#94a3b8" stroke-width="1" marker-end="url(#arrow)"/>
+<line x1="300.0" y1="40" x2="300" y2="180" stroke="#94a3b8" stroke-width="1" marker-end="url(#arrow)"/>
+<line x1="300.0" y1="40" x2="500" y2="180" stroke="#94a3b8" stroke-width="1" marker-end="url(#arrow)"/>
+<line x1="300.0" y1="40" x2="100" y2="240" stroke="#94a3b8" stroke-width="1" marker-end="url(#arrow)"/>
+<line x1="300.0" y1="40" x2="300" y2="240" stroke="#94a3b8" stroke-width="1" marker-end="url(#arrow)"/>
+<line x1="300.0" y1="40" x2="500" y2="240" stroke="#94a3b8" stroke-width="1" marker-end="url(#arrow)"/>
+<line x1="300.0" y1="40" x2="100" y2="300" stroke="#94a3b8" stroke-width="1" marker-end="url(#arrow)"/>
+<line x1="300.0" y1="40" x2="300" y2="300" stroke="#94a3b8" stroke-width="1" marker-end="url(#arrow)"/>
+<line x1="300.0" y1="40" x2="500" y2="300" stroke="#94a3b8" stroke-width="1" marker-end="url(#arrow)"/>
+<line x1="300.0" y1="40" x2="100" y2="360" stroke="#94a3b8" stroke-width="1" marker-end="url(#arrow)"/>
+<line x1="300.0" y1="40" x2="300" y2="360" stroke="#94a3b8" stroke-width="1" marker-end="url(#arrow)"/>
+<line x1="100" y1="300" x2="500" y2="360" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="100" y1="300" x2="100" y2="420" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="100" y1="300" x2="300" y2="420" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="100" y1="300" x2="500" y2="420" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="100" y1="300" x2="100" y2="480" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="100" y1="300" x2="300" y2="480" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="300" y1="240" x2="500" y2="360" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="300" y1="240" x2="100" y2="420" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="300" y1="240" x2="300" y2="420" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="300" y1="240" x2="500" y2="420" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="300" y1="240" x2="100" y2="480" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="300" y1="240" x2="300" y2="480" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="500" y1="120" x2="500" y2="360" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="500" y1="120" x2="100" y2="420" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="500" y1="120" x2="300" y2="420" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="500" y1="120" x2="500" y2="420" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="500" y1="120" x2="100" y2="480" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="500" y1="120" x2="300" y2="480" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="500" y1="240" x2="500" y2="360" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="500" y1="240" x2="100" y2="420" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="500" y1="240" x2="300" y2="420" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="500" y1="240" x2="500" y2="420" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="500" y1="240" x2="100" y2="480" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="500" y1="240" x2="300" y2="480" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+<circle cx="300.0" cy="40" r="18" fill="#ef4444" opacity="0.8"/>
+<text x="300.0" y="44" text-anchor="middle" fill="white" font-size="9">test@example..</text>
+<circle cx="300" cy="120" r="18" fill="#3b82f6" opacity="0.8"/>
+<text x="300" y="124" text-anchor="middle" fill="white" font-size="9">test@example..</text>
+<circle cx="500" cy="120" r="18" fill="#3b82f6" opacity="0.8"/>
+<text x="500" y="124" text-anchor="middle" fill="white" font-size="9">example.</text>
+<circle cx="100" cy="180" r="18" fill="#3b82f6" opacity="0.8"/>
+<text x="100" y="184" text-anchor="middle" fill="white" font-size="9">13393021</text>
+<circle cx="300" cy="180" r="18" fill="#3b82f6" opacity="0.8"/>
+<text x="300" y="184" text-anchor="middle" fill="white" font-size="9">21636478</text>
+<circle cx="500" cy="180" r="18" fill="#3b82f6" opacity="0.8"/>
+<text x="500" y="184" text-anchor="middle" fill="white" font-size="9">34076873</text>
+<circle cx="100" cy="240" r="18" fill="#3b82f6" opacity="0.8"/>
+<text x="100" y="244" text-anchor="middle" fill="white" font-size="9">20162049</text>
+<circle cx="300" cy="240" r="18" fill="#3b82f6" opacity="0.8"/>
+<text x="300" y="244" text-anchor="middle" fill="white" font-size="9">githubuserco..</text>
+<circle cx="500" cy="240" r="18" fill="#3b82f6" opacity="0.8"/>
+<text x="500" y="244" text-anchor="middle" fill="white" font-size="9">github.</text>
+<circle cx="100" cy="300" r="18" fill="#3b82f6" opacity="0.8"/>
+<text x="100" y="304" text-anchor="middle" fill="white" font-size="9">1y4vw3qtb4sk..</text>
+<circle cx="300" cy="300" r="18" fill="#3b82f6" opacity="0.8"/>
+<text x="300" y="304" text-anchor="middle" fill="white" font-size="9">1y4vw3qtb4sk..</text>
+<circle cx="500" cy="300" r="18" fill="#3b82f6" opacity="0.8"/>
+<text x="500" y="304" text-anchor="middle" fill="white" font-size="9">githubuserco..</text>
+<circle cx="100" cy="360" r="18" fill="#3b82f6" opacity="0.8"/>
+<text x="100" y="364" text-anchor="middle" fill="white" font-size="9">example.</text>
+<circle cx="300" cy="360" r="18" fill="#3b82f6" opacity="0.8"/>
+<text x="300" y="364" text-anchor="middle" fill="white" font-size="9">github.</text>
+<circle cx="500" cy="360" r="18" fill="#10b981" opacity="0.8"/>
+<text x="500" y="364" text-anchor="middle" fill="white" font-size="9">github</text>
+<circle cx="100" cy="420" r="18" fill="#10b981" opacity="0.8"/>
+<text x="100" y="424" text-anchor="middle" fill="white" font-size="9">gitlab</text>
+<circle cx="300" cy="420" r="18" fill="#10b981" opacity="0.8"/>
+<text x="300" y="424" text-anchor="middle" fill="white" font-size="9">reddit</text>
+<circle cx="500" cy="420" r="18" fill="#10b981" opacity="0.8"/>
+<text x="500" y="424" text-anchor="middle" fill="white" font-size="9">twitter</text>
+<circle cx="100" cy="480" r="18" fill="#10b981" opacity="0.8"/>
+<text x="100" y="484" text-anchor="middle" fill="white" font-size="9">instagram</text>
+<circle cx="300" cy="480" r="18" fill="#10b981" opacity="0.8"/>
+<text x="300" y="484" text-anchor="middle" fill="white" font-size="9">linkedin</text>
+</svg></div>
+  </section>
+
+  <section id="chronology">
+    <h2>VII. Chronology</h2>
+    <table>
+      <tr><th>Time (UTC)</th><th>Source</th><th>Event</th><th>Conf.</th></tr>
+      
+      <tr>
+        <td>2026-06-02 23:46</td>
+        <td>email_osint</td>
+        <td>Found 2 TXT records</td>
+        <td>50%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-02 23:46</td>
+        <td>email_osint</td>
+        <td>Domain example.com has 1 MX records</td>
+        <td>50%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-02 23:46</td>
+        <td>email_osint</td>
+        <td>Found 30 potential GitHub matches</td>
+        <td>50%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-02 23:46</td>
+        <td>social_osint</td>
+        <td>Found on 3 platforms</td>
+        <td>50%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-02 23:46</td>
+        <td>social_osint</td>
+        <td>Found on 3 platforms</td>
+        <td>50%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-02 23:46</td>
+        <td>social_osint</td>
+        <td>Found on 3 platforms</td>
+        <td>50%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-02 23:46</td>
+        <td>social_osint</td>
+        <td>Found on 3 platforms</td>
+        <td>50%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-02 23:46</td>
+        <td>email_osint</td>
+        <td>email=test@example.com on email_osint</td>
+        <td>70%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-02 23:46</td>
+        <td>email_osint</td>
+        <td>record=test@example.com on email_osint</td>
+        <td>50%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-02 23:46</td>
+        <td>social_osint</td>
+        <td>username=1y4vw3qtb4skdx9e7dxt97qrmmq9 on social_osint (https://github.com/1y4vw3qtb4skdx9e7dxt97qrmmq9)</td>
+        <td>20%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-02 23:46</td>
+        <td>social_osint</td>
+        <td>username=1y4vw3qtb4skdx9e7dxt97qrmmq9 on social_osint (https://gitlab.com/1y4vw3qtb4skdx9e7dxt97qrmmq9)</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-02 23:46</td>
+        <td>social_osint</td>
+        <td>username=1y4vw3qtb4skdx9e7dxt97qrmmq9 on social_osint (https://reddit.com/user/1y4vw3qtb4skdx9e7dxt97qrmmq9)</td>
+        <td>20%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-02 23:46</td>
+        <td>social_osint</td>
+        <td>username=1y4vw3qtb4skdx9e7dxt97qrmmq9 on social_osint (https://twitter.com/1y4vw3qtb4skdx9e7dxt97qrmmq9)</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-02 23:46</td>
+        <td>social_osint</td>
+        <td>username=1y4vw3qtb4skdx9e7dxt97qrmmq9 on social_osint (https://instagram.com/1y4vw3qtb4skdx9e7dxt97qrmmq9)</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-02 23:46</td>
+        <td>social_osint</td>
+        <td>username=1y4vw3qtb4skdx9e7dxt97qrmmq9 on social_osint (https://linkedin.com/in/1y4vw3qtb4skdx9e7dxt97qrmmq9)</td>
+        <td>20%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-02 23:46</td>
+        <td>social_osint</td>
+        <td>username=1y4vw3qtb4skdx9e7dxt97qrmmq9 on social_osint</td>
+        <td>70%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-02 23:46</td>
+        <td>social_osint</td>
+        <td>username=githubusercontent. on social_osint (https://github.com/githubusercontent.)</td>
+        <td>20%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-02 23:46</td>
+        <td>social_osint</td>
+        <td>username=githubusercontent. on social_osint (https://gitlab.com/githubusercontent.)</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-02 23:46</td>
+        <td>social_osint</td>
+        <td>username=githubusercontent. on social_osint (https://reddit.com/user/githubusercontent.)</td>
+        <td>20%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-02 23:46</td>
+        <td>social_osint</td>
+        <td>username=githubusercontent. on social_osint (https://twitter.com/githubusercontent.)</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-02 23:46</td>
+        <td>social_osint</td>
+        <td>username=githubusercontent. on social_osint (https://instagram.com/githubusercontent.)</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-02 23:46</td>
+        <td>social_osint</td>
+        <td>username=githubusercontent. on social_osint (https://linkedin.com/in/githubusercontent.)</td>
+        <td>20%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-02 23:46</td>
+        <td>social_osint</td>
+        <td>username=githubusercontent. on social_osint</td>
+        <td>70%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-02 23:46</td>
+        <td>social_osint</td>
+        <td>username=example. on social_osint (https://github.com/example.)</td>
+        <td>20%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-02 23:46</td>
+        <td>social_osint</td>
+        <td>username=example. on social_osint (https://gitlab.com/example.)</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-02 23:46</td>
+        <td>social_osint</td>
+        <td>username=example. on social_osint (https://reddit.com/user/example.)</td>
+        <td>20%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-02 23:46</td>
+        <td>social_osint</td>
+        <td>username=example. on social_osint (https://twitter.com/example.)</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-02 23:46</td>
+        <td>social_osint</td>
+        <td>username=example. on social_osint (https://instagram.com/example.)</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-02 23:46</td>
+        <td>social_osint</td>
+        <td>username=example. on social_osint (https://linkedin.com/in/example.)</td>
+        <td>20%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-02 23:46</td>
+        <td>social_osint</td>
+        <td>username=example. on social_osint</td>
+        <td>70%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-02 23:46</td>
+        <td>social_osint</td>
+        <td>username=github. on social_osint (https://github.com/github.)</td>
+        <td>20%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-02 23:46</td>
+        <td>social_osint</td>
+        <td>username=github. on social_osint (https://gitlab.com/github.)</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-02 23:46</td>
+        <td>social_osint</td>
+        <td>username=github. on social_osint (https://reddit.com/user/github.)</td>
+        <td>20%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-02 23:46</td>
+        <td>social_osint</td>
+        <td>username=github. on social_osint (https://twitter.com/github.)</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-02 23:46</td>
+        <td>social_osint</td>
+        <td>username=github. on social_osint (https://instagram.com/github.)</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-02 23:46</td>
+        <td>social_osint</td>
+        <td>username=github. on social_osint (https://linkedin.com/in/github.)</td>
+        <td>20%</td>
+      </tr>
+      
+      <tr>
+        <td>2026-06-02 23:46</td>
+        <td>social_osint</td>
+        <td>username=github. on social_osint</td>
+        <td>70%</td>
+      </tr>
+      
+    </table>
+  </section>
+
+  <section id="gaps">
+    <h2>VIII. Intelligence gaps</h2>
+    <ul class="gaps">
+      
+      <li>No breach corpus hits — configure DEHASHED_API_KEY, HIBP_API_KEY, LEAKCHECK_API_KEY in .env.</li>
+      
+      <li>No NIK / national ID — Indonesian civil registry sources not queried.</li>
+      
+      <li>No geolocation indicators — expand to domain/WHOIS and address fields in breach data.</li>
+      
+    </ul>
+  </section>
+
+  <section id="actions">
+    <h2>IX. Recommended collection &amp; follow-up</h2>
+    <ul class="actions">
+      
+      <li>[P1] USERNAME: test — Extract local-part 'test' for username search</li>
+      
+      <li>[P1] USERNAME: address:1y4vw3qtb4 — Track funding source for 1y4vw3qtb4...</li>
+      
+      <li>[P2] DOMAIN: example.com — Investigate domain example.com</li>
+      
+      <li>[P2] EMAIL: phone:13393021 — Run reverse phone lookup for 13393021</li>
+      
+      <li>[P2] EMAIL: phone:21636478 — Run reverse phone lookup for 21636478</li>
+      
+      <li>[P2] EMAIL: phone:34076873 — Run reverse phone lookup for 34076873</li>
+      
+      <li>[P2] EMAIL: phone:20162049 — Run reverse phone lookup for 20162049</li>
+      
+      <li>[P2] EMAIL: 1y4vw3qtb4skdx9e7dxt97qrmmq9@ — Username '1y4vw3qtb4skdx9e7dxt97qrmmq9' likely has a Gravatar or GitHub email</li>
+      
+      <li>Enumerate 1y4vw3qtb4skdx9e7dxt97qrmmq9 across archived web (Wayback) and code repos (GitHub dorks).</li>
+      
+      <li>Enumerate example. across archived web (Wayback) and code repos (GitHub dorks).</li>
+      
+      <li>Enumerate github. across archived web (Wayback) and code repos (GitHub dorks).</li>
+      
+      <li>Deep breach pivot on test@example.com (HIBP, DeHashed, IntelX).</li>
+      
+    </ul>
+  </section>
+
+  <section id="evidence-index">
+    <h2>Appendix A — Evidence register</h2>
+    <table>
+      <tr><th>Value</th><th>Type</th><th>Source</th><th>Rel.</th><th>Conf.</th></tr>
+      
+      <tr>
+        <td><code>test@example.com</code></td>
+        <td>email</td>
+        <td>email_osint</td>
+        <td>F</td>
+        <td>70%</td>
+      </tr>
+      
+      <tr>
+        <td><code>test@example.com</code></td>
+        <td>record</td>
+        <td>email_osint</td>
+        <td>F</td>
+        <td>50%</td>
+      </tr>
+      
+      <tr>
+        <td><code>1y4vw3qtb4skdx9e7dxt97qrmmq9</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>20%</td>
+      </tr>
+      
+      <tr>
+        <td><code>1y4vw3qtb4skdx9e7dxt97qrmmq9</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td><code>1y4vw3qtb4skdx9e7dxt97qrmmq9</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>20%</td>
+      </tr>
+      
+      <tr>
+        <td><code>1y4vw3qtb4skdx9e7dxt97qrmmq9</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td><code>1y4vw3qtb4skdx9e7dxt97qrmmq9</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td><code>1y4vw3qtb4skdx9e7dxt97qrmmq9</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>20%</td>
+      </tr>
+      
+      <tr>
+        <td><code>1y4vw3qtb4skdx9e7dxt97qrmmq9</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>70%</td>
+      </tr>
+      
+      <tr>
+        <td><code>githubusercontent.</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>20%</td>
+      </tr>
+      
+      <tr>
+        <td><code>githubusercontent.</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td><code>githubusercontent.</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>20%</td>
+      </tr>
+      
+      <tr>
+        <td><code>githubusercontent.</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td><code>githubusercontent.</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td><code>githubusercontent.</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>20%</td>
+      </tr>
+      
+      <tr>
+        <td><code>githubusercontent.</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>70%</td>
+      </tr>
+      
+      <tr>
+        <td><code>example.</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>20%</td>
+      </tr>
+      
+      <tr>
+        <td><code>example.</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td><code>example.</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>20%</td>
+      </tr>
+      
+      <tr>
+        <td><code>example.</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td><code>example.</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td><code>example.</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>20%</td>
+      </tr>
+      
+      <tr>
+        <td><code>example.</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>70%</td>
+      </tr>
+      
+      <tr>
+        <td><code>github.</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>20%</td>
+      </tr>
+      
+      <tr>
+        <td><code>github.</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td><code>github.</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>20%</td>
+      </tr>
+      
+      <tr>
+        <td><code>github.</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td><code>github.</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>90%</td>
+      </tr>
+      
+      <tr>
+        <td><code>github.</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>20%</td>
+      </tr>
+      
+      <tr>
+        <td><code>github.</code></td>
+        <td>username</td>
+        <td>social_osint</td>
+        <td>C</td>
+        <td>70%</td>
+      </tr>
+      
+    </table>
+    
+  </section>
+
+  
+  <section id="warnings">
+    <h2>Appendix B — Analyst warnings</h2>
+    <ul><li>12 low-confidence evidence item(s) — verify manually</li></ul>
+  </section>
+  
+
+  <div class="footer">
+    Generated by 1ai-osint ZKIT Deep Scan · Scan of 'test@example.com' completed in 9.8s across 2 module(s) and 2 iteration(s). Collected 30 evidence item(s) from 6 distinct platform(s). Overall risk: HIGH (score 0.50).
+  </div>
+</div>
+</body>
+</html>

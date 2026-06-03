@@ -1,4 +1,5 @@
 """Message protocol for master-node communication."""
+
 from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -32,16 +33,21 @@ class NodeMessage:
     msg_type: MessageType
     node_id: str
     payload: dict[str, Any] = field(default_factory=dict)
-    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    timestamp: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
 
     def to_telegram(self) -> str:
         """Serialize for Telegram message (compact JSON)."""
-        return json.dumps({
-            "t": self.msg_type.value,
-            "n": self.node_id,
-            "p": self.payload,
-            "ts": self.timestamp,
-        }, separators=(",", ":"))
+        return json.dumps(
+            {
+                "t": self.msg_type.value,
+                "n": self.node_id,
+                "p": self.payload,
+                "ts": self.timestamp,
+            },
+            separators=(",", ":"),
+        )
 
     @classmethod
     def from_telegram(cls, text: str) -> NodeMessage | None:

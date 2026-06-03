@@ -1,4 +1,5 @@
 """Identifier extractor — extracts new identifiers from scan results."""
+
 from __future__ import annotations
 import logging
 import re
@@ -6,12 +7,14 @@ from src.modules.deep_scan import Identifier, IdentifierType
 
 logger = logging.getLogger(__name__)
 
-_EMAIL_RE = re.compile(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}')
-_PHONE_RE = re.compile(r'[\+]?[(]?[0-9]{1,4}[)]?[-\s\./0-9]{7,15}')
-_DOMAIN_RE = re.compile(r'(?:https?://)?([a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}')
-_BTC_RE = re.compile(r'[13][a-km-zA-HJ-NP-Z1-9]{25,34}')
-_ETH_RE = re.compile(r'0x[0-9a-fA-F]{40}')
-_NIK_RE = re.compile(r'\b\d{16}\b')
+_EMAIL_RE = re.compile(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}")
+_PHONE_RE = re.compile(r"[\+]?[(]?[0-9]{1,4}[)]?[-\s\./0-9]{7,15}")
+_DOMAIN_RE = re.compile(
+    r"(?:https?://)?([a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}"
+)
+_BTC_RE = re.compile(r"[13][a-km-zA-HJ-NP-Z1-9]{25,34}")
+_ETH_RE = re.compile(r"0x[0-9a-fA-F]{40}")
+_NIK_RE = re.compile(r"\b\d{16}\b")
 
 
 def extract_identifiers(text: str, source: str) -> list[Identifier]:
@@ -24,49 +27,69 @@ def extract_identifiers(text: str, source: str) -> list[Identifier]:
         key = f"email:{match.lower()}"
         if key not in seen:
             seen.add(key)
-            identifiers.append(Identifier(
-                value=match.lower(), id_type=IdentifierType.EMAIL, source=source,
-            ))
+            identifiers.append(
+                Identifier(
+                    value=match.lower(),
+                    id_type=IdentifierType.EMAIL,
+                    source=source,
+                )
+            )
 
     # Phone numbers
     for match in _PHONE_RE.findall(text):
-        cleaned = re.sub(r'[\s\-\.\(\)]', '', match)
+        cleaned = re.sub(r"[\s\-\.\(\)]", "", match)
         if len(cleaned) >= 7:
             key = f"phone:{cleaned}"
             if key not in seen:
                 seen.add(key)
-                identifiers.append(Identifier(
-                    value=cleaned, id_type=IdentifierType.PHONE, source=source,
-                ))
+                identifiers.append(
+                    Identifier(
+                        value=cleaned,
+                        id_type=IdentifierType.PHONE,
+                        source=source,
+                    )
+                )
 
     # Domains
     for match in _DOMAIN_RE.findall(text):
         key = f"domain:{match.lower()}"
         if key not in seen:
             seen.add(key)
-            identifiers.append(Identifier(
-                value=match.lower(), id_type=IdentifierType.DOMAIN, source=source,
-            ))
+            identifiers.append(
+                Identifier(
+                    value=match.lower(),
+                    id_type=IdentifierType.DOMAIN,
+                    source=source,
+                )
+            )
 
     # Ethereum addresses
     for match in _ETH_RE.findall(text):
         key = f"crypto:{match.lower()}"
         if key not in seen:
             seen.add(key)
-            identifiers.append(Identifier(
-                value=match, id_type=IdentifierType.CRYPTO_ADDRESS, source=source,
-                metadata={"chain": "ethereum"},
-            ))
+            identifiers.append(
+                Identifier(
+                    value=match,
+                    id_type=IdentifierType.CRYPTO_ADDRESS,
+                    source=source,
+                    metadata={"chain": "ethereum"},
+                )
+            )
 
     # Bitcoin addresses
     for match in _BTC_RE.findall(text):
         key = f"crypto:{match}"
         if key not in seen:
             seen.add(key)
-            identifiers.append(Identifier(
-                value=match, id_type=IdentifierType.CRYPTO_ADDRESS, source=source,
-                metadata={"chain": "bitcoin"},
-            ))
+            identifiers.append(
+                Identifier(
+                    value=match,
+                    id_type=IdentifierType.CRYPTO_ADDRESS,
+                    source=source,
+                    metadata={"chain": "bitcoin"},
+                )
+            )
 
     # Indonesian NIK (16 digits)
     for match in _NIK_RE.findall(text):
@@ -74,10 +97,14 @@ def extract_identifiers(text: str, source: str) -> list[Identifier]:
             key = f"nik:{match}"
             if key not in seen:
                 seen.add(key)
-                identifiers.append(Identifier(
-                    value=match, id_type=IdentifierType.NIK, source=source,
-                    metadata=_parse_nik(match),
-                ))
+                identifiers.append(
+                    Identifier(
+                        value=match,
+                        id_type=IdentifierType.NIK,
+                        source=source,
+                        metadata=_parse_nik(match),
+                    )
+                )
 
     return identifiers
 
@@ -98,12 +125,14 @@ def extract_usernames_from_profiles(findings: list) -> list[Identifier]:
 
                 handle = slugify_username(uname) if " " in uname else uname.strip()
                 if handle:
-                    identifiers.append(Identifier(
-                        value=handle,
-                        id_type=IdentifierType.USERNAME,
-                        source=finding.module,
-                        confidence=0.9,
-                    ))
+                    identifiers.append(
+                        Identifier(
+                            value=handle,
+                            id_type=IdentifierType.USERNAME,
+                            source=finding.module,
+                            confidence=0.9,
+                        )
+                    )
 
     return identifiers
 

@@ -11,7 +11,7 @@ import logging
 import uuid
 from typing import Any, Optional
 
-from src.models import Finding, ScanResult, Severity
+from src.core.models import Finding, ScanResult, Severity
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,15 @@ logger = logging.getLogger(__name__)
 _STRUCTURED_SOURCES = {
     "dehashed": {
         "api": "api.dehashed.com",
-        "fields": ["email", "username", "password_hash", "phone", "domain", "ip_address", "name"],
+        "fields": [
+            "email",
+            "username",
+            "password_hash",
+            "phone",
+            "domain",
+            "ip_address",
+            "name",
+        ],
     },
     "leakcheck": {
         "api": "leakcheck.io",
@@ -27,7 +35,14 @@ _STRUCTURED_SOURCES = {
     },
     "snylla": {
         "api": "scylla.sh",
-        "fields": ["email", "username", "password_hash", "phone", "domain", "ip_address"],
+        "fields": [
+            "email",
+            "username",
+            "password_hash",
+            "phone",
+            "domain",
+            "ip_address",
+        ],
     },
     "snusbase": {
         "api": "snusbase.com",
@@ -44,7 +59,9 @@ _STRUCTURED_SOURCES = {
 }
 
 
-async def run_source_scan(source_name: str, target: str, source_instance: Any) -> Optional[ScanResult]:
+async def run_source_scan(
+    source_name: str, target: str, source_instance: Any
+) -> Optional[ScanResult]:
     """Run a single breach/leak source scan and return a structured ScanResult.
 
     Args:
@@ -72,20 +89,22 @@ async def run_source_scan(source_name: str, target: str, source_instance: Any) -
 
     for leak in raw_leaks:
         parsed = _parse_leak_data(leak.text, source_name, source_config)
-        findings.append(Finding(
-            id=f"find-{uuid.uuid4().hex[:8]}",
-            module=f"source_{source_name}",
-            title=f"{source_name}: {target}",
-            description=f"Structured data from {source_config.get('api', source_name)}",
-            severity=Severity.INFO,
-            raw_data={
-                "source": source_name,
-                "source_url": leak.source_url,
-                "target": target,
-                **parsed,
-            },
-            confidence=_confidence_for_source(source_name, parsed),
-        ))
+        findings.append(
+            Finding(
+                id=f"find-{uuid.uuid4().hex[:8]}",
+                module=f"source_{source_name}",
+                title=f"{source_name}: {target}",
+                description=f"Structured data from {source_config.get('api', source_name)}",
+                severity=Severity.INFO,
+                raw_data={
+                    "source": source_name,
+                    "source_url": leak.source_url,
+                    "target": target,
+                    **parsed,
+                },
+                confidence=_confidence_for_source(source_name, parsed),
+            )
+        )
 
     if not findings:
         return None

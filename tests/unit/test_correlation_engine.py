@@ -26,9 +26,24 @@ def sample_extraction():
     """Provide a sample EntityExtractionResult."""
     return EntityExtractionResult(
         entities=[
-            ExtractedEntity(entity_type=EntityType.EMAIL, value="john@example.com", confidence=0.9, context="test"),
-            ExtractedEntity(entity_type=EntityType.USERNAME, value="johndoe", confidence=0.8, context="test"),
-            ExtractedEntity(entity_type=EntityType.EMAIL, value="john.doe@work.com", confidence=0.7, context="test"),
+            ExtractedEntity(
+                entity_type=EntityType.EMAIL,
+                value="john@example.com",
+                confidence=0.9,
+                context="test",
+            ),
+            ExtractedEntity(
+                entity_type=EntityType.USERNAME,
+                value="johndoe",
+                confidence=0.8,
+                context="test",
+            ),
+            ExtractedEntity(
+                entity_type=EntityType.EMAIL,
+                value="john.doe@work.com",
+                confidence=0.7,
+                context="test",
+            ),
         ],
         summary="Found 3 entities",
     )
@@ -40,15 +55,26 @@ class TestCorrelationEngine:
         assert result.summary == "No entities to correlate"
 
     def test_correlate_valid_response(self, engine, mock_client, sample_extraction):
-        response = json.dumps({
-            "correlated_groups": [
-                {"entities": ["john@example.com", "johndoe"], "confidence": 0.9, "reasoning": "Same name pattern"}
-            ],
-            "relationships": [
-                {"from_entity": "john@example.com", "to_entity": "johndoe", "relationship_type": "same_person", "confidence": 0.9}
-            ],
-            "summary": "Found 1 group"
-        })
+        response = json.dumps(
+            {
+                "correlated_groups": [
+                    {
+                        "entities": ["john@example.com", "johndoe"],
+                        "confidence": 0.9,
+                        "reasoning": "Same name pattern",
+                    }
+                ],
+                "relationships": [
+                    {
+                        "from_entity": "john@example.com",
+                        "to_entity": "johndoe",
+                        "relationship_type": "same_person",
+                        "confidence": 0.9,
+                    }
+                ],
+                "summary": "Found 1 group",
+            }
+        )
         mock_client.chat.return_value = response
 
         result = engine.correlate(sample_extraction)
@@ -72,20 +98,26 @@ class TestCorrelationEngine:
         assert "failed" in result.summary.lower()
 
     def test_correlate_cross_module(self, engine, mock_client):
-        response = json.dumps({
-            "correlated_groups": [],
-            "relationships": [],
-            "summary": "No correlations"
-        })
+        response = json.dumps(
+            {"correlated_groups": [], "relationships": [], "summary": "No correlations"}
+        )
         mock_client.chat.return_value = response
 
         module_results = {
-            "leaks": EntityExtractionResult(entities=[
-                ExtractedEntity(entity_type=EntityType.EMAIL, value="a@b.com", confidence=0.9)
-            ]),
-            "people": EntityExtractionResult(entities=[
-                ExtractedEntity(entity_type=EntityType.NAME, value="John", confidence=0.8)
-            ]),
+            "leaks": EntityExtractionResult(
+                entities=[
+                    ExtractedEntity(
+                        entity_type=EntityType.EMAIL, value="a@b.com", confidence=0.9
+                    )
+                ]
+            ),
+            "people": EntityExtractionResult(
+                entities=[
+                    ExtractedEntity(
+                        entity_type=EntityType.NAME, value="John", confidence=0.8
+                    )
+                ]
+            ),
         }
 
         result = engine.correlate_cross_module(module_results)
@@ -97,9 +129,15 @@ class TestCorrelationEngine:
 
     def test_find_shared_attributes(self, engine):
         entities = [
-            ExtractedEntity(entity_type=EntityType.EMAIL, value="test@example.com", confidence=0.9),
-            ExtractedEntity(entity_type=EntityType.EMAIL, value="TEST@EXAMPLE.COM", confidence=0.8),
-            ExtractedEntity(entity_type=EntityType.EMAIL, value="other@example.com", confidence=0.7),
+            ExtractedEntity(
+                entity_type=EntityType.EMAIL, value="test@example.com", confidence=0.9
+            ),
+            ExtractedEntity(
+                entity_type=EntityType.EMAIL, value="TEST@EXAMPLE.COM", confidence=0.8
+            ),
+            ExtractedEntity(
+                entity_type=EntityType.EMAIL, value="other@example.com", confidence=0.7
+            ),
         ]
 
         shared = engine.find_shared_attributes(entities)
@@ -111,8 +149,12 @@ class TestCorrelationEngine:
 
     def test_find_shared_attributes_none_shared(self, engine):
         entities = [
-            ExtractedEntity(entity_type=EntityType.EMAIL, value="a@b.com", confidence=0.9),
-            ExtractedEntity(entity_type=EntityType.EMAIL, value="c@d.com", confidence=0.8),
+            ExtractedEntity(
+                entity_type=EntityType.EMAIL, value="a@b.com", confidence=0.9
+            ),
+            ExtractedEntity(
+                entity_type=EntityType.EMAIL, value="c@d.com", confidence=0.8
+            ),
         ]
 
         shared = engine.find_shared_attributes(entities)

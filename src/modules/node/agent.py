@@ -1,4 +1,5 @@
 """Node agent — runs on each worker node, communicates with master via Telegram + HTTP API."""
+
 from __future__ import annotations
 import asyncio
 import hashlib
@@ -11,7 +12,10 @@ from typing import Any, Optional
 import httpx
 
 from src.modules.node.protocol import (
-    NodeMessage, NodeStatus, MessageType, CommandType,
+    NodeMessage,
+    NodeStatus,
+    MessageType,
+    CommandType,
 )
 
 logger = logging.getLogger(__name__)
@@ -47,16 +51,18 @@ class NodeAgent:
         logger.info("Node '%s' starting (role=%s)", self.node_id, self.role)
 
         # Register with master
-        await self._send_to_master(NodeMessage(
-            msg_type=MessageType.REGISTER,
-            node_id=self.node_id,
-            payload={
-                "hostname": socket.gethostname(),
-                "ip": self._get_ip(),
-                "version": self._get_version(),
-                "role": self.role,
-            },
-        ))
+        await self._send_to_master(
+            NodeMessage(
+                msg_type=MessageType.REGISTER,
+                node_id=self.node_id,
+                payload={
+                    "hostname": socket.gethostname(),
+                    "ip": self._get_ip(),
+                    "version": self._get_version(),
+                    "role": self.role,
+                },
+            )
+        )
 
         # Start heartbeat loop
         while self._running:
@@ -77,6 +83,7 @@ class NodeAgent:
     async def _heartbeat(self):
         """Send heartbeat to master."""
         import psutil
+
         mem = psutil.virtual_memory()
         status = NodeStatus(
             node_id=self.node_id,
@@ -84,19 +91,24 @@ class NodeAgent:
             ip=self._get_ip(),
             version=self._get_version(),
             role=self.role,
-            scanner_running=self._scanner_process is not None and self._scanner_process.returncode is None,
+            scanner_running=self._scanner_process is not None
+            and self._scanner_process.returncode is None,
             scan_count=self._scan_count,
             uptime_sec=time.monotonic() - self._start_time,
             memory_mb=mem.used / (1024 * 1024),
             cpu_percent=psutil.cpu_percent(interval=0.1),
         )
-        await self._send_to_master(NodeMessage(
-            msg_type=MessageType.HEARTBEAT,
-            node_id=self.node_id,
-            payload=status.to_dict(),
-        ))
+        await self._send_to_master(
+            NodeMessage(
+                msg_type=MessageType.HEARTBEAT,
+                node_id=self.node_id,
+                payload=status.to_dict(),
+            )
+        )
 
-    async def handle_command(self, command: CommandType, payload: dict[str, Any]) -> dict[str, Any]:
+    async def handle_command(
+        self, command: CommandType, payload: dict[str, Any]
+    ) -> dict[str, Any]:
         """Execute a command from master."""
         logger.info("Node '%s' executing command: %s", self.node_id, command.value)
 
@@ -125,9 +137,15 @@ class NodeAgent:
         interval = payload.get("interval", 300)
 
         cmd = [
-            "python", "-m", "src.cli", "leak-finder",
-            "--sources", str(sources),
-            "--continuous", "--interval", str(interval),
+            "python",
+            "-m",
+            "src.cli",
+            "leak-finder",
+            "--sources",
+            str(sources),
+            "--continuous",
+            "--interval",
+            str(interval),
         ]
 
         self._scanner_process = await asyncio.create_subprocess_exec(
@@ -155,7 +173,8 @@ class NodeAgent:
         """Pull latest code from git and restart."""
         try:
             proc = await asyncio.create_subprocess_exec(
-                "git", "pull",
+                "git",
+                "pull",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
@@ -163,7 +182,9 @@ class NodeAgent:
             output = stdout.decode().strip()
 
             # Restart scanner if it was running
-            was_running = self._scanner_process and self._scanner_process.returncode is None
+            was_running = (
+                self._scanner_process and self._scanner_process.returncode is None
+            )
             if was_running:
                 await self._cmd_stop_scanner()
                 await self._cmd_start_scanner({})
@@ -177,8 +198,12 @@ class NodeAgent:
         sources = payload.get("sources", "all")
         try:
             proc = await asyncio.create_subprocess_exec(
-                "python", "-m", "src.cli", "leak-finder",
-                "--sources", str(sources),
+                "python",
+                "-m",
+                "src.cli",
+                "leak-finder",
+                "--sources",
+                str(sources),
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
@@ -196,11 +221,13 @@ class NodeAgent:
 
     async def report_result(self, result: dict[str, Any]):
         """Report scan results to master via Telegram."""
-        await self._send_to_master(NodeMessage(
-            msg_type=MessageType.RESULT,
-            node_id=self.node_id,
-            payload=result,
-        ))
+        await self._send_to_master(
+            NodeMessage(
+                msg_type=MessageType.RESULT,
+                node_id=self.node_id,
+                payload=result,
+            )
+        )
 
     # ── HTTP API sync methods ───────────────────────────────────────────────
 
@@ -214,7 +241,9 @@ class NodeAgent:
                     bloom = data.get("bloom", "")
                     if bloom:
                         self._seen_keys = set(bloom.split("|"))
-                        logger.info("Synced %d seen keys from master", len(self._seen_keys))
+                        logger.info(
+                            "Synced %d seen keys from master", len(self._seen_keys)
+                        )
         except Exception as exc:
             logger.debug("Failed to sync seen keys: %s", exc)
         return self._seen_keys
@@ -223,13 +252,18 @@ class NodeAgent:
         """Report found keys to master API."""
         try:
             async with httpx.AsyncClient(timeout=10) as client:
-                resp = await client.post(f"{self.master_api_url}/api/keys", json={
-                    "node_id": self.node_id,
-                    "keys": keys,
-                })
+                resp = await client.post(
+                    f"{self.master_api_url}/api/keys",
+                    json={
+                        "node_id": self.node_id,
+                        "keys": keys,
+                    },
+                )
                 if resp.status_code == 200:
                     recorded = resp.json().get("recorded", 0)
-                    logger.info("Reported %d keys to master (%d new)", len(keys), recorded)
+                    logger.info(
+                        "Reported %d keys to master (%d new)", len(keys), recorded
+                    )
                     return recorded
         except Exception as exc:
             logger.debug("Failed to report keys: %s", exc)
@@ -239,11 +273,14 @@ class NodeAgent:
         """Acquire sweep lock from master API."""
         try:
             async with httpx.AsyncClient(timeout=10) as client:
-                resp = await client.post(f"{self.master_api_url}/api/locks", json={
-                    "address": address,
-                    "node_id": self.node_id,
-                    "ttl_seconds": ttl,
-                })
+                resp = await client.post(
+                    f"{self.master_api_url}/api/locks",
+                    json={
+                        "address": address,
+                        "node_id": self.node_id,
+                        "ttl_seconds": ttl,
+                    },
+                )
                 return resp.status_code == 200
         except Exception as exc:
             logger.debug("Failed to acquire lock: %s", exc)
@@ -253,11 +290,14 @@ class NodeAgent:
         """Report sweep result to master API."""
         try:
             async with httpx.AsyncClient(timeout=10) as client:
-                await client.post(f"{self.master_api_url}/api/sweep", json={
-                    "address": address,
-                    "node_id": self.node_id,
-                    "sweep_tx": sweep_tx,
-                })
+                await client.post(
+                    f"{self.master_api_url}/api/sweep",
+                    json={
+                        "address": address,
+                        "node_id": self.node_id,
+                        "sweep_tx": sweep_tx,
+                    },
+                )
         except Exception as exc:
             logger.debug("Failed to report sweep: %s", exc)
 
@@ -265,21 +305,26 @@ class NodeAgent:
         """Send heartbeat to master API."""
         try:
             import psutil
+
             mem = psutil.virtual_memory()
             async with httpx.AsyncClient(timeout=10) as client:
-                await client.post(f"{self.master_api_url}/api/heartbeat", json={
-                    "node_id": self.node_id,
-                    "status": {
-                        "hostname": socket.gethostname(),
-                        "ip": self._get_ip(),
-                        "version": self._get_version(),
-                        "scanner_running": self._scanner_process is not None and self._scanner_process.returncode is None,
-                        "scan_count": self._scan_count,
-                        "uptime_sec": time.monotonic() - self._start_time,
-                        "memory_mb": mem.used / (1024 * 1024),
-                        "cpu_percent": psutil.cpu_percent(interval=0.1),
+                await client.post(
+                    f"{self.master_api_url}/api/heartbeat",
+                    json={
+                        "node_id": self.node_id,
+                        "status": {
+                            "hostname": socket.gethostname(),
+                            "ip": self._get_ip(),
+                            "version": self._get_version(),
+                            "scanner_running": self._scanner_process is not None
+                            and self._scanner_process.returncode is None,
+                            "scan_count": self._scan_count,
+                            "uptime_sec": time.monotonic() - self._start_time,
+                            "memory_mb": mem.used / (1024 * 1024),
+                            "cpu_percent": psutil.cpu_percent(interval=0.1),
+                        },
                     },
-                })
+                )
         except Exception as exc:
             logger.debug("Failed to send heartbeat: %s", exc)
 
@@ -291,6 +336,7 @@ class NodeAgent:
     def _get_status(self) -> NodeStatus:
         """Get current node status."""
         import psutil
+
         mem = psutil.virtual_memory()
         return NodeStatus(
             node_id=self.node_id,
@@ -298,7 +344,8 @@ class NodeAgent:
             ip=self._get_ip(),
             version=self._get_version(),
             role=self.role,
-            scanner_running=self._scanner_process is not None and self._scanner_process.returncode is None,
+            scanner_running=self._scanner_process is not None
+            and self._scanner_process.returncode is None,
             scan_count=self._scan_count,
             uptime_sec=time.monotonic() - self._start_time,
             memory_mb=mem.used / (1024 * 1024),
@@ -310,11 +357,14 @@ class NodeAgent:
         try:
             url = f"https://api.telegram.org/bot{self.telegram_token}/sendMessage"
             async with httpx.AsyncClient(timeout=10) as client:
-                await client.post(url, json={
-                    "chat_id": self.master_chat_id,
-                    "text": f"[1ai-node]\n{msg.to_telegram()}",
-                    "parse_mode": None,
-                })
+                await client.post(
+                    url,
+                    json={
+                        "chat_id": self.master_chat_id,
+                        "text": f"[1ai-node]\n{msg.to_telegram()}",
+                        "parse_mode": None,
+                    },
+                )
         except Exception as exc:
             logger.debug("Failed to send to master: %s", exc)
 
@@ -336,7 +386,9 @@ class NodeAgent:
         try:
             proc = subprocess.run(
                 ["git", "rev-parse", "--short", "HEAD"],
-                capture_output=True, text=True, timeout=5,
+                capture_output=True,
+                text=True,
+                timeout=5,
             )
             return proc.stdout.strip() or "unknown"
         except Exception:

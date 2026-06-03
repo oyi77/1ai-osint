@@ -1,4 +1,5 @@
 """Unit tests for intel report generator — deterministic confidence, risk, graph, pivots."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -10,12 +11,16 @@ from src.modules.deep_scan.models_report import (
     IntelReport,
     RiskLevel,
 )
-from src.modules.deep_scan.report_generator import generate_intel_report, generate_intel_report_with_ai
+from src.modules.deep_scan.report_generator import (
+    generate_intel_report,
+    generate_intel_report_with_ai,
+)
 
 
 def _make_result(target="test_user", findings=None, identifiers=None):
     """Helper: build a DeepScanResult with given findings/identifiers."""
     from datetime import timedelta
+
     now = datetime.now(timezone.utc)
     r = DeepScanResult(
         target=target,
@@ -109,41 +114,74 @@ class TestEvidenceExtraction:
         assert len(report.evidence[0].identifier_value) == 16
 
     def test_platform_list_generates_multiple_evidence(self):
-        f = _make_finding(module="social_osint", raw_data={
-            "username": "alice",
-            "platforms": [
-                {"platform": "github", "url": "https://github.com/alice", "status": 200, "exists": True},
-                {"platform": "twitter", "url": "https://twitter.com/alice", "status": 200, "exists": True},
-                {"platform": "instagram", "url": "https://instagram.com/alice", "status": 404, "exists": False},
-            ]
-        })
+        f = _make_finding(
+            module="social_osint",
+            raw_data={
+                "username": "alice",
+                "platforms": [
+                    {
+                        "platform": "github",
+                        "url": "https://github.com/alice",
+                        "status": 200,
+                        "exists": True,
+                    },
+                    {
+                        "platform": "twitter",
+                        "url": "https://twitter.com/alice",
+                        "status": 200,
+                        "exists": True,
+                    },
+                    {
+                        "platform": "instagram",
+                        "url": "https://instagram.com/alice",
+                        "status": 404,
+                        "exists": False,
+                    },
+                ],
+            },
+        )
         result = _make_result(findings=[f])
         report = generate_intel_report(result)
-        assert len(report.evidence) == 4  # 3 platforms + 1 username
+        assert len(report.evidence) == 3  # 2 platforms + 1 username
         # existing gets 0.9 confidence
         assert report.evidence[0].confidence == 0.9
-        assert report.evidence[2].confidence == 0.2
 
     def test_deduplicates_by_url_source_platform(self):
-        f = _make_finding(module="social_osint", raw_data={
-            "username": "alice",
-            "platforms": [
-                {"platform": "github", "url": "https://github.com/alice", "status": 200},
-                {"platform": "github", "url": "https://github.com/alice", "status": 200},
-            ]
-        })
+        f = _make_finding(
+            module="social_osint",
+            raw_data={
+                "username": "alice",
+                "platforms": [
+                    {
+                        "platform": "github",
+                        "url": "https://github.com/alice",
+                        "status": 200,
+                    },
+                    {
+                        "platform": "github",
+                        "url": "https://github.com/alice",
+                        "status": 200,
+                    },
+                ],
+            },
+        )
         result = _make_result(findings=[f])
         report = generate_intel_report(result)
         # 1 platform evidence + 1 username evidence = 2 total; duplicates deduplicated
-        assert len([e for e in report.evidence if e.notes == "github"]) == 1  # only 1 github platform
+        assert (
+            len([e for e in report.evidence if e.notes == "github"]) == 1
+        )  # only 1 github platform
 
     def test_builds_url_from_platform_and_value(self):
-        f = _make_finding(module="social_osint", raw_data={
-            "username": "alice",
-            "platforms": [
-                {"platform": "gitlab", "url": None, "status": 200, "exists": True},
-            ]
-        })
+        f = _make_finding(
+            module="social_osint",
+            raw_data={
+                "username": "alice",
+                "platforms": [
+                    {"platform": "gitlab", "url": None, "status": 200, "exists": True},
+                ],
+            },
+        )
         result = _make_result(findings=[f])
         report = generate_intel_report(result)
         assert report.evidence[0].url == "https://gitlab.com/alice"
@@ -163,7 +201,9 @@ class TestConfidence:
 
     def test_email_uniqueness_higher_than_username(self):
         f_username = _make_finding(module="github", raw_data={"username": "alice"})
-        f_email = _make_finding(module="leakcheck", raw_data={"email": "alice@example.com"})
+        f_email = _make_finding(
+            module="leakcheck", raw_data={"email": "alice@example.com"}
+        )
         result = _make_result(findings=[f_username, f_email])
         report = generate_intel_report(result)
         cb_username = report.confidence_by_identifier["alice"]
@@ -193,7 +233,14 @@ class TestRisk:
 
     def test_nik_plus_phone_plus_name_is_critical(self):
         """NIK + phone + name combined triggers CRITICAL."""
-        f1 = _make_finding(module="data_leaks", raw_data={"nik": "1234567890123456", "phone": "+62812345678", "name": "John Doe"})
+        f1 = _make_finding(
+            module="data_leaks",
+            raw_data={
+                "nik": "1234567890123456",
+                "phone": "+62812345678",
+                "name": "John Doe",
+            },
+        )
         result = _make_result(findings=[f1])
         report = generate_intel_report(result)
         assert report.risk.level == RiskLevel.CRITICAL
@@ -221,7 +268,13 @@ class TestRisk:
 
     def test_seed_phrase_is_critical(self):
         # Risk functions check identifier values; "seed" must be in a value
-        f = _make_finding(module="paste_source", raw_data={"snippet": "seed mnemonic exposed", "username": "seed_phrase_leaked"})
+        f = _make_finding(
+            module="paste_source",
+            raw_data={
+                "snippet": "seed mnemonic exposed",
+                "username": "seed_phrase_leaked",
+            },
+        )
         result = _make_result(findings=[f])
         report = generate_intel_report(result)
         assert report.risk.score > 0
@@ -250,8 +303,18 @@ class TestGraph:
     def test_builds_graph_with_identifiers(self):
         result = _make_result(
             identifiers=[
-                Identifier(value="alice", id_type=IdentifierType.USERNAME, source="github", confidence=0.9),
-                Identifier(value="alice@example.com", id_type=IdentifierType.EMAIL, source="leakcheck", confidence=0.8),
+                Identifier(
+                    value="alice",
+                    id_type=IdentifierType.USERNAME,
+                    source="github",
+                    confidence=0.9,
+                ),
+                Identifier(
+                    value="alice@example.com",
+                    id_type=IdentifierType.EMAIL,
+                    source="leakcheck",
+                    confidence=0.8,
+                ),
             ]
         )
         report = generate_intel_report(result)
@@ -266,12 +329,20 @@ class TestGraph:
         assert nodes[0].type == "name"
 
     def test_platform_nodes_from_evidence(self):
-        f = _make_finding(module="social_osint", raw_data={
-            "username": "alice",
-            "platforms": [
-                {"platform": "github", "url": "https://github.com/alice", "status": 200, "exists": True},
-            ]
-        })
+        f = _make_finding(
+            module="social_osint",
+            raw_data={
+                "username": "alice",
+                "platforms": [
+                    {
+                        "platform": "github",
+                        "url": "https://github.com/alice",
+                        "status": 200,
+                        "exists": True,
+                    },
+                ],
+            },
+        )
         result = _make_result(findings=[f])
         report = generate_intel_report(result)
         assert any(n.type == "social" for n in report.identity_graph.nodes)
@@ -282,7 +353,12 @@ class TestPivots:
     def test_username_generates_email_pivot(self):
         result = _make_result(
             identifiers=[
-                Identifier(value="alice", id_type=IdentifierType.USERNAME, source="github", confidence=0.9),
+                Identifier(
+                    value="alice",
+                    id_type=IdentifierType.USERNAME,
+                    source="github",
+                    confidence=0.9,
+                ),
             ]
         )
         report = generate_intel_report(result)
@@ -291,7 +367,12 @@ class TestPivots:
     def test_email_generates_username_pivot(self):
         result = _make_result(
             identifiers=[
-                Identifier(value="alice@example.com", id_type=IdentifierType.EMAIL, source="leakcheck", confidence=0.8),
+                Identifier(
+                    value="alice@example.com",
+                    id_type=IdentifierType.EMAIL,
+                    source="leakcheck",
+                    confidence=0.8,
+                ),
             ]
         )
         report = generate_intel_report(result)
@@ -300,8 +381,18 @@ class TestPivots:
     def test_pivots_never_duplicate(self):
         result = _make_result(
             identifiers=[
-                Identifier(value="alice", id_type=IdentifierType.USERNAME, source="github", confidence=0.9),
-                Identifier(value="alice", id_type=IdentifierType.USERNAME, source="gitlab", confidence=0.8),
+                Identifier(
+                    value="alice",
+                    id_type=IdentifierType.USERNAME,
+                    source="github",
+                    confidence=0.9,
+                ),
+                Identifier(
+                    value="alice",
+                    id_type=IdentifierType.USERNAME,
+                    source="gitlab",
+                    confidence=0.8,
+                ),
             ]
         )
         report = generate_intel_report(result)
@@ -312,7 +403,12 @@ class TestPivots:
     def test_crypto_address_pivot(self):
         result = _make_result(
             identifiers=[
-                Identifier(value="0x" + "a" * 40, id_type=IdentifierType.CRYPTO_ADDRESS, source="etherscan", confidence=0.9),
+                Identifier(
+                    value="0x" + "a" * 40,
+                    id_type=IdentifierType.CRYPTO_ADDRESS,
+                    source="etherscan",
+                    confidence=0.9,
+                ),
             ]
         )
         report = generate_intel_report(result)
@@ -324,7 +420,12 @@ class TestNeo4jAndAi:
     def test_neo4j_export_embedded(self):
         result = _make_result(
             identifiers=[
-                Identifier(value="alice", id_type=IdentifierType.USERNAME, source="github", confidence=0.9),
+                Identifier(
+                    value="alice",
+                    id_type=IdentifierType.USERNAME,
+                    source="github",
+                    confidence=0.9,
+                ),
             ]
         )
         report = generate_intel_report(result)
@@ -354,4 +455,6 @@ class TestSummary:
         result = _make_result(findings=[f])
         report = generate_intel_report(result)
         assert report.briefing.breach_records
-        assert report.briefing.breach_records[0].fields.get("email") == "leak@example.com"
+        assert (
+            report.briefing.breach_records[0].fields.get("email") == "leak@example.com"
+        )

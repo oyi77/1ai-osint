@@ -1,4 +1,5 @@
 """DNSDumpster source adapter for DNS reconnaissance."""
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -27,7 +28,9 @@ class DNSDumpsterSource:
     async def search_for_address(self, address: str) -> list[RawLeak]:
         """Get DNS records for a domain."""
         leaks: list[RawLeak] = []
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             try:
                 await self._rate_limit()
                 # Get CSRF token
@@ -57,11 +60,13 @@ class DNSDumpsterSource:
                 if resp.status_code == 200:
                     text = resp.text
                     if address.lower() in text.lower():
-                        leaks.append(RawLeak(
-                            text=text[:50000],
-                            source_name="dnsdumpster",
-                            source_url=f"{self.BASE_URL}/?host={address}",
-                        ))
+                        leaks.append(
+                            RawLeak(
+                                text=text[:50000],
+                                source_name="dnsdumpster",
+                                source_url=f"{self.BASE_URL}/?host={address}",
+                            )
+                        )
             except Exception as exc:
                 logger.debug("DNSDumpster error for '%s': %s", address, exc)
         return leaks

@@ -1,4 +1,5 @@
 """Maltego source adapter for OSINT graph analysis."""
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -27,7 +28,9 @@ class MaltegoSource:
     async def search_for_address(self, address: str) -> list[RawLeak]:
         """Search for OSINT data using public Maltego transforms."""
         leaks: list[RawLeak] = []
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             try:
                 await self._rate_limit()
                 # Use public Shodan transform as proxy
@@ -37,11 +40,13 @@ class MaltegoSource:
                 )
                 if resp.status_code == 200:
                     data = resp.json()
-                    leaks.append(RawLeak(
-                        text=str(data)[:10000],
-                        source_name="maltego",
-                        source_url=f"https://maltego.com/search?q={address}",
-                    ))
+                    leaks.append(
+                        RawLeak(
+                            text=str(data)[:10000],
+                            source_name="maltego",
+                            source_url=f"https://maltego.com/search?q={address}",
+                        )
+                    )
             except Exception as exc:
                 logger.debug("Maltego error for '%s': %s", address, exc)
         return leaks

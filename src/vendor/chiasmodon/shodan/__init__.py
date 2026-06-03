@@ -3,8 +3,10 @@ import requests
 from typing import Any, Dict
 import os
 
+
 class ShodanTool(OSINTTool):
     """OSINT wrapper for Shodan API."""
+
     name = "shodan"
     API_URL = "https://api.shodan.io/shodan/host/{}"
     API_KEY = os.environ.get("SHODAN_API_KEY")
@@ -21,7 +23,11 @@ class ShodanTool(OSINTTool):
             return {"status": "error", "tool": self.name, "error": str(e)}
 
     def scan(self, query: str, **kwargs) -> Dict[str, Any]:
-        return {"status": "error", "tool": self.name, "error": "Scan not supported for Shodan"}
+        return {
+            "status": "error",
+            "tool": self.name,
+            "error": "Scan not supported for Shodan",
+        }
 
     def analyze(self, data: Any, **kwargs) -> Dict[str, Any]:
         return {"note": "No advanced analysis for Shodan"}

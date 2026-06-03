@@ -2,6 +2,7 @@ import os
 import requests
 from src.vendor.chiasmodon.base import OSINTTool
 
+
 class GithubDorkTool(OSINTTool):
     name = "githubdork"
     API_TOKEN = os.environ.get("GITHUB_TOKEN")
@@ -9,23 +10,48 @@ class GithubDorkTool(OSINTTool):
 
     def search(self, query, **kwargs):
         if not self.API_TOKEN:
-            return {"status": "error", "tool": self.name, "error": "Missing GITHUB_TOKEN"}
-        headers = {"Authorization": f"token {self.API_TOKEN}", "Accept": "application/vnd.github.v3+json"}
+            return {
+                "status": "error",
+                "tool": self.name,
+                "error": "Missing GITHUB_TOKEN",
+            }
+        headers = {
+            "Authorization": f"token {self.API_TOKEN}",
+            "Accept": "application/vnd.github.v3+json",
+        }
         try:
-            resp = requests.get(self.SEARCH_URL, headers=headers, params={"q": query}, timeout=30)
+            resp = requests.get(
+                self.SEARCH_URL, headers=headers, params={"q": query}, timeout=30
+            )
             if resp.status_code != 200:
-                return {"status": "error", "tool": self.name, "error": f"HTTP {resp.status_code}"}
+                return {
+                    "status": "error",
+                    "tool": self.name,
+                    "error": f"HTTP {resp.status_code}",
+                }
             results = [
-                {"name": i.get("name"), "path": i.get("path"),
-                 "repository": i.get("repository", {}).get("full_name"), "html_url": i.get("html_url")}
+                {
+                    "name": i.get("name"),
+                    "path": i.get("path"),
+                    "repository": i.get("repository", {}).get("full_name"),
+                    "html_url": i.get("html_url"),
+                }
                 for i in resp.json().get("items", [])
             ]
-            return {"status": "ok", "tool": self.name, "query": query, "result": results}
+            return {
+                "status": "ok",
+                "tool": self.name,
+                "query": query,
+                "result": results,
+            }
         except Exception as e:
             return {"status": "error", "tool": self.name, "error": str(e)}
+
     def scan(self, query, **kwargs):
         return {"status": "error", "tool": self.name, "error": "Scan not supported"}
+
     def analyze(self, data, **kwargs):
         return {"note": "Not implemented"}
+
     def learn(self, feedback, **kwargs):
         pass

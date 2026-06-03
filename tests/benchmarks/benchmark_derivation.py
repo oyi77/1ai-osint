@@ -73,6 +73,7 @@ def test_derivation_throughput() -> None:
 
 # --- API Throughput Benchmarks ---
 
+
 async def _benchmark_btc_api(n_requests: int = 10) -> dict:
     """Benchmark blockstream.info API latency."""
     url = f"{BITCOIN.api_url}/address/1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
@@ -96,7 +97,9 @@ async def _benchmark_btc_api(n_requests: int = 10) -> dict:
         "errors": errors,
         "avg_ms": statistics.mean(latencies) * 1000 if latencies else 0,
         "median_ms": statistics.median(latencies) * 1000 if latencies else 0,
-        "p95_ms": sorted(latencies)[int(len(latencies) * 0.95)] * 1000 if latencies else 0,
+        "p95_ms": sorted(latencies)[int(len(latencies) * 0.95)] * 1000
+        if latencies
+        else 0,
     }
 
 
@@ -129,7 +132,9 @@ async def _benchmark_eth_api(n_requests: int = 10) -> dict:
         "errors": errors,
         "avg_ms": statistics.mean(latencies) * 1000 if latencies else 0,
         "median_ms": statistics.median(latencies) * 1000 if latencies else 0,
-        "p95_ms": sorted(latencies)[int(len(latencies) * 0.95)] * 1000 if latencies else 0,
+        "p95_ms": sorted(latencies)[int(len(latencies) * 0.95)] * 1000
+        if latencies
+        else 0,
     }
 
 
@@ -155,7 +160,9 @@ def test_api_throughput() -> None:
     for stats in [btc_stats, eth_stats]:
         error_rate = stats["errors"] / stats["requests"] if stats["requests"] else 0
         if error_rate > 0.5:
-            print(f"  WARNING: {stats['endpoint']} error rate {error_rate:.0%} "
-                  f"({stats['errors']}/{stats['requests']})")
+            print(
+                f"  WARNING: {stats['endpoint']} error rate {error_rate:.0%} "
+                f"({stats['errors']}/{stats['requests']})"
+            )
         else:
             print(f"  OK: {stats['endpoint']} error rate {error_rate:.0%}")

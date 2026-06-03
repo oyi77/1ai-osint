@@ -1,4 +1,5 @@
 """ThreatFox source adapter for IOC intelligence."""
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -23,7 +24,9 @@ class ThreatFoxSource:
     async def fetch_raw_leaks(self) -> list[RawLeak]:
         """Fetch recent IOCs from ThreatFox."""
         leaks: list[RawLeak] = []
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             try:
                 await self._rate_limit()
                 resp = await client.post(
@@ -37,11 +40,13 @@ class ThreatFoxSource:
                         ioc_type = ioc.get("ioc_type", "")
                         malware = ioc.get("malware", "")
                         if ioc_value:
-                            leaks.append(RawLeak(
-                                text=f"IOC: {ioc_value}\nType: {ioc_type}\nMalware: {malware}",
-                                source_name="threatfox",
-                                source_url=f"https://threatfox.ch/browse/ioc/{ioc_value}/",
-                            ))
+                            leaks.append(
+                                RawLeak(
+                                    text=f"IOC: {ioc_value}\nType: {ioc_type}\nMalware: {malware}",
+                                    source_name="threatfox",
+                                    source_url=f"https://threatfox.ch/browse/ioc/{ioc_value}/",
+                                )
+                            )
             except Exception as exc:
                 logger.debug("ThreatFox error: %s", exc)
         return leaks
@@ -49,7 +54,9 @@ class ThreatFoxSource:
     async def search_for_address(self, address: str) -> list[RawLeak]:
         """Search ThreatFox for a specific IOC."""
         leaks: list[RawLeak] = []
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             try:
                 await self._rate_limit()
                 resp = await client.post(
@@ -59,11 +66,13 @@ class ThreatFoxSource:
                 if resp.status_code == 200:
                     data = resp.json()
                     for ioc in data.get("data", []):
-                        leaks.append(RawLeak(
-                            text=str(ioc)[:5000],
-                            source_name="threatfox",
-                            source_url=f"https://threatfox.ch/browse/ioc/{address}/",
-                        ))
+                        leaks.append(
+                            RawLeak(
+                                text=str(ioc)[:5000],
+                                source_name="threatfox",
+                                source_url=f"https://threatfox.ch/browse/ioc/{address}/",
+                            )
+                        )
             except Exception as exc:
                 logger.debug("ThreatFox search error: %s", exc)
         return leaks

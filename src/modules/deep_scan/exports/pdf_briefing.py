@@ -1,4 +1,5 @@
 """PDF export for Operational Intelligence Briefing."""
+
 from __future__ import annotations
 
 from io import BytesIO
@@ -11,7 +12,13 @@ def export_pdf(report: IntelReport) -> bytes:
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import getSampleStyleSheet
-    from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+    from reportlab.platypus import (
+        Paragraph,
+        SimpleDocTemplate,
+        Spacer,
+        Table,
+        TableStyle,
+    )
 
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4)
@@ -34,16 +41,25 @@ def export_pdf(report: IntelReport) -> bytes:
     if report.briefing.digital_accounts:
         data = [["Platform", "Handle", "Status", "Conf."]]
         for ac in report.briefing.digital_accounts[:40]:
-            data.append([
-                ac.platform, ac.username, ac.status, f"{ac.confidence:.0%}",
-            ])
+            data.append(
+                [
+                    ac.platform,
+                    ac.username,
+                    ac.status,
+                    f"{ac.confidence:.0%}",
+                ]
+            )
         t = Table(data, colWidths=[90, 120, 70, 50])
-        t.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
-            ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
-            ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
-            ("FONTSIZE", (0, 0), (-1, -1), 8),
-        ]))
+        t.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                    ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
+                    ("FONTSIZE", (0, 0), (-1, -1), 8),
+                ]
+            )
+        )
         elements.append(t)
 
     elements.append(Spacer(1, 12))

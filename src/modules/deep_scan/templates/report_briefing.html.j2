@@ -78,6 +78,7 @@
       <tr><th>Email addresses</th><td>{% if report.briefing.subject.emails %}{{ report.briefing.subject.emails | join(', ') }}{% else %}<em>None</em>{% endif %}</td></tr>
       <tr><th>Telephone</th><td>{% if report.briefing.subject.phones %}{{ report.briefing.subject.phones | join(', ') }}{% else %}<em>None</em>{% endif %}</td></tr>
       <tr><th>NIK / national ID</th><td>{% if report.briefing.subject.niks %}{{ report.briefing.subject.niks | join(', ') }}{% else %}<em>None</em>{% endif %}</td></tr>
+      <tr><th>Crypto Addresses</th><td>{% if report.briefing.subject.crypto_addresses %}{{ report.briefing.subject.crypto_addresses | join(', ') }}{% else %}<em>None</em>{% endif %}</td></tr>
       <tr><th>Location indicators</th><td>{% if report.briefing.subject.locations %}{{ report.briefing.subject.locations | join('; ') }}{% else %}<em>None</em>{% endif %}</td></tr>
     </table>
   </section>

@@ -60,7 +60,7 @@ class TestTargetedScanToScanResult:
         assert result.status == "error"
 
     def test_converts_partial_status(self):
-        from src.models import Finding, Severity
+        from src.core.models import Finding, Severity
 
         targeted = TargetedScanResult(
             scan_id="test-003",
@@ -175,7 +175,7 @@ class TestKnownMnemonicLookup:
         ):
             lookup = KnownMnemonicLookup(mnemonic=VALID_MNEMONIC, chains=[ETHEREUM])
             result = await lookup.execute(scan_id="test-km-003")
-            from src.models import Severity
+            from src.core.models import Severity
 
             assert any(f.severity == Severity.CRITICAL for f in result.findings)
             assert result.has_hits is True

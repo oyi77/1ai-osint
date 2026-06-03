@@ -1,7 +1,8 @@
 """Deep scan speed profiles — fast vs full module sets."""
+
 from __future__ import annotations
 
-from src.config import Settings
+from src.core.config import Settings
 from src.modules.deep_scan.breach_router import configured_breach_modules
 
 # High-signal, network-light modules (always in fast mode)
@@ -12,12 +13,15 @@ FAST_CORE_MODULES: tuple[str, ...] = (
 )
 
 # Skipped in fast mode (heavy subprocess / infra scans)
-FAST_SKIP_MODULES: frozenset[str] = frozenset({
-    "vuln_scanner",
-    "gitleaks",
-    "crypto_balance",
-    "domain_recon",
-})
+FAST_SKIP_MODULES: frozenset[str] = frozenset(
+    {
+        "vuln_scanner",
+        "gitleaks",
+        "crypto_balance",
+        "crypto_tracer",
+        "domain_recon",
+    }
+)
 
 
 def breach_modules_with_keys(settings: Settings | None = None) -> list[str]:

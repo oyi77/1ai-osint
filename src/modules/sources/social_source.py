@@ -1,4 +1,5 @@
 """Social media source adapter for OSINT across platforms."""
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -46,11 +47,13 @@ class SocialSource:
                     if resp.status_code == 200:
                         data = resp.json()
                         if data:
-                            leaks.append(RawLeak(
-                                text=str(data)[:10000],
-                                source_name=f"social_{platform}",
-                                source_url=url,
-                            ))
+                            leaks.append(
+                                RawLeak(
+                                    text=str(data)[:10000],
+                                    source_name=f"social_{platform}",
+                                    source_url=url,
+                                )
+                            )
                 except Exception as exc:
                     logger.debug("Social %s error for '%s': %s", platform, address, exc)
         return leaks

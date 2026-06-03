@@ -22,7 +22,11 @@ class PastebinTool(OSINTTool):
                 timeout=30,
             )
             if resp.status_code != 200:
-                return {"status": "error", "tool": self.name, "error": f"HTTP {resp.status_code}"}
+                return {
+                    "status": "error",
+                    "tool": self.name,
+                    "error": f"HTTP {resp.status_code}",
+                }
             # Parse paste links from search results
             soup = BeautifulSoup(resp.text, "html.parser")
             results = []
@@ -30,18 +34,24 @@ class PastebinTool(OSINTTool):
                 href = link.get("href", "")
                 text = link.get_text(strip=True)
                 if href.startswith("/") and len(href) > 1 and text:
-                    results.append({
-                        "url": f"https://pastebin.com{href}",
-                        "title": text,
-                    })
+                    results.append(
+                        {
+                            "url": f"https://pastebin.com{href}",
+                            "title": text,
+                        }
+                    )
             return {
                 "status": "ok",
                 "tool": self.name,
                 "query": query,
-                "result": results[:kwargs.get("limit", 50)],
+                "result": results[: kwargs.get("limit", 50)],
             }
         except ImportError:
-            return {"status": "error", "tool": self.name, "error": "beautifulsoup4 not installed"}
+            return {
+                "status": "error",
+                "tool": self.name,
+                "error": "beautifulsoup4 not installed",
+            }
         except Exception as e:
             return {"status": "error", "tool": self.name, "error": str(e)}
 

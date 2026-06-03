@@ -3,6 +3,7 @@
 Scrapes BitcoinTalk.org board pages for posts containing leaked keys/mnemonics.
 Many early Bitcoin users accidentally posted private keys in forum discussions.
 """
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -15,7 +16,10 @@ logger = logging.getLogger(__name__)
 
 # Boards to scan — wallet recovery, key management, and altcoin discussions
 _BOARDS = [
-    ("https://bitcointalk.org/index.php?board=4.0", "Wallet software"),  # Wallet software
+    (
+        "https://bitcointalk.org/index.php?board=4.0",
+        "Wallet software",
+    ),  # Wallet software
     ("https://bitcointalk.org/index.php?board=1.0", "Bitcoin discussion"),
     ("https://bitcointalk.org/index.php?board=67.0", "Wallet recovery"),
     ("https://bitcointalk.org/index.php?board=159.0", "Bounties"),
@@ -25,7 +29,9 @@ _BOARDS = [
 class BitcoinTalkSource:
     """Scan BitcoinTalk forum for leaked crypto keys/mnemonics."""
 
-    def __init__(self, max_topics: int = 10, request_delay: float = 3.0, timeout: float = 30.0):
+    def __init__(
+        self, max_topics: int = 10, request_delay: float = 3.0, timeout: float = 30.0
+    ):
         self.max_topics = max_topics
         self.request_delay = request_delay
         self.timeout = timeout
@@ -36,7 +42,9 @@ class BitcoinTalkSource:
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         }
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             for board_url, _ in _BOARDS:
                 try:
                     await self._rate_limit()
@@ -50,7 +58,7 @@ class BitcoinTalkSource:
                         href = a.get("href", "")
                         if "topic=" in href and href.startswith("http"):
                             topic_links.append(href)
-                    topic_links = list(dict.fromkeys(topic_links))[:self.max_topics]
+                    topic_links = list(dict.fromkeys(topic_links))[: self.max_topics]
 
                     for topic_url in topic_links:
                         try:
@@ -63,7 +71,13 @@ class BitcoinTalkSource:
                             for post_div in tsoup.find_all("div", class_="post"):
                                 text = post_div.get_text(separator=" ", strip=True)
                                 if len(text) > 20:
-                                    leaks.append(RawLeak(text=text, source_name="bitcointalk", source_url=topic_url))
+                                    leaks.append(
+                                        RawLeak(
+                                            text=text,
+                                            source_name="bitcointalk",
+                                            source_url=topic_url,
+                                        )
+                                    )
                         except Exception:
                             pass
                 except Exception as exc:

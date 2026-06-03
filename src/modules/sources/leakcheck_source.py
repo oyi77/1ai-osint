@@ -1,4 +1,5 @@
 """LeakCheck source adapter for credential leak lookup."""
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -17,7 +18,12 @@ class LeakcheckSource:
 
     BASE_URL = "https://leakcheck.io/api/public"
 
-    def __init__(self, api_key: Optional[str] = None, request_delay: float = 2.0, timeout: float = 30.0):
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        request_delay: float = 2.0,
+        timeout: float = 30.0,
+    ):
         self.api_key = api_key or os.getenv("LEAKCHECK_API_KEY", "")
         self.request_delay = request_delay
         self.timeout = timeout
@@ -34,7 +40,9 @@ class LeakcheckSource:
             return []
 
         leaks: list[RawLeak] = []
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             try:
                 await self._rate_limit()
                 resp = await client.get(
@@ -48,17 +56,28 @@ class LeakcheckSource:
                         for entry in data.get("sources", []):
                             structured: dict[str, str] = {}
                             if isinstance(entry, dict):
-                                for field in ("name", "date", "email", "username", "password", "phone"):
+                                for field in (
+                                    "name",
+                                    "date",
+                                    "email",
+                                    "username",
+                                    "password",
+                                    "phone",
+                                ):
                                     val = entry.get(field, "")
                                     if val:
-                                        key = "breach_name" if field == "name" else field
+                                        key = (
+                                            "breach_name" if field == "name" else field
+                                        )
                                         structured[key] = str(val)
-                            leaks.append(RawLeak(
-                                text=f"Leak found for {address}: {entry}",
-                                source_name="leakcheck",
-                                source_url=f"https://leakcheck.io/check/{address}",
-                                metadata=structured,
-                            ))
+                            leaks.append(
+                                RawLeak(
+                                    text=f"Leak found for {address}: {entry}",
+                                    source_name="leakcheck",
+                                    source_url=f"https://leakcheck.io/check/{address}",
+                                    metadata=structured,
+                                )
+                            )
             except Exception as exc:
                 logger.debug("LeakCheck error for '%s': %s", address, exc)
         return leaks

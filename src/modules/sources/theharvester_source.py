@@ -1,4 +1,5 @@
 """theHarvester source adapter for email/domain enumeration."""
+
 from __future__ import annotations
 import asyncio
 
@@ -30,21 +31,27 @@ class TheHarvesterSource:
 
         try:
             proc = await asyncio.create_subprocess_exec(
-                harvester_path, "-d", address, "-b", "all", "-f", "/dev/stdout",
+                harvester_path,
+                "-d",
+                address,
+                "-b",
+                "all",
+                "-f",
+                "/dev/stdout",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
-            stdout, _ = await asyncio.wait_for(
-                proc.communicate(), timeout=self.timeout
-            )
+            stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=self.timeout)
             if stdout:
                 text = stdout.decode()
                 if text.strip():
-                    leaks.append(RawLeak(
-                        text=text,
-                        source_name="theharvester",
-                        source_url="",
-                    ))
+                    leaks.append(
+                        RawLeak(
+                            text=text,
+                            source_name="theharvester",
+                            source_url="",
+                        )
+                    )
         except asyncio.TimeoutError:
             logger.debug("theHarvester: timeout for '%s'", address)
         except Exception as exc:

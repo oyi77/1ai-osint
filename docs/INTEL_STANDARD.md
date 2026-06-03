@@ -53,8 +53,7 @@ Normalized keys for Section IV (map any source into these):
 |---------|-------------|---------|------------|----------|
 | `fast` | ~1–10 min | Social + people + keyed breaches | 2 | Triage |
 | `standard` | ~10–30 min | + email, phone, data_leaks | 3 | Routine case |
-| `deep` | ~30–90 min | + domain, gitleaks (domain) | 5 | Full OSINT |
-| `agency` | ~60–180 min | All keyed sources + max pivots | 8 | Near agency packet |
+| `deep` | ~120–360 min | All keyed sources + max pivots | 15 | Full OSINT / Agency grade |
 
 ## Definition of done (per target)
 

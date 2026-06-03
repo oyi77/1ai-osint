@@ -4,16 +4,20 @@ import json
 
 import pytest
 
-from src.models import Finding, ScanResult, BreachRecord, Identity, Severity
+from src.core.models import Finding, ScanResult, BreachRecord, Identity, Severity
 from src.modules.output.zkit_formatter import (
     ZKITFormatter,
 )
-from src.modules.identity_tracking.zkit_engine import CorrelatedCluster, CorrelationConfidence
+from src.modules.identity_tracking.zkit_engine import (
+    CorrelatedCluster,
+    CorrelationConfidence,
+)
 
 
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def salt() -> str:
@@ -113,6 +117,7 @@ def sample_clusters():
 # Test ZKITFormatter basic formatting
 # ---------------------------------------------------------------------------
 
+
 class TestZKITFormatterBasic:
     def test_format_returns_valid_json(self, formatter, sample_results):
         output = formatter.format(sample_results)
@@ -169,6 +174,7 @@ class TestZKITFormatterBasic:
 # Test breach record formatting
 # ---------------------------------------------------------------------------
 
+
 class TestBreachRecordFormatting:
     def test_email_hashed_in_breach(self, formatter, sample_results):
         parsed = json.loads(formatter.format(sample_results))
@@ -204,6 +210,7 @@ class TestBreachRecordFormatting:
 # ---------------------------------------------------------------------------
 # Test redaction audit
 # ---------------------------------------------------------------------------
+
 
 class TestRedactionAudit:
     def test_audit_tracks_redactions(self, formatter, sample_results):
@@ -248,8 +255,11 @@ class TestRedactionAudit:
 # Test format_with_clusters
 # ---------------------------------------------------------------------------
 
+
 class TestFormatWithClusters:
-    def test_format_with_clusters_returns_json(self, formatter, sample_results, sample_clusters):
+    def test_format_with_clusters_returns_json(
+        self, formatter, sample_results, sample_clusters
+    ):
         output = formatter.format_with_clusters(
             sample_results, sample_clusters, investigation_id="inv-001"
         )
@@ -258,7 +268,9 @@ class TestFormatWithClusters:
         assert parsed["investigation_id"] == "inv-001"
 
     def test_clusters_in_output(self, formatter, sample_results, sample_clusters):
-        parsed = json.loads(formatter.format_with_clusters(sample_results, sample_clusters))
+        parsed = json.loads(
+            formatter.format_with_clusters(sample_results, sample_clusters)
+        )
         clusters = parsed["correlation_clusters"]
         assert len(clusters) == 1
         assert clusters[0]["cluster_id"] == "cluster-0000"
@@ -269,13 +281,21 @@ class TestFormatWithClusters:
         output = formatter.format_with_clusters(sample_results, sample_clusters)
         assert "user@example.com" not in output
 
-    def test_clusters_sorted_attribute_types(self, formatter, sample_results, sample_clusters):
-        parsed = json.loads(formatter.format_with_clusters(sample_results, sample_clusters))
+    def test_clusters_sorted_attribute_types(
+        self, formatter, sample_results, sample_clusters
+    ):
+        parsed = json.loads(
+            formatter.format_with_clusters(sample_results, sample_clusters)
+        )
         cluster = parsed["correlation_clusters"][0]
         assert cluster["attribute_types"] == sorted(cluster["attribute_types"])
 
-    def test_audit_present_with_clusters(self, formatter, sample_results, sample_clusters):
-        parsed = json.loads(formatter.format_with_clusters(sample_results, sample_clusters))
+    def test_audit_present_with_clusters(
+        self, formatter, sample_results, sample_clusters
+    ):
+        parsed = json.loads(
+            formatter.format_with_clusters(sample_results, sample_clusters)
+        )
         assert "redaction_audit" in parsed
         assert parsed["redaction_audit"]["total_redactions"] > 0
 
@@ -283,6 +303,7 @@ class TestFormatWithClusters:
 # ---------------------------------------------------------------------------
 # Test PII verification
 # ---------------------------------------------------------------------------
+
 
 class TestVerifyNoPII:
     def test_clean_report_passes(self, formatter, sample_results):
@@ -326,6 +347,7 @@ class TestVerifyNoPII:
 # Test salt consistency
 # ---------------------------------------------------------------------------
 
+
 class TestSaltConsistency:
     def test_same_salt_same_hashes(self, sample_results):
         f1 = ZKITFormatter(salt="consistent-salt")
@@ -345,6 +367,7 @@ class TestSaltConsistency:
 # ---------------------------------------------------------------------------
 # Test identity formatting
 # ---------------------------------------------------------------------------
+
 
 class TestIdentityFormatting:
     def test_identity_already_hashed(self):

@@ -4,7 +4,7 @@ import pytest
 
 from src.modules.data_leaks.aggregator import DataLeaksAggregator
 from src.modules.data_leaks.breach_checker import BreachChecker
-from src.models import BreachRecord, Severity
+from src.core.models import BreachRecord, Severity
 
 
 @pytest.fixture
@@ -97,9 +97,7 @@ class TestDataLeaksAggregator:
         assert len(deduped) == 2  # same source deduped, different source kept
 
     def test_filter_false_positives(self, aggregator):
-        aggregator._false_positives = [
-            {"email": "fp@example.com", "username": None}
-        ]
+        aggregator._false_positives = [{"email": "fp@example.com", "username": None}]
         records = [
             BreachRecord(source="s", email="fp@example.com"),
             BreachRecord(source="s", email="real@example.com"),
@@ -123,7 +121,8 @@ class TestDataLeaksAggregator:
 
     @pytest.mark.asyncio
     async def test_analyze(self, aggregator, sample_breach):
-        from src.models import ScanResult
+        from src.core.models import ScanResult
+
         scan = ScanResult(
             scan_id="test",
             module="data_leaks",

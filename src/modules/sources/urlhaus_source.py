@@ -1,4 +1,5 @@
 """URLhaus source adapter for malicious URL intelligence."""
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -22,7 +23,9 @@ class URLhausSource:
 
     async def fetch_raw_leaks(self) -> list[RawLeak]:
         leaks: list[RawLeak] = []
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             try:
                 await self._rate_limit()
                 resp = await client.post(
@@ -34,18 +37,22 @@ class URLhausSource:
                     for entry in data.get("urls", []):
                         url = entry.get("url", "")
                         if url:
-                            leaks.append(RawLeak(
-                                text=f"URL: {url}\nThreat: {entry.get('threat', '')}\nTags: {entry.get('tags', [])}",
-                                source_name="urlhaus",
-                                source_url=url,
-                            ))
+                            leaks.append(
+                                RawLeak(
+                                    text=f"URL: {url}\nThreat: {entry.get('threat', '')}\nTags: {entry.get('tags', [])}",
+                                    source_name="urlhaus",
+                                    source_url=url,
+                                )
+                            )
             except Exception as exc:
                 logger.debug("URLhaus error: %s", exc)
         return leaks
 
     async def search_for_address(self, address: str) -> list[RawLeak]:
         leaks: list[RawLeak] = []
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             try:
                 await self._rate_limit()
                 resp = await client.post(
@@ -57,11 +64,13 @@ class URLhausSource:
                     for entry in data.get("urls", []):
                         url = entry.get("url", "")
                         if url:
-                            leaks.append(RawLeak(
-                                text=f"URL: {url}\nThreat: {entry.get('threat', '')}\nTags: {entry.get('tags', [])}",
-                                source_name="urlhaus",
-                                source_url=url,
-                            ))
+                            leaks.append(
+                                RawLeak(
+                                    text=f"URL: {url}\nThreat: {entry.get('threat', '')}\nTags: {entry.get('tags', [])}",
+                                    source_name="urlhaus",
+                                    source_url=url,
+                                )
+                            )
             except Exception as exc:
                 logger.debug("URLhaus search error: %s", exc)
         return leaks

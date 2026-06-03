@@ -4,23 +4,33 @@ Core engine that orchestrates recursive scanning across all modules.
 Each finding is parsed for new identifiers, which feed back as inputs
 until no new identifiers are discovered.
 """
+
 from __future__ import annotations
 import asyncio
 import logging
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-from src.models import ScanResult
+from src.core.models import ScanResult
 from src.modules.deep_scan import (
-    DeepScanResult, Identifier, IdentifierType,
+    DeepScanResult,
+    Identifier,
+    IdentifierType,
 )
-from src.modules.deep_scan.extractor import extract_identifiers, extract_usernames_from_profiles
+from src.modules.deep_scan.extractor import (
+    extract_identifiers,
+    extract_usernames_from_profiles,
+)
 
 logger = logging.getLogger(__name__)
 
 # Module → identifier types it can consume
 _MODULE_INPUTS: dict[str, set[IdentifierType]] = {
-    "social_osint": {IdentifierType.USERNAME, IdentifierType.NAME, IdentifierType.SOCIAL_PROFILE},
+    "social_osint": {
+        IdentifierType.USERNAME,
+        IdentifierType.NAME,
+        IdentifierType.SOCIAL_PROFILE,
+    },
     "email_osint": {IdentifierType.EMAIL},
     "domain_recon": {IdentifierType.DOMAIN},
     "people_finder": {IdentifierType.USERNAME, IdentifierType.NAME},
@@ -29,12 +39,28 @@ _MODULE_INPUTS: dict[str, set[IdentifierType]] = {
     "crypto_balance": {IdentifierType.CRYPTO_ADDRESS},
     "gitleaks": {IdentifierType.DOMAIN, IdentifierType.URL},
     "vuln_scanner": {IdentifierType.DOMAIN, IdentifierType.IP},
-    "dehashed": {IdentifierType.EMAIL, IdentifierType.USERNAME, IdentifierType.PHONE, IdentifierType.DOMAIN},
+    "dehashed": {
+        IdentifierType.EMAIL,
+        IdentifierType.USERNAME,
+        IdentifierType.PHONE,
+        IdentifierType.DOMAIN,
+    },
     "leakcheck": {IdentifierType.EMAIL, IdentifierType.USERNAME},
-    "snylla": {IdentifierType.EMAIL, IdentifierType.USERNAME, IdentifierType.PHONE, IdentifierType.DOMAIN},
+    "snylla": {
+        IdentifierType.EMAIL,
+        IdentifierType.USERNAME,
+        IdentifierType.PHONE,
+        IdentifierType.DOMAIN,
+    },
     "snusbase": {IdentifierType.EMAIL, IdentifierType.USERNAME, IdentifierType.PHONE},
     "hibp": {IdentifierType.EMAIL},
-    "intelx": {IdentifierType.EMAIL, IdentifierType.USERNAME, IdentifierType.PHONE, IdentifierType.DOMAIN, IdentifierType.NAME},
+    "intelx": {
+        IdentifierType.EMAIL,
+        IdentifierType.USERNAME,
+        IdentifierType.PHONE,
+        IdentifierType.DOMAIN,
+        IdentifierType.NAME,
+    },
 }
 
 # Sources handled by source_adapter (separate from CLI modules)
@@ -58,6 +84,7 @@ class DeepScanEngine:
         fast: bool = False,
         max_concurrency: int = 24,
         max_pivot_handles: int = 5,
+        budget: float = 5.0,
         max_targets_per_iteration: int = 25,
         profile_config: Any = None,
     ):
@@ -71,11 +98,16 @@ class DeepScanEngine:
             fast = profile_config.fast_mode
             modules = list(profile_config.modules)
         elif fast:
-            from src.modules.deep_scan.profiles import fast_module_list, fast_scan_defaults
+            from src.modules.deep_scan.profiles import (
+                fast_module_list,
+                fast_scan_defaults,
+            )
 
             defaults = fast_scan_defaults()
             max_iterations = min(max_iterations, int(defaults["max_iterations"]))
-            timeout_per_module = min(timeout_per_module, float(defaults["timeout_per_module"]))
+            timeout_per_module = min(
+                timeout_per_module, float(defaults["timeout_per_module"])
+            )
             max_identifiers = min(max_identifiers, int(defaults["max_identifiers"]))
             max_pivot_handles = int(defaults["max_pivot_handles"])
             max_targets_per_iteration = int(defaults["max_targets_per_iteration"])
@@ -86,9 +118,11 @@ class DeepScanEngine:
         self.max_iterations = max_iterations
         self.max_identifiers = max_identifiers
         self.timeout_per_module = timeout_per_module
-        self.modules = modules
+        self.modules = set(modules) if modules else set(_MODULE_INPUTS.keys())
         self.fast = fast
+        self.max_concurrency = max_concurrency
         self.max_pivot_handles = max_pivot_handles
+        self.budget = budget
         self.max_targets_per_iteration = max_targets_per_iteration
         self._sem = asyncio.Semaphore(max_concurrency)
         self._scanned_pairs: set[tuple[str, str]] = set()
@@ -107,7 +141,9 @@ class DeepScanEngine:
         if initial:
             result.identifiers.append(initial)
             if initial.id_type == IdentifierType.NAME:
-                from src.modules.deep_scan.name_pivots import username_candidates_from_name
+                from src.modules.deep_scan.name_pivots import (
+                    username_candidates_from_name,
+                )
 
                 pivots = username_candidates_from_name(target)[: self.max_pivot_handles]
                 for handle, confidence in pivots:
@@ -126,7 +162,9 @@ class DeepScanEngine:
             self._initial_targets(target, result),
         )
 
-        logger.info("Deep scan starting: %s (%d initial targets)", target, len(initial_targets))
+        logger.info(
+            "Deep scan starting: %s (%d initial targets)", target, len(initial_targets)
+        )
         await self._run_iteration(result, initial_targets)
 
         # Phase 2: Recursive scanning with discovered identifiers
@@ -139,15 +177,160 @@ class DeepScanEngine:
             # Collect new identifiers to scan
             new_targets = self._cap_targets(self._get_new_targets(result, seen_targets))
             if not new_targets:
-                logger.info("No new identifiers found at iteration %d — stopping", iteration)
+                logger.info(
+                    "No new identifiers found at iteration %d — stopping", iteration
+                )
                 break
 
-            logger.info("Iteration %d: scanning %d new identifiers", iteration, len(new_targets))
+            logger.info(
+                "Iteration %d: scanning %d new identifiers", iteration, len(new_targets)
+            )
             result.iterations = iteration
             await self._run_iteration(result, new_targets)
             seen_targets.update(t.lower() for t in new_targets)
 
         result.completed_at = datetime.now(timezone.utc)
+
+        # --- PHASE 3: External Tool Intelligence (Sherlock, Maigret, theHarvester) ---
+        from src.modules.vendor.external_tools import ExternalToolIntel
+
+        ext_intel = ExternalToolIntel()
+
+        # Extract unique usernames and domains discovered during iterations
+        usernames = list(
+            {
+                i.value
+                for i in result.identifiers
+                if i.id_type == IdentifierType.USERNAME
+            }
+        )
+
+        # If no usernames were found directly, pivot the target name
+        if (
+            not usernames
+            and self._detect_identifier(target, "init").id_type == IdentifierType.NAME
+        ):
+            from src.modules.deep_scan.name_pivots import primary_username_for_name
+
+            p_uname = primary_username_for_name(target)
+            if p_uname:
+                usernames.append(p_uname)
+
+        usernames = usernames[:3]  # Limit to 3 max
+        domains = list(
+            {i.value for i in result.identifiers if i.id_type == IdentifierType.DOMAIN}
+        )[:2]  # Limit to 2 max
+
+        ext_tasks = []
+        for uname in usernames:
+            ext_tasks.append(ext_intel.scan_username(uname))
+        for dom in domains:
+            ext_tasks.append(ext_intel.scan_domain(dom))
+
+        if ext_tasks:
+            logger.info(
+                "Executing Phase 3: %d External CLI Tasks (Sherlock/theHarvester)...",
+                len(ext_tasks),
+            )
+            ext_results = await asyncio.gather(*ext_tasks, return_exceptions=True)
+            for res in ext_results:
+                if isinstance(res, ScanResult):
+                    result.scan_results.append(res)
+                    result.findings.extend(res.findings)
+
+        # --- END PHASE 3 ---
+
+        # --- PHASE 4: Profile Scraping & Vision Correlation Verification ---
+        social_findings = [
+            f
+            for f in result.findings
+            if f.module == "social_osint" and f.raw_data.get("type") == "social_account"
+        ]
+        if social_findings:
+            logger.info(
+                "Executing Phase 4: Scraping and correlating %d social profiles...",
+                len(social_findings),
+            )
+            from src.modules.deep_scan.deep_scraper import DeepScraperEngine
+            from src.modules.deep_scan.vision_correlator import VisionCorrelator
+
+            scraper = DeepScraperEngine()
+            correlator = VisionCorrelator()
+
+            high_value_platforms = {
+                "linkedin",
+                "medium",
+                "linktree",
+                "strava",
+                "github",
+                "gitlab",
+                "instagram",
+                "tiktok",
+            }
+            to_verify = [
+                f
+                for f in social_findings
+                if f.raw_data.get("platform") in high_value_platforms
+            ][:5]
+
+            async def verify_finding(finding):
+                url = finding.raw_data.get("url")
+                if not url:
+                    return
+                try:
+                    scraped = await scraper.scrape_profile(url)
+                    if scraped:
+                        finding.raw_data["bio"] = scraped.get("text_content", "")[:500]
+                        finding.raw_data["profile_picture"] = scraped.get(
+                            "profile_picture_url", ""
+                        )
+
+                        target_profile = {"text_content": f"Full Name: {target}"}
+                        confidence = await correlator.correlate_profiles(
+                            target_profile, scraped
+                        )
+                        finding.raw_data["correlation_confidence"] = confidence
+                        finding.raw_data["verified"] = confidence >= 0.5
+                        logger.info(
+                            "Profile %s correlation confidence: %.2f (verified=%s)",
+                            url,
+                            confidence,
+                            finding.raw_data["verified"],
+                        )
+                    else:
+                        finding.raw_data["verified"] = False
+                        finding.raw_data["correlation_confidence"] = 0.0
+                except Exception as e:
+                    logger.debug("Failed to scrape/correlate profile %s: %s", url, e)
+                    finding.raw_data["verified"] = False
+                    finding.raw_data["correlation_confidence"] = 0.0
+
+            if to_verify:
+                await asyncio.gather(
+                    *[verify_finding(f) for f in to_verify], return_exceptions=True
+                )
+
+            # Filter out unverified profiles to ensure we only report confirmed identities
+            # Also deduplicate by URL to avoid showing the same profile multiple times
+            verified_findings = []
+            seen_urls = set()
+
+            for f in result.findings:
+                # If it went through verification and failed, drop it
+                if "verified" in f.raw_data and not f.raw_data["verified"]:
+                    continue
+
+                # Deduplicate social profiles by URL
+                url = f.raw_data.get("url")
+                if url:
+                    if url in seen_urls:
+                        continue
+                    seen_urls.add(url)
+
+                verified_findings.append(f)
+
+            result.findings = verified_findings
+        # --- END PHASE 4 ---
 
         # ZKIT cross-module correlation
         try:
@@ -158,7 +341,10 @@ class DeepScanEngine:
 
         logger.info(
             "Deep scan complete: %d identifiers, %d findings, %d iterations, %.1fs",
-            result.identifier_count, result.finding_count, result.iterations, result.duration_sec,
+            result.identifier_count,
+            result.finding_count,
+            result.iterations,
+            result.duration_sec,
         )
         return result
 
@@ -179,7 +365,7 @@ class DeepScanEngine:
 
     async def _run_iteration(self, result: DeepScanResult, targets: set[str]) -> None:
         """Run one iteration of scanning across all modules."""
-        from src.cli import _get_module
+        from src.cli.main import _get_module
 
         modules = self._get_active_modules()
         tasks = []
@@ -193,11 +379,15 @@ class DeepScanEngine:
                 source_cls = all_sources.get(mod_name)
                 if source_cls:
                     source_inst = source_cls()
-                    relevant_targets = self._filter_targets_for_module(mod_name, targets, result)
+                    relevant_targets = self._filter_targets_for_module(
+                        mod_name, targets, result
+                    )
                     for target in relevant_targets:
                         if self._should_scan(mod_name, target):
                             tasks.append(
-                                self._scan_source_adapter(mod_name, source_inst, target, result)
+                                self._scan_source_adapter(
+                                    mod_name, source_inst, target, result
+                                )
                             )
                 continue
 
@@ -206,7 +396,9 @@ class DeepScanEngine:
                 continue
 
             # Filter targets relevant to this module
-            relevant_targets = self._filter_targets_for_module(mod_name, targets, result)
+            relevant_targets = self._filter_targets_for_module(
+                mod_name, targets, result
+            )
             if not relevant_targets:
                 continue
 
@@ -231,7 +423,11 @@ class DeepScanEngine:
             self._add_identifier(result, pid)
 
     async def _scan_module(
-        self, mod_name: str, mod: Any, target: str, result: DeepScanResult,
+        self,
+        mod_name: str,
+        mod: Any,
+        target: str,
+        result: DeepScanResult,
     ) -> None:
         """Run a single module scan."""
         scan_kwargs: dict[str, Any] = {}
@@ -254,7 +450,11 @@ class DeepScanEngine:
             result.errors.append(f"{mod_name}({target}): {exc}")
 
     async def _scan_source_adapter(
-        self, source_name: str, source_inst: Any, target: str, result: DeepScanResult,
+        self,
+        source_name: str,
+        source_inst: Any,
+        target: str,
+        result: DeepScanResult,
     ) -> None:
         """Run a breach/leak source via the source adapter."""
         try:
@@ -297,7 +497,10 @@ class DeepScanEngine:
         return targets
 
     def _filter_targets_for_module(
-        self, mod_name: str, targets: set[str], result: DeepScanResult,
+        self,
+        mod_name: str,
+        targets: set[str],
+        result: DeepScanResult,
     ) -> set[str]:
         """Filter targets to only those relevant to a module."""
         accepted_types = _MODULE_INPUTS.get(mod_name, set())
@@ -323,7 +526,10 @@ class DeepScanEngine:
     def _add_identifier(self, result: DeepScanResult, ident: Identifier) -> None:
         """Add an identifier if not already present."""
         for existing in result.identifiers:
-            if existing.value.lower() == ident.value.lower() and existing.id_type == ident.id_type:
+            if (
+                existing.value.lower() == ident.value.lower()
+                and existing.id_type == ident.id_type
+            ):
                 # Update last_seen
                 existing.last_seen = ident.first_seen
                 return
@@ -333,7 +539,7 @@ class DeepScanEngine:
     def _get_active_modules(self) -> list[str]:
         """Get list of modules to use."""
         if self.modules:
-            return self.modules
+            return list(self.modules)
         return list(_MODULE_INPUTS.keys())
 
     def _should_scan(self, mod_name: str, target: str) -> bool:
@@ -369,38 +575,52 @@ class DeepScanEngine:
     def _detect_identifier(value: str, source: str) -> Optional[Identifier]:
         """Auto-detect the type of an identifier."""
         import re
+
         value = value.strip()
 
         if not value:
             return None
 
         # Email
-        if re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', value):
-            return Identifier(value=value.lower(), id_type=IdentifierType.EMAIL, source=source)
+        if re.match(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", value):
+            return Identifier(
+                value=value.lower(), id_type=IdentifierType.EMAIL, source=source
+            )
 
         # Phone
-        if re.match(r'^[\+]?[0-9]{7,15}$', re.sub(r'[\s\-\.\(\)]', '', value)):
+        if re.match(r"^[\+]?[0-9]{7,15}$", re.sub(r"[\s\-\.\(\)]", "", value)):
             return Identifier(value=value, id_type=IdentifierType.PHONE, source=source)
 
         # Ethereum address
-        if re.match(r'^0x[0-9a-fA-F]{40}$', value):
-            return Identifier(value=value, id_type=IdentifierType.CRYPTO_ADDRESS, source=source, metadata={"chain": "ethereum"})
+        if re.match(r"^0x[0-9a-fA-F]{40}$", value):
+            return Identifier(
+                value=value,
+                id_type=IdentifierType.CRYPTO_ADDRESS,
+                source=source,
+                metadata={"chain": "ethereum"},
+            )
 
         # IP address
-        if re.match(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$', value):
+        if re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", value):
             return Identifier(value=value, id_type=IdentifierType.IP, source=source)
 
         # Domain
-        if re.match(r'^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z]{2,})+$', value):
-            return Identifier(value=value.lower(), id_type=IdentifierType.DOMAIN, source=source)
+        if re.match(
+            r"^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z]{2,})+$", value
+        ):
+            return Identifier(
+                value=value.lower(), id_type=IdentifierType.DOMAIN, source=source
+            )
 
         # NIK (16 digits)
-        if re.match(r'^\d{16}$', value):
+        if re.match(r"^\d{16}$", value):
             return Identifier(value=value, id_type=IdentifierType.NIK, source=source)
 
         # Default to username
-        if re.match(r'^[a-zA-Z0-9_.-]{3,50}$', value):
-            return Identifier(value=value, id_type=IdentifierType.USERNAME, source=source)
+        if re.match(r"^[a-zA-Z0-9_.-]{3,50}$", value):
+            return Identifier(
+                value=value, id_type=IdentifierType.USERNAME, source=source
+            )
 
         # Default to name
         return Identifier(value=value, id_type=IdentifierType.NAME, source=source)

@@ -1,20 +1,30 @@
-"""Deep scan collection profiles — fast through agency-grade."""
+"""Deep scan collection profiles — fast through deep-grade."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Literal
 
-from src.config import Settings
+from src.core.config import Settings
 from src.modules.deep_scan.profiles import (
     FAST_CORE_MODULES,
     breach_modules_with_keys,
 )
 
-ProfileName = Literal["fast", "standard", "deep", "agency"]
+ProfileName = Literal["fast", "standard", "deep"]
 
 STANDARD_EXTRA: tuple[str, ...] = ("email_osint", "phone_finder")
-DEEP_EXTRA: tuple[str, ...] = ("domain_recon", "gitleaks")
-AGENCY_EXTRA: tuple[str, ...] = ("email_osint", "phone_finder", "domain_recon", "intelx")
+DEEP_EXTRA: tuple[str, ...] = (
+    "domain_recon",
+    "gitleaks",
+    "email_osint",
+    "phone_finder",
+    "intelx",
+    "darknet",
+    "vuln_scanner",
+    "crypto_balance",
+    "crypto_tracer",
+)
 
 
 @dataclass(frozen=True)
@@ -67,38 +77,23 @@ def resolve_scan_profile(
         )
 
     if n == "deep":
-        mods = (
-            list(FAST_CORE_MODULES)
-            + list(STANDARD_EXTRA)
-            + list(DEEP_EXTRA)
-            + keyed_breach
+        mods = list(
+            dict.fromkeys(
+                list(FAST_CORE_MODULES)
+                + list(DEEP_EXTRA)
+                + keyed_breach
+            )
         )
         return ScanProfileConfig(
             name="deep",
-            modules=tuple(dict.fromkeys(mods)),
-            max_iterations=5,
-            timeout_per_module=40.0,
-            max_identifiers=300,
-            max_pivot_handles=4,
-            max_targets_per_iteration=15,
-            max_concurrency=28,
-            fast_mode=False,
-        )
-
-    if n == "agency":
-        mods = list(dict.fromkeys(
-            list(FAST_CORE_MODULES) + list(AGENCY_EXTRA) + list(DEEP_EXTRA) + keyed_breach
-        ))
-        return ScanProfileConfig(
-            name="agency",
             modules=tuple(mods),
-            max_iterations=8,
-            timeout_per_module=60.0,
-            max_identifiers=500,
-            max_pivot_handles=6,
-            max_targets_per_iteration=20,
-            max_concurrency=32,
+            max_iterations=15,
+            timeout_per_module=120.0,
+            max_identifiers=2000,
+            max_pivot_handles=15,
+            max_targets_per_iteration=50,
+            max_concurrency=50,
             fast_mode=False,
         )
 
-    raise ValueError(f"Unknown profile '{name}'. Use: fast, standard, deep, agency")
+    raise ValueError(f"Unknown profile '{name}'. Use: fast, standard, deep")

@@ -151,7 +151,9 @@ class ScannerCoordinator:
             except Exception as e:
                 if rotator:
                     rotator.report_failure(used_url)
-                logger.debug("Balance check error for %s on %s: %s", address[:10], chain.name, e)
+                logger.debug(
+                    "Balance check error for %s on %s: %s", address[:10], chain.name, e
+                )
                 return BalanceResult(
                     address=address,
                     chain=chain.name,
@@ -203,7 +205,9 @@ class ScannerCoordinator:
         h = self.hash_key(key)
         return h in self._seen_keys
 
-    def mark_key_seen(self, key: str, key_type: str = "unknown", source: str = "unknown") -> None:
+    def mark_key_seen(
+        self, key: str, key_type: str = "unknown", source: str = "unknown"
+    ) -> None:
         """Mark a private key as processed (in-memory + persistent SQLite)."""
         h = self.hash_key(key)
         self._seen_keys.add(h)

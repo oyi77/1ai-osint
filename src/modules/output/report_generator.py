@@ -4,7 +4,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Optional
 
-from src.models import ScanResult
+from src.core.models import ScanResult
 from src.modules.output.json_formatter import JSONFormatter
 from src.modules.output.sarif_formatter import SARIFFormatter
 from src.modules.output.pdf_generator import PDFGenerator
@@ -12,6 +12,7 @@ from src.modules.output.pdf_generator import PDFGenerator
 
 class ReportFormat(str, Enum):
     """Supported report output formats."""
+
     JSON = "json"
     SARIF = "sarif"
     PDF = "pdf"

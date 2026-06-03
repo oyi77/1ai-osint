@@ -1,4 +1,5 @@
 """Wayback Machine source adapter for crypto leak discovery."""
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -24,7 +25,9 @@ class WaybackSource:
 
     CDX_URL = "https://web.archive.org/cdx/search/cdx"
 
-    def __init__(self, max_per_query: int = 20, request_delay: float = 2.0, timeout: float = 30.0):
+    def __init__(
+        self, max_per_query: int = 20, request_delay: float = 2.0, timeout: float = 30.0
+    ):
         self.max_per_query = max_per_query
         self.request_delay = request_delay
         self.timeout = timeout
@@ -34,7 +37,9 @@ class WaybackSource:
         """Search Wayback Machine for archived pages with crypto leaks."""
         leaks: list[RawLeak] = []
         seen_urls: set[str] = set()
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             for query in _QUERIES:
                 try:
                     await self._rate_limit()
@@ -68,11 +73,13 @@ class WaybackSource:
                             if page_resp.status_code == 200:
                                 text = page_resp.text[:50000]
                                 if text.strip():
-                                    leaks.append(RawLeak(
-                                        text=text,
-                                        source_name="wayback",
-                                        source_url=url,
-                                    ))
+                                    leaks.append(
+                                        RawLeak(
+                                            text=text,
+                                            source_name="wayback",
+                                            source_url=url,
+                                        )
+                                    )
                         except Exception:
                             pass
                 except Exception as exc:
@@ -82,7 +89,9 @@ class WaybackSource:
     async def search_for_address(self, address: str) -> list[RawLeak]:
         """Search Wayback Machine for a specific address."""
         leaks: list[RawLeak] = []
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             try:
                 await self._rate_limit()
                 resp = await client.get(
@@ -106,11 +115,13 @@ class WaybackSource:
                                     follow_redirects=True,
                                 )
                                 if page_resp.status_code == 200:
-                                    leaks.append(RawLeak(
-                                        text=page_resp.text[:50000],
-                                        source_name="wayback",
-                                        source_url=row[0],
-                                    ))
+                                    leaks.append(
+                                        RawLeak(
+                                            text=page_resp.text[:50000],
+                                            source_name="wayback",
+                                            source_url=row[0],
+                                        )
+                                    )
                             except Exception:
                                 pass
             except Exception as exc:

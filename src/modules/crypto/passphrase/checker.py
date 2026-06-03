@@ -18,11 +18,36 @@ _BIP39_WORDLIST_PATH: Optional[Path] = None
 
 # Minimal fallback common weak passwords / phrases for dictionary check.
 _COMMON_WORDS: set[str] = {
-    "password", "123456", "qwerty", "admin", "letmein", "welcome",
-    "monkey", "dragon", "master", "login", "abc123", "iloveyou",
-    "shadow", "sunshine", "trustno1", "batman", "access", "hello",
-    "charlie", "donald", "1234", "12345", "123456789", "football",
-    "baseball", "soccer", "princess", "solo", "passw0rd", "starwars",
+    "password",
+    "123456",
+    "qwerty",
+    "admin",
+    "letmein",
+    "welcome",
+    "monkey",
+    "dragon",
+    "master",
+    "login",
+    "abc123",
+    "iloveyou",
+    "shadow",
+    "sunshine",
+    "trustno1",
+    "batman",
+    "access",
+    "hello",
+    "charlie",
+    "donald",
+    "1234",
+    "12345",
+    "123456789",
+    "football",
+    "baseball",
+    "soccer",
+    "princess",
+    "solo",
+    "passw0rd",
+    "starwars",
 }
 
 
@@ -85,10 +110,7 @@ def shannon_entropy(text: str) -> float:
 
     freq = Counter(text)
     length = len(text)
-    return -sum(
-        (count / length) * math.log2(count / length)
-        for count in freq.values()
-    )
+    return -sum((count / length) * math.log2(count / length) for count in freq.values())
 
 
 def charset_entropy(text: str) -> float:
@@ -108,7 +130,9 @@ def charset_entropy(text: str) -> float:
         charset_size += 26
     if any(c.isdigit() for c in text):
         charset_size += 10
-    special = set(text) - set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ")
+    special = set(text) - set(
+        "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 "
+    )
     charset_size += len(special) if special else 0
 
     if charset_size == 0:

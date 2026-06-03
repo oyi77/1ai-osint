@@ -17,9 +17,27 @@ def graph() -> IdentityGraph:
 @pytest.fixture
 def populated_graph() -> IdentityGraph:
     g = IdentityGraph(salt="test-salt")
-    g.add_co_occurrence("alice@example.com", NodeType.EMAIL_HASH, "alice_dev", NodeType.USERNAME_HASH, source="sherlock")
-    g.add_co_occurrence("alice@example.com", NodeType.EMAIL_HASH, "+15551234567", NodeType.PHONE_HASH, source="holehe")
-    g.add_co_occurrence("bob@test.org", NodeType.EMAIL_HASH, "bob_security", NodeType.USERNAME_HASH, source="maigret")
+    g.add_co_occurrence(
+        "alice@example.com",
+        NodeType.EMAIL_HASH,
+        "alice_dev",
+        NodeType.USERNAME_HASH,
+        source="sherlock",
+    )
+    g.add_co_occurrence(
+        "alice@example.com",
+        NodeType.EMAIL_HASH,
+        "+15551234567",
+        NodeType.PHONE_HASH,
+        source="holehe",
+    )
+    g.add_co_occurrence(
+        "bob@test.org",
+        NodeType.EMAIL_HASH,
+        "bob_security",
+        NodeType.USERNAME_HASH,
+        source="maigret",
+    )
     return g
 
 
@@ -98,7 +116,9 @@ class TestIdentityGraphAddNode:
 
     def test_add_existing_node_updates(self, graph: IdentityGraph):
         graph.add_node("hash1", NodeType.EMAIL_HASH, source="sherlock")
-        node = graph.add_node("hash1", NodeType.EMAIL_HASH, source="holehe", metadata={"extra": True})
+        node = graph.add_node(
+            "hash1", NodeType.EMAIL_HASH, source="holehe", metadata={"extra": True}
+        )
         assert graph.node_count == 1
         assert "holehe" in node.sources
         assert node.metadata["extra"] is True
@@ -201,15 +221,19 @@ class TestIdentityGraphQueryNeighbors:
 
 class TestIdentityGraphConvenience:
     def test_add_raw_attribute(self, graph: IdentityGraph):
-        hash_hex, node = graph.add_raw_attribute("alice@example.com", NodeType.EMAIL_HASH, source="test")
+        hash_hex, node = graph.add_raw_attribute(
+            "alice@example.com", NodeType.EMAIL_HASH, source="test"
+        )
         assert len(hash_hex) == 64
         assert graph.node_count == 1
         assert node.node_id == hash_hex
 
     def test_add_co_occurrence(self, graph: IdentityGraph):
         h1, h2, edge = graph.add_co_occurrence(
-            "alice@example.com", NodeType.EMAIL_HASH,
-            "alice_dev", NodeType.USERNAME_HASH,
+            "alice@example.com",
+            NodeType.EMAIL_HASH,
+            "alice_dev",
+            NodeType.USERNAME_HASH,
             source="sherlock",
         )
         assert graph.node_count == 2

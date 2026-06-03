@@ -12,6 +12,7 @@ def test_already_international():
 def test_empty_and_short():
     assert normalize_phone_e164("") is None
     assert normalize_phone_e164("12345") is None
+    assert normalize_phone_e164("1234567") is None
 
 
 def test_double_zero_prefix():

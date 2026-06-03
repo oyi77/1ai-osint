@@ -24,6 +24,7 @@ class EntityType(str, Enum):
 
 class ExtractedEntity(BaseModel):
     """A single entity extracted from text."""
+
     entity_type: EntityType
     value: str = Field(..., description="Raw entity value")
     confidence: float = Field(default=0.5, ge=0.0, le=1.0)
@@ -32,6 +33,7 @@ class ExtractedEntity(BaseModel):
 
 class EntityExtractionResult(BaseModel):
     """AI response for entity extraction."""
+
     entities: list[ExtractedEntity] = Field(default_factory=list)
     summary: str = ""
     raw_response: str = ""
@@ -39,6 +41,7 @@ class EntityExtractionResult(BaseModel):
 
 class FindingAssessment(BaseModel):
     """AI assessment of a single finding."""
+
     finding_id: str
     is_false_positive: bool = False
     confidence: float = Field(default=0.5, ge=0.0, le=1.0)
@@ -48,6 +51,7 @@ class FindingAssessment(BaseModel):
 
 class FalsePositiveResult(BaseModel):
     """AI response for false positive filtering."""
+
     assessments: list[FindingAssessment] = Field(default_factory=list)
     summary: str = ""
     raw_response: str = ""
@@ -55,6 +59,7 @@ class FalsePositiveResult(BaseModel):
 
 class CorrelationResult(BaseModel):
     """AI response for correlating identities across sources."""
+
     correlated_groups: list[list[str]] = Field(
         default_factory=list,
         description="Groups of ZKIT hashes that likely refer to the same entity",

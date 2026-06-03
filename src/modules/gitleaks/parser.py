@@ -2,7 +2,7 @@
 
 import json
 
-from src.models import Finding, Severity
+from src.core.models import Finding, Severity
 
 
 def parse_gitleaks_json(raw_json: str | list | dict) -> list[Finding]:
@@ -65,12 +65,20 @@ def parse_gitleaks_json(raw_json: str | list | dict) -> list[Finding]:
 def _classify_severity(rule_id: str) -> Severity:
     """Classify severity based on gitleaks rule ID."""
     critical_rules = {
-        "aws-access-token", "aws-secret-key", "github-token",
-        "gitlab-token", "private-key", "pkcs8-private-key",
+        "aws-access-token",
+        "aws-secret-key",
+        "github-token",
+        "gitlab-token",
+        "private-key",
+        "pkcs8-private-key",
     }
     high_rules = {
-        "generic-api-key", "generic-password", "slack-token",
-        "stripe-access-token", "npm-token", "pypi-upload-token",
+        "generic-api-key",
+        "generic-password",
+        "slack-token",
+        "stripe-access-token",
+        "npm-token",
+        "pypi-upload-token",
     }
 
     if rule_id in critical_rules:

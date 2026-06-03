@@ -5,7 +5,7 @@ import pytest
 
 from src.modules.gitleaks.scanner import GitleaksModule
 from src.modules.gitleaks.parser import parse_gitleaks_json
-from src.models import Severity
+from src.core.models import Severity
 
 
 @pytest.fixture
@@ -122,6 +122,7 @@ class TestGitleaksModule:
 
     def test_to_zkit_node(self, gitleaks_module, sample_gitleaks_output):
         from src.modules.gitleaks.parser import parse_gitleaks_json
+
         findings = parse_gitleaks_json(sample_gitleaks_output)
         node = gitleaks_module.to_zkit_node(findings[0], attribute_type="secret")
         assert len(node.zkit_hash) == 64
@@ -130,4 +131,5 @@ class TestGitleaksModule:
 
 def _classify_severity(rule_id: str) -> Severity:
     from src.modules.gitleaks.parser import _classify_severity
+
     return _classify_severity(rule_id)

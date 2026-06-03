@@ -1,4 +1,5 @@
 """Hunter.io source adapter for email enumeration."""
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -17,7 +18,12 @@ class HunterSource:
 
     BASE_URL = "https://api.hunter.io/v2"
 
-    def __init__(self, api_key: Optional[str] = None, request_delay: float = 2.0, timeout: float = 30.0):
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        request_delay: float = 2.0,
+        timeout: float = 30.0,
+    ):
         self.api_key = api_key or os.getenv("HUNTER_API_KEY", "")
         self.request_delay = request_delay
         self.timeout = timeout
@@ -34,7 +40,9 @@ class HunterSource:
             return []
 
         leaks: list[RawLeak] = []
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             try:
                 await self._rate_limit()
                 resp = await client.get(
@@ -49,12 +57,17 @@ class HunterSource:
                     data = resp.json().get("data", {})
                     emails = data.get("emails", [])
                     if emails:
-                        email_list = [e.get("value", "") for e in emails if e.get("value")]
-                        leaks.append(RawLeak(
-                            text=f"Emails found for {address}:\n" + "\n".join(email_list),
-                            source_name="hunter",
-                            source_url=f"https://hunter.io/search/{address}",
-                        ))
+                        email_list = [
+                            e.get("value", "") for e in emails if e.get("value")
+                        ]
+                        leaks.append(
+                            RawLeak(
+                                text=f"Emails found for {address}:\n"
+                                + "\n".join(email_list),
+                                source_name="hunter",
+                                source_url=f"https://hunter.io/search/{address}",
+                            )
+                        )
             except Exception as exc:
                 logger.debug("Hunter.io error for '%s': %s", address, exc)
         return leaks

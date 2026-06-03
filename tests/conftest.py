@@ -5,11 +5,11 @@ from typing import Generator
 
 import pytest
 
-from src.config import Settings
-from src.database import Database
-from src.cache import Cache
-from src.rate_limiter import RateLimiter
-from src.models import Finding, ScanResult, BreachRecord, Identity, Severity
+from src.core.config import Settings
+from src.core.database import Database
+from src.core.cache import Cache
+from src.core.rate_limiter import RateLimiter
+from src.core.models import Finding, ScanResult, BreachRecord, Identity, Severity
 
 
 @pytest.fixture

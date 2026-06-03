@@ -55,6 +55,7 @@ class OSINTAggregatorTool(OSINTTool):
 
     def __init__(self):
         from src.vendor.chiasmodon.leak_aggregator import LeakAggregatorTool
+
         self._aggregator = LeakAggregatorTool()
 
     def search(self, query: str, **kwargs) -> Dict[str, Any]:

@@ -24,6 +24,7 @@ from src.modules.crypto.privatekey.checker import (
 
 # --- Scanner tests ---
 
+
 class TestDetectKeyFormat:
     def test_detect_wif_key(self):
         # WIF uncompressed key (51 chars starting with 5)
@@ -175,17 +176,19 @@ class TestPrivateKeyScannerGithound:
         scanner = PrivateKeyScanner(githound_path="githound", zkit_salt="test")
         mock_result = MagicMock()
         mock_result.returncode = 0
-        mock_result.stdout = json.dumps([
-            {
-                "rule_id": "wif",
-                "description": "WIF key found",
-                "file": "test.key",
-                "line": 1,
-                "match": "5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ",
-                "commit": "abc123",
-                "author": "dev",
-            }
-        ])
+        mock_result.stdout = json.dumps(
+            [
+                {
+                    "rule_id": "wif",
+                    "description": "WIF key found",
+                    "file": "test.key",
+                    "line": 1,
+                    "match": "5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ",
+                    "commit": "abc123",
+                    "author": "dev",
+                }
+            ]
+        )
 
         with patch("subprocess.run", return_value=mock_result) as mock_run:
             result = await scanner.scan(str(repo_dir))
@@ -203,15 +206,17 @@ class TestPrivateKeyScannerGithound:
         scanner = PrivateKeyScanner(githound_path="githound", zkit_salt="test")
         mock_result = MagicMock()
         mock_result.returncode = 0
-        mock_result.stdout = json.dumps({
-            "rule_id": "pem_private",
-            "description": "PEM key",
-            "file": "server.pem",
-            "line": 5,
-            "match": "-----BEGIN PRIVATE KEY-----",
-            "commit": "def456",
-            "author": "admin",
-        })
+        mock_result.stdout = json.dumps(
+            {
+                "rule_id": "pem_private",
+                "description": "PEM key",
+                "file": "server.pem",
+                "line": 5,
+                "match": "-----BEGIN PRIVATE KEY-----",
+                "commit": "def456",
+                "author": "admin",
+            }
+        )
 
         with patch("subprocess.run", return_value=mock_result):
             result = await scanner.scan(str(repo_dir))
@@ -264,7 +269,9 @@ class TestPrivateKeyScannerGithound:
             "-----END PRIVATE KEY-----\n"
         )
 
-        scanner = PrivateKeyScanner(githound_path="nonexistent-githound", zkit_salt="test")
+        scanner = PrivateKeyScanner(
+            githound_path="nonexistent-githound", zkit_salt="test"
+        )
 
         with patch("subprocess.run", side_effect=FileNotFoundError("not found")):
             result = await scanner.scan(str(repo_dir))
@@ -281,9 +288,10 @@ class TestPrivateKeyScannerGithound:
 
         scanner = PrivateKeyScanner(githound_path="githound", zkit_salt="test")
 
-        with patch("subprocess.run", side_effect=subprocess.TimeoutExpired(
-            cmd="githound", timeout=300
-        )):
+        with patch(
+            "subprocess.run",
+            side_effect=subprocess.TimeoutExpired(cmd="githound", timeout=300),
+        ):
             result = await scanner.scan(str(repo_dir))
             assert result.status == "ok"
             assert result.finding_count == 0
@@ -364,6 +372,7 @@ class TestPrivateKeyScannerGithound:
 
 
 # --- Checker tests ---
+
 
 class TestValidateWif:
     def test_valid_uncompressed_wif(self):

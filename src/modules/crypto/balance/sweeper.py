@@ -42,6 +42,7 @@ DESTINATION_WALLETS = {
 @dataclass
 class SweepResult:
     """Result of a sweep attempt."""
+
     success: bool
     chain: str
     source_address: str
@@ -95,69 +96,99 @@ class Sweeper:
         dest = self.get_destination(chain.name)
         if not dest:
             return SweepResult(
-                success=False, chain=chain.name,
-                source_address=source_address, dest_address="",
-                amount=0, amount_raw=0,
+                success=False,
+                chain=chain.name,
+                source_address=source_address,
+                dest_address="",
+                amount=0,
+                amount_raw=0,
                 error=f"No destination wallet configured for {chain.name}",
             )
 
         if balance_raw <= 0:
             return SweepResult(
-                success=False, chain=chain.name,
-                source_address=source_address, dest_address=dest,
-                amount=0, amount_raw=0,
+                success=False,
+                chain=chain.name,
+                source_address=source_address,
+                dest_address=dest,
+                amount=0,
+                amount_raw=0,
                 error="Zero balance, nothing to sweep",
             )
 
         # Skip dust balances that can't cover fees
         _MIN_BALANCE = {
-            ChainType.SOLANA: 1000000,       # 0.001 SOL
+            ChainType.SOLANA: 1000000,  # 0.001 SOL
             ChainType.EVM: 5000000000000000,  # 0.005 ETH
-            ChainType.BITCOIN: 5000,          # 0.00005 BTC
+            ChainType.BITCOIN: 5000,  # 0.00005 BTC
         }
         min_bal = _MIN_BALANCE.get(chain.chain_type, 0)
         if balance_raw < min_bal:
             return SweepResult(
-                success=False, chain=chain.name,
-                source_address=source_address, dest_address=dest,
-                amount=balance_raw / (10 ** chain.decimals), amount_raw=balance_raw,
-                error=f"Dust balance ({balance_raw / (10 ** chain.decimals):.9f} {chain.symbol}), below minimum sweep threshold",
+                success=False,
+                chain=chain.name,
+                source_address=source_address,
+                dest_address=dest,
+                amount=balance_raw / (10**chain.decimals),
+                amount_raw=balance_raw,
+                error=f"Dust balance ({balance_raw / (10**chain.decimals):.9f} {chain.symbol}), below minimum sweep threshold",
             )
 
         try:
             if chain.chain_type == ChainType.EVM:
-                return await self._sweep_evm(private_key_hex, chain, source_address, dest, balance_raw)
+                return await self._sweep_evm(
+                    private_key_hex, chain, source_address, dest, balance_raw
+                )
             elif chain.chain_type == ChainType.SOLANA:
                 # Check if account is system-owned before sweep
                 if not await self._is_solana_system_account(source_address, chain):
                     return SweepResult(
-                        success=False, chain=chain.name,
-                        source_address=source_address, dest_address=dest,
-                        amount=balance_raw / 1e9, amount_raw=balance_raw,
+                        success=False,
+                        chain=chain.name,
+                        source_address=source_address,
+                        dest_address=dest,
+                        amount=balance_raw / 1e9,
+                        amount_raw=balance_raw,
                         error="Program-owned account (not System Program) — cannot sweep",
                     )
-                return await self._sweep_sol(private_key_hex, chain, source_address, dest, balance_raw)
+                return await self._sweep_sol(
+                    private_key_hex, chain, source_address, dest, balance_raw
+                )
             elif chain.chain_type == ChainType.BITCOIN:
-                return await self._sweep_btc(private_key_hex, chain, source_address, dest, balance_raw)
+                return await self._sweep_btc(
+                    private_key_hex, chain, source_address, dest, balance_raw
+                )
             else:
                 return SweepResult(
-                    success=False, chain=chain.name,
-                    source_address=source_address, dest_address=dest,
-                    amount=0, amount_raw=0,
+                    success=False,
+                    chain=chain.name,
+                    source_address=source_address,
+                    dest_address=dest,
+                    amount=0,
+                    amount_raw=0,
                     error=f"Unsupported chain type: {chain.chain_type}",
                 )
         except Exception as e:
-            logger.error("Sweep failed for %s on %s: %s", source_address[:10], chain.name, e)
+            logger.error(
+                "Sweep failed for %s on %s: %s", source_address[:10], chain.name, e
+            )
             return SweepResult(
-                success=False, chain=chain.name,
-                source_address=source_address, dest_address=dest,
-                amount=0, amount_raw=0,
+                success=False,
+                chain=chain.name,
+                source_address=source_address,
+                dest_address=dest,
+                amount=0,
+                amount_raw=0,
                 error=str(e),
             )
 
     async def _sweep_evm(
-        self, private_key_hex: str, chain: ChainConfig,
-        source: str, dest: str, balance_raw: int,
+        self,
+        private_key_hex: str,
+        chain: ChainConfig,
+        source: str,
+        dest: str,
+        balance_raw: int,
     ) -> SweepResult:
         """Sweep EVM chain (ETH/BSC/Polygon) using web3.py."""
         from web3 import Web3
@@ -173,21 +204,24 @@ class Sweeper:
         amount_to_send = balance_raw - gas_cost
         if amount_to_send <= 0:
             return SweepResult(
-                success=False, chain=chain.name,
-                source_address=source, dest_address=dest,
-                amount=0, amount_raw=0,
+                success=False,
+                chain=chain.name,
+                source_address=source,
+                dest_address=dest,
+                amount=0,
+                amount_raw=0,
                 error=f"Insufficient balance for gas (need {gas_cost / 10**18:.6f} {chain.symbol})",
             )
 
         # Build transaction
         nonce = w3.eth.get_transaction_count(source)
         tx = {
-            'nonce': nonce,
-            'to': dest,
-            'value': amount_to_send,
-            'gas': gas_limit,
-            'gasPrice': gas_price,
-            'chainId': w3.eth.chain_id,
+            "nonce": nonce,
+            "to": dest,
+            "value": amount_to_send,
+            "gas": gas_limit,
+            "gasPrice": gas_price,
+            "chainId": w3.eth.chain_id,
         }
 
         # Sign and send
@@ -195,9 +229,9 @@ class Sweeper:
         tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
         tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
 
-        amount = amount_to_send / (10 ** chain.decimals)
+        amount = amount_to_send / (10**chain.decimals)
         return SweepResult(
-            success=tx_receipt['status'] == 1,
+            success=tx_receipt["status"] == 1,
             chain=chain.name,
             source_address=source,
             dest_address=dest,
@@ -209,10 +243,12 @@ class Sweeper:
     async def _is_solana_system_account(self, address: str, chain: ChainConfig) -> bool:
         """Check if a Solana account is owned by the System Program."""
         import httpx
+
         try:
             async with httpx.AsyncClient(timeout=10) as client:
                 payload = {
-                    "jsonrpc": "2.0", "id": 1,
+                    "jsonrpc": "2.0",
+                    "id": 1,
                     "method": "getAccountInfo",
                     "params": [address, {"encoding": "base64"}],
                 }
@@ -228,8 +264,12 @@ class Sweeper:
             return True  # Assume system-owned on error (let sweep attempt)
 
     async def _sweep_sol(
-        self, private_key_hex: str, chain: ChainConfig,
-        source: str, dest: str, balance_raw: int,
+        self,
+        private_key_hex: str,
+        chain: ChainConfig,
+        source: str,
+        dest: str,
+        balance_raw: int,
     ) -> SweepResult:
         """Sweep SOL using solders + httpx (fully async)."""
         import base64 as _b64
@@ -254,10 +294,15 @@ class Sweeper:
         dest_pubkey = Pubkey.from_string(dest)
 
         # Get recent blockhash via httpx
-        resp = await client.post(rpc, json={
-            "jsonrpc": "2.0", "id": 1, "method": "getLatestBlockhash",
-            "params": [{"commitment": "finalized"}],
-        })
+        resp = await client.post(
+            rpc,
+            json={
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "getLatestBlockhash",
+                "params": [{"commitment": "finalized"}],
+            },
+        )
         bh_str = resp.json()["result"]["value"]["blockhash"]
         blockhash = Hash.from_string(bh_str)
 
@@ -266,30 +311,50 @@ class Sweeper:
         amount_to_send = balance_raw - fee - rent_exempt
         if amount_to_send <= 0:
             return SweepResult(
-                success=False, chain=chain.name,
-                source_address=source, dest_address=dest,
-                amount=0, amount_raw=0,
+                success=False,
+                chain=chain.name,
+                source_address=source,
+                dest_address=dest,
+                amount=0,
+                amount_raw=0,
                 error=f"Insufficient balance for fee ({fee} lamports)",
             )
 
         # Regular transfer — works for both nonce and non-nonce accounts
-        ix = transfer({"from_pubkey": source_pubkey, "to_pubkey": dest_pubkey, "lamports": amount_to_send})
+        ix = transfer(
+            {
+                "from_pubkey": source_pubkey,
+                "to_pubkey": dest_pubkey,
+                "lamports": amount_to_send,
+            }
+        )
         msg = Message.new_with_blockhash([ix], keypair.pubkey(), blockhash)
         txn = Transaction.new_unsigned(msg)
         txn.sign([keypair], blockhash)
 
         # Send via httpx (preflight ON to catch errors early)
         encoded = _b64.b64encode(bytes(txn)).decode()
-        resp = await client.post(rpc, json={
-            "jsonrpc": "2.0", "id": 2, "method": "sendTransaction",
-            "params": [encoded, {"encoding": "base64", "skipPreflight": False, "maxRetries": 3}],
-        })
+        resp = await client.post(
+            rpc,
+            json={
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "sendTransaction",
+                "params": [
+                    encoded,
+                    {"encoding": "base64", "skipPreflight": False, "maxRetries": 3},
+                ],
+            },
+        )
         result = resp.json()
         if "error" in result:
             return SweepResult(
-                success=False, chain=chain.name,
-                source_address=source, dest_address=dest,
-                amount=amount_to_send / 1e9, amount_raw=amount_to_send,
+                success=False,
+                chain=chain.name,
+                source_address=source,
+                dest_address=dest,
+                amount=amount_to_send / 1e9,
+                amount_raw=amount_to_send,
                 error=f"Send failed: {result['error']}",
             )
 
@@ -297,12 +362,18 @@ class Sweeper:
 
         # Wait for confirmation (up to 30 seconds)
         import asyncio as _aio
+
         for _ in range(6):
             await _aio.sleep(5)
-            status_resp = await client.post(rpc, json={
-                "jsonrpc": "2.0", "id": 3, "method": "getSignatureStatuses",
-                "params": [[tx_hash], {"searchTransactionHistory": True}],
-            })
+            status_resp = await client.post(
+                rpc,
+                json={
+                    "jsonrpc": "2.0",
+                    "id": 3,
+                    "method": "getSignatureStatuses",
+                    "params": [[tx_hash], {"searchTransactionHistory": True}],
+                },
+            )
             status_data = status_resp.json()
             statuses = status_data.get("result", {}).get("value", [])
             if statuses and statuses[0]:
@@ -310,33 +381,46 @@ class Sweeper:
                 err = statuses[0].get("err")
                 if err:
                     return SweepResult(
-                        success=False, chain=chain.name,
-                        source_address=source, dest_address=dest,
-                        amount=amount_to_send / 1e9, amount_raw=amount_to_send,
+                        success=False,
+                        chain=chain.name,
+                        source_address=source,
+                        dest_address=dest,
+                        amount=amount_to_send / 1e9,
+                        amount_raw=amount_to_send,
                         tx_hash=tx_hash,
                         error=f"TX failed on-chain: {err}",
                     )
                 if conf in ("confirmed", "finalized"):
                     amount = amount_to_send / 1e9
                     return SweepResult(
-                        success=True, chain=chain.name,
-                        source_address=source, dest_address=dest,
-                        amount=amount, amount_raw=amount_to_send,
+                        success=True,
+                        chain=chain.name,
+                        source_address=source,
+                        dest_address=dest,
+                        amount=amount,
+                        amount_raw=amount_to_send,
                         tx_hash=tx_hash,
                     )
 
         # Timed out waiting for confirmation
         return SweepResult(
-            success=False, chain=chain.name,
-            source_address=source, dest_address=dest,
-            amount=amount_to_send / 1e9, amount_raw=amount_to_send,
+            success=False,
+            chain=chain.name,
+            source_address=source,
+            dest_address=dest,
+            amount=amount_to_send / 1e9,
+            amount_raw=amount_to_send,
             tx_hash=tx_hash,
             error="TX sent but confirmation timed out (may still land)",
         )
 
     async def _sweep_btc(
-        self, private_key_hex: str, chain: ChainConfig,
-        source: str, dest: str, balance_raw: int,
+        self,
+        private_key_hex: str,
+        chain: ChainConfig,
+        source: str,
+        dest: str,
+        balance_raw: int,
     ) -> SweepResult:
         """Sweep BTC using the `bit` library."""
         from bit import PrivateKey as BtcPrivateKey
@@ -356,17 +440,22 @@ class Sweeper:
             # Get fee estimate
             try:
                 fee_resp = httpx.get(f"{api}/fee-estimates", timeout=_TIMEOUT)
-                fee_per_byte = fee_resp.json().get("6", 10) if fee_resp.status_code == 200 else 10
+                fee_per_byte = (
+                    fee_resp.json().get("6", 10) if fee_resp.status_code == 200 else 10
+                )
             except Exception:
                 fee_per_byte = 10
 
             # bit library needs unspents in its format
             from bit.network.meta import Unspent
+
             unspents = [
                 Unspent(
                     amount=u["value"],
                     confirmations=0,
-                    script=bytes.fromhex("76a914") + key.address.encode() + bytes.fromhex("88ac"),
+                    script=bytes.fromhex("76a914")
+                    + key.address.encode()
+                    + bytes.fromhex("88ac"),
                     txid=u["txid"],
                     txindex=u["vout"],
                 )
@@ -380,17 +469,24 @@ class Sweeper:
             fee_sat = int(fee_per_byte * tx_size_estimate)
             amount_sat = total_sat - fee_sat
             if amount_sat <= 0:
-                raise RuntimeError(f"Insufficient for fee (need ~{fee_sat} sat, have {total_sat})")
+                raise RuntimeError(
+                    f"Insufficient for fee (need ~{fee_sat} sat, have {total_sat})"
+                )
 
-            tx_hash = key.send([(dest, amount_sat, "sat")], fee=fee_sat, absolute_fee=True)
+            tx_hash = key.send(
+                [(dest, amount_sat, "sat")], fee=fee_sat, absolute_fee=True
+            )
             return tx_hash, amount_sat
 
         loop = _asyncio.get_event_loop()
         tx_hash, amount_sat = await loop.run_in_executor(None, _do_btc_sweep)
 
         return SweepResult(
-            success=True, chain=chain.name,
-            source_address=source, dest_address=dest,
-            amount=amount_sat / 1e8, amount_raw=amount_sat,
+            success=True,
+            chain=chain.name,
+            source_address=source,
+            dest_address=dest,
+            amount=amount_sat / 1e8,
+            amount_raw=amount_sat,
             tx_hash=tx_hash,
         )

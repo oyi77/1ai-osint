@@ -14,7 +14,9 @@ def register_module(name: str, cls: type) -> None:
 def get_module(name: str) -> type:
     """Get a registered module class by name."""
     if name not in _MODULE_REGISTRY:
-        raise KeyError(f"Module '{name}' not registered. Available: {list(_MODULE_REGISTRY.keys())}")
+        raise KeyError(
+            f"Module '{name}' not registered. Available: {list(_MODULE_REGISTRY.keys())}"
+        )
     return _MODULE_REGISTRY[name]
 
 
@@ -31,8 +33,13 @@ def _register_builtins():
         ("data_leaks", "src.modules.data_leaks.aggregator", "DataLeaksAggregator"),
         ("people_finder", "src.modules.people_finder", "PeopleFinderTool"),
         ("phone_finder", "src.modules.phone_finder", "PhoneFinderTool"),
-        ("crypto_privatekey", "src.modules.crypto.privatekey.scanner", "PrivateKeyScanner"),
+        (
+            "crypto_privatekey",
+            "src.modules.crypto.privatekey.scanner",
+            "PrivateKeyScanner",
+        ),
         ("crypto_balance", "src.modules.crypto.balance", "CryptoBalanceTool"),
+        ("crypto_tracer", "src.modules.crypto.tx_tracer", "BlockchainTxTracer"),
         ("domain_recon", "src.modules.domain_recon", "DomainReconTool"),
         ("email_osint", "src.modules.email_osint", "EmailOSINTTool"),
         ("social_osint", "src.modules.social_osint", "SocialOSINTTool"),
@@ -41,6 +48,7 @@ def _register_builtins():
     for name, module_path, class_name in modules_to_register:
         try:
             import importlib
+
             mod = importlib.import_module(module_path)
             cls = getattr(mod, class_name)
             register_module(name, cls)

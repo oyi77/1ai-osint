@@ -11,23 +11,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-from src.models import Finding, ScanResult, Severity
+from src.core.models import Finding, ScanResult, Severity
 from src.modules.base.base import BaseOSINTTool
 
 # Regex patterns for private key formats
 _PATTERNS: dict[str, re.Pattern] = {
-    "wif": re.compile(
-        r"\b[5KL][1-9A-HJ-NP-Za-km-z]{50,51}\b"
-    ),
-    "hex_32byte": re.compile(
-        r"\b[0-9a-fA-F]{64}\b"
-    ),
-    "hex_0x": re.compile(
-        r"\b0x[0-9a-fA-F]{64}\b"
-    ),
-    "base58": re.compile(
-        r"\b[1-9A-HJ-NP-Za-km-z]{44,88}\b"
-    ),
+    "wif": re.compile(r"\b[5KL][1-9A-HJ-NP-Za-km-z]{50,51}\b"),
+    "hex_32byte": re.compile(r"\b[0-9a-fA-F]{64}\b"),
+    "hex_0x": re.compile(r"\b0x[0-9a-fA-F]{64}\b"),
+    "base58": re.compile(r"\b[1-9A-HJ-NP-Za-km-z]{44,88}\b"),
     "pem_private": re.compile(
         r"-----BEGIN (?:EC |RSA )?PRIVATE KEY-----[\s\S]+?-----END (?:EC |RSA )?PRIVATE KEY-----",
         re.MULTILINE,
@@ -65,12 +57,14 @@ def detect_key_format(text: str) -> list[dict[str, Any]]:
             matched_text = match.group(0)
             if fmt == "hex_32byte" and len(matched_text) != 64:
                 continue
-            results.append({
-                "format": fmt,
-                "match": matched_text[:80],  # Truncate for safety
-                "position": match.start(),
-                "severity": _SEVERITY_MAP[fmt].value,
-            })
+            results.append(
+                {
+                    "format": fmt,
+                    "match": matched_text[:80],  # Truncate for safety
+                    "position": match.start(),
+                    "severity": _SEVERITY_MAP[fmt].value,
+                }
+            )
     return results
 
 
@@ -175,7 +169,8 @@ class PrivateKeyScanner(BaseOSINTTool):
                     self.githound_path,
                     "scan",
                     str(repo_path),
-                    "--format", "json",
+                    "--format",
+                    "json",
                 ],
                 capture_output=True,
                 text=True,
@@ -202,15 +197,30 @@ class PrivateKeyScanner(BaseOSINTTool):
 
         return findings
 
-    async def _scan_with_regex(
-        self, target_path: Path, scan_id: str
-    ) -> list[Finding]:
+    async def _scan_with_regex(self, target_path: Path, scan_id: str) -> list[Finding]:
         """Fallback regex-based scanning of files."""
         findings = []
         _SCAN_EXTENSIONS = {
-            ".pem", ".key", ".p12", ".pfx", ".jks", ".keystore",
-            ".env", ".cfg", ".conf", ".config", ".ini", ".yml", ".yaml",
-            ".json", ".xml", ".txt", ".sh", ".py", ".js", ".ts",
+            ".pem",
+            ".key",
+            ".p12",
+            ".pfx",
+            ".jks",
+            ".keystore",
+            ".env",
+            ".cfg",
+            ".conf",
+            ".config",
+            ".ini",
+            ".yml",
+            ".yaml",
+            ".json",
+            ".xml",
+            ".txt",
+            ".sh",
+            ".py",
+            ".js",
+            ".ts",
         }
 
         for file_path in target_path.rglob("*"):

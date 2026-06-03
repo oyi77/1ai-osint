@@ -33,23 +33,25 @@ class TestEntityExtractor:
         assert "Empty input" in result.summary
 
     def test_extract_valid_response(self, extractor, mock_client):
-        response = json.dumps({
-            "entities": [
-                {
-                    "entity_type": "email",
-                    "value": "john@example.com",
-                    "confidence": 0.95,
-                    "context": "Contact: john@example.com"
-                },
-                {
-                    "entity_type": "phone",
-                    "value": "+1234567890",
-                    "confidence": 0.8,
-                    "context": "Phone: +1234567890"
-                }
-            ],
-            "summary": "Found email and phone"
-        })
+        response = json.dumps(
+            {
+                "entities": [
+                    {
+                        "entity_type": "email",
+                        "value": "john@example.com",
+                        "confidence": 0.95,
+                        "context": "Contact: john@example.com",
+                    },
+                    {
+                        "entity_type": "phone",
+                        "value": "+1234567890",
+                        "confidence": 0.8,
+                        "context": "Phone: +1234567890",
+                    },
+                ],
+                "summary": "Found email and phone",
+            }
+        )
         mock_client.extract_entities.return_value = response
 
         result = extractor.extract("Contact: john@example.com, Phone: +1234567890")
@@ -77,12 +79,14 @@ class TestEntityExtractor:
         assert "failed" in result.summary.lower()
 
     def test_extract_unknown_entity_type(self, extractor, mock_client):
-        response = json.dumps({
-            "entities": [
-                {"entity_type": "unknown_type", "value": "test", "confidence": 0.5}
-            ],
-            "summary": ""
-        })
+        response = json.dumps(
+            {
+                "entities": [
+                    {"entity_type": "unknown_type", "value": "test", "confidence": 0.5}
+                ],
+                "summary": "",
+            }
+        )
         mock_client.extract_entities.return_value = response
 
         result = extractor.extract("test")
@@ -91,17 +95,31 @@ class TestEntityExtractor:
         assert result.entities[0].entity_type == EntityType.OTHER
 
     def test_extract_from_findings(self, extractor, mock_client):
-        response = json.dumps({
-            "entities": [
-                {"entity_type": "email", "value": "test@example.com", "confidence": 0.9}
-            ],
-            "summary": "Found email"
-        })
+        response = json.dumps(
+            {
+                "entities": [
+                    {
+                        "entity_type": "email",
+                        "value": "test@example.com",
+                        "confidence": 0.9,
+                    }
+                ],
+                "summary": "Found email",
+            }
+        )
         mock_client.extract_entities.return_value = response
 
         findings = [
-            {"title": "Leak found", "description": "Email: test@example.com", "raw_data": {"email": "test@example.com"}},
-            {"title": "Another leak", "description": "Same email", "raw_data": {"email": "test@example.com"}},
+            {
+                "title": "Leak found",
+                "description": "Email: test@example.com",
+                "raw_data": {"email": "test@example.com"},
+            },
+            {
+                "title": "Another leak",
+                "description": "Same email",
+                "raw_data": {"email": "test@example.com"},
+            },
         ]
 
         result = extractor.extract_from_findings(findings)
@@ -118,7 +136,7 @@ class TestEntityExtractor:
         finding = {
             "title": "Test Finding",
             "description": "Found something",
-            "raw_data": {"email": "test@example.com", "count": 5}
+            "raw_data": {"email": "test@example.com", "count": 5},
         }
         text = EntityExtractor._finding_to_text(finding)
 

@@ -5,7 +5,10 @@ from unittest.mock import MagicMock, patch
 
 class TestHIBPProvider:
     def test_search_success(self):
-        from src.vendor.chiasmodon.providers.haveibeenpwned import HaveIBeenPwnedProvider
+        from src.vendor.chiasmodon.providers.haveibeenpwned import (
+            HaveIBeenPwnedProvider,
+        )
+
         provider = HaveIBeenPwnedProvider(api_key="test-key")
         mock_resp = MagicMock()
         mock_resp.status_code = 200
@@ -15,7 +18,10 @@ class TestHIBPProvider:
         assert isinstance(result, list)
 
     def test_search_not_found(self):
-        from src.vendor.chiasmodon.providers.haveibeenpwned import HaveIBeenPwnedProvider
+        from src.vendor.chiasmodon.providers.haveibeenpwned import (
+            HaveIBeenPwnedProvider,
+        )
+
         provider = HaveIBeenPwnedProvider(api_key="test-key")
         mock_resp = MagicMock()
         mock_resp.status_code = 404
@@ -27,6 +33,7 @@ class TestHIBPProvider:
 class TestShodanProvider:
     def test_search_success(self):
         from src.vendor.chiasmodon.providers.shodan import ShodanProvider
+
         provider = ShodanProvider(api_key="test-key")
         mock_resp = MagicMock()
         mock_resp.status_code = 200
@@ -39,10 +46,13 @@ class TestShodanProvider:
 class TestVirusTotalProvider:
     def test_search_success(self):
         from src.vendor.chiasmodon.providers.virustotal import VirusTotalProvider
+
         provider = VirusTotalProvider(api_key="test-key")
         mock_resp = MagicMock()
         mock_resp.status_code = 200
-        mock_resp.json.return_value = {"data": {"attributes": {"last_analysis_stats": {}}}}
+        mock_resp.json.return_value = {
+            "data": {"attributes": {"last_analysis_stats": {}}}
+        }
         with patch("requests.get", return_value=mock_resp):
             result = provider.search("https://example.com")
         assert "data" in result
@@ -51,6 +61,7 @@ class TestVirusTotalProvider:
 class TestAbuseIPDBProvider:
     def test_search_success(self):
         from src.vendor.chiasmodon.providers.abuseipdb import AbuseIPDBProvider
+
         provider = AbuseIPDBProvider(api_key="test-key")
         mock_resp = MagicMock()
         mock_resp.status_code = 200
@@ -63,6 +74,7 @@ class TestAbuseIPDBProvider:
 class TestWhoisXMLProvider:
     def test_search_success(self):
         from src.vendor.chiasmodon.providers.whoisxml import WhoisXMLProvider
+
         provider = WhoisXMLProvider(api_key="test-key")
         mock_resp = MagicMock()
         mock_resp.status_code = 200
@@ -75,6 +87,7 @@ class TestWhoisXMLProvider:
 class TestCrtShProvider:
     def test_search_success(self):
         from src.vendor.chiasmodon.providers.crtsh import CrtShProvider
+
         provider = CrtShProvider()
         mock_resp = MagicMock()
         mock_resp.status_code = 200
@@ -87,10 +100,13 @@ class TestCrtShProvider:
 class TestWaybackProvider:
     def test_search_success(self):
         from src.vendor.chiasmodon.providers.wayback import WaybackProvider
+
         provider = WaybackProvider()
         mock_resp = MagicMock()
         mock_resp.status_code = 200
-        mock_resp.json.return_value = {"archived_snapshots": {"closest": {"url": "http://web.archive.org/..."}}}
+        mock_resp.json.return_value = {
+            "archived_snapshots": {"closest": {"url": "http://web.archive.org/..."}}
+        }
         with patch("requests.get", return_value=mock_resp):
             result = provider.search("example.com")
         assert "archived_snapshots" in result
@@ -99,6 +115,7 @@ class TestWaybackProvider:
 class TestSocialProvider:
     def test_search_returns_dict(self):
         from src.vendor.chiasmodon.providers.social import SocialProvider
+
         provider = SocialProvider()
         mock_resp = MagicMock()
         mock_resp.status_code = 200
@@ -117,7 +134,9 @@ class TestCLIProviders:
     @patch("builtins.open", create=True)
     @patch("tempfile.NamedTemporaryFile")
     @patch("subprocess.run")
-    def test_sherlock_success(self, mock_run, mock_tmp, mock_open, _isfile, _size, _unlink):
+    def test_sherlock_success(
+        self, mock_run, mock_tmp, mock_open, _isfile, _size, _unlink
+    ):
         from src.vendor.chiasmodon.providers.sherlock import SherlockProvider
 
         mock_tmp.return_value.__enter__.return_value.name = "/tmp/out.json"
@@ -132,35 +151,50 @@ class TestCLIProviders:
     @patch("subprocess.run")
     def test_maigret_success(self, mock_run):
         from src.vendor.chiasmodon.providers.maigret import MaigretProvider
-        mock_run.return_value = MagicMock(returncode=0, stdout='{"github": "https://github.com/user"}', stderr="")
+
+        mock_run.return_value = MagicMock(
+            returncode=0, stdout='{"github": "https://github.com/user"}', stderr=""
+        )
         result = MaigretProvider().search("user")
         assert isinstance(result, dict)
 
     @patch("subprocess.run")
     def test_holehe_success(self, mock_run):
         from src.vendor.chiasmodon.providers.holehe import HoleheProvider
-        mock_run.return_value = MagicMock(returncode=0, stdout='{"twitter": true}', stderr="")
+
+        mock_run.return_value = MagicMock(
+            returncode=0, stdout='{"twitter": true}', stderr=""
+        )
         result = HoleheProvider().search("test@example.com")
         assert isinstance(result, dict)
 
     @patch("subprocess.run")
     def test_h8mail_success(self, mock_run):
         from src.vendor.chiasmodon.providers.h8mail import H8mailProvider
-        mock_run.return_value = MagicMock(returncode=0, stdout='{"results": []}', stderr="")
+
+        mock_run.return_value = MagicMock(
+            returncode=0, stdout='{"results": []}', stderr=""
+        )
         result = H8mailProvider().search("test@example.com")
         assert isinstance(result, dict)
 
     @patch("subprocess.run")
     def test_amass_success(self, mock_run):
         from src.vendor.chiasmodon.providers.amass import AmassProvider
-        mock_run.return_value = MagicMock(returncode=0, stdout='{"name": "sub.example.com"}', stderr="")
+
+        mock_run.return_value = MagicMock(
+            returncode=0, stdout='{"name": "sub.example.com"}', stderr=""
+        )
         result = AmassProvider().search("example.com")
         assert isinstance(result, list)
 
     @patch("subprocess.run")
     def test_exiftool_success(self, mock_run):
         from src.vendor.chiasmodon.providers.exiftool import ExifToolProvider
-        mock_run.return_value = MagicMock(returncode=0, stdout='[{"SourceFile": "test.jpg"}]', stderr="")
+
+        mock_run.return_value = MagicMock(
+            returncode=0, stdout='[{"SourceFile": "test.jpg"}]', stderr=""
+        )
         result = ExifToolProvider().search("test.jpg")
         assert isinstance(result, list)
 
@@ -169,6 +203,7 @@ class TestCLIProviders:
     @patch("subprocess.run")
     def test_cli_provider_error(self, mock_run, _isfile, _size):
         from src.vendor.chiasmodon.providers.sherlock import SherlockProvider
+
         mock_run.return_value = MagicMock(returncode=1, stdout="", stderr="not found")
         result = SherlockProvider().search("user")
         assert "error" in result

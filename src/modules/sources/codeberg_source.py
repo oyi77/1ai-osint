@@ -1,4 +1,5 @@
 """Codeberg source adapter for crypto leak discovery."""
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -22,13 +23,16 @@ _QUERIES = [
     "mev bot config",
 ]
 
+
 class CodebergSource:
     """Scan Codeberg (Gitea) for leaked crypto keys in code."""
 
     SEARCH_URL = "https://codeberg.org/api/v1/repos/search"
     CONTENTS_URL = "https://codeberg.org/api/v1/repos/{owner}/{repo}/contents"
 
-    def __init__(self, max_per_query: int = 20, request_delay: float = 2.0, timeout: float = 30.0):
+    def __init__(
+        self, max_per_query: int = 20, request_delay: float = 2.0, timeout: float = 30.0
+    ):
         self.max_per_query = max_per_query
         self.request_delay = request_delay
         self.timeout = timeout
@@ -38,7 +42,9 @@ class CodebergSource:
         """Search Codeberg for repos with crypto key leaks."""
         leaks: list[RawLeak] = []
         seen_repos: set[str] = set()
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             for query in _QUERIES:
                 try:
                     await self._rate_limit()
@@ -52,7 +58,9 @@ class CodebergSource:
                         },
                     )
                     if resp.status_code != 200:
-                        logger.debug("Codeberg search '%s' returned %d", query, resp.status_code)
+                        logger.debug(
+                            "Codeberg search '%s' returned %d", query, resp.status_code
+                        )
                         continue
                     data = resp.json()
                     for repo in data.get("data", []):
@@ -68,7 +76,9 @@ class CodebergSource:
 
         return leaks
 
-    async def _inspect_repo(self, client: httpx.AsyncClient, repo_full_name: str) -> list[RawLeak]:
+    async def _inspect_repo(
+        self, client: httpx.AsyncClient, repo_full_name: str
+    ) -> list[RawLeak]:
         """Fetch a repo's .env and config files for leaked keys."""
         leaks: list[RawLeak] = []
         base_url = self.CONTENTS_URL.format(
@@ -106,18 +116,25 @@ class CodebergSource:
                 encoding = data.get("encoding", "")
                 if encoding == "base64":
                     import base64
+
                     try:
-                        content = base64.b64decode(content).decode("utf-8", errors="ignore")
+                        content = base64.b64decode(content).decode(
+                            "utf-8", errors="ignore"
+                        )
                     except Exception:
                         continue
                 if content and content.strip():
-                    leaks.append(RawLeak(
-                        text=content,
-                        source_name="codeberg",
-                        source_url=f"https://codeberg.org/{repo_full_name}/src/branch/main/{filename}",
-                    ))
+                    leaks.append(
+                        RawLeak(
+                            text=content,
+                            source_name="codeberg",
+                            source_url=f"https://codeberg.org/{repo_full_name}/src/branch/main/{filename}",
+                        )
+                    )
             except Exception as exc:
-                logger.debug("Codeberg file '%s/%s' error: %s", repo_full_name, filename, exc)
+                logger.debug(
+                    "Codeberg file '%s/%s' error: %s", repo_full_name, filename, exc
+                )
 
         # Also try to fetch README
         for readme_name in ["README.md", "README.rst", "README.txt", "README"]:
@@ -131,16 +148,21 @@ class CodebergSource:
                 encoding = data.get("encoding", "")
                 if encoding == "base64":
                     import base64
+
                     try:
-                        content = base64.b64decode(content).decode("utf-8", errors="ignore")
+                        content = base64.b64decode(content).decode(
+                            "utf-8", errors="ignore"
+                        )
                     except Exception:
                         continue
                 if content and content.strip():
-                    leaks.append(RawLeak(
-                        text=content,
-                        source_name="codeberg_readme",
-                        source_url=f"https://codeberg.org/{repo_full_name}",
-                    ))
+                    leaks.append(
+                        RawLeak(
+                            text=content,
+                            source_name="codeberg_readme",
+                            source_url=f"https://codeberg.org/{repo_full_name}",
+                        )
+                    )
                     break  # Only fetch one README
             except Exception:
                 pass
@@ -150,7 +172,9 @@ class CodebergSource:
     async def search_for_address(self, address: str) -> list[RawLeak]:
         """Search Codeberg for a specific address."""
         leaks: list[RawLeak] = []
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             try:
                 await self._rate_limit()
                 resp = await client.get(

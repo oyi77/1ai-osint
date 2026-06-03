@@ -1,7 +1,7 @@
 """Tests for output formatters — JSON, SARIF, PDF."""
 
 import json
-from src.models import Finding, ScanResult, Severity, Identity, BreachRecord
+from src.core.models import Finding, ScanResult, Severity, Identity, BreachRecord
 from src.modules.output.json_formatter import JSONFormatter
 from src.modules.output.sarif_formatter import SARIFFormatter
 from src.modules.output.sarif import format_sarif

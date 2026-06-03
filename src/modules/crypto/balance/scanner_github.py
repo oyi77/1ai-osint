@@ -109,7 +109,9 @@ class GitHubLeakScanner:
 
         try:
             # Convert HTML URL to raw content URL
-            raw_url = file_url.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/")
+            raw_url = file_url.replace(
+                "github.com", "raw.githubusercontent.com"
+            ).replace("/blob/", "/")
             resp = await client.get(raw_url, headers=headers)
             resp.raise_for_status()
             text = resp.text
@@ -126,6 +128,7 @@ class GitHubLeakScanner:
 
             # Pass 2: private key detection (hex, base58, WIF)
             from src.modules.crypto.privatekey.scanner import detect_key_format
+
             keys = detect_key_format(text)
             if keys:
                 # Return the first high-confidence key found
@@ -146,6 +149,7 @@ class GitHubLeakScanner:
     async def _rate_limit(self):
         """Enforce GitHub API rate limit (30 req/min)."""
         import time
+
         now = time.monotonic()
         # Remove requests older than 60 seconds
         self._request_times = [t for t in self._request_times if now - t < 60]

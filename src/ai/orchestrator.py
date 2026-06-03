@@ -10,7 +10,7 @@ from src.ai.analyzers.entity_extractor import EntityExtractor
 from src.ai.analyzers.risk_scorer import RiskScorer, RiskScore
 from src.ai.omniroute_client import OmniRouteClient
 from src.ai.schemas.responses import CorrelationResult, EntityExtractionResult
-from src.models import ScanResult
+from src.core.models import ScanResult
 
 logger = logging.getLogger(__name__)
 
@@ -153,9 +153,7 @@ class AnalysisOrchestrator:
         if extraction_result and extraction_result.entities:
             correlation_result = self._correlator.correlate(extraction_result)
         else:
-            correlation_result = CorrelationResult(
-                summary="No entities to correlate"
-            )
+            correlation_result = CorrelationResult(summary="No entities to correlate")
 
         state["correlation_result"] = correlation_result
         return state
@@ -210,9 +208,13 @@ class AnalysisOrchestrator:
         if extraction and extraction.entities:
             lines.append(f"Extracted {len(extraction.entities)} entities")
         if correlation and correlation.correlated_groups:
-            lines.append(f"Found {len(correlation.correlated_groups)} correlated groups")
+            lines.append(
+                f"Found {len(correlation.correlated_groups)} correlated groups"
+            )
         if risk_score:
-            lines.append(f"Risk level: {risk_score.risk_level} ({risk_score.overall_score:.1f}/100)")
+            lines.append(
+                f"Risk level: {risk_score.risk_level} ({risk_score.overall_score:.1f}/100)"
+            )
         report["summary"] = ". ".join(lines) if lines else "No analysis performed"
 
         state["report"] = report

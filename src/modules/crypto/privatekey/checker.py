@@ -75,7 +75,9 @@ def validate_wif(key: str) -> KeyValidationResult:
     match = _WIF_PATTERN.match(key)
     if not match:
         return KeyValidationResult(
-            raw=key, detected_format="wif", is_valid_format=False,
+            raw=key,
+            detected_format="wif",
+            is_valid_format=False,
             details={"error": "Does not match WIF pattern"},
         )
 
@@ -94,6 +96,7 @@ def validate_wif(key: str) -> KeyValidationResult:
         # Check checksum (last 4 bytes)
         if len(decoded) >= 4:
             import hashlib
+
             payload = decoded[:-4]
             checksum = decoded[-4:]
             computed = hashlib.sha256(hashlib.sha256(payload).digest()).digest()[:4]
@@ -105,7 +108,10 @@ def validate_wif(key: str) -> KeyValidationResult:
         details["checksum_valid"] = False
 
     return KeyValidationResult(
-        raw=key, detected_format="wif", is_valid_format=True, details=details,
+        raw=key,
+        detected_format="wif",
+        is_valid_format=True,
+        details=details,
     )
 
 
@@ -138,13 +144,18 @@ def validate_hex_key(key: str) -> KeyValidationResult:
         # Check valid range for secp256k1 (must be < curve order)
         try:
             key_int = int(hex_part, 16)
-            secp256k1_order = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
+            secp256k1_order = (
+                0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
+            )
             details["in_valid_range"] = 0 < key_int < secp256k1_order
         except ValueError:
             details["in_valid_range"] = False
 
     return KeyValidationResult(
-        raw=key, detected_format="hex", is_valid_format=is_valid, details=details,
+        raw=key,
+        detected_format="hex",
+        is_valid_format=is_valid,
+        details=details,
     )
 
 
@@ -174,7 +185,10 @@ def validate_base58_key(key: str) -> KeyValidationResult:
             details["decode_error"] = str(exc)
 
     return KeyValidationResult(
-        raw=key, detected_format="base58", is_valid_format=is_valid, details=details,
+        raw=key,
+        detected_format="base58",
+        is_valid_format=is_valid,
+        details=details,
     )
 
 
@@ -194,7 +208,9 @@ def validate_pem_key(pem_text: str) -> KeyValidationResult:
 
     if not match:
         return KeyValidationResult(
-            raw=pem_text[:80], detected_format="pem", is_valid_format=False,
+            raw=pem_text[:80],
+            detected_format="pem",
+            is_valid_format=False,
             details={"error": "Does not match PEM private key pattern"},
         )
 
@@ -219,7 +235,10 @@ def validate_pem_key(pem_text: str) -> KeyValidationResult:
         details["decode_error"] = str(exc)
 
     return KeyValidationResult(
-        raw=pem_text[:80], detected_format="pem", is_valid_format=True, details=details,
+        raw=pem_text[:80],
+        detected_format="pem",
+        is_valid_format=True,
+        details=details,
     )
 
 
@@ -259,7 +278,9 @@ def validate_key(raw: str) -> KeyValidationResult:
         return validate_base58_key(raw)
 
     return KeyValidationResult(
-        raw=raw, detected_format=None, is_valid_format=False,
+        raw=raw,
+        detected_format=None,
+        is_valid_format=False,
         details={"error": "No recognized private key format"},
     )
 

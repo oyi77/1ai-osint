@@ -2,7 +2,7 @@
 
 import pytest
 
-from src.models import Finding, ScanResult, BreachRecord, Severity
+from src.core.models import Finding, ScanResult, BreachRecord, Severity
 from src.modules.identity_tracking.correlation import (
     CrossModuleCorrelator,
     CorrelationResult,
@@ -13,6 +13,7 @@ from src.modules.identity_tracking.identity_graph import IdentityGraph, NodeType
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def salt() -> str:
@@ -133,6 +134,7 @@ def disjoint_module_results() -> dict[str, ScanResult]:
 # Test initialization
 # ---------------------------------------------------------------------------
 
+
 class TestCrossModuleCorrelatorInit:
     def test_create_with_salt(self, salt: str):
         c = CrossModuleCorrelator(salt=salt)
@@ -156,6 +158,7 @@ class TestCrossModuleCorrelatorInit:
 # ---------------------------------------------------------------------------
 # Test ingestion from ScanResults
 # ---------------------------------------------------------------------------
+
 
 class TestIngestScanResults:
     def test_ingest_returns_count(
@@ -209,6 +212,7 @@ class TestIngestScanResults:
 # ---------------------------------------------------------------------------
 # Test correlation
 # ---------------------------------------------------------------------------
+
 
 class TestCorrelate:
     def test_correlate_returns_result(
@@ -300,6 +304,7 @@ class TestCorrelate:
 # Test resolved entities
 # ---------------------------------------------------------------------------
 
+
 class TestResolvedEntity:
     def test_entity_has_hashes(
         self, correlator: CrossModuleCorrelator, sample_module_results
@@ -350,6 +355,7 @@ class TestResolvedEntity:
 # Test query helpers
 # ---------------------------------------------------------------------------
 
+
 class TestQueryHelpers:
     def test_find_entity_by_hash(
         self, correlator: CrossModuleCorrelator, sample_module_results
@@ -362,9 +368,7 @@ class TestQueryHelpers:
         if entity is not None:  # may be below min_confidence
             assert first_hash in entity.zkit_hashes
 
-    def test_find_entity_by_hash_not_found(
-        self, correlator: CrossModuleCorrelator
-    ):
+    def test_find_entity_by_hash_not_found(self, correlator: CrossModuleCorrelator):
         entity = correlator.find_entity_by_hash("nonexistent_hash_64_chars_" + "a" * 38)
         assert entity is None
 
@@ -381,7 +385,9 @@ class TestQueryHelpers:
 
     def test_merge_graph(self, correlator: CrossModuleCorrelator):
         other = IdentityGraph(salt="test-correlation-salt")
-        other.add_raw_attribute("merge@test.com", NodeType.EMAIL_HASH, source="external")
+        other.add_raw_attribute(
+            "merge@test.com", NodeType.EMAIL_HASH, source="external"
+        )
         added = correlator.merge_graph(other)
         assert added >= 1
         assert correlator.graph.node_count >= 1
@@ -391,6 +397,7 @@ class TestQueryHelpers:
 # Test evidence building
 # ---------------------------------------------------------------------------
 
+
 class TestEvidenceBuilding:
     def test_multi_type_evidence(
         self, correlator: CrossModuleCorrelator, sample_module_results
@@ -399,7 +406,10 @@ class TestEvidenceBuilding:
         result = correlator.correlate()
         largest = max(result.resolved_entities, key=lambda e: len(e.zkit_hashes))
         evidence_text = " ".join(largest.correlation_evidence)
-        assert "Linked attribute types" in evidence_text or "co-occurrences" in evidence_text
+        assert (
+            "Linked attribute types" in evidence_text
+            or "co-occurrences" in evidence_text
+        )
 
     def test_cross_module_evidence(
         self, correlator: CrossModuleCorrelator, sample_module_results

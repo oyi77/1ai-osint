@@ -1,4 +1,5 @@
 """Master API — FastAPI app for master-node coordination."""
+
 from __future__ import annotations
 import logging
 from contextlib import asynccontextmanager
@@ -13,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 # ── Request models ──────────────────────────────────────────────────────────
+
 
 class KeysRequest(BaseModel):
     node_id: str
@@ -49,6 +51,7 @@ class CommandRequest(BaseModel):
 
 # ── App ─────────────────────────────────────────────────────────────────────
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup/shutdown."""
@@ -63,6 +66,7 @@ app = FastAPI(title="1ai-osint Master API", version="0.1.0", lifespan=lifespan)
 
 
 # ── Endpoints ───────────────────────────────────────────────────────────────
+
 
 @app.get("/api/health")
 async def health():
@@ -90,7 +94,11 @@ async def report_keys(req: KeysRequest):
 async def get_seen():
     """Node downloads seen keys as Bloom filter."""
     bloom = await db.get_seen_keys_bloom()
-    return {"status": "ok", "bloom": bloom.decode(), "count": bloom.count(b"|") + 1 if bloom else 0}
+    return {
+        "status": "ok",
+        "bloom": bloom.decode(),
+        "count": bloom.count(b"|") + 1 if bloom else 0,
+    }
 
 
 @app.post("/api/locks")
@@ -124,6 +132,7 @@ async def get_sources(node_id: str):
         # Auto-assign all sources if not assigned yet
         try:
             from src.modules.sources import ALL_SOURCES
+
             await db.assign_sources(node_id, list(ALL_SOURCES))
             sources = list(ALL_SOURCES)
         except Exception:

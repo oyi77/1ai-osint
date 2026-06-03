@@ -1,4 +1,5 @@
 """Normalize breach/leak records to INTEL_STANDARD field taxonomy."""
+
 from __future__ import annotations
 
 import re
@@ -25,7 +26,12 @@ _CANONICAL_ALIASES: dict[str, tuple[str, ...]] = {
     "breach_name": ("breach_name", "breach", "source_breach", "database"),
     "breach_date": ("breach_date", "breachdate", "leak_date"),
     "domain": ("domain", "website", "site"),
-    "registration_date": ("registration_date", "reg_date", "date_registered", "created"),
+    "registration_date": (
+        "registration_date",
+        "reg_date",
+        "date_registered",
+        "created",
+    ),
     "last_activity": ("last_activity", "last_seen", "last_login"),
     "job_title": ("job_title", "title", "position"),
     "company_name": ("company_name", "company", "employer", "organization"),
@@ -42,7 +48,9 @@ def normalize_breach_record(raw: dict[str, Any]) -> dict[str, str]:
     if not raw:
         return {}
     out: dict[str, str] = {}
-    normalized_input = {_normalize_key(k): str(v) for k, v in raw.items() if v is not None}
+    normalized_input = {
+        _normalize_key(k): str(v) for k, v in raw.items() if v is not None
+    }
 
     for canonical, aliases in _CANONICAL_ALIASES.items():
         for alias in aliases:
@@ -54,7 +62,11 @@ def normalize_breach_record(raw: dict[str, Any]) -> dict[str, str]:
     for nk, val in normalized_input.items():
         if nk.startswith("_") or not val.strip():
             continue
-        if not any(nk == _normalize_key(a) for aliases in _CANONICAL_ALIASES.values() for a in aliases):
+        if not any(
+            nk == _normalize_key(a)
+            for aliases in _CANONICAL_ALIASES.values()
+            for a in aliases
+        ):
             out.setdefault(nk, val.strip())
 
     return out

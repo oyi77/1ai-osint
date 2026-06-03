@@ -1,4 +1,5 @@
 """Bridge adapter: wraps chiasmodon OSINTTool sources to produce RawLeak objects."""
+
 from __future__ import annotations
 import asyncio
 import json
@@ -35,25 +36,27 @@ class ChiasmodonBridge:
         self._source_name = source_name
         self._tool = tool_instance
 
-    async def fetch_raw_leaks(self, query: str = "private key mnemonic") -> list[RawLeak]:
+    async def fetch_raw_leaks(
+        self, query: str = "private key mnemonic"
+    ) -> list[RawLeak]:
         """Run the chiasmodon tool's search() and convert results to RawLeak."""
         leaks: list[RawLeak] = []
         try:
             loop = asyncio.get_running_loop()
-            result = await loop.run_in_executor(
-                None, lambda: self._tool.search(query)
-            )
+            result = await loop.run_in_executor(None, lambda: self._tool.search(query))
             if not isinstance(result, dict):
                 return leaks
             if result.get("status") != "ok":
                 return leaks
             for item in result.get("result", []):
                 text = json.dumps(item) if isinstance(item, dict) else str(item)
-                leaks.append(RawLeak(
-                    text=text,
-                    source_name=f"chiasmodon_{self._source_name}",
-                    source_url="",
-                ))
+                leaks.append(
+                    RawLeak(
+                        text=text,
+                        source_name=f"chiasmodon_{self._source_name}",
+                        source_url="",
+                    )
+                )
         except Exception as exc:
             logger.debug("Chiasmodon bridge '%s' error: %s", self._source_name, exc)
         return leaks
@@ -71,6 +74,7 @@ def _load_chiasmodon_tool(source_name: str) -> Optional[object]:
     module_path, class_name = spec.rsplit(":", 1)
     try:
         import importlib
+
         module = importlib.import_module(module_path)
         cls = getattr(module, class_name)
         return cls()

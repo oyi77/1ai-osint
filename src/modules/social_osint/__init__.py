@@ -1,4 +1,5 @@
 """Social Media OSINT module for cross-platform intelligence."""
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -8,7 +9,7 @@ from typing import Any
 import httpx
 
 from src.modules.base.base import BaseOSINTTool
-from src.models import Finding, ScanResult, Severity
+from src.core.models import Finding, ScanResult, Severity
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +81,9 @@ class SocialOSINTTool(BaseOSINTTool):
                 "username": query,
                 "display_name": target.strip() if target.strip() != query else None,
                 "platforms_checked": len(self.PLATFORMS),
-                "tasks_completed": len([r for r in results if not isinstance(r, Exception)]),
+                "tasks_completed": len(
+                    [r for r in results if not isinstance(r, Exception)]
+                ),
                 "tasks_failed": len([r for r in results if isinstance(r, Exception)]),
             },
             started_at=started_at,
@@ -114,7 +117,11 @@ class SocialOSINTTool(BaseOSINTTool):
                         title=f"GitHub Profile Found: {username}",
                         description=f"Public repos: {data.get('public_repos', 0)}, Followers: {data.get('followers', 0)}",
                         severity=Severity.INFO,
-                        raw_data={"type": "github", "username": username, "profile": data},
+                        raw_data={
+                            "type": "github",
+                            "username": username,
+                            "profile": data,
+                        },
                     )
         except Exception as exc:
             logger.debug("GitHub search failed for %s: %s", username, exc)
@@ -124,7 +131,9 @@ class SocialOSINTTool(BaseOSINTTool):
         """Search for GitLab user."""
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                resp = await client.get(f"https://gitlab.com/api/v4/users?username={username}")
+                resp = await client.get(
+                    f"https://gitlab.com/api/v4/users?username={username}"
+                )
                 if resp.status_code == 200:
                     data = resp.json()
                     if data:
@@ -134,7 +143,11 @@ class SocialOSINTTool(BaseOSINTTool):
                             title=f"GitLab Profile Found: {username}",
                             description=f"User ID: {data[0].get('id', 'unknown')}",
                             severity=Severity.INFO,
-                            raw_data={"type": "gitlab", "username": username, "profile": data[0]},
+                            raw_data={
+                                "type": "gitlab",
+                                "username": username,
+                                "profile": data[0],
+                            },
                         )
         except Exception as exc:
             logger.debug("GitLab search failed for %s: %s", username, exc)
@@ -157,14 +170,21 @@ class SocialOSINTTool(BaseOSINTTool):
                             title=f"Reddit Profile Found: {username}",
                             description=f"Karma: {data.get('link_karma', 0) + data.get('comment_karma', 0)}",
                             severity=Severity.INFO,
-                            raw_data={"type": "reddit", "username": username, "profile": data},
+                            raw_data={
+                                "type": "reddit",
+                                "username": username,
+                                "profile": data,
+                            },
                         )
         except Exception as exc:
             logger.debug("Reddit search failed for %s: %s", username, exc)
         return None
 
     async def _check_username_availability(
-        self, username: str, *, display_name: str | None = None,
+        self,
+        username: str,
+        *,
+        display_name: str | None = None,
     ) -> Finding | None:
         """Check username availability across platforms."""
         try:
@@ -174,17 +194,21 @@ class SocialOSINTTool(BaseOSINTTool):
                     try:
                         url = url_template.format(username=username)
                         resp = await client.get(url)
-                        platforms_checked.append({
-                            "platform": platform,
-                            "status": resp.status_code,
-                            "exists": resp.status_code == 200,
-                        })
+                        platforms_checked.append(
+                            {
+                                "platform": platform,
+                                "status": resp.status_code,
+                                "exists": resp.status_code == 200,
+                            }
+                        )
                     except Exception:
-                        platforms_checked.append({
-                            "platform": platform,
-                            "status": "error",
-                            "exists": False,
-                        })
+                        platforms_checked.append(
+                            {
+                                "platform": platform,
+                                "status": "error",
+                                "exists": False,
+                            }
+                        )
 
                 found = [p for p in platforms_checked if p.get("exists")]
                 if found:

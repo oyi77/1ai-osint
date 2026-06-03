@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Optional
 
-from src.models import Finding, ScanResult, Severity
+from src.core.models import Finding, ScanResult, Severity
 from src.modules.crypto.balance.chains import ALL_CHAINS, ChainConfig
 from src.modules.crypto.balance.checker import (
     BalanceResult,
@@ -34,6 +34,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class TargetedScanResult:
     """Result container for targeted search operations."""
+
     scan_id: str
     mode: str
     findings: list[Finding] = field(default_factory=list)
@@ -140,26 +141,34 @@ class KnownMnemonicLookup:
             if result.usd_price > 0:
                 title += f" (~${result.usd_value:,.2f})"
 
-            findings.append(Finding(
-                id=f"km-{scan_id}-{len(findings)}",
-                module="crypto_balance",
-                title=title,
-                description=f"Known mnemonic lookup for {result.address} on {result.chain}",
-                severity=severity,
-                confidence=1.0,
-                tags=["crypto", "balance", "targeted", "known_mnemonic", result.symbol.lower()],
-                raw_data={
-                    "address": result.address,
-                    "chain": result.chain,
-                    "symbol": result.symbol,
-                    "balance": result.balance,
-                    "balance_raw": result.balance_raw,
-                    "usd_price": result.usd_price,
-                    "usd_value": result.usd_value,
-                    "derivation_path": result.derivation_path,
-                    "error": result.error,
-                },
-            ))
+            findings.append(
+                Finding(
+                    id=f"km-{scan_id}-{len(findings)}",
+                    module="crypto_balance",
+                    title=title,
+                    description=f"Known mnemonic lookup for {result.address} on {result.chain}",
+                    severity=severity,
+                    confidence=1.0,
+                    tags=[
+                        "crypto",
+                        "balance",
+                        "targeted",
+                        "known_mnemonic",
+                        result.symbol.lower(),
+                    ],
+                    raw_data={
+                        "address": result.address,
+                        "chain": result.chain,
+                        "symbol": result.symbol,
+                        "balance": result.balance,
+                        "balance_raw": result.balance_raw,
+                        "usd_price": result.usd_price,
+                        "usd_value": result.usd_value,
+                        "derivation_path": result.derivation_path,
+                        "error": result.error,
+                    },
+                )
+            )
 
         return TargetedScanResult(
             scan_id=scan_id,
@@ -168,7 +177,9 @@ class KnownMnemonicLookup:
             addresses_checked=len(addresses),
             chains_checked=[c.name for c in self.chains],
             errors=errors,
-            has_hits=any(f.severity in (Severity.HIGH, Severity.CRITICAL) for f in findings),
+            has_hits=any(
+                f.severity in (Severity.HIGH, Severity.CRITICAL) for f in findings
+            ),
         )
 
 
@@ -269,27 +280,35 @@ class AccountRangeScan:
             if result.usd_price > 0:
                 title += f" (~${result.usd_value:,.2f})"
 
-            findings.append(Finding(
-                id=f"ar-{scan_id}-{account_idx}",
-                module="crypto_balance",
-                title=title,
-                description=f"Account range scan for {result.address} on {result.chain} (account {account_idx})",
-                severity=severity,
-                confidence=1.0,
-                tags=["crypto", "balance", "targeted", "account_range", result.symbol.lower()],
-                raw_data={
-                    "address": result.address,
-                    "chain": result.chain,
-                    "symbol": result.symbol,
-                    "balance": result.balance,
-                    "balance_raw": result.balance_raw,
-                    "usd_price": result.usd_price,
-                    "usd_value": result.usd_value,
-                    "derivation_path": result.derivation_path,
-                    "account_index": account_idx,
-                    "error": result.error,
-                },
-            ))
+            findings.append(
+                Finding(
+                    id=f"ar-{scan_id}-{account_idx}",
+                    module="crypto_balance",
+                    title=title,
+                    description=f"Account range scan for {result.address} on {result.chain} (account {account_idx})",
+                    severity=severity,
+                    confidence=1.0,
+                    tags=[
+                        "crypto",
+                        "balance",
+                        "targeted",
+                        "account_range",
+                        result.symbol.lower(),
+                    ],
+                    raw_data={
+                        "address": result.address,
+                        "chain": result.chain,
+                        "symbol": result.symbol,
+                        "balance": result.balance,
+                        "balance_raw": result.balance_raw,
+                        "usd_price": result.usd_price,
+                        "usd_value": result.usd_value,
+                        "derivation_path": result.derivation_path,
+                        "account_index": account_idx,
+                        "error": result.error,
+                    },
+                )
+            )
 
         return TargetedScanResult(
             scan_id=scan_id,
@@ -298,7 +317,9 @@ class AccountRangeScan:
             addresses_checked=len(addresses),
             chains_checked=[self.chain.name],
             errors=errors,
-            has_hits=any(f.severity in (Severity.HIGH, Severity.CRITICAL) for f in findings),
+            has_hits=any(
+                f.severity in (Severity.HIGH, Severity.CRITICAL) for f in findings
+            ),
         )
 
 
@@ -347,7 +368,9 @@ class FilteredRandomScan:
         for i in range(iterations):
             # Generate a random 12-word mnemonic
             try:
-                mnemonic = Bip39MnemonicGenerator(Bip39Languages.ENGLISH).FromWordsNumber(12)
+                mnemonic = Bip39MnemonicGenerator(
+                    Bip39Languages.ENGLISH
+                ).FromWordsNumber(12)
             except Exception as e:
                 errors.append(f"Iteration {i}: mnemonic generation failed: {e}")
                 continue
@@ -361,7 +384,9 @@ class FilteredRandomScan:
 
                 # Filter by derivation paths if specified
                 if self.derivation_paths:
-                    addrs = [a for a in addrs if a.derivation_path in self.derivation_paths]
+                    addrs = [
+                        a for a in addrs if a.derivation_path in self.derivation_paths
+                    ]
 
                 addresses.extend(addrs)
             except Exception as e:
@@ -382,7 +407,9 @@ class FilteredRandomScan:
                 )
                 for addr in addresses
             ]
-            balance_results = await asyncio.gather(*balance_tasks, return_exceptions=True)
+            balance_results = await asyncio.gather(
+                *balance_tasks, return_exceptions=True
+            )
 
             # Fetch USD prices
             coin_ids = list({c.coin_id for c in self.chains})
@@ -412,26 +439,34 @@ class FilteredRandomScan:
                 if result.usd_price > 0:
                     title += f" (~${result.usd_value:,.2f})"
 
-                findings.append(Finding(
-                    id=f"fr-{scan_id}-{len(findings)}",
-                    module="crypto_balance",
-                    title=title,
-                    description=f"Filtered random scan hit: {result.address} on {result.chain}",
-                    severity=severity,
-                    confidence=1.0,
-                    tags=["crypto", "balance", "targeted", "random", result.symbol.lower()],
-                    raw_data={
-                        "address": result.address,
-                        "chain": result.chain,
-                        "symbol": result.symbol,
-                        "balance": result.balance,
-                        "balance_raw": result.balance_raw,
-                        "usd_price": result.usd_price,
-                        "usd_value": result.usd_value,
-                        "derivation_path": result.derivation_path,
-                        "error": result.error,
-                    },
-                ))
+                findings.append(
+                    Finding(
+                        id=f"fr-{scan_id}-{len(findings)}",
+                        module="crypto_balance",
+                        title=title,
+                        description=f"Filtered random scan hit: {result.address} on {result.chain}",
+                        severity=severity,
+                        confidence=1.0,
+                        tags=[
+                            "crypto",
+                            "balance",
+                            "targeted",
+                            "random",
+                            result.symbol.lower(),
+                        ],
+                        raw_data={
+                            "address": result.address,
+                            "chain": result.chain,
+                            "symbol": result.symbol,
+                            "balance": result.balance,
+                            "balance_raw": result.balance_raw,
+                            "usd_price": result.usd_price,
+                            "usd_value": result.usd_value,
+                            "derivation_path": result.derivation_path,
+                            "error": result.error,
+                        },
+                    )
+                )
 
         return TargetedScanResult(
             scan_id=scan_id,

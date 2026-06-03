@@ -93,8 +93,12 @@ class DorkScanner:
             )
             # Filter out Bing's own URLs
             urls = [
-                u for u in urls
-                if not any(domain in u for domain in ["bing.com", "microsoft.com", "go.microsoft"])
+                u
+                for u in urls
+                if not any(
+                    domain in u
+                    for domain in ["bing.com", "microsoft.com", "go.microsoft"]
+                )
             ]
             return urls[:limit]
         except Exception as e:
@@ -107,7 +111,9 @@ class DorkScanner:
         """Fetch a URL and scan for mnemonic patterns."""
         try:
             # Skip binary files
-            if any(url.endswith(ext) for ext in (".png", ".jpg", ".gif", ".zip", ".pdf")):
+            if any(
+                url.endswith(ext) for ext in (".png", ".jpg", ".gif", ".zip", ".pdf")
+            ):
                 return None
 
             resp = await client.get(url, follow_redirects=True)
@@ -126,6 +132,7 @@ class DorkScanner:
 
             # Pass 2: private key detection
             from src.modules.crypto.privatekey.scanner import detect_key_format
+
             keys = detect_key_format(text)
             if keys:
                 for k in keys:

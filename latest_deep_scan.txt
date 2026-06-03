@@ -1,0 +1,25 @@
+╭──────────────────────────────────────────────────────────────────────────────╮
+│ 1ai-osint Deep Scan                                                          │
+│ Target: Fikri Izzuddin                                                       │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+                   OSINT Findings Summary                   
+┏━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━┓
+┃ Module       ┃ Title                          ┃ Verified ┃
+┡━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━┩
+│ social_osint │ Username Found: fikri_izzuddin │        - │
+│ social_osint │ Username Found: fikriizzuddin  │        - │
+│ social_osint │ Username Found: fikriizzuddin  │        - │
+│ social_osint │ Star Citizen Profile           │        - │
+│ social_osint │ omg.lol Profile                │        - │
+│ social_osint │ AllMyLinks Profile             │        - │
+│ social_osint │ Disqus Profile                 │        - │
+│ social_osint │ Freelancer Profile             │        - │
+│ social_osint │ Linktree Profile               │      Yes │
+│ social_osint │ Star Citizen Profile           │        - │
+│ social_osint │ WordPress Profile              │        - │
+│ social_osint │ Xbox Gamertag Profile          │        - │
+│ social_osint │ YouTube Profile                │        - │
+│ social_osint │ Pinterest Profile              │        - │
+└──────────────┴────────────────────────────────┴──────────┘
+Full JSON report saved to: deep_scan_Fikri_Izzuddin.json

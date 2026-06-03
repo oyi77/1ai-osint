@@ -4,14 +4,15 @@ import pytest
 from unittest.mock import patch, MagicMock, AsyncMock
 from typer.testing import CliRunner
 
-from src.cli import app
+from src.cli.main import app
 
 runner = CliRunner()
 
 
 @pytest.fixture
 def mock_scan_result():
-    from src.models import ScanResult, Finding, Severity
+    from src.core.models import ScanResult, Finding, Severity
+
     return ScanResult(
         scan_id="test-scan-1",
         module="gitleaks",
@@ -40,7 +41,7 @@ class TestVersionCommand:
 
 
 class TestScanGitleaks:
-    @patch("src.cli._get_module")
+    @patch("src.cli.main._get_module")
     def test_scan_gitleaks_json(self, mock_get_module, mock_scan_result):
         mock_mod = MagicMock()
         mock_mod.name = "gitleaks"
@@ -53,21 +54,23 @@ class TestScanGitleaks:
 
 
 class TestScanDataLeaks:
-    @patch("src.cli._get_module")
+    @patch("src.cli.main._get_module")
     def test_scan_data_leaks_json(self, mock_get_module, mock_scan_result):
         mock_mod = MagicMock()
         mock_mod.name = "data_leaks"
         mock_mod.scan = AsyncMock(return_value=mock_scan_result)
         mock_get_module.return_value = mock_mod
 
-        result = runner.invoke(app, ["scan", "test@example.com", "--module", "data_leaks"])
+        result = runner.invoke(
+            app, ["scan", "test@example.com", "--module", "data_leaks"]
+        )
         assert result.exit_code == 0
         mock_get_module.assert_called_once_with("data_leaks", "")
 
 
 class TestScanWithAI:
-    @patch("src.cli._run_with_ai")
-    @patch("src.cli._get_module")
+    @patch("src.cli.main._run_with_ai")
+    @patch("src.cli.main._get_module")
     def test_scan_with_ai_flag(self, mock_get_module, mock_run_ai, mock_scan_result):
         mock_mod = MagicMock()
         mock_mod.name = "gitleaks"
@@ -81,8 +84,8 @@ class TestScanWithAI:
 
 
 class TestScanWithZkit:
-    @patch("src.cli._run_zkit_tracking")
-    @patch("src.cli._get_module")
+    @patch("src.cli.main._run_zkit_tracking")
+    @patch("src.cli.main._get_module")
     def test_scan_with_zkit_flag(self, mock_get_module, mock_zkit, mock_scan_result):
         mock_mod = MagicMock()
         mock_mod.name = "gitleaks"
@@ -92,7 +95,15 @@ class TestScanWithZkit:
 
         result = runner.invoke(
             app,
-            ["scan", "/repo", "--module", "gitleaks", "--zkit", "--zkit-salt", "my-salt"],
+            [
+                "scan",
+                "/repo",
+                "--module",
+                "gitleaks",
+                "--zkit",
+                "--zkit-salt",
+                "my-salt",
+            ],
         )
         assert result.exit_code == 0
         mock_zkit.assert_called_once()
@@ -114,36 +125,44 @@ class TestInvalidOutputFormat:
 
 class TestGetModule:
     def test_returns_none_for_unknown(self):
-        from src.cli import _get_module
+        from src.cli.main import _get_module
+
         assert _get_module("totally_unknown") is None
 
-    @patch("src.cli.GitleaksModule", create=True)
+    @patch("src.cli.main.GitleaksModule", create=True)
     def test_returns_gitleaks(self, mock_cls):
         with patch("src.modules.gitleaks.scanner.GitleaksModule", create=True):
-            from src.cli import _get_module
+            from src.cli.main import _get_module
+
             _get_module("gitleaks")
             # Should return something (the import succeeds or fails gracefully)
 
     def test_passphrase_module_scan(self):
-        from src.cli import _PassphraseModule
-        gen_func = MagicMock(return_value={
-            "word_count": 24,
-            "entropy_bits": 256,
-            "mnemonic": "test word " * 24,
-        })
+        from src.cli.main import _PassphraseModule
+
+        gen_func = MagicMock(
+            return_value={
+                "word_count": 24,
+                "entropy_bits": 256,
+                "mnemonic": "test word " * 24,
+            }
+        )
         pm = _PassphraseModule(gen_func, zkit_salt="salt")
         assert pm.name == "crypto_passphrase"
         import asyncio
+
         result = asyncio.run(pm.scan("test"))
         assert result.status == "ok"
         assert result.finding_count == 1
         assert "BIP-39" in result.findings[0].title
 
     def test_passphrase_module_scan_error(self):
-        from src.cli import _PassphraseModule
+        from src.cli.main import _PassphraseModule
+
         gen_func = MagicMock(side_effect=RuntimeError("boom"))
         pm = _PassphraseModule(gen_func, zkit_salt="salt")
         import asyncio
+
         result = asyncio.run(pm.scan("test"))
         assert result.status == "ok"
         assert result.finding_count == 1
@@ -152,14 +171,18 @@ class TestGetModule:
 
 class TestRunWithAI:
     def test_returns_result_when_ai_disabled(self, mock_scan_result):
-        from src.cli import _run_with_ai
+        from src.cli.main import _run_with_ai
+
         result = _run_with_ai(mock_scan_result, ai_enabled=False)
         assert result is mock_scan_result
 
-    @patch("src.cli.asyncio.run")
-    @patch("src.cli.AnalysisOrchestrator", create=True)
-    def test_calls_orchestrator_when_enabled(self, mock_orch_cls, mock_run, mock_scan_result):
-        from src.cli import _run_with_ai
+    @patch("src.cli.main.asyncio.run")
+    @patch("src.cli.main.AnalysisOrchestrator", create=True)
+    def test_calls_orchestrator_when_enabled(
+        self, mock_orch_cls, mock_run, mock_scan_result
+    ):
+        from src.cli.main import _run_with_ai
+
         mock_run.return_value = {"summary": "test"}
         with patch("src.ai.orchestrator.AnalysisOrchestrator", create=True):
             result = _run_with_ai(mock_scan_result, ai_enabled=True)
@@ -168,20 +191,23 @@ class TestRunWithAI:
 
 class TestRunZkitTracking:
     def test_noop_when_no_salt(self, mock_scan_result):
-        from src.cli import _run_zkit_tracking
+        from src.cli.main import _run_zkit_tracking
+
         result = _run_zkit_tracking(mock_scan_result, zkit_salt="")
         assert result is mock_scan_result
 
     def test_adds_graph_metadata(self, mock_scan_result):
-        from src.cli import _run_zkit_tracking
+        from src.cli.main import _run_zkit_tracking
+
         result = _run_zkit_tracking(mock_scan_result, zkit_salt="test-salt")
         assert "zkit_graph" in result.metadata or "zkit_error" in result.metadata
 
 
 class TestFormatSarif:
     def test_format_sarif_basic(self, mock_scan_result):
-        from src.cli import _format_sarif
+        from src.cli.main import _format_sarif
         import json
+
         sarif_str = _format_sarif([mock_scan_result])
         sarif = json.loads(sarif_str)
         assert sarif["version"] == "2.1.0"
@@ -193,18 +219,19 @@ class TestFormatSarif:
 class TestResolveCommand:
     def test_resolve_help(self):
         from typer.testing import CliRunner
-        from src.cli import app
+        from src.cli.main import app
+
         runner = CliRunner()
         result = runner.invoke(app, ["resolve", "--help"])
         assert result.exit_code == 0
         assert "Resolve an identity" in result.output
 
 
-
 class TestMonitorCommand:
     def test_monitor_help(self):
         from typer.testing import CliRunner
-        from src.cli import app
+        from src.cli.main import app
+
         runner = CliRunner()
         result = runner.invoke(app, ["monitor", "--help"])
         assert result.exit_code == 0
@@ -216,13 +243,17 @@ class TestResolveCommandFull:
     @patch("src.modules.crypto.leak_finder.extractor.extract_keys")
     def test_resolve_basic(self, mock_extract, mock_discover):
         from typer.testing import CliRunner
-        from src.cli import app
+        from src.cli.main import app
         from src.modules.sources.base import RawLeak
 
         mock_source = MagicMock()
-        mock_source.search_for_address = AsyncMock(return_value=[
-            RawLeak(text="test leak", source_name="test", source_url="https://test.com"),
-        ])
+        mock_source.search_for_address = AsyncMock(
+            return_value=[
+                RawLeak(
+                    text="test leak", source_name="test", source_url="https://test.com"
+                ),
+            ]
+        )
         mock_discover.return_value = {"test": MagicMock(return_value=mock_source)}
         mock_extract.return_value = []
 
@@ -234,7 +265,8 @@ class TestResolveCommandFull:
 class TestMonitorCommandFull:
     def test_monitor_help(self):
         from typer.testing import CliRunner
-        from src.cli import app
+        from src.cli.main import app
+
         runner = CliRunner()
         result = runner.invoke(app, ["monitor", "--help"])
         assert result.exit_code == 0
@@ -244,7 +276,8 @@ class TestMonitorCommandFull:
 class TestLeakFinderCommandFull:
     def test_leak_finder_help(self):
         from typer.testing import CliRunner
-        from src.cli import app
+        from src.cli.main import app
+
         runner = CliRunner()
         result = runner.invoke(app, ["leak-finder", "--help"])
         assert result.exit_code == 0
@@ -253,7 +286,8 @@ class TestLeakFinderCommandFull:
 class TestScanCommandFull:
     def test_scan_help(self):
         from typer.testing import CliRunner
-        from src.cli import app
+        from src.cli.main import app
+
         runner = CliRunner()
         result = runner.invoke(app, ["scan", "--help"])
         assert result.exit_code == 0
@@ -262,7 +296,8 @@ class TestScanCommandFull:
 class TestModulesCommandFull:
     def test_modules_command(self):
         from typer.testing import CliRunner
-        from src.cli import app
+        from src.cli.main import app
+
         runner = CliRunner()
         result = runner.invoke(app, ["modules"])
         assert result.exit_code == 0

@@ -1,4 +1,5 @@
 """WhatsMyName source adapter for username enumeration."""
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -27,7 +28,9 @@ class WhatsMyNameSource:
     async def search_for_address(self, address: str) -> list[RawLeak]:
         """Check username across 600+ sites using WhatsMyName."""
         leaks: list[RawLeak] = []
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             try:
                 await self._rate_limit()
                 resp = await client.get(
@@ -37,11 +40,13 @@ class WhatsMyNameSource:
                 if resp.status_code == 200:
                     text = resp.text
                     if address.lower() in text.lower():
-                        leaks.append(RawLeak(
-                            text=f"Username '{address}' found on WhatsMyName results page",
-                            source_name="whatsmyname",
-                            source_url=f"{self.BASE_URL}/search?q={address}",
-                        ))
+                        leaks.append(
+                            RawLeak(
+                                text=f"Username '{address}' found on WhatsMyName results page",
+                                source_name="whatsmyname",
+                                source_url=f"{self.BASE_URL}/search?q={address}",
+                            )
+                        )
             except Exception as exc:
                 logger.debug("WhatsMyName error: %s", exc)
         return leaks

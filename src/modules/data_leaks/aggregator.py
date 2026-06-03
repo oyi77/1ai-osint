@@ -4,7 +4,7 @@ import asyncio
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-from src.models import BreachRecord, Finding, ScanResult, Severity
+from src.core.models import BreachRecord, Finding, ScanResult, Severity
 from src.modules.base.base import BaseOSINTTool
 from src.modules.data_leaks.breach_checker import BreachChecker
 
@@ -36,37 +36,45 @@ class DataLeaksAggregator(BaseOSINTTool):
         available = {}
         try:
             from src.vendor.chiasmodon.hibp import HIBPTool
+
             available["hibp"] = HIBPTool()
         except ImportError:
             pass
         try:
             from src.vendor.chiasmodon.leak_leakcheck import LeakCheckTool
+
             available["leakcheck"] = LeakCheckTool()
         except ImportError:
             pass
         try:
             from src.vendor.chiasmodon.leak_scylla import ScyllaTool
+
             available["scylla"] = ScyllaTool()
         except ImportError:
             pass
         try:
             from src.vendor.chiasmodon.leak_breachdirectory import BreachDirectoryTool
+
             available["breachdirectory"] = BreachDirectoryTool()
         except ImportError:
             pass
         try:
             from src.vendor.chiasmodon.leak_snusbase import SnusbaseTool
+
             available["snusbase"] = SnusbaseTool()
         except ImportError:
             pass
         try:
             from src.vendor.chiasmodon.leak_intelx import IntelXTool
+
             available["intelx"] = IntelXTool()
         except ImportError:
             pass
 
         if self._requested_providers:
-            return {k: v for k, v in available.items() if k in self._requested_providers}
+            return {
+                k: v for k, v in available.items() if k in self._requested_providers
+            }
         return available
 
     async def search(self, query: str, **kwargs) -> ScanResult:
@@ -116,16 +124,18 @@ class DataLeaksAggregator(BaseOSINTTool):
         # Convert high-severity breaches to findings
         for record in breach_records:
             if record.severity in (Severity.CRITICAL, Severity.HIGH):
-                findings.append(Finding(
-                    id=self._make_finding_id(),
-                    module=self.name,
-                    title=f"Breach: {record.source} - {record.email or record.username}",
-                    description=record.description,
-                    severity=record.severity,
-                    raw_data=record.model_dump(exclude_none=True),
-                    confidence=0.85,
-                    tags=["breach", "leak", record.source],
-                ))
+                findings.append(
+                    Finding(
+                        id=self._make_finding_id(),
+                        module=self.name,
+                        title=f"Breach: {record.source} - {record.email or record.username}",
+                        description=record.description,
+                        severity=record.severity,
+                        raw_data=record.model_dump(exclude_none=True),
+                        confidence=0.85,
+                        tags=["breach", "leak", record.source],
+                    )
+                )
 
         return ScanResult(
             scan_id=scan_id,
@@ -189,7 +199,9 @@ class DataLeaksAggregator(BaseOSINTTool):
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, provider.search, query)
 
-    def _parse_provider_results(self, provider_name: str, result: Any) -> list[BreachRecord]:
+    def _parse_provider_results(
+        self, provider_name: str, result: Any
+    ) -> list[BreachRecord]:
         """Parse a provider's raw result into BreachRecords."""
         records = []
 
@@ -232,10 +244,9 @@ class DataLeaksAggregator(BaseOSINTTool):
                 deduped.append(r)
         return deduped
 
-    def _filter_false_positives(self, records: list[BreachRecord]) -> list[BreachRecord]:
+    def _filter_false_positives(
+        self, records: list[BreachRecord]
+    ) -> list[BreachRecord]:
         """Remove known false positives."""
         fp_set = {(fp.get("email"), fp.get("username")) for fp in self._false_positives}
-        return [
-            r for r in records
-            if (r.email, r.username) not in fp_set
-        ]
+        return [r for r in records if (r.email, r.username) not in fp_set]

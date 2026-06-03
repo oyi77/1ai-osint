@@ -1,4 +1,5 @@
 """StackOverflow source adapter for crypto leak discovery."""
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -24,12 +25,15 @@ _QUERIES = [
     "trust wallet recovery phrase",
 ]
 
+
 class StackOverflowSource:
     """Scan StackOverflow for leaked crypto keys in code snippets."""
 
     API_URL = "https://api.stackexchange.com/2.3/search/advanced"
 
-    def __init__(self, max_per_query: int = 30, request_delay: float = 2.0, timeout: float = 30.0):
+    def __init__(
+        self, max_per_query: int = 30, request_delay: float = 2.0, timeout: float = 30.0
+    ):
         self.max_per_query = max_per_query
         self.request_delay = request_delay
         self.timeout = timeout
@@ -39,7 +43,9 @@ class StackOverflowSource:
         """Search StackOverflow for questions/answers with crypto key leaks."""
         leaks: list[RawLeak] = []
         seen_ids: set[int] = set()
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             for query in _QUERIES:
                 try:
                     await self._rate_limit()
@@ -54,7 +60,11 @@ class StackOverflowSource:
                         },
                     )
                     if resp.status_code != 200:
-                        logger.debug("StackOverflow query '%s' returned %d", query, resp.status_code)
+                        logger.debug(
+                            "StackOverflow query '%s' returned %d",
+                            query,
+                            resp.status_code,
+                        )
                         continue
                     data = resp.json()
                     for item in data.get("items", []):
@@ -66,12 +76,16 @@ class StackOverflowSource:
                         title = item.get("title", "")
                         combined = f"{title}\n{body}"
                         if combined.strip():
-                            link = item.get("link", f"https://stackoverflow.com/questions/{item_id}")
-                            leaks.append(RawLeak(
-                                text=combined,
-                                source_name="stackoverflow",
-                                source_url=link,
-                            ))
+                            link = item.get(
+                                "link", f"https://stackoverflow.com/questions/{item_id}"
+                            )
+                            leaks.append(
+                                RawLeak(
+                                    text=combined,
+                                    source_name="stackoverflow",
+                                    source_url=link,
+                                )
+                            )
                 except Exception as exc:
                     logger.error("StackOverflow query '%s' error: %s", query, exc)
 
@@ -106,21 +120,29 @@ class StackOverflowSource:
                         title = item.get("title", "")
                         combined = f"{title}\n{body}"
                         if combined.strip():
-                            link = item.get("link", f"https://stackoverflow.com/questions/{item_id}")
-                            leaks.append(RawLeak(
-                                text=combined,
-                                source_name="stackoverflow",
-                                source_url=link,
-                            ))
+                            link = item.get(
+                                "link", f"https://stackoverflow.com/questions/{item_id}"
+                            )
+                            leaks.append(
+                                RawLeak(
+                                    text=combined,
+                                    source_name="stackoverflow",
+                                    source_url=link,
+                                )
+                            )
                 except Exception as exc:
-                    logger.error("StackOverflow answer query '%s' error: %s", query, exc)
+                    logger.error(
+                        "StackOverflow answer query '%s' error: %s", query, exc
+                    )
 
         return leaks
 
     async def search_for_address(self, address: str) -> list[RawLeak]:
         """Search StackOverflow for a specific address."""
         leaks: list[RawLeak] = []
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             try:
                 await self._rate_limit()
                 resp = await client.get(
@@ -139,11 +161,13 @@ class StackOverflowSource:
                         combined = f"{title}\n{body}"
                         if combined.strip():
                             link = item.get("link", "")
-                            leaks.append(RawLeak(
-                                text=combined,
-                                source_name="stackoverflow",
-                                source_url=link,
-                            ))
+                            leaks.append(
+                                RawLeak(
+                                    text=combined,
+                                    source_name="stackoverflow",
+                                    source_url=link,
+                                )
+                            )
             except Exception as exc:
                 logger.error("StackOverflow address search error: %s", exc)
         return leaks

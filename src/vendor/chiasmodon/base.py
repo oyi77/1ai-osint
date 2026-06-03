@@ -1,10 +1,12 @@
 from typing import Any, Dict
 
+
 class OSINTTool:
     """
     Base interface for all OSINT tool wrappers.
     Each OSINT tool should implement this interface.
     """
+
     name: str
 
     def search(self, query: str, **kwargs) -> Dict[str, Any]:

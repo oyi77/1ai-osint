@@ -3,7 +3,7 @@
 import hashlib
 from typing import Any
 
-from src.models import Finding, ScanResult, Severity
+from src.core.models import Finding, ScanResult, Severity
 
 
 # SARIF severity mapping

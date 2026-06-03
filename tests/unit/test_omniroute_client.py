@@ -30,32 +30,39 @@ def mock_settings():
 @pytest.fixture
 def client(mock_openai_cls, mock_settings):
     from src.ai.omniroute_client import OmniRouteClient
+
     return OmniRouteClient(model="test-model", max_retries=2)
 
 
 class TestClientInit:
     def test_init_default_model(self, mock_openai_cls, mock_settings):
         from src.ai.omniroute_client import OmniRouteClient
+
         c = OmniRouteClient()
         assert c.model == "gpt-4o-mini"
         assert c.max_retries == 3
 
     def test_init_custom_model(self, mock_openai_cls, mock_settings):
         from src.ai.omniroute_client import OmniRouteClient
+
         c = OmniRouteClient(model="gpt-4", max_retries=5)
         assert c.model == "gpt-4"
         assert c.max_retries == 5
 
     def test_init_with_explicit_params(self, mock_openai_cls, mock_settings):
         from src.ai.omniroute_client import OmniRouteClient
+
         c = OmniRouteClient(base_url="http://custom:9999/v1", api_key="custom-key")
         assert c._primary_client is not None
 
-    def test_fallback_client_created_when_urls_differ(self, mock_openai_cls, mock_settings):
+    def test_fallback_client_created_when_urls_differ(
+        self, mock_openai_cls, mock_settings
+    ):
         mock_settings.openai_base_url = "https://api.openai.com/v1"
         mock_settings.omniroute_base_url = "http://omniroute:3000/v1"
         mock_settings.openai_api_key = "direct-key"
         from src.ai.omniroute_client import OmniRouteClient
+
         c = OmniRouteClient()
         assert c._fallback_client is not None
 
@@ -64,6 +71,7 @@ class TestClientInit:
         mock_settings.omniroute_base_url = "http://same:3000/v1"
         mock_settings.openai_api_key = ""
         from src.ai.omniroute_client import OmniRouteClient
+
         c = OmniRouteClient()
         assert c._fallback_client is None
 
@@ -89,7 +97,9 @@ class TestCallWithRetry:
         ]
 
         with patch("src.ai.omniroute_client.time.sleep"):
-            result = client._call_with_retry(primary, [{"role": "user", "content": "hi"}])
+            result = client._call_with_retry(
+                primary, [{"role": "user", "content": "hi"}]
+            )
         assert result == "OK"
 
     def test_retry_on_connection_error(self, client, mock_openai_cls):
@@ -103,7 +113,9 @@ class TestCallWithRetry:
         ]
 
         with patch("src.ai.omniroute_client.time.sleep"):
-            result = client._call_with_retry(primary, [{"role": "user", "content": "hi"}])
+            result = client._call_with_retry(
+                primary, [{"role": "user", "content": "hi"}]
+            )
         assert result == "OK"
 
     def test_retry_on_rate_limit(self, client, mock_openai_cls):
@@ -112,12 +124,18 @@ class TestCallWithRetry:
         mock_response.choices = [MagicMock(message=MagicMock(content="OK"))]
 
         primary.chat.completions.create.side_effect = [
-            RateLimitError(message="rate limited", response=MagicMock(status_code=429, headers={}), body=None),
+            RateLimitError(
+                message="rate limited",
+                response=MagicMock(status_code=429, headers={}),
+                body=None,
+            ),
             mock_response,
         ]
 
         with patch("src.ai.omniroute_client.time.sleep"):
-            result = client._call_with_retry(primary, [{"role": "user", "content": "hi"}])
+            result = client._call_with_retry(
+                primary, [{"role": "user", "content": "hi"}]
+            )
         assert result == "OK"
 
     def test_raises_after_max_retries(self, client, mock_openai_cls):
@@ -152,7 +170,9 @@ class TestChat:
     def test_chat_fallback_on_primary_failure(self, client, mock_openai_cls):
         _, primary, fallback = mock_openai_cls
         mock_response = MagicMock()
-        mock_response.choices = [MagicMock(message=MagicMock(content="Fallback response"))]
+        mock_response.choices = [
+            MagicMock(message=MagicMock(content="Fallback response"))
+        ]
         fallback.chat.completions.create.return_value = mock_response
 
         primary.chat.completions.create.side_effect = [
@@ -206,7 +226,9 @@ class TestExtractEntities:
     def test_extract_entities(self, client, mock_openai_cls):
         _, primary, _ = mock_openai_cls
         mock_response = MagicMock()
-        mock_response.choices = [MagicMock(message=MagicMock(content='{"entities": []}'))]
+        mock_response.choices = [
+            MagicMock(message=MagicMock(content='{"entities": []}'))
+        ]
         primary.chat.completions.create.return_value = mock_response
 
         result = client.extract_entities("John Doe, john@example.com")
@@ -217,7 +239,9 @@ class TestFilterFalsePositives:
     def test_filter_false_positives(self, client, mock_openai_cls):
         _, primary, _ = mock_openai_cls
         mock_response = MagicMock()
-        mock_response.choices = [MagicMock(message=MagicMock(content='{"filtered": []}'))]
+        mock_response.choices = [
+            MagicMock(message=MagicMock(content='{"filtered": []}'))
+        ]
         primary.chat.completions.create.return_value = mock_response
 
         result = client.filter_false_positives('[{"id": "f1"}]')

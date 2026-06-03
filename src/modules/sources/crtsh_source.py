@@ -1,4 +1,5 @@
 """crt.sh certificate transparency source adapter."""
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -15,7 +16,9 @@ class CrtShSource:
 
     BASE_URL = "https://crt.sh"
 
-    def __init__(self, max_results: int = 100, request_delay: float = 2.0, timeout: float = 30.0):
+    def __init__(
+        self, max_results: int = 100, request_delay: float = 2.0, timeout: float = 30.0
+    ):
         self.max_results = max_results
         self.request_delay = request_delay
         self.timeout = timeout
@@ -24,7 +27,9 @@ class CrtShSource:
     async def fetch_raw_leaks(self) -> list[RawLeak]:
         """Fetch recent certificate transparency entries."""
         leaks: list[RawLeak] = []
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             try:
                 await self._rate_limit()
                 resp = await client.get(
@@ -36,11 +41,13 @@ class CrtShSource:
                     for entry in entries:
                         name_value = entry.get("name_value", "")
                         if name_value:
-                            leaks.append(RawLeak(
-                                text=name_value,
-                                source_name="crtsh",
-                                source_url=f"https://crt.sh/?id={entry.get('id', '')}",
-                            ))
+                            leaks.append(
+                                RawLeak(
+                                    text=name_value,
+                                    source_name="crtsh",
+                                    source_url=f"https://crt.sh/?id={entry.get('id', '')}",
+                                )
+                            )
             except Exception as exc:
                 logger.debug("crt.sh error: %s", exc)
         return leaks
@@ -48,7 +55,9 @@ class CrtShSource:
     async def search_for_address(self, address: str) -> list[RawLeak]:
         """Search crt.sh for a specific domain."""
         leaks: list[RawLeak] = []
-        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout, follow_redirects=True
+        ) as client:
             try:
                 await self._rate_limit()
                 resp = await client.get(
@@ -58,11 +67,13 @@ class CrtShSource:
                     for entry in resp.json():
                         name_value = entry.get("name_value", "")
                         if name_value:
-                            leaks.append(RawLeak(
-                                text=name_value,
-                                source_name="crtsh",
-                                source_url=f"https://crt.sh/?id={entry.get('id', '')}",
-                            ))
+                            leaks.append(
+                                RawLeak(
+                                    text=name_value,
+                                    source_name="crtsh",
+                                    source_url=f"https://crt.sh/?id={entry.get('id', '')}",
+                                )
+                            )
             except Exception as exc:
                 logger.debug("crt.sh search error: %s", exc)
         return leaks

@@ -56,7 +56,7 @@ class BloomFilter:
         for idx in self._hash_indices(item):
             byte_idx = idx // 8
             bit_idx = idx % 8
-            self._bits[byte_idx] |= (1 << bit_idx)
+            self._bits[byte_idx] |= 1 << bit_idx
         self._count += 1
 
     def contains(self, item: str) -> bool:
@@ -82,7 +82,9 @@ class BloomFilter:
         """Estimated current false positive rate."""
         if self._count == 0:
             return 0.0
-        return (1 - math.exp(-self._hash_count * self._count / self._size)) ** self._hash_count
+        return (
+            1 - math.exp(-self._hash_count * self._count / self._size)
+        ) ** self._hash_count
 
     def clear(self) -> None:
         """Reset the filter."""

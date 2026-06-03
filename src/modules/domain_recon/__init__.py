@@ -1,4 +1,5 @@
 """Domain Reconnaissance module for comprehensive domain analysis."""
+
 from __future__ import annotations
 import asyncio
 import logging
@@ -8,7 +9,7 @@ from typing import Any
 import httpx
 
 from src.modules.base.base import BaseOSINTTool
-from src.models import Finding, ScanResult, Severity
+from src.core.models import Finding, ScanResult, Severity
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +67,9 @@ class DomainReconTool(BaseOSINTTool):
             findings=findings,
             metadata={
                 "target": target,
-                "tasks_completed": len([r for r in results if not isinstance(r, Exception)]),
+                "tasks_completed": len(
+                    [r for r in results if not isinstance(r, Exception)]
+                ),
                 "tasks_failed": len([r for r in results if isinstance(r, Exception)]),
             },
             started_at=started_at,
@@ -99,7 +102,11 @@ class DomainReconTool(BaseOSINTTool):
                         title=f"WHOIS Record for {domain}",
                         description=resp.text[:1000],
                         severity=Severity.INFO,
-                        raw_data={"type": "whois", "domain": domain, "data": resp.text[:5000]},
+                        raw_data={
+                            "type": "whois",
+                            "domain": domain,
+                            "data": resp.text[:5000],
+                        },
                     )
         except Exception as exc:
             logger.debug("WHOIS lookup failed for %s: %s", domain, exc)
@@ -109,7 +116,9 @@ class DomainReconTool(BaseOSINTTool):
         """Enumerate DNS records."""
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                resp = await client.get(f"https://dns.google/resolve?name={domain}&type=ANY")
+                resp = await client.get(
+                    f"https://dns.google/resolve?name={domain}&type=ANY"
+                )
                 if resp.status_code == 200:
                     data = resp.json()
                     answers = data.get("Answer", [])
@@ -120,7 +129,11 @@ class DomainReconTool(BaseOSINTTool):
                             title=f"DNS Records for {domain}",
                             description=f"Found {len(answers)} DNS records",
                             severity=Severity.INFO,
-                            raw_data={"type": "dns", "domain": domain, "records": answers},
+                            raw_data={
+                                "type": "dns",
+                                "domain": domain,
+                                "records": answers,
+                            },
                         )
         except Exception as exc:
             logger.debug("DNS enumeration failed for %s: %s", domain, exc)
@@ -147,7 +160,11 @@ class DomainReconTool(BaseOSINTTool):
                             title=f"Subdomains Discovered for {domain}",
                             description=f"Found {len(subdomains)} unique subdomains",
                             severity=Severity.INFO,
-                            raw_data={"type": "subdomains", "domain": domain, "subdomains": sorted(subdomains)},
+                            raw_data={
+                                "type": "subdomains",
+                                "domain": domain,
+                                "subdomains": sorted(subdomains),
+                            },
                         )
         except Exception as exc:
             logger.debug("Subdomain discovery failed for %s: %s", domain, exc)
@@ -167,16 +184,24 @@ class DomainReconTool(BaseOSINTTool):
                             title=f"Certificate Transparency for {domain}",
                             description=f"Found {len(data)} certificates",
                             severity=Severity.INFO,
-                            raw_data={"type": "ct_logs", "domain": domain, "certificates": data[:10]},
+                            raw_data={
+                                "type": "ct_logs",
+                                "domain": domain,
+                                "certificates": data[:10],
+                            },
                         )
         except Exception as exc:
-            logger.debug("Certificate transparency check failed for %s: %s", domain, exc)
+            logger.debug(
+                "Certificate transparency check failed for %s: %s", domain, exc
+            )
         return None
 
     async def _tech_stack_detection(self, domain: str) -> Finding | None:
         """Detect technology stack via HTTP headers."""
         try:
-            async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+            async with httpx.AsyncClient(
+                timeout=self.timeout, follow_redirects=True
+            ) as client:
                 resp = await client.get(f"https://{domain}")
                 headers = dict(resp.headers)
                 tech_indicators = {}
@@ -204,7 +229,11 @@ class DomainReconTool(BaseOSINTTool):
                         title=f"Technology Stack for {domain}",
                         description=f"Detected {len(tech_indicators)} technology indicators",
                         severity=Severity.INFO,
-                        raw_data={"type": "tech_stack", "domain": domain, "indicators": tech_indicators},
+                        raw_data={
+                            "type": "tech_stack",
+                            "domain": domain,
+                            "indicators": tech_indicators,
+                        },
                     )
         except Exception as exc:
             logger.debug("Tech stack detection failed for %s: %s", domain, exc)
