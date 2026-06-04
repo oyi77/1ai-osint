@@ -34,6 +34,7 @@ CHAT_ID = os.environ.get("PHANTOMFX_TELEGRAM_CHAT_ID","-1002928711742")
 OPENCLAW_URL = os.environ.get("OPENCLAW_GATEWAY_URL","http://localhost:20129")
 BRIDGE_URL = os.environ.get("MT5_EA_WEBHOOK_URL","http://localhost:8765")
 DEEPSEEK_KEY = os.environ.get("DEEPSEEK_API_KEY","")
+CLAUDE_KEY = os.environ.get("CLAUDE_API_KEY","")
 STATE_PATH = DATA_DIR / "bot_state.json"
 
 def wib_now(): return datetime.now(WIB)
@@ -94,10 +95,11 @@ def fetch_dxy():
         except: continue
     return None
 
-def tg_send(text):
+def tg_send(text, chat_id=None):
     if not TOKEN: return False
+    target = chat_id or CHAT_ID
     try:
-        payload = {"chat_id": CHAT_ID, "text": text, "parse_mode": "HTML", "disable_web_page_preview": True}
+        payload = {"chat_id": target, "text": text, "parse_mode": "HTML", "disable_web_page_preview": True}
         r = json.loads(urllib.request.urlopen(urllib.request.Request(
             f"https://api.telegram.org/bot{TOKEN}/sendMessage",
             data=json.dumps(payload).encode(),
@@ -126,10 +128,73 @@ def basic_sr(price):
         "nearest_resistance": r1 if price < pivot else r2,
     }
 
-SYSTEM_PROMPT = """You are PhantomFX institutional XAUUSD trader.
-Output ONLY this exact JSON (no markdown, no extra text):
-{"action":"BUY|SELL|HOLD","entry":0.0,"sl":0.0,"tp":0.0,"confidence":0.0,"grade":"A|B|C|D","combat_style":"SNIPER|COMMANDO|CRUSADER|LIQUIDITY_HUNTER|HOLD","rr_ratio":0.0,"reasoning":"1 sentence Indonesian","bias":"BULLISH|BEARISH|NEUTRAL","key_levels":{"support":0.0,"resistance":0.0}}
-R:RR>=1:2. Uncertain=HOLD."""
+SYSTEM_PROMPT = """Kamu adalah PhantomFX — Full-Stack Institutional AI Trading System.
+Senior Hedge Fund Portfolio Manager menganalisis market dengan 100+ parameter simultan.
+Kamu BUKAN bot sinyal murahan. Setiap keputusan: konfluensi 7-TF, momentum SMC, SKC scoring, bias makro, validasi 2-layer.
+
+═══════════════════════════════════════════
+🛡️ PHANTOM CONSTITUTION (Non-Negotiable)
+═══════════════════════════════════════════
+LAW #1 — CIRCUIT BREAKER: loss_count >= 3 → WAJIB HOLD. TIDAK ADA pengecualian.
+LAW #2 — REALISTIC: Target 5-15%/bulan, bukan 100%.
+LAW #3 — COMPOUNDING > JACKPOT: $1,000 @ 10%/bln → 12 bln: $3,138 | 5 thn: $300K+
+LAW #4 — DUAL RISK TIER: SKC ≥ 8.7 → 1% risk | SKC 7.0-8.6 → 0.5% risk | SKC < 7.0 → SKIP
+LAW #5 — DON'T CHASE: Entry hanya setelah candle CLOSED dengan konfirmasi.
+
+═══════════════════════════════════════════
+🔬 SKC SCORING ENGINE (Max 10 pts)
+═══════════════════════════════════════════
+S — STRUKTUR (Max 4.0): W1/D1 aligned(+1.5) | H4 CHoCH/BOS(+1.5) | H1 POI(+0.5) | M15/M5(+0.5)
+K — KONFLUENSI (Max 3.5): Liq sweep(+1.0) | ≥3TF bias aligned(+1.0) | Killzone active(+0.75) | S/R round number(+0.75)
+C — KONTEKS (Max 2.5): Macro align(+1.0) | News align(+1.0) | Clean chart no chop(+0.5)
+
+≥8.7 → 🟢 GREEN (1% risk) | 7.0-8.6 → 🟡 YELLOW (0.5% risk) | <7.0 → 🔴 RED (SKIP/HOLD)
+
+═══════════════════════════════════════════
+🎖️ 4 COMBAT STYLES
+═══════════════════════════════════════════
+🔵 SNIPER (H1→M15→M5→M1): Normal market, H1 structure clear, 2-5 setups/day, RR 1:2.5+
+🟡 COMMANDO (D1→H4→H1→M5): High-impact news + D1 bias + Killzone, 1-3 setups/day, RR 1:3+
+🛡️ CRUSADER (H4→H1→M15→M5): H4/D1 overshoot + RSI divergence, counter-trend, 1-2 setups/day
+🔴 LIQUIDITY HUNTER (M15→M5→M1): Trend extended + EQH/EQL + Killzone, 3-10 setups/day, SL tight
+⚪ HOLD: Circuit breaker | Asian choppy | News <30min | All D-Grade | SKC < 7.0
+
+═══════════════════════════════════════════
+🔐 2-LAYER VALIDATION (MANDATORY)
+═══════════════════════════════════════════
+Layer 1 — POI Alert: Identify OB/FVG/S/R zone → Set alert ABOVE zone → Max 15 min wait
+Layer 2 — Trigger Confirmation:
+  D1/W1→H1 engulfing | H4→M15 CHoCH/BOS | H1→M5 sweep+shift | M15→M1 CHoCH
+MUST: Candle CLOSED, R:R ≥ 1:2, CHoCH/BOS valid, SL dari HTF invalidation level
+
+═══════════════════════════════════════════
+📋 OUTPUT — JSON ONLY (no markdown, no text outside JSON)
+═══════════════════════════════════════════
+Return exactly this JSON structure:
+{
+ "action":"BUY|SELL|HOLD",
+ "entry":0.0, "sl":0.0, "tp":0.0,
+ "sl_pips":0, "tp_pips":0,
+ "rr_ratio":"1:X.XX",
+ "confidence":0.0, "grade":"A|B|C|D",
+ "combat_style":"SNIPER|COMMANDO|CRUSADER|LIQUIDITY_HUNTER|HOLD",
+ "bias":"BULLISH|BEARISH|NEUTRAL",
+ "skc_score":{"s_struktur":0.0,"k_konfluensi":0.0,"c_konteks":0.0,"total":0.0,"zone":"GREEN|YELLOW|RED"},
+ "risk_tier":"1%|0.5%|SKIP",
+ "layer_1":"TRIGGERED|WAITING|N/A",
+ "layer_2":"CONFIRMED|PENDING|FAILED",
+ "confluences":["factor1","factor2"],
+ "reasoning":"4-6 detailed sentences in professional Indonesian (pakai 'Saya'). Explain: struktur TF, SKC breakdown, combat style choice, entry logic, SL/TP rationale",
+ "htf_sl_level":"HTF invalidation description"
+}
+
+FINAL CHECKLIST BEFORE OUTPUT:
+□ Circuit Breaker checked? □ Killzone status? □ Combat Style selected? □ SKC calculated?
+□ Risk Tier determined? □ Layer 1 POI identified? □ Layer 2 LTF confirmation? □ R:R ≥ 1:2?
+□ HTF SL (not LTF swing)? □ All D-grade = HOLD?
+
+\"High Timeframe for Direction, Low Timeframe for Precision.\"
+\"Ini bukan soal keberuntungan. Ini soal menumpuk probabilitas. Lagi dan lagi.\""""
 
 def _call_claude(prompt):
     """Try Claude API. Returns parsed signal or None."""
@@ -137,8 +202,8 @@ def _call_claude(prompt):
         return None
     try:
         data = json.dumps({
-            "model":"claude-sonnet-4-20250514",
-            "max_tokens":600,"temperature":0.3,
+            "model":"claude-opus-4-20250514",
+            "max_tokens":1200,"temperature":0.3,
             "system":SYSTEM_PROMPT,
             "messages":[{"role":"user","content":prompt}]
         }).encode()
@@ -149,8 +214,22 @@ def _call_claude(prompt):
         r = json.loads(resp.read())
         content = r["content"][0]["text"]
         logger.info(f"Claude: {len(content)} chars")
-        m = re.search(r'\{[^{}]*"action"[^}]*\}', content)
-        if m: return json.loads(m.group(0))
+        # Extract JSON block (handles nested objects like key_levels)
+        m = re.search(r'\{.*"action".*\}', content, re.DOTALL)
+        if m:
+            try: return json.loads(m.group(0))
+            except json.JSONDecodeError:
+                # Try to fix truncated JSON by finding matching braces
+                raw = m.group(0)
+                depth = 0; end = 0
+                for i, ch in enumerate(raw):
+                    if ch == '{': depth += 1
+                    elif ch == '}':
+                        depth -= 1
+                        if depth == 0: end = i + 1; break
+                if end:
+                    try: return json.loads(raw[:end])
+                    except: pass
     except Exception as e:
         logger.warning(f"Claude unavailable: {e}")
     return None
@@ -169,91 +248,94 @@ def _call_deepseek(prompt):
         r = json.loads(resp.read())
         content = r["choices"][0]["message"]["content"]
         logger.info(f"DeepSeek: {len(content)} chars")
-        m = re.search(r'\{[^{}]*"action"[^}]*\}', content)
-        if m: return json.loads(m.group(0))
+        # Extract JSON block (handles nested objects like key_levels)
+        m = re.search(r'\{.*"action".*\}', content, re.DOTALL)
+        if m:
+            try: return json.loads(m.group(0))
+            except json.JSONDecodeError:
+                # Try to fix truncated JSON by finding matching braces
+                raw = m.group(0)
+                depth = 0; end = 0
+                for i, ch in enumerate(raw):
+                    if ch == '{': depth += 1
+                    elif ch == '}':
+                        depth -= 1
+                        if depth == 0: end = i + 1; break
+                if end:
+                    try: return json.loads(raw[:end])
+                    except: pass
     except Exception as e:
         logger.warning(f"DeepSeek error: {e}")
     return None
 
 def ask_ai_ensemble(price, dxy, sess, kz_str, loss_count):
-    """Multi-model ensemble: Claude + DeepSeek debate for confidence."""
-    prompt = f"XAUUSD=${price:.1f} DXY={dxy or 'N/A'} Session={sess} KZ={kz_str} Loss={loss_count}/3. 7TF SMC JSON only."
+    """PhantomFX SOP analysis — Claude Opus solo with full SKC scoring."""
+    # Build proper PhantomFX user prompt following SOP template
+    lkz = "🟢 ACTIVE" if "London" in kz_str else "⚪ Inactive"
+    nykz = "🟢 ACTIVE" if "NY" in kz_str else "⚪ Inactive"
     
-    signals = []
-    
-    # Collect signals from all available models
-    claude_sig = _call_claude(prompt)
-    if claude_sig:
-        claude_sig["_model"] = "Claude"
-        signals.append(claude_sig)
-    
-    deepseek_sig = _call_deepseek(prompt)
-    if deepseek_sig:
-        deepseek_sig["_model"] = "DeepSeek"
-        signals.append(deepseek_sig)
-    
-    if not signals:
-        return None
-    
-    if len(signals) == 1:
-        # Single model — use as-is
-        sig = signals[0]
-        sig["ensemble"] = "single"
-        sig["voters"] = 1
-        return sig
-    
-    # Multi-model ensemble
-    s1, s2 = signals[0], signals[1]
-    actions = [s.get("action") for s in signals]
-    biases = [s.get("bias") for s in signals]
-    
-    # Determine agreement
-    agree_action = actions[0] == actions[1]
-    agree_bias = biases[0] == biases[1] if biases[0] and biases[1] else False
-    
-    if agree_action:
-        # Both agree — boost confidence
-        avg_conf = (s1.get("confidence", 0.5) + s2.get("confidence", 0.5)) / 2
-        ensemble_conf = min(avg_conf * 1.1, 0.95)  # +10% bonus for agreement
-        
-        result = dict(s1)  # Use Claude's structure
-        result["confidence"] = round(ensemble_conf, 2)
-        result["reasoning"] = f"[Claude+DeepSeek agree] {s1.get('reasoning','')[:120]}"
-        result["ensemble"] = "agree"
-        result["voters"] = 2
-        result["grade"] = "A" if ensemble_conf >= 0.8 else ("B" if ensemble_conf >= 0.65 else "C")
-        
-        # Average key levels
-        for key in ["entry","sl","tp"]:
-            v1 = s1.get(key, 0) or 0
-            v2 = s2.get(key, 0) or 0
-            if v1 and v2:
-                result[key] = round((v1 + v2) / 2, 2)
-        
-        kl1 = s1.get("key_levels", {})
-        kl2 = s2.get("key_levels", {})
-        if kl1 and kl2:
-            result["key_levels"] = {
-                "support": round(((kl1.get("support",0) or 0) + (kl2.get("support",0) or 0)) / 2, 2),
-                "resistance": round(((kl1.get("resistance",0) or 0) + (kl2.get("resistance",0) or 0)) / 2, 2),
-            }
-        return result
-    else:
-        # Disagree → HOLD with reduced confidence
-        return {
-            "action": "HOLD",
-            "entry": 0, "sl": 0, "tp": 0,
-            "confidence": 0.3,
-            "grade": "D",
-            "combat_style": "HOLD",
-            "rr_ratio": 0,
-            "bias": "NEUTRAL",
-            "key_levels": {},
-            "reasoning": f"[DEBATE] Claude: {actions[0]} vs DeepSeek: {actions[1]}. No consensus → HOLD. {s1.get('reasoning','')[:80]}",
-            "ensemble": "disagree",
-            "voters": 2,
-        }
+    prompt = (f"""━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🤖 PhantomFX | Cycle: Auto | Session: {sess}
+📡 Killzone: London {lkz} | NY {nykz}
+🔴 Circuit Breaker: Loss hari ini: {loss_count}/3
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+[⚠️ CIRCUIT BREAKER CHECK — PROSES INI PERTAMA]
+Loss count = {loss_count}. {'Jika ≥ 3 → WAJIB HOLD, jangan proses apapun lagi.' if loss_count < 3 else '≥ 3 → WAJIB HOLD! Langsung output HOLD.'}
+
+════════════════════════════════════════
+📊 XAUUSD MARKET DATA
+════════════════════════════════════════
+💰 XAUUSD Current Price: ${price:.1f}
+💵 DXY: {dxy or 'N/A'}
+🕐 Session: {sess} | Killzone: {kz_str}
+
+📊 MACRO CONTEXT (Gunakan untuk SKC Konteks scoring):
+- DXY di {'atas' if dxy and dxy > 104 else 'bawah'} 104 → {'bearish gold (DXY kuat)' if dxy and dxy > 104 else 'bullish gold (DXY lemah)'}
+- Session {sess}: {'Likuiditas tinggi, struktur jelas' if sess in ('London','NY','Overlap') else 'Likuiditas rendah, waspadai chop'}
+- Killzone {'AKTIF — momentum tinggi, valid untuk entry' if 'ACTIVE' in kz_str else 'di luar — kurangi agresi'}
+
+════════════════════════════════════════
+📐 TECHNICAL ANALYSIS REQUIRED
+════════════════════════════════════════
+Analisis XAUUSD dengan 7-TF SMC. Dari price ${price:.1f}:
+1. Tentukan struktur W1/D1/H4 — CHoCH/BOS terakhir dimana?
+2. Identifikasi POI (OB/FVG/S/R) di H1
+3. Cek M15/M5 untuk LTF konfirmasi
+4. Hitung SKC Score (Struktur + Konfluensi + Konteks)
+5. Pilih Combat Style berdasarkan kondisi market
+6. Tentukan entry/SL/TP dengan R:R minimum 1:2
+7. Jalankan 2-Layer Validation
+
+OUTPUT: JSON ONLY. Tidak ada markdown, tidak ada teks di luar JSON.
+Gunakan Bahasa Indonesia profesional (pronouns: "Saya").""")
+    
+    sig = _call_claude(prompt)
+    if sig:
+        sig["_model"] = "Claude Opus"
+        sig["ensemble"] = "opus_solo"
+        sig["voters"] = 1
+        
+        # Validate entry is within reasonable range (±$50)
+        if sig.get("entry") and sig.get("entry") > 0 and price:
+            if abs(sig["entry"] - price) > 50:
+                logger.warning(f"Opus entry ${sig['entry']} too far from price ${price} — forcing HOLD")
+                sig["action"] = "HOLD"
+                sig["entry"] = sig["sl"] = sig["tp"] = 0
+                sig["confidence"] = 0.1
+                sig["grade"] = "D"
+        
+        # Ensure required fields exist
+        sig.setdefault("skc_score", {"s_struktur":0,"k_konfluensi":0,"c_konteks":0,"total":0,"zone":"RED"})
+        sig.setdefault("risk_tier", "SKIP")
+        sig.setdefault("layer_1", "N/A")
+        sig.setdefault("layer_2", "N/A")
+        sig.setdefault("confluences", [])
+        sig.setdefault("rr_ratio", 0)
+        sig.setdefault("bias", "NEUTRAL")
+        
+        return sig
+    return None
 # Backward compat alias
 def ask_ai(price, dxy, sess, kz_str, loss_count):
     return ask_ai_ensemble(price, dxy, sess, kz_str, loss_count)
@@ -281,19 +363,61 @@ def fmt_signal(sig, price, dxy, h):
         model_tag = f" | ⚠️ SPLIT ({voters} models)"
     else:
         model_tag = f" | 🤖 {sig.get('_model','AI')}"
-    
+
     text = (f"<b>🎯 PhantomFX Signal</b>{model_tag}\n━━━━━━━━━━━━━━━━\n"
             f"💰 XAUUSD ${price:,.2f} | DXY: {dxy or 'N/A'} | {session(h)}\n"
             f"━━━━━━━━━━━━━━━━\n"
             f"<b>{em} {a}</b> | Grade: {ge} {g}\n"
             f"Style: {sig.get('combat_style','?')} | Bias: {sig.get('bias','?')}\n"
             f"Confidence: [{bar}] {sig.get('confidence',0):.0%}\n")
+    
+    # SKC Score breakdown (from SOP)
+    skc = sig.get("skc_score", {})
+    if skc and skc.get("total", 0) > 0:
+        zone_emoji = {"GREEN":"🟢","YELLOW":"🟡","RED":"🔴"}.get(skc.get("zone","RED"),"🔴")
+        text += (f"\n<b>━━━ 🔬 SKC Score ━━━</b>\n"
+                 f"S-Struktur: {skc.get('s_struktur',0):.1f}/4.0 | "
+                 f"K-Konfluensi: {skc.get('k_konfluensi',0):.1f}/3.5 | "
+                 f"C-Konteks: {skc.get('c_konteks',0):.1f}/2.5\n"
+                 f"Total: <b>{skc.get('total',0):.1f}/10</b> → {zone_emoji} {skc.get('zone','?')} | "
+                 f"Risk: {sig.get('risk_tier','SKIP')}\n")
+    
+    # Layer validation
+    l1 = sig.get('layer_1','N/A')
+    l2 = sig.get('layer_2','N/A')
+    if l1 != 'N/A' or l2 != 'N/A':
+        l1e = {"TRIGGERED":"✅","WAITING":"⏳","N/A":"⬜"}.get(l1,"⬜")
+        l2e = {"CONFIRMED":"✅","PENDING":"⏳","FAILED":"❌","N/A":"⬜"}.get(l2,"⬜")
+        text += f"Validation: L1 {l1e} | L2 {l2e}\n"
+    
     if a != "HOLD" and sig.get("entry"):
-        text += (f"\nEntry: <b>${sig['entry']:.2f}</b>\n"
-                 f"SL: <b>${sig['sl']:.2f}</b> | TP: <b>${sig['tp']:.2f}</b>\n"
-                 f"R:R = 1:{sig.get('rr_ratio',0):.1f}\n")
-    kl = sig.get("key_levels",{})
-    if kl: text += f"S: ${kl.get('support',0):,} | R: ${kl.get('resistance',0):,}\n"
+        entry = sig['entry']
+        sl = sig['sl']
+        tp = sig['tp']
+        rr = sig.get('rr_ratio', 0)
+        # Calculate risk & reward distances
+        if a == "BUY":
+            risk = entry - sl
+            reward = tp - entry
+        else:
+            risk = sl - entry
+            reward = entry - tp
+        risk_pct = (risk / entry * 100) if entry > 0 else 0
+        reward_pct = (reward / entry * 100) if entry > 0 else 0
+        text += (f"\n<b>━━━ 🎯 ENTRY ━━━</b>\n"
+                 f"<b>ENTRY → ${entry:,.2f}</b>\n"
+                 f"━━━━━━━━━━━━━━━━\n"
+                 f"🛑 <b>SL: ${sl:,.2f}</b>  |  Risk: ${risk:,.2f} ({risk_pct:.2f}%)\n"
+                 f"🎯 <b>TP: ${tp:,.2f}</b>  |  Reward: ${reward:,.2f} ({reward_pct:.2f}%)\n"
+                 f"📊 <b>R:R = 1:{rr:.1f}</b>\n")
+    # Key levels always from math (NOT AI — AI hallucinates e.g. $1230 on $4470 XAUUSD)
+    sr = basic_sr(price)
+    if sr:
+        text += f"\n━━━ 📐 Key Levels (Calc) ━━━\n"
+        text += f"Pivot: ${sr['pivot']:,.2f}\n"
+        text += f"🟢 S1: ${sr['s1']:,.2f} | S2: ${sr['s2']:,.2f} | S3: ${sr['s3']:,.2f}\n"
+        text += f"🔴 R1: ${sr['r1']:,.2f} | R2: ${sr['r2']:,.2f} | R3: ${sr['r3']:,.2f}\n"
+        text += f"Bias: {sr['bias']}\n"
     text += f"\n<i>{sig.get('reasoning','N/A')[:250]}</i>\n"
     text += f"━━━━━━━━━━━━━━━━\n⚡ PhantomFX | {wib_fmt()}"
     return text
@@ -463,15 +587,19 @@ def auto_analyze_loop():
             ensemble = sig.get("ensemble", "")
             confidence = sig.get("confidence", 0)
             
-            # Only push when:
-            # - Both models agree (ensemble="agree") 
+            # Push signal when:
+            # - Opus solo or ensemble agree
             # - Action is BUY or SELL
             # - Confidence >= 0.65
-            if ensemble == "agree" and action in ("BUY", "SELL") and confidence >= 0.65:
-                logger.info(f"🚀 AUTO SIGNAL: {action} | conf={confidence:.0%} | {sig.get('reasoning','')[:60]}")
+            # - SKC score >= 7.0 (YELLOW zone minimum)
+            skc = sig.get("skc_score", {})
+            skc_total = skc.get("total", 0) if isinstance(skc, dict) else 0
+            
+            if ensemble in ("agree", "opus_solo", "single") and action in ("BUY", "SELL") and confidence >= 0.65:
+                logger.info(f"🚀 AUTO SIGNAL: {action} | SKC={skc_total:.1f}/10 | conf={confidence:.0%} | {sig.get('reasoning','')[:60]}")
                 
                 # Format and send
-                text = fmt_signal(sig, price, dxy, h) + "\n<i>[AUTO] Generated during {session(h)} session</i>"
+                text = fmt_signal(sig, price, dxy, h) + f"\n<i>[AUTO] Generated during {session(h)} session</i>"
                 tg_send(text)
                 
                 # Update log
@@ -481,19 +609,24 @@ def auto_analyze_loop():
                     "time": wib_now().isoformat(),
                     "action": action,
                     "confidence": confidence,
+                    "skc_score": skc_total,
                     "entry": sig.get("entry"),
                     "price_at_signal": price,
                     "session": session(h),
+                    "combat_style": sig.get("combat_style"),
                 })
                 save_signal_log(log)
                 
                 # Wait longer after sending a signal
                 time.sleep(300)  # 5 min cooldown
             elif ensemble == "disagree":
-                logger.info(f"   Split → skip (Claude vs DeepSeek disagree)")
+                logger.info(f"   Split → skip (models disagree)")
                 time.sleep(90)
             else:
-                logger.info(f"   No consensus or HOLD → skip")
+                grade = sig.get('grade','?')
+                skc_str = f"SKC={skc_total:.1f}" if skc_total > 0 else ""
+                reason = sig.get('reasoning','')[:50]
+                logger.info(f"   {action} | Grade:{grade} | {skc_str} | {reason}")
                 time.sleep(60)
                 
         except Exception as e:
