@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import secrets
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Optional
 
@@ -128,7 +128,7 @@ class ZKITOutput:
     salt_fingerprint: str  # first 16 chars of salt SHA-256 (not the salt itself)
     clusters: list[CorrelatedCluster]
     graph_stats: dict[str, Any]
-    generated_at: datetime = field(default_factory=datetime.utcnow)
+    generated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 # ---------------------------------------------------------------------------

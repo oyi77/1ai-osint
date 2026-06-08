@@ -25,7 +25,7 @@ class RedactionAuditEntry:
 
     field_name: str
     original_length: int
-    redacted_at: datetime = field(default_factory=datetime.utcnow)
+    redacted_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     source_module: str = ""
 
 

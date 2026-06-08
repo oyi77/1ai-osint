@@ -13,7 +13,7 @@ import logging
 import os
 import re
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from src.modules.crypto.balance.chains import ALL_CHAINS, ChainConfig
@@ -158,7 +158,7 @@ class LeakFinding:
     source_type: str = "mnemonic"
     has_balance: bool = False
     balance_details: dict = field(default_factory=dict)
-    found_at: datetime = field(default_factory=datetime.utcnow)
+    found_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class MnemonicPatternDetector:

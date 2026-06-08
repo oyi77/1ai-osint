@@ -629,12 +629,25 @@ def monitor(
                             )
 
                             if telegram and keys:
-                                # TODO: send Telegram alert
-                                pass
+                                import httpx
+                                bot_token = os.getenv("TELEGRAM_BOT_TOKEN", "")
+                                chat_id = os.getenv("TELEGRAM_CHAT_ID", "")
+                                if bot_token and chat_id:
+                                    key_summary = ", ".join(k.key_type.value for k in keys[:5])
+                                    msg = f"🔍 [{name}] {len(keys)} key(s) found: {key_summary}\n{leak.source_url or leak.text[:200]}"
+                                    try:
+                                        async with httpx.AsyncClient() as client:
+                                            await client.post(
+                                                f"https://api.telegram.org/bot{bot_token}/sendMessage",
+                                                json={"chat_id": chat_id, "text": msg, "parse_mode": "HTML"},
+                                                timeout=10,
+                                            )
+                                    except Exception as exc:
+                                        typer.echo(f"  Telegram alert failed: {exc}", err=True)
                 except asyncio.TimeoutError:
-                    pass
-                except Exception:
-                    pass
+                    typer.echo(f"  [{name}] Timeout", err=True)
+                except Exception as exc:
+                    typer.echo(f"  [{name}] Error: {exc}", err=True)
 
             typer.echo(
                 f"  Summary: {new_leaks} new leaks, {new_keys} new keys "
