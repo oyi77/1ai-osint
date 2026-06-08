@@ -43,3 +43,6 @@ build/
 state/
 .omc/sessions/
 *.session
+
+# Other projects (have their own repos)
+1ai-trade-bot/
