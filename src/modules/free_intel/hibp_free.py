@@ -1,7 +1,8 @@
 """Have I Been Pwned — free breach lookup."""
 
-import os
 import logging
+import os
+
 import httpx
 from pydantic import BaseModel, Field
 

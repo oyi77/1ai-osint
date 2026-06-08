@@ -10,8 +10,10 @@ Implements a multi-pass analytical cycle:
 """
 
 from __future__ import annotations
+
 import logging
 from typing import Any
+
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -191,8 +193,9 @@ class AdversarialAnalyst:
 
     async def _llm_analysis(self, report: Any, evidence_summary: str) -> CIAAnalysis:
         """LLM-enhanced analysis via OpenAI or Omniroute API."""
-        import os
         import json
+        import os
+
         import httpx
 
         api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get(

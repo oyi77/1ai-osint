@@ -1,9 +1,11 @@
 """Maltego source adapter for OSINT graph analysis."""
 
 from __future__ import annotations
+
 import asyncio
 import logging
 import time
+
 import httpx
 
 from src.modules.sources.base import RawLeak

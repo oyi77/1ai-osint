@@ -5,7 +5,7 @@ import logging
 from typing import Any, Optional
 
 from src.ai.omniroute_client import OmniRouteClient
-from src.ai.schemas.responses import EntityExtractionResult, ExtractedEntity, EntityType
+from src.ai.schemas.responses import EntityExtractionResult, EntityType, ExtractedEntity
 
 logger = logging.getLogger(__name__)
 

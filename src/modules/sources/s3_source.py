@@ -1,9 +1,11 @@
 """S3 bucket source adapter for exposed cloud storage scanning."""
 
 from __future__ import annotations
+
 import asyncio
 import logging
 import time
+
 import httpx
 
 from src.modules.sources.base import RawLeak

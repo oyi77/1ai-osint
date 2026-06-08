@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
-from typing import List, Any, Optional
+from typing import Any, List, Optional
 
-from src.core.models import Finding, BreachRecord
+from src.core.models import BreachRecord, Finding
 from src.modules.deep_scan.models_report import TimelineEntry
 
 logger = logging.getLogger(__name__)

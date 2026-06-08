@@ -1,10 +1,12 @@
 """RSS feed source adapter for monitoring security feeds."""
 
 from __future__ import annotations
+
 import asyncio
 import logging
 import re
 import time
+
 import httpx
 
 from src.modules.sources.base import RawLeak

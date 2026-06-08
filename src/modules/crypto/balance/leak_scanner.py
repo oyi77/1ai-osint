@@ -19,11 +19,11 @@ from __future__ import annotations
 
 # Shared utilities, dataclasses, and standalone functions
 from src.modules.crypto.balance._leak_shared import (
-    LeakFinding,
-    MnemonicPatternDetector,
     _BIP39_WORDS,
     _SEEN_MNEMONICS,
     _SEEN_MNEMONICS_FILE,
+    LeakFinding,
+    MnemonicPatternDetector,
     _find_chain,
     _is_mnemonic_seen,
     _load_bip39_words,
@@ -37,8 +37,8 @@ from src.modules.crypto.balance._leak_shared import (
 # Scanner classes
 from src.modules.crypto.balance.scanner_dork import DorkScanner
 from src.modules.crypto.balance.scanner_github import GitHubLeakScanner
-from src.modules.crypto.balance.scanner_paste import PasteSiteScanner
 from src.modules.crypto.balance.scanner_key import KeyLeakScanner
+from src.modules.crypto.balance.scanner_paste import PasteSiteScanner
 from src.modules.crypto.balance.scanner_telegram import TelegramLeakScanner
 
 __all__ = [

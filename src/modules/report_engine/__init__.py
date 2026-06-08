@@ -5,6 +5,7 @@ existing reports to extract identifiers for new scans.
 """
 
 from __future__ import annotations
+
 import json
 import logging
 import re

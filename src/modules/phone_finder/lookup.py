@@ -10,7 +10,6 @@ from pydantic import BaseModel, Field
 from src.core.models import Finding, ScanResult, Severity
 from src.modules.base.base import BaseOSINTTool
 
-
 # E.164 phone number pattern: +[country code][subscriber number]
 _E164_PATTERN = re.compile(r"^\+[1-9]\d{1,14}$")
 

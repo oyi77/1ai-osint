@@ -21,7 +21,6 @@ from src.modules.identity_tracking.identity_graph import (
     NodeType,
 )
 
-
 # ---------------------------------------------------------------------------
 # Supported attribute types and normalization
 # ---------------------------------------------------------------------------

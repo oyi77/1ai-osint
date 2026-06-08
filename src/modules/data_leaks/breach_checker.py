@@ -1,8 +1,8 @@
 import hashlib
+
 import httpx
 
 from src.core.models import BreachRecord, Severity
-
 
 # Data class severity weights
 _DATA_CLASS_WEIGHTS = {

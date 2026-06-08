@@ -9,10 +9,10 @@ Supports:
 
 from src.modules.deep_scan.models_report import IntelReport
 
-from .json_export import export_json
 from .html_export import export_html
-from .stix_export import export_stix
+from .json_export import export_json
 from .pdf_briefing import export_pdf
+from .stix_export import export_stix
 
 
 def export_report(report: IntelReport, fmt: str = "html") -> str | bytes:

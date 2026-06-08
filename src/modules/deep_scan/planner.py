@@ -1,11 +1,14 @@
 """LangGraph planner for budget-aware module scheduling in deep scans."""
 
 from __future__ import annotations
+
 import asyncio
 import logging
 from datetime import datetime, timezone
 from typing import Any, List, Tuple
+
 from langgraph.graph import END, StateGraph
+
 from src.modules.deep_scan import (
     DeepScanResult,
     Identifier,

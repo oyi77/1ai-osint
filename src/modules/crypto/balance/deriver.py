@@ -10,11 +10,11 @@ from dataclasses import dataclass
 from typing import Optional
 
 from bip_utils import (
-    Bip39SeedGenerator,
     Bip39MnemonicValidator,
+    Bip39SeedGenerator,
     Bip44,
-    Bip44Coins,
     Bip44Changes,
+    Bip44Coins,
 )
 
 # Import BIP-49/84/86 classes if available (for SegWit/Taproot derivation)
@@ -26,14 +26,13 @@ except ImportError:
     _HAS_BIP84 = False
 
 from src.modules.crypto.balance.chains import (
+    ALL_CHAINS,
     ETHEREUM,
     SOLANA,
     ChainConfig,
     ChainType,
-    ALL_CHAINS,
 )
 from src.modules.crypto.balance.provider_profiles import ProviderProfile
-
 
 # --- Base58 encoding/decoding for Solana keys ---
 _BASE58_ALPHABET = b"123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"

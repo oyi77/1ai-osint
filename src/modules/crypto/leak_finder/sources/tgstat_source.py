@@ -1,11 +1,14 @@
 """TGStat source adapter for crypto leak discovery."""
 from __future__ import annotations
+
 import asyncio
 import logging
 import os
 import re
 from typing import Optional
+
 import httpx
+
 from src.modules.crypto.leak_finder.sources.github_source import RawLeak
 
 logger = logging.getLogger(__name__)

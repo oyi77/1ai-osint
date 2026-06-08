@@ -9,8 +9,8 @@ from __future__ import annotations
 import asyncio
 import copy
 import logging
-import random
 import os
+import random
 import signal
 import time
 from dataclasses import dataclass, field
@@ -20,8 +20,8 @@ import httpx
 from bip_utils import Bip39MnemonicGenerator, Bip39WordsNum
 
 from src.modules.crypto.balance.api_rotation import ENDPOINT_REGISTRY, EndpointRotator
-from src.modules.crypto.balance.checker import check_balance
 from src.modules.crypto.balance.chains import ALL_CHAINS, ChainConfig, ChainType
+from src.modules.crypto.balance.checker import check_balance
 from src.modules.crypto.balance.deriver import (
     DerivedAddress,
 )
@@ -293,8 +293,8 @@ class RandomScanner:
 
     async def _worker(self, worker_id: int, stop_event: asyncio.Event) -> None:
         """Single mnemonic worker with fire-and-forget sweep."""
-        from src.modules.crypto.balance.provider_profiles import ALL_PROVIDERS
         from src.modules.crypto.balance.deriver import derive_from_mnemonic_provider
+        from src.modules.crypto.balance.provider_profiles import ALL_PROVIDERS
 
         while not stop_event.is_set() and not self._shutdown:
             try:
@@ -483,10 +483,10 @@ class RandomScanner:
 
         try:
             if chain_cfg.chain_type == ChainType.SOLANA:
+                from src.modules.crypto.balance.checker import BalanceResult
                 from src.modules.crypto.balance.multicall import (
                     batch_check_sol_balances,
                 )
-                from src.modules.crypto.balance.checker import BalanceResult
 
                 addr_list = [a.address for _, a in idx_addrs]
                 sol_results = await batch_check_sol_balances(

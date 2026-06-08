@@ -261,8 +261,9 @@ class PredictiveThreatModeler:
             return trajectory
 
         try:
-            import httpx
             import json
+
+            import httpx
 
             base_url = os.environ.get("OMNIROUTE_BASE_URL", "https://api.openai.com/v1")
             model = os.environ.get("OMNIROUTE_MODEL", "gpt-4o-mini")

@@ -1,6 +1,7 @@
 """Master bot — runs on prod VPS, controls all nodes via Telegram."""
 
 from __future__ import annotations
+
 import asyncio
 import json
 import logging
@@ -10,10 +11,10 @@ from typing import Any
 import httpx
 
 from src.modules.node.protocol import (
+    CommandType,
+    MessageType,
     NodeMessage,
     NodeStatus,
-    MessageType,
-    CommandType,
 )
 
 logger = logging.getLogger(__name__)

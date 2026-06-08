@@ -1,6 +1,6 @@
-from typing import Any, Dict
 import logging
 import os
+from typing import Any, Dict
 
 from src.vendor.chiasmodon.base import OSINTTool
 

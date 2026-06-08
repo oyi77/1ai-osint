@@ -8,17 +8,17 @@ from typing import Any, Optional
 from src.core.models import Finding, ScanResult, Severity
 from src.modules.base.base import BaseOSINTTool
 from src.modules.crypto.balance.chains import ALL_CHAINS, CHAIN_MAP, ChainConfig
-from src.modules.crypto.balance.deriver import (
-    DerivedAddress,
-    derive_from_mnemonic,
-    derive_from_privatekey,
-    detect_input_type,
-)
 from src.modules.crypto.balance.checker import (
     BalanceResult,
     apply_usd_prices,
     check_balance,
     get_usd_prices,
+)
+from src.modules.crypto.balance.deriver import (
+    DerivedAddress,
+    derive_from_mnemonic,
+    derive_from_privatekey,
+    detect_input_type,
 )
 from src.modules.crypto.balance.targeted_search import (
     KnownMnemonicLookup,
@@ -392,14 +392,15 @@ class CryptoBalanceTool(BaseOSINTTool):
         self, scan_id: str, started_at: datetime, **kwargs
     ) -> ScanResult:
         """Delegate to leak scanner (GitHub + Pastebin) for leaked mnemonic discovery."""
+        import os
+
+        from src.modules.crypto.balance.hit_logger import HitLogger
         from src.modules.crypto.balance.leak_scanner import (
             GitHubLeakScanner,
             PasteSiteScanner,
             verify_and_alert,
         )
-        from src.modules.crypto.balance.hit_logger import HitLogger
         from src.modules.crypto.balance.scanner_coordinator import ScannerCoordinator
-        import os
 
         hit_logger = HitLogger(
             db_path="wallet_hits.db",
@@ -502,13 +503,13 @@ class CryptoBalanceTool(BaseOSINTTool):
         self, scan_id: str, started_at: datetime, **kwargs
     ) -> ScanResult:
         """Delegate to KeyLeakScanner for leaked private key discovery."""
+        import os
+
+        from src.modules.crypto.balance.hit_logger import HitLogger
         from src.modules.crypto.balance.leak_scanner import (
             KeyLeakScanner,
             verify_and_alert_key,
         )
-        from src.modules.crypto.balance.hit_logger import HitLogger
-
-        import os
 
         hit_logger = HitLogger(
             db_path="wallet_hits.db",
@@ -583,12 +584,13 @@ class CryptoBalanceTool(BaseOSINTTool):
         self, scan_id: str, started_at: datetime, **kwargs
     ) -> ScanResult:
         """Scan Telegram channels for leaked private keys using Telethon."""
+        import os
+
+        from src.modules.crypto.balance.hit_logger import HitLogger
+        from src.modules.crypto.balance.leak_scanner import verify_and_alert_key
         from src.modules.crypto.balance.leak_scanner_telegram import (
             run_telegram_leak_scan,
         )
-        from src.modules.crypto.balance.leak_scanner import verify_and_alert_key
-        from src.modules.crypto.balance.hit_logger import HitLogger
-        import os
 
         hit_logger = HitLogger(
             db_path="wallet_hits.db",
@@ -638,12 +640,13 @@ class CryptoBalanceTool(BaseOSINTTool):
         self, scan_id: str, started_at: datetime, **kwargs
     ) -> ScanResult:
         """Delegate to smart generator for AI word-frequency biased scanning."""
-        from src.modules.crypto.balance.ai_analyzer import WordFrequencyAnalyzer
-        from src.modules.crypto.balance.smart_generator import SmartMnemonicGenerator
-        from src.modules.crypto.balance.scanner_coordinator import ScannerCoordinator
-        from src.modules.crypto.balance.hit_logger import HitLogger
-        from src.modules.crypto.balance.deriver import derive_from_mnemonic
         import os
+
+        from src.modules.crypto.balance.ai_analyzer import WordFrequencyAnalyzer
+        from src.modules.crypto.balance.deriver import derive_from_mnemonic
+        from src.modules.crypto.balance.hit_logger import HitLogger
+        from src.modules.crypto.balance.scanner_coordinator import ScannerCoordinator
+        from src.modules.crypto.balance.smart_generator import SmartMnemonicGenerator
 
         iterations = kwargs.get("iterations", 10)
         hit_logger = HitLogger(

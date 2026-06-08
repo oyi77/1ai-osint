@@ -1,6 +1,7 @@
 """PostgreSQL database layer for master-node shared state."""
 
 from __future__ import annotations
+
 import hashlib
 import json
 import logging

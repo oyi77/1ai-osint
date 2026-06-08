@@ -1,6 +1,7 @@
 """High-quality HTML report template — dark theme, hacker dashboard style."""
 
 from __future__ import annotations
+
 from datetime import datetime
 
 from src.modules.report_engine import ReportData

@@ -6,16 +6,16 @@ from io import BytesIO
 
 def format_pdf(results: list) -> bytes:
     """Format scan results as a PDF report."""
+    from reportlab.lib import colors
     from reportlab.lib.pagesizes import letter
     from reportlab.lib.styles import getSampleStyleSheet
     from reportlab.platypus import (
-        SimpleDocTemplate,
         Paragraph,
+        SimpleDocTemplate,
         Spacer,
         Table,
         TableStyle,
     )
-    from reportlab.lib import colors
 
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter)

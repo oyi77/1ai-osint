@@ -1,8 +1,9 @@
 """AI Snippet Enricher — extracts structured Work/Education data from unstructured search snippets."""
 
-import os
 import json
 import logging
+import os
+
 import httpx
 from pydantic import BaseModel, Field
 

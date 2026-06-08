@@ -1,9 +1,9 @@
 """Holehe source adapter for email account enumeration."""
 
 from __future__ import annotations
+
 import asyncio
 import logging
-
 
 from src.modules.sources.base import RawLeak
 

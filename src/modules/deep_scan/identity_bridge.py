@@ -1,6 +1,7 @@
-import httpx
 import re
 from typing import Dict, List
+
+import httpx
 
 
 class IdentityBridge:

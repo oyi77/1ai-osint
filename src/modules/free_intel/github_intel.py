@@ -4,8 +4,9 @@ Free tier: 60 requests/hour unauthenticated.
 With GITHUB_TOKEN env var: 5000 requests/hour.
 """
 
-import os
 import logging
+import os
+
 import httpx
 from pydantic import BaseModel, Field
 

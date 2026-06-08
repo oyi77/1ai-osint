@@ -13,7 +13,6 @@ from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
-
 # --- Reliability ---
 SourceReliability = str  # NATO A-F string, e.g. "A", "B", "C", "D", "E", "F"
 

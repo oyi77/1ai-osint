@@ -14,8 +14,8 @@ from __future__ import annotations
 
 import hashlib
 import logging
-import ssl
 import socket
+import ssl
 from typing import Optional
 
 import httpx

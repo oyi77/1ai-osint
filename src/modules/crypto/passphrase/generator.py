@@ -10,8 +10,8 @@ from bip_utils import (
     Bip39Languages,
     Bip39MnemonicGenerator,
     Bip39MnemonicValidator,
-    Bip39WordsNum,
     Bip39SeedGenerator,
+    Bip39WordsNum,
 )
 
 # Map word count to bip-utils enum

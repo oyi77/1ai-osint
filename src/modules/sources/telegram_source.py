@@ -1,11 +1,13 @@
 """Telegram source adapter for crypto leak discovery."""
 
 from __future__ import annotations
+
 import asyncio
 import logging
 import os
 import re
 from typing import Optional
+
 from src.modules.sources.base import RawLeak
 
 logger = logging.getLogger(__name__)

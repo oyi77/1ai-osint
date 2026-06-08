@@ -5,11 +5,14 @@ Many early Bitcoin users accidentally posted private keys in forum discussions.
 """
 
 from __future__ import annotations
+
 import asyncio
 import logging
 import time
-from bs4 import BeautifulSoup
+
 import httpx
+from bs4 import BeautifulSoup
+
 from src.modules.sources.base import RawLeak
 
 logger = logging.getLogger(__name__)

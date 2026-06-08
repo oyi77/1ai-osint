@@ -5,7 +5,6 @@ from typing import Any
 
 from src.core.models import Finding, ScanResult, Severity
 
-
 # SARIF severity mapping
 _SEVERITY_TO_LEVEL = {
     Severity.CRITICAL: "error",

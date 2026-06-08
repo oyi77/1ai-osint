@@ -1,6 +1,7 @@
 """ExifTool source adapter for metadata extraction."""
 
 from __future__ import annotations
+
 import asyncio
 import json
 import logging

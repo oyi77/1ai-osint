@@ -1,6 +1,7 @@
 """Module registry for 1ai-osint."""
 
 import logging
+
 from src.modules.base.base import BaseOSINTTool
 
 logger = logging.getLogger(__name__)

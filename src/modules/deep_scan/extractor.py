@@ -1,8 +1,10 @@
 """Identifier extractor — extracts new identifiers from scan results."""
 
 from __future__ import annotations
+
 import logging
 import re
+
 from src.modules.deep_scan import Identifier, IdentifierType
 
 logger = logging.getLogger(__name__)

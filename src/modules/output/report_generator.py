@@ -6,8 +6,8 @@ from typing import Optional
 
 from src.core.models import ScanResult
 from src.modules.output.json_formatter import JSONFormatter
-from src.modules.output.sarif_formatter import SARIFFormatter
 from src.modules.output.pdf_generator import PDFGenerator
+from src.modules.output.sarif_formatter import SARIFFormatter
 
 
 class ReportFormat(str, Enum):

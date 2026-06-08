@@ -9,11 +9,11 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime, timezone
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from typing import Any
 
-from src.core.models import Finding, ScanResult, BreachRecord, Identity
+from src.core.models import BreachRecord, Finding, Identity, ScanResult
 from src.modules.identity_tracking.zkit_engine import (
     CorrelatedCluster,
 )

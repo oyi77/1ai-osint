@@ -1,6 +1,7 @@
 """Social Media OSINT module for cross-platform intelligence."""
 
 from __future__ import annotations
+
 import asyncio
 import logging
 from datetime import datetime, timezone
@@ -8,8 +9,8 @@ from typing import Any
 
 import httpx
 
-from src.modules.base.base import BaseOSINTTool
 from src.core.models import Finding, ScanResult, Severity
+from src.modules.base.base import BaseOSINTTool
 
 logger = logging.getLogger(__name__)
 

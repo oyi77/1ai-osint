@@ -1,11 +1,12 @@
 """Message protocol for master-node communication."""
 
 from __future__ import annotations
+
+import json
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
-import json
 
 
 class MessageType(str, Enum):

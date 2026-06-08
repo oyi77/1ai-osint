@@ -1,10 +1,10 @@
 """OpenAI SDK client configured for OmniRoute gateway with retry and fallback."""
 
-import time
 import logging
+import time
 from typing import Optional
 
-from openai import OpenAI, APITimeoutError, APIConnectionError, RateLimitError
+from openai import APIConnectionError, APITimeoutError, OpenAI, RateLimitError
 
 from src.core.config import settings
 

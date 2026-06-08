@@ -4,17 +4,17 @@ Orchestrates external CLI tools to enhance OSINT capabilities without
 rewriting the entire tools from scratch.
 """
 
-import os
+import asyncio
 import csv
 import json
 import logging
-import asyncio
+import os
 import tempfile
-from typing import List
-from datetime import datetime, timezone
-
-from src.core.models import ScanResult, Finding
 import uuid
+from datetime import datetime, timezone
+from typing import List
+
+from src.core.models import Finding, ScanResult
 
 logger = logging.getLogger(__name__)
 
@@ -185,13 +185,13 @@ class ExternalToolIntel:
             except Exception:
                 pass
             return b""
-        except Exception as e:
+        except Exception:
             return b""
 
     async def _run_sherlock(self, username: str) -> List[Finding]:
         """Execute Sherlock and parse CSV output."""
-        import subprocess
         import shutil
+        import subprocess
 
         findings = []
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -656,7 +656,7 @@ class ExternalToolIntel:
                         findings.append(
                             Finding(
                                 id=uuid.uuid4().hex,
-                                title=f"Chiasmodon Finding",
+                                title="Chiasmodon Finding",
                                 description="Discovered associated asset",
                                 module="domain_osint",
                                 timestamp=datetime.now(timezone.utc),
@@ -680,7 +680,7 @@ class ExternalToolIntel:
         cmd = ["amass", "enum", "-d", domain, "-json", "amass_out.json"]
         try:
             logger.info("Running Amass for %s...", domain)
-            stdout = await self._run_command(cmd, timeout=300.0)
+            await self._run_command(cmd, timeout=300.0)
             if os.path.exists("amass_out.json"):
                 with open("amass_out.json", "r") as f:
                     for line in f:

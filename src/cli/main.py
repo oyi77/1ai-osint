@@ -9,8 +9,8 @@ from datetime import datetime, timezone
 
 import typer
 
-from src.modules.output.sarif import format_sarif as _format_sarif
 from src.modules.output.pdf_export import format_pdf as _format_pdf
+from src.modules.output.sarif import format_sarif as _format_sarif
 
 app = typer.Typer(
     help="1ai-osint -- AI-Powered OSINT & ZKIT Research Platform",
@@ -289,8 +289,9 @@ def scan(
     For crypto_balance module with 'random' target, generates random mnemonics.
     For crypto_balance with a mnemonic target, derives and checks balances.
     """
-    from src.core.config import settings
     import os
+
+    from src.core.config import settings
 
     if cloak:
         os.environ["FORCE_CLOAKBROWSER"] = "1"
@@ -404,8 +405,8 @@ def leak_finder(
         1ai-osint leak-finder --sources github,paste
     """
     from src.modules.crypto.leak_finder.coordinator import (
-        LeakFinderCoordinator,
         ALL_SOURCES,
+        LeakFinderCoordinator,
     )
 
     if sources.strip().lower() == "all":
@@ -478,8 +479,8 @@ def resolve(
     """Resolve an identity — find all connected entities across all sources."""
 
     async def _resolve():
-        from src.modules.sources import discover_sources, RawLeak
         from src.modules.crypto.leak_finder.extractor import extract_keys
+        from src.modules.sources import RawLeak, discover_sources
 
         typer.echo(f"Resolving identity: {input}", err=True)
 
@@ -576,8 +577,8 @@ def monitor(
     """Continuously monitor an identity for new connections and leaks."""
 
     async def _monitor():
-        from src.modules.sources import discover_sources
         from src.modules.crypto.leak_finder.extractor import extract_keys
+        from src.modules.sources import discover_sources
 
         typer.echo(f"Monitoring: {target} (interval: {interval}s)", err=True)
 
@@ -886,11 +887,11 @@ def deep_scan(
     ),
 ):
     """Deep scan — recursive identity investigation across all modules."""
-    from src.modules.deep_scan.engine import DeepScanEngine
-    from src.modules.deep_scan.report_generator import generate_intel_report_with_ai
-    from src.modules.deep_scan.exports import export_report
-    from src.modules.deep_scan.scan_profiles import resolve_scan_profile
     from src.investigations.case_manager import CaseManager
+    from src.modules.deep_scan.engine import DeepScanEngine
+    from src.modules.deep_scan.exports import export_report
+    from src.modules.deep_scan.report_generator import generate_intel_report_with_ai
+    from src.modules.deep_scan.scan_profiles import resolve_scan_profile
 
     async def _deep_scan():
         import os
@@ -935,8 +936,9 @@ def deep_scan(
         if case_id:
             prev = CaseManager().load_previous_intel(case_id)
             if prev:
-                from src.modules.deep_scan.delta_briefing import compute_intel_delta
                 import json as _json
+
+                from src.modules.deep_scan.delta_briefing import compute_intel_delta
 
                 delta = compute_intel_delta(
                     prev, _json.loads(export_report(intel, fmt="json"))
@@ -1061,9 +1063,10 @@ def zkit_deep_scan(
 ):
     """Run a recursive Deep Scan on an identity target, using the ZKIT Engine."""
     from rich.console import Console
-    from rich.table import Table
     from rich.panel import Panel
     from rich.progress import Progress, SpinnerColumn, TextColumn
+    from rich.table import Table
+
     from src.modules.deep_scan.engine import DeepScanEngine
 
     console = Console()

@@ -1,11 +1,12 @@
 """CloakBrowser anti-detect scraping client."""
 
-import os
 import logging
-from typing import AsyncGenerator
+import os
 from contextlib import asynccontextmanager
+from typing import AsyncGenerator
+
 import httpx
-from playwright.async_api import async_playwright, Page
+from playwright.async_api import Page, async_playwright
 
 logger = logging.getLogger(__name__)
 

@@ -5,10 +5,13 @@ Searches public repos and snippets for leaked private keys and mnemonics.
 """
 
 from __future__ import annotations
+
 import asyncio
 import logging
 import time
+
 import httpx
+
 from src.modules.sources.base import RawLeak
 
 logger = logging.getLogger(__name__)

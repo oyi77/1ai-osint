@@ -8,7 +8,6 @@ import base64
 import re
 from typing import Any, Optional
 
-
 # WIF prefixes: K/L (compressed) or 5 (uncompressed) for mainnet
 _WIF_PATTERN = re.compile(r"^([5KL][1-9A-HJ-NP-Za-km-z]{50,51})$")
 _HEX_32_PATTERN = re.compile(r"^[0-9a-fA-F]{64}$")

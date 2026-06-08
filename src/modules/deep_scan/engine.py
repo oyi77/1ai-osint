@@ -6,6 +6,7 @@ until no new identifiers are discovered.
 """
 
 from __future__ import annotations
+
 import asyncio
 import logging
 from datetime import datetime, timezone

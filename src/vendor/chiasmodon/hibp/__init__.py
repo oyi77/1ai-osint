@@ -1,7 +1,9 @@
-from src.vendor.chiasmodon.base import OSINTTool
-import requests
-from typing import Any, Dict
 import os
+from typing import Any, Dict
+
+import requests
+
+from src.vendor.chiasmodon.base import OSINTTool
 
 
 class HIBPTool(OSINTTool):

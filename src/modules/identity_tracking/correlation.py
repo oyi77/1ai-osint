@@ -16,9 +16,9 @@ from src.modules.identity_tracking.identity_graph import (
     IdentityGraph,
 )
 from src.modules.identity_tracking.zkit_engine import (
-    ZKITEngine,
-    CorrelatedCluster,
     ATTRIBUTE_TYPE_MAP,
+    CorrelatedCluster,
+    ZKITEngine,
 )
 
 

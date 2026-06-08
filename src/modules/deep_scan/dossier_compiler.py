@@ -7,6 +7,7 @@ but a comprehensive background file answering specific questions about the targe
 import logging
 from datetime import datetime, timezone
 from typing import Any, Optional
+
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)

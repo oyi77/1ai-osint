@@ -1,6 +1,7 @@
 """Node agent — runs on each worker node, communicates with master via Telegram + HTTP API."""
 
 from __future__ import annotations
+
 import asyncio
 import hashlib
 import logging
@@ -12,10 +13,10 @@ from typing import Any, Optional
 import httpx
 
 from src.modules.node.protocol import (
+    CommandType,
+    MessageType,
     NodeMessage,
     NodeStatus,
-    MessageType,
-    CommandType,
 )
 
 logger = logging.getLogger(__name__)

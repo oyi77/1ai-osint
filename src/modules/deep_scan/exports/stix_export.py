@@ -15,7 +15,6 @@ from datetime import datetime, timezone
 
 from src.modules.deep_scan.models_report import IntelReport
 
-
 STIX_VERSION = "2.1"
 
 

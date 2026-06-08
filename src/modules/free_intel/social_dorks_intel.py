@@ -1,8 +1,9 @@
 """Social Media Dorks — explicitly extracts social media handles from DuckDuckGo."""
 
+import asyncio
 import logging
 import re
-import asyncio
+
 import httpx
 from pydantic import BaseModel
 

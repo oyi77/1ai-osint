@@ -1,10 +1,13 @@
 """Reddit source adapter with multiple fallback approaches."""
 
 from __future__ import annotations
+
 import asyncio
 import logging
 import time
+
 import httpx
+
 from src.modules.sources.base import RawLeak
 
 logger = logging.getLogger(__name__)

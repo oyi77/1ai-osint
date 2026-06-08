@@ -1,4 +1,5 @@
 import requests
+
 from src.vendor.chiasmodon.base import OSINTTool
 
 

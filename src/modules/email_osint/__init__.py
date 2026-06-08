@@ -1,6 +1,7 @@
 """Email OSINT module for comprehensive email analysis."""
 
 from __future__ import annotations
+
 import asyncio
 import logging
 import re
@@ -9,8 +10,8 @@ from typing import Any
 
 import httpx
 
-from src.modules.base.base import BaseOSINTTool
 from src.core.models import Finding, ScanResult, Severity
+from src.modules.base.base import BaseOSINTTool
 
 logger = logging.getLogger(__name__)
 

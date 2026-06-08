@@ -9,7 +9,6 @@ from collections import Counter
 from pathlib import Path
 from typing import Optional
 
-
 from src.modules.crypto.passphrase.generator import validate_mnemonic
 
 # Default path to the BIP-39 English wordlist bundled with bip-utils.

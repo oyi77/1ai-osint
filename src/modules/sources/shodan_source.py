@@ -1,11 +1,13 @@
 """Shodan source adapter for exposed service discovery."""
 
 from __future__ import annotations
+
 import asyncio
 import logging
 import os
 import time
 from typing import Optional
+
 import httpx
 
 from src.modules.sources.base import RawLeak

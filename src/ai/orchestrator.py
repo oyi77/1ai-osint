@@ -7,7 +7,7 @@ from langgraph.graph import END, StateGraph
 
 from src.ai.analyzers.correlation_engine import CorrelationEngine
 from src.ai.analyzers.entity_extractor import EntityExtractor
-from src.ai.analyzers.risk_scorer import RiskScorer, RiskScore
+from src.ai.analyzers.risk_scorer import RiskScore, RiskScorer
 from src.ai.omniroute_client import OmniRouteClient
 from src.ai.schemas.responses import CorrelationResult, EntityExtractionResult
 from src.core.models import ScanResult

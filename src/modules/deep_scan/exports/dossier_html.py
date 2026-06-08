@@ -1,6 +1,7 @@
 """Export a TargetDossier to beautiful HTML."""
 
 from __future__ import annotations
+
 from src.modules.deep_scan.dossier_compiler import TargetDossier
 
 
@@ -112,7 +113,7 @@ def export_dossier_html(dossier: TargetDossier) -> str:
         }}
         .header-content h1 {{ margin: 0 0 0.5rem 0; font-size: 2.5rem; }}
         .header-content p {{ margin: 0; color: var(--text-muted); font-size: 1.1rem; }}
-        
+
         .grid {{
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -132,7 +133,7 @@ def export_dossier_html(dossier: TargetDossier) -> str:
         }}
         ul {{ padding-left: 1.5rem; margin: 0; }}
         li {{ margin-bottom: 0.5rem; }}
-        
+
         .social-card {{
             background: var(--bg);
             padding: 1rem;
@@ -143,7 +144,7 @@ def export_dossier_html(dossier: TargetDossier) -> str:
         .social-card h4 {{ margin: 0 0 0.5rem 0; }}
         .social-card p {{ margin: 0.25rem 0; font-size: 0.9rem; color: var(--text-muted); }}
         .social-card a {{ color: var(--primary); text-decoration: none; }}
-        
+
         .badge {{
             display: inline-block;
             padding: 0.25rem 0.5rem;
@@ -153,7 +154,7 @@ def export_dossier_html(dossier: TargetDossier) -> str:
         }}
         .badge.red {{ background: rgba(239, 68, 68, 0.2); color: var(--danger); }}
         .badge.green {{ background: rgba(34, 197, 94, 0.2); color: var(--success); }}
-        
+
         .classification {{
             text-align: center;
             color: var(--warning);
@@ -162,14 +163,14 @@ def export_dossier_html(dossier: TargetDossier) -> str:
             margin-bottom: 2rem;
             font-size: 0.9rem;
         }}
-        
+
         .full-width {{ grid-column: 1 / -1; }}
     </style>
 </head>
 <body>
     <div class="container">
         <div class="classification">{data["classification"]}</div>
-        
+
         <div class="header">
             <img src="{pfp}" alt="Subject Avatar" class="avatar">
             <div class="header-content">
@@ -179,7 +180,7 @@ def export_dossier_html(dossier: TargetDossier) -> str:
                 <p><small>ID: {data["report_id"]} | Generated: {data["generated_at"]}</small></p>
             </div>
         </div>
-        
+
         <div class="grid">
             <div class="card">
                 <h3>Contact Information</h3>
@@ -188,34 +189,34 @@ def export_dossier_html(dossier: TargetDossier) -> str:
                 <p><strong>Phones:</strong></p>
                 <ul>{phones_html}</ul>
             </div>
-            
+
             <div class="card">
                 <h3>Employment & Location</h3>
                 <p><strong>Employer:</strong> {data["current_employer"] or "Unknown"}</p>
                 <p><strong>Title:</strong> {data["job_title"] or "Unknown"}</p>
                 <p><strong>Locations:</strong> {", ".join(data["known_locations"]) or "Unknown"}</p>
             </div>
-            
+
             <div class="card full-width">
                 <h3>Digital Footprint</h3>
                 <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem;">
                     {socials_html}
                 </div>
             </div>
-            
+
             <div class="card">
                 <h3>Security Profile</h3>
                 <p><strong>Breached Services:</strong></p>
                 <ul>{breaches_html}</ul>
                 <p><strong>Exposed Data Types:</strong> {", ".join(data["exposed_data_types"]) or "None"}</p>
             </div>
-            
+
             <div class="card">
                 <h3>Intelligence Gaps</h3>
                 <ul style="color: var(--warning);">{gaps_html}</ul>
             </div>
         </div>
-        
+
         <div class="classification" style="margin-top: 3rem;">{data["classification"]}</div>
     </div>
 </body>

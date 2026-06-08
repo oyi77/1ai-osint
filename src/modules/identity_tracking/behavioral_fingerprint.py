@@ -17,7 +17,6 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-
 # Common function words (English) used as stylometric features
 _FUNCTION_WORDS = frozenset(
     {

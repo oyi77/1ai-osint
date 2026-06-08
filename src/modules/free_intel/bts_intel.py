@@ -4,9 +4,10 @@ Free API with registration at opencellid.org.
 Indonesia MCC = 510.
 """
 
-import os
 import logging
+import os
 from typing import Optional
+
 import httpx
 from pydantic import BaseModel, Field
 

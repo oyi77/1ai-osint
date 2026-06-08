@@ -1,6 +1,7 @@
 """Key extraction engine for raw text."""
 
 from __future__ import annotations
+
 import logging
 import re
 from dataclasses import dataclass, field
@@ -110,7 +111,7 @@ def _derive_solana_address_from_base58(b58_key: str) -> Optional[str]:
 
 def _derive_btc_address_wif(wif: str) -> Optional[str]:
     try:
-        from bip_utils import WifDecoder, P2PKHAddrEncoder
+        from bip_utils import P2PKHAddrEncoder, WifDecoder
 
         priv_key_bytes, _ = WifDecoder.Decode(wif)
         return P2PKHAddrEncoder.EncodeKey(priv_key_bytes)

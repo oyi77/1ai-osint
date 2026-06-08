@@ -1,8 +1,9 @@
 """Google Dork Intelligence via DuckDuckGo — extracts PII from search snippets."""
 
-import re
-import logging
 import asyncio
+import logging
+import re
+
 import httpx
 from pydantic import BaseModel, Field
 

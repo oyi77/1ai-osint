@@ -15,8 +15,8 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install ruff
-      - name: Lint (errors only)
-        run: ruff check src/ --select E9,F63,F7,F82 --show-source
+      - name: Lint
+        run: ruff check src/
 
   test:
     runs-on: ubuntu-latest

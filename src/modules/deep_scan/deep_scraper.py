@@ -1,5 +1,6 @@
 import logging
 from typing import Any
+
 from src.core.cloak_client import CloakScraper
 
 logger = logging.getLogger(__name__)

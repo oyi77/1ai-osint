@@ -1,8 +1,8 @@
 """theHarvester source adapter for email/domain enumeration."""
 
 from __future__ import annotations
-import asyncio
 
+import asyncio
 import logging
 import shutil
 

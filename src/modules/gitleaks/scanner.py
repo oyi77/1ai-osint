@@ -9,7 +9,6 @@ from typing import Any, Optional
 from src.core.models import Finding, ScanResult, Severity
 from src.modules.base.base import BaseOSINTTool
 
-
 # Severity mapping for gitleaks rule IDs
 _SEVERITY_MAP = {
     "aws-access-token": Severity.CRITICAL,

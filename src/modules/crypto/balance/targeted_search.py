@@ -359,7 +359,7 @@ class FilteredRandomScan:
         Returns:
             TargetedScanResult with findings meeting the min_balance threshold.
         """
-        from bip_utils import Bip39MnemonicGenerator, Bip39Languages
+        from bip_utils import Bip39Languages, Bip39MnemonicGenerator
 
         findings: list[Finding] = []
         errors: list[str] = []

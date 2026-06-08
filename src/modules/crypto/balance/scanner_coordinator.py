@@ -19,8 +19,8 @@ from typing import Optional
 import httpx
 
 from src.modules.crypto.balance.api_rotation import ENDPOINT_REGISTRY, EndpointRotator
-from src.modules.crypto.balance.checker import BalanceResult, check_balance
 from src.modules.crypto.balance.chains import ALL_CHAINS, ChainConfig, ChainType
+from src.modules.crypto.balance.checker import BalanceResult, check_balance
 
 logger = logging.getLogger(__name__)
 

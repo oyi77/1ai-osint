@@ -16,8 +16,8 @@ from typing import Optional
 
 import httpx
 
-from src.modules.crypto.balance.checker import encode_balance_of
 from src.modules.crypto.balance.chains import ChainConfig, TokenContract
+from src.modules.crypto.balance.checker import encode_balance_of
 
 logger = logging.getLogger(__name__)
 

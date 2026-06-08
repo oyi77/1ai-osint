@@ -6,9 +6,11 @@ Auto-discovers source files in this directory. Each source must:
 """
 
 from __future__ import annotations
+
 import importlib
 import pathlib
-from src.modules.sources.base import RawLeak, BaseLeakSource
+
+from src.modules.sources.base import BaseLeakSource, RawLeak
 
 __all__ = ["RawLeak", "BaseLeakSource", "ALL_SOURCES", "discover_sources"]
 

@@ -6,6 +6,7 @@ no new identifiers are found. Generates comprehensive HTML/PDF reports.
 """
 
 from __future__ import annotations
+
 import hashlib
 import logging
 from dataclasses import dataclass, field

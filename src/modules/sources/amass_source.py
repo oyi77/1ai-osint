@@ -1,6 +1,7 @@
 """Amass source adapter for subdomain enumeration."""
 
 from __future__ import annotations
+
 import asyncio
 import logging
 import shutil

@@ -1,8 +1,9 @@
 """Tech Jobs Intelligence — searches Glints and TechInAsia for developer profiles."""
 
+import asyncio
 import logging
 import re
-import asyncio
+
 import httpx
 from pydantic import BaseModel, Field
 

@@ -273,11 +273,12 @@ class Sweeper:
     ) -> SweepResult:
         """Sweep SOL using solders + httpx (fully async)."""
         import base64 as _b64
-        from solders.keypair import Keypair
+
         from solders.hash import Hash
+        from solders.keypair import Keypair
+        from solders.message import Message
         from solders.pubkey import Pubkey
         from solders.system_program import transfer
-        from solders.message import Message
         from solders.transaction import Transaction
 
         # Derive keypair from private key bytes
@@ -423,8 +424,9 @@ class Sweeper:
         balance_raw: int,
     ) -> SweepResult:
         """Sweep BTC using the `bit` library."""
-        from bit import PrivateKey as BtcPrivateKey
         import asyncio as _asyncio
+
+        from bit import PrivateKey as BtcPrivateKey
 
         def _do_btc_sweep():
             key = BtcPrivateKey.from_hex(private_key_hex)

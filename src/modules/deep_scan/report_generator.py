@@ -12,12 +12,15 @@ level (url, http_status, snippet) and builds:
 
 from __future__ import annotations
 
+import logging
 import re
 import uuid
-import logging
 from collections import Counter
 from typing import Any
 
+from src.modules.deep_scan import IdentifierType
+from src.modules.deep_scan.briefing_builder import build_operational_briefing
+from src.modules.deep_scan.field_labels import source_blurb, source_display_name
 from src.modules.deep_scan.models_report import (
     ConfidenceBreakdown,
     EvidenceItem,
@@ -33,9 +36,6 @@ from src.modules.deep_scan.models_report import (
     TimelineEntry,
     rate_source,
 )
-from src.modules.deep_scan.briefing_builder import build_operational_briefing
-from src.modules.deep_scan.field_labels import source_blurb, source_display_name
-from src.modules.deep_scan import IdentifierType
 
 logger = logging.getLogger(__name__)
 
@@ -675,6 +675,7 @@ def _has_crypto_key(values: set) -> bool:
 # ---------------------------------------------------------------------------
 def _build_timeline(result: Any, evidence: list[EvidenceItem]) -> list[TimelineEntry]:
     from datetime import datetime, timezone
+
     from src.modules.deep_scan.timeline_builder import TimelineBuilder
 
     # Extract findings and breach records from result if available

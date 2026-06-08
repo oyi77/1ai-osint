@@ -31,8 +31,8 @@ class PDFGenerator:
 
     def _build_severity_chart(self, severity_counts: dict[str, int]) -> Any:
         """Build a bar chart image of severity distribution using reportlab."""
-        from reportlab.graphics.shapes import Drawing
         from reportlab.graphics.charts.barcharts import VerticalBarChart
+        from reportlab.graphics.shapes import Drawing
         from reportlab.lib.colors import HexColor
 
         chart = VerticalBarChart()
@@ -65,13 +65,13 @@ class PDFGenerator:
         Returns:
             PDF file content as bytes.
         """
-        from reportlab.lib.pagesizes import A4
-        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-        from reportlab.lib.units import inch
         from reportlab.lib import colors
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+        from reportlab.lib.units import inch
         from reportlab.platypus import (
-            SimpleDocTemplate,
             Paragraph,
+            SimpleDocTemplate,
             Spacer,
             Table,
             TableStyle,
