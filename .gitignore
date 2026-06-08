@@ -40,5 +40,6 @@ dist/
 build/
 
 # OMC state
-# OMC runtime state
 state/
+.omc/sessions/
+*.session
