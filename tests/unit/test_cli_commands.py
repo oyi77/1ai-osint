@@ -3,8 +3,8 @@
 import asyncio
 from datetime import datetime, timezone
 
-from src.cli import _get_module, _PassphraseModule
-from src.models import ScanResult
+from src.cli.main import _get_module, _PassphraseModule
+from src.core.models import ScanResult
 
 
 def _scan_result(**overrides):
@@ -20,13 +20,13 @@ def _scan_result(**overrides):
 
 class TestVersionModules:
     def test_version_outputs_string(self, capsys):
-        from src.cli import version
+        from src.cli.main import version
         version()
         output = capsys.readouterr().out
         assert "1ai-osint" in output
 
     def test_modules_outputs_list(self, capsys):
-        from src.cli import modules
+        from src.cli.main import modules
         modules()
         output = capsys.readouterr().out
         assert "Available modules" in output
@@ -64,9 +64,9 @@ class TestPassphraseModule:
 
 class TestScanCommand:
     def test_scan_callable(self):
-        from src.cli import scan
+        from src.cli.main import scan
         assert callable(scan)
 
     def test_leak_finder_callable(self):
-        from src.cli import leak_finder
+        from src.cli.main import leak_finder
         assert callable(leak_finder)

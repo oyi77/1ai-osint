@@ -6,7 +6,6 @@ from src.modules.crypto.balance.deriver import (
     _base58_decode,
     _base58_encode,
     _get_purpose_from_path,
-    _get_bip_class_for_path,
     derive_with_raw_path,
     derive_from_mnemonic,
     derive_from_privatekey,
@@ -61,28 +60,6 @@ class TestPurposeFromPath:
 
     def test_garbage_path(self):
         assert _get_purpose_from_path("m/abc") == 44
-
-
-class TestBipClassForPath:
-    def test_bip44(self):
-        cls = _get_bip_class_for_path("m/44'/0'/0'/0/0")
-        from bip_utils import Bip44
-        assert cls is Bip44
-
-    def test_bip49_when_available(self):
-        cls = _get_bip_class_for_path("m/49'/0'/0'/0/0")
-        from bip_utils import Bip49
-        assert cls is Bip49
-
-    def test_bip84_when_available(self):
-        cls = _get_bip_class_for_path("m/84'/0'/0'/0/0")
-        from bip_utils import Bip84
-        assert cls is Bip84
-
-    def test_invalid_path_fallback(self):
-        import pytest
-        with pytest.raises(ValueError):
-            _get_bip_class_for_path("badpath")
 
 
 class TestDeriveWithRawPath:

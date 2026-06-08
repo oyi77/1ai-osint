@@ -1,6 +1,9 @@
 """Module registry for 1ai-osint."""
 
+import logging
 from src.modules.base.base import BaseOSINTTool
+
+logger = logging.getLogger(__name__)
 
 # Module registry - maps module names to their classes
 _MODULE_REGISTRY: dict[str, type] = {}
@@ -52,8 +55,8 @@ def _register_builtins():
             mod = importlib.import_module(module_path)
             cls = getattr(mod, class_name)
             register_module(name, cls)
-        except (ImportError, AttributeError):
-            pass
+        except (ImportError, AttributeError) as e:
+            logger.debug("Module %s not available: %s", name, e)
 
 
 _register_builtins()

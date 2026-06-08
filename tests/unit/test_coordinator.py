@@ -66,7 +66,8 @@ class TestSourceMap:
 
 
 class TestCoordinatorInit:
-    def test_init_defaults(self):
+    def test_init_defaults(self, monkeypatch):
+        monkeypatch.delenv("GITHUB_TOKEN", raising=False)
         from src.modules.crypto.leak_finder.coordinator import LeakFinderCoordinator
         coord = LeakFinderCoordinator()
         assert coord._source_names == list(ALL_SOURCES)

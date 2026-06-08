@@ -1,6 +1,6 @@
 """Tests for Pydantic models."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from src.core.models import Finding, ScanResult, BreachRecord, Identity, Severity
 
 
@@ -30,7 +30,7 @@ class TestScanResult:
         assert s.critical_count == 1
 
     def test_duration(self):
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         s = ScanResult(
             scan_id="s1",
             module="t",

@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, patch
 from src.modules.crypto.balance import CryptoBalanceTool
 from src.modules.crypto.balance.chains import ETHEREUM, ChainConfig, ChainType
 from src.modules.crypto.balance.checker import BalanceResult, apply_usd_prices
-from src.models import ScanResult
+from src.core.models import ScanResult
 from datetime import datetime, timezone
 
 TEST_MNEMONIC = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"

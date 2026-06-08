@@ -1,6 +1,6 @@
 """Shared Pydantic models for 1ai-osint."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Optional
 
@@ -26,7 +26,7 @@ class Finding(BaseModel):
     description: str = Field(default="", description="Detailed description")
     severity: Severity = Field(default=Severity.INFO)
     raw_data: dict[str, Any] = Field(default_factory=dict)
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     confidence: float = Field(default=0.5, ge=0.0, le=1.0)
     tags: list[str] = Field(default_factory=list)
 
@@ -58,8 +58,8 @@ class Identity(BaseModel):
         description="Original attribute names (never persisted with raw values in ZKIT mode)",
     )
     correlation_id: Optional[str] = None
-    first_seen: datetime = Field(default_factory=datetime.utcnow)
-    last_seen: datetime = Field(default_factory=datetime.utcnow)
+    first_seen: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    last_seen: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     sources: list[str] = Field(default_factory=list)
     confidence: float = Field(default=1.0, ge=0.0, le=1.0)
 
@@ -75,7 +75,7 @@ class ScanResult(BaseModel):
     breach_records: list[BreachRecord] = Field(default_factory=list)
     identities: list[Identity] = Field(default_factory=list)
     metadata: dict[str, Any] = Field(default_factory=dict)
-    started_at: datetime = Field(default_factory=datetime.utcnow)
+    started_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     completed_at: Optional[datetime] = None
     error: Optional[str] = None
 

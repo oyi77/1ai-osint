@@ -1,6 +1,6 @@
 """Tests for models.py uncovered properties and defaults."""
 from datetime import datetime, timezone
-from src.models import Finding, Severity, ScanResult, BreachRecord, Identity
+from src.core.models import Finding, Severity, ScanResult, BreachRecord, Identity
 
 
 class TestScanResult:

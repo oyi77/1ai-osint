@@ -5,12 +5,12 @@ from src.modules.crypto.leak_finder.extractor import (
     KeyType,
     extract_keys,
     _base58_decode,
-    _base58_encode,
     _load_bip39_words,
     _HEX_KEY_PATTERN,
     _WIF_PATTERN,
     _MNEMONIC_WORD_RE,
 )
+from src.modules.crypto.balance.deriver import _base58_encode
 
 
 class TestBase58:

@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import os
 import socket
 import sys
 from datetime import datetime, timezone
@@ -1036,7 +1037,6 @@ def report_from_file(
         html = render_html(report_data)
         outfile = report_file.replace(".json", ".html")
         if not outfile.startswith("output/"):
-            import os
             outfile = os.path.join("output", os.path.basename(outfile))
         with open(outfile, "w") as f:
             f.write(html)
