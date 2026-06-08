@@ -37,5 +37,5 @@ class IdentityBridge:
 
         return results
 
-    async def close(self):
+    async def close(self) -> None:
         await self.client.aclose()

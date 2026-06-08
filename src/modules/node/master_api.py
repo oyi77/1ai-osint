@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from contextlib import asynccontextmanager
-from typing import Any
+from typing import Any, AsyncIterator
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -54,7 +54,7 @@ class CommandRequest(BaseModel):
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Startup/shutdown."""
     await db.init_db()
     logger.info("Master API started")
@@ -70,13 +70,13 @@ app = FastAPI(title="1ai-osint Master API", version="0.1.0", lifespan=lifespan)
 
 
 @app.get("/api/health")
-async def health():
+async def health() -> dict[str, Any]:
     """Health check."""
     return {"status": "ok", "service": "1ai-osint-master"}
 
 
 @app.post("/api/keys")
-async def report_keys(req: KeysRequest):
+async def report_keys(req: KeysRequest) -> dict[str, Any]:
     """Node reports found keys."""
     recorded = 0
     for key in req.keys:
@@ -92,7 +92,7 @@ async def report_keys(req: KeysRequest):
 
 
 @app.get("/api/seen")
-async def get_seen():
+async def get_seen() -> dict[str, Any]:
     """Node downloads seen keys as Bloom filter."""
     bloom = await db.get_seen_keys_bloom()
     return {
@@ -103,7 +103,7 @@ async def get_seen():
 
 
 @app.post("/api/locks")
-async def acquire_lock(req: LockRequest):
+async def acquire_lock(req: LockRequest) -> dict[str, Any]:
     """Node acquires sweep lock."""
     acquired = await db.acquire_sweep_lock(req.address, req.node_id, req.ttl_seconds)
     if not acquired:
@@ -112,21 +112,21 @@ async def acquire_lock(req: LockRequest):
 
 
 @app.delete("/api/locks/{address}")
-async def release_lock(address: str, node_id: str):
+async def release_lock(address: str, node_id: str) -> dict[str, Any]:
     """Node releases sweep lock."""
     await db.release_sweep_lock(address, node_id)
     return {"status": "ok"}
 
 
 @app.post("/api/heartbeat")
-async def heartbeat(req: HeartbeatRequest):
+async def heartbeat(req: HeartbeatRequest) -> dict[str, Any]:
     """Node reports status. Returns actual node_id (may differ if duplicate)."""
     actual_id = await db.record_heartbeat(req.node_id, req.status)
     return {"status": "ok", "node_id": actual_id}
 
 
 @app.get("/api/sources")
-async def get_sources(node_id: str):
+async def get_sources(node_id: str) -> dict[str, Any]:
     """Node fetches assigned sources."""
     sources = await db.get_assigned_sources(node_id)
     if not sources:
@@ -143,49 +143,49 @@ async def get_sources(node_id: str):
 
 
 @app.post("/api/sources")
-async def set_sources(req: ConfigRequest):
+async def set_sources(req: ConfigRequest) -> dict[str, Any]:
     """Master assigns sources to a node."""
     await db.assign_sources(req.node_id, req.sources)
     return {"status": "ok", "node_id": req.node_id, "sources": req.sources}
 
 
 @app.post("/api/sweep")
-async def report_sweep(req: SweepRequest):
+async def report_sweep(req: SweepRequest) -> dict[str, Any]:
     """Node reports sweep result."""
     await db.mark_swept(req.address, req.sweep_tx)
     return {"status": "ok", "address": req.address}
 
 
 @app.get("/api/stats")
-async def get_stats():
+async def get_stats() -> dict[str, Any]:
     """Aggregate stats."""
     stats = await db.get_stats()
     return {"status": "ok", **stats}
 
 
 @app.get("/api/audit")
-async def get_audit(limit: int = 100):
+async def get_audit(limit: int = 100) -> dict[str, Any]:
     """Full audit trail."""
     trail = await db.get_audit_trail(limit)
     return {"status": "ok", "events": trail}
 
 
 @app.get("/api/nodes")
-async def get_nodes():
+async def get_nodes() -> dict[str, Any]:
     """List all nodes and their status."""
     heartbeats = await db.get_all_heartbeats()
     return {"status": "ok", "nodes": heartbeats}
 
 
 @app.post("/api/commands")
-async def enqueue_command(req: CommandRequest):
+async def enqueue_command(req: CommandRequest) -> dict[str, Any]:
     """Enqueue a command for a node."""
     await db.enqueue_command(req.node_id, req.command, req.payload)
     return {"status": "ok", "node_id": req.node_id, "command": req.command}
 
 
 @app.get("/api/commands/{node_id}")
-async def claim_commands(node_id: str):
+async def claim_commands(node_id: str) -> dict[str, Any]:
     """Claim pending commands for a node."""
     commands = await db.claim_commands(node_id)
     return {"status": "ok", "commands": commands}

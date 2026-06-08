@@ -31,7 +31,7 @@ class MasterBot:
         self._running = False
         self._commands: dict[str, Any] = {}  # pending commands
 
-    async def start(self):
+    async def start(self) -> None:
         """Start the master bot polling loop."""
         self._running = True
         logger.info("Master bot starting")
@@ -47,7 +47,7 @@ class MasterBot:
                 logger.error("Master bot error: %s", exc)
                 await asyncio.sleep(5)
 
-    async def stop(self):
+    async def stop(self) -> None:
         """Stop the master bot."""
         self._running = False
 

@@ -14,6 +14,8 @@ Usage:
     await scanner.disconnect()
 """
 
+from __future__ import annotations
+
 import asyncio
 import logging
 import os
@@ -109,7 +111,7 @@ class TelethonLeakScanner:
             logger.error("Telegram connection failed: %s", e)
             return False
 
-    async def interactive_auth(self, phone: str = None):
+    async def interactive_auth(self, phone: str = None) -> None:
         """Interactive auth flow for initial setup. Run once manually."""
         try:
             from telethon import TelegramClient
@@ -125,7 +127,7 @@ class TelethonLeakScanner:
         print(f"Authorized as: {await client.get_me()}")
         await client.disconnect()
 
-    async def disconnect(self):
+    async def disconnect(self) -> None:
         """Disconnect from Telegram."""
         if self._client and self._connected:
             await self._client.disconnect()

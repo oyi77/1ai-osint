@@ -66,7 +66,7 @@ class Sweeper:
             self._created_client = True
         return self._client
 
-    async def close(self):
+    async def close(self) -> None:
         if self._created_client and self._client:
             await self._client.aclose()
             self._client = None

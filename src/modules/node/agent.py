@@ -46,7 +46,7 @@ class NodeAgent:
         self._running = False
         self._seen_keys: set[str] = set()
 
-    async def start(self):
+    async def start(self) -> None:
         """Register with master and start heartbeat loop."""
         self._running = True
         logger.info("Node '%s' starting (role=%s)", self.node_id, self.role)
@@ -74,7 +74,7 @@ class NodeAgent:
                 logger.error("Heartbeat error: %s", exc)
                 await asyncio.sleep(5)
 
-    async def stop(self):
+    async def stop(self) -> None:
         """Stop the agent."""
         self._running = False
         if self._scanner_process:
@@ -220,7 +220,7 @@ class NodeAgent:
         except Exception as exc:
             return {"status": "error", "error": str(exc)}
 
-    async def report_result(self, result: dict[str, Any]):
+    async def report_result(self, result: dict[str, Any]) -> None:
         """Report scan results to master via Telegram."""
         await self._send_to_master(
             NodeMessage(
@@ -287,7 +287,7 @@ class NodeAgent:
             logger.debug("Failed to acquire lock: %s", exc)
             return False
 
-    async def report_sweep_api(self, address: str, sweep_tx: str):
+    async def report_sweep_api(self, address: str, sweep_tx: str) -> None:
         """Report sweep result to master API."""
         try:
             async with httpx.AsyncClient(timeout=10) as client:
@@ -302,7 +302,7 @@ class NodeAgent:
         except Exception as exc:
             logger.debug("Failed to report sweep: %s", exc)
 
-    async def heartbeat_api(self):
+    async def heartbeat_api(self) -> None:
         """Send heartbeat to master API."""
         try:
             import psutil

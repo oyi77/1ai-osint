@@ -3,6 +3,7 @@
 Generates standards-compliant mnemonic seed phrases with configurable
 word counts (12, 15, 18, 21, 24 words) and language support.
 """
+from __future__ import annotations
 
 from typing import Optional
 

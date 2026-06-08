@@ -7,6 +7,7 @@ import json
 import logging
 import os
 from datetime import datetime, timezone
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +15,7 @@ logger = logging.getLogger(__name__)
 _pool = None
 
 
-async def get_pool():
+async def get_pool() -> Any:
     """Get or create asyncpg connection pool."""
     global _pool
     if _pool is None:
@@ -27,7 +28,7 @@ async def get_pool():
     return _pool
 
 
-async def close_pool():
+async def close_pool() -> None:
     """Close the connection pool."""
     global _pool
     if _pool:
@@ -35,7 +36,7 @@ async def close_pool():
         _pool = None
 
 
-async def init_db():
+async def init_db() -> None:
     """Create all tables if they don't exist."""
     pool = await get_pool()
     async with pool.acquire() as conn:
@@ -151,7 +152,7 @@ async def is_key_seen(key_hash: str) -> bool:
         return row is not None
 
 
-async def mark_key_seen(key_hash: str, key_type: str, source: str, node_id: str):
+async def mark_key_seen(key_hash: str, key_type: str, source: str, node_id: str) -> None:
     """Mark a key as seen."""
     pool = await get_pool()
     async with pool.acquire() as conn:
@@ -173,7 +174,7 @@ async def get_seen_keys_bloom() -> bytes:
         return "|".join(r["key_hash"] for r in rows).encode()
 
 
-async def bulk_mark_seen(keys: list[dict[str, str]]):
+async def bulk_mark_seen(keys: list[dict[str, str]]) -> None:
     """Bulk mark keys as seen."""
     pool = await get_pool()
     async with pool.acquire() as conn:
@@ -202,7 +203,7 @@ async def record_raw_leak(source: str, url: str, text_hash: str, node_id: str) -
 
 async def record_extracted_key(
     key_hash: str, key_type: str, addresses: dict, leak_id: int, node_id: str
-):
+) -> None:
     """Record an extracted key."""
     pool = await get_pool()
     async with pool.acquire() as conn:
@@ -218,7 +219,7 @@ async def record_extracted_key(
 
 async def record_balance_check(
     address: str, chain: str, balance: float, key_hash: str, node_id: str
-):
+) -> None:
     """Record a balance check."""
     pool = await get_pool()
     async with pool.acquire() as conn:
@@ -235,7 +236,7 @@ async def record_balance_check(
 # ── Funded wallet operations ────────────────────────────────────────────────
 
 
-async def record_funded_wallet(address: str, chain: str, balance: float, key_hash: str):
+async def record_funded_wallet(address: str, chain: str, balance: float, key_hash: str) -> None:
     """Record a funded wallet."""
     pool = await get_pool()
     async with pool.acquire() as conn:
@@ -258,7 +259,7 @@ async def get_unswept_wallets() -> list[dict]:
         return [dict(r) for r in rows]
 
 
-async def mark_swept(address: str, sweep_tx: str):
+async def mark_swept(address: str, sweep_tx: str) -> None:
     """Mark a wallet as swept."""
     pool = await get_pool()
     async with pool.acquire() as conn:
@@ -301,7 +302,7 @@ async def acquire_sweep_lock(
             return False
 
 
-async def release_sweep_lock(address: str, node_id: str):
+async def release_sweep_lock(address: str, node_id: str) -> None:
     """Release a sweep lock."""
     pool = await get_pool()
     async with pool.acquire() as conn:
@@ -315,7 +316,7 @@ async def release_sweep_lock(address: str, node_id: str):
 # ── Node assignment operations ──────────────────────────────────────────────
 
 
-async def assign_sources(node_id: str, sources: list[str]):
+async def assign_sources(node_id: str, sources: list[str]) -> None:
     """Assign sources to a node."""
     pool = await get_pool()
     async with pool.acquire() as conn:
@@ -438,7 +439,7 @@ async def get_audit_trail(limit: int = 100) -> list[dict]:
 # ── Command queue operations ────────────────────────────────────────────────
 
 
-async def enqueue_command(node_id: str, command: str, payload: dict | None = None):
+async def enqueue_command(node_id: str, command: str, payload: dict | None = None) -> None:
     """Add a command to the queue for a node."""
     pool = await get_pool()
     async with pool.acquire() as conn:

@@ -3,6 +3,7 @@
 Provides Shannon entropy calculation, common-word dictionary checks,
 and a 0-100 strength score for mnemonic passphrases.
 """
+from __future__ import annotations
 
 import math
 from collections import Counter

@@ -1,5 +1,7 @@
 """1ai-osint CLI entry point."""
 
+from __future__ import annotations
+
 import asyncio
 import json
 import os
@@ -9,6 +11,8 @@ from datetime import datetime, timezone
 
 import typer
 
+from src.core.logging_config import setup_logging as _setup_logging
+from src.core.models import ScanResult
 from src.modules.output.pdf_export import format_pdf as _format_pdf
 from src.modules.output.sarif import format_sarif as _format_sarif
 
@@ -16,6 +20,18 @@ app = typer.Typer(
     help="1ai-osint -- AI-Powered OSINT & ZKIT Research Platform",
     add_completion=False,
 )
+
+_LogFormatChoice = typer.Option("text", "--log-format", help="Log output format: text or json.", case_sensitive=False)
+_LogLevelOption = typer.Option("INFO", "--log-level", help="Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL).", case_sensitive=False)
+
+
+@app.callback(invoke_without_command=True)
+def _main_callback(
+    log_format: str = _LogFormatChoice,
+    log_level: str = _LogLevelOption,
+) -> None:
+    """Global options applied before any sub-command."""
+    _setup_logging(level=log_level, json_format=(log_format.lower() == "json"))
 
 # Valid module names for the scan command
 SCAN_MODULES = (
@@ -35,7 +51,7 @@ OUTPUT_FORMATS = ("json", "sarif", "pdf")
 
 
 @app.command()
-def version():
+def version() -> None:
     """Show version."""
     from src import __version__
 
@@ -43,7 +59,7 @@ def version():
 
 
 @app.command()
-def doctor():
+def doctor() -> None:
     """Check environment: Python, sherlock, breach API keys, providers."""
     from src.doctor import format_doctor_report, run_doctor
 
@@ -55,7 +71,7 @@ def doctor():
 
 
 @app.command()
-def modules():
+def modules() -> None:
     """List all available OSINT modules."""
     from src.modules import list_modules
 
@@ -131,7 +147,7 @@ class _PassphraseModule:
         self._gen_func = gen_func
         self.zkit_salt = zkit_salt
 
-    async def scan(self, target: str, **kwargs):
+    async def scan(self, target: str, **kwargs) -> ScanResult:
         from src.core.models import Finding, ScanResult, Severity
 
         scan_id = f"passphrase-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
@@ -283,7 +299,7 @@ def scan(
     min_balance: float = typer.Option(
         0.0, help="Minimum balance threshold for random scan hits"
     ),
-):
+) -> None:
     """Run an OSINT scan against a target.
 
     For crypto_balance module with 'random' target, generates random mnemonics.
@@ -385,7 +401,7 @@ def leak_finder(
     github_token: str = typer.Option(
         "", help="GitHub API token for authenticated search (higher rate limits)"
     ),
-):
+) -> None:
     """Find leaked crypto keys and mnemonics from public sources.
 
     Searches GitHub, paste sites, and Telegram for leaked private keys
@@ -475,7 +491,7 @@ def resolve(
     ai: bool = typer.Option(False, help="Enable AI analysis"),
     sources: str = typer.Option("all", help="Comma-separated source names or 'all'"),
     timeout: int = typer.Option(300, help="Timeout in seconds"),
-):
+) -> None:
     """Resolve an identity — find all connected entities across all sources."""
 
     async def _resolve():
@@ -573,7 +589,7 @@ def monitor(
     interval: int = typer.Option(300, help="Check interval in seconds"),
     sources: str = typer.Option("all", help="Comma-separated source names or 'all'"),
     telegram: bool = typer.Option(False, help="Send alerts via Telegram"),
-):
+) -> None:
     """Continuously monitor an identity for new connections and leaks."""
 
     async def _monitor():
@@ -672,7 +688,7 @@ def sweep(
     dry_run: bool = typer.Option(
         False, help="Dry run — show what would be swept without executing"
     ),
-):
+) -> None:
     """Sweep funds from leaked wallets to destination addresses."""
 
     async def _sweep():
@@ -726,7 +742,7 @@ def node(
     node_id: str = typer.Option(socket.gethostname(), help="Node identifier"),
     master_chat_id: str = typer.Option("", help="Master Telegram chat ID"),
     api_port: int = typer.Option(8420, help="HTTP API port"),
-):
+) -> None:
     """Run as a worker node, connecting to master via Telegram."""
 
     async def _run_node():
@@ -769,7 +785,7 @@ def master(
     allowed_chat_ids: str = typer.Option(
         "", help="Comma-separated allowed Telegram chat IDs"
     ),
-):
+) -> None:
     """Run as the master bot, controlling all nodes via Telegram."""
 
     async def _run_master():
@@ -810,7 +826,7 @@ def report(
     target: str = typer.Argument(..., help="Target to generate report for"),
     output: str = typer.Option("html", help="Output format: html, json"),
     module: str = typer.Option("all", help="Module to scan first, or 'all'"),
-):
+) -> None:
     """Generate a comprehensive OSINT report for a target."""
     from src.modules.report_engine import ReportEngine
     from src.modules.report_engine.html_template import render_html
@@ -898,7 +914,7 @@ def deep_scan(
     cloak: bool = typer.Option(
         False, "--cloak", help="Enforce CloakBrowser for anti-detect scraping"
     ),
-):
+) -> None:
     """Deep scan — recursive identity investigation across all modules."""
     from src.investigations.case_manager import CaseManager
     from src.modules.deep_scan.engine import DeepScanEngine
@@ -1038,7 +1054,7 @@ def deep_scan(
 def report_from_file(
     report_file: str = typer.Argument(..., help="Path to JSON report file"),
     output: str = typer.Option("html", help="Output format: html, json"),
-):
+) -> None:
     """Generate report from an existing JSON report file."""
     from src.modules.report_engine import ReportEngine
     from src.modules.report_engine.html_template import render_html
@@ -1073,7 +1089,7 @@ def zkit_deep_scan(
     zkit_salt: str = typer.Option(
         "", help="Optional fixed ZKIT salt for stable output"
     ),
-):
+) -> None:
     """Run a recursive Deep Scan on an identity target, using the ZKIT Engine."""
     from rich.console import Console
     from rich.panel import Panel

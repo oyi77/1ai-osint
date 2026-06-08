@@ -34,12 +34,12 @@ class ScanResponse(BaseModel):
 
 
 @app.get("/health")
-def health():
+def health() -> dict[str, str]:
     return {"status": "ok", "service": "1ai-osint"}
 
 
 @app.get("/v1/jobs")
-def list_jobs():
+def list_jobs() -> list[dict[str, Any]]:
     return [
         {
             "job_id": job_id,
@@ -55,7 +55,7 @@ def list_jobs():
 
 
 @app.post("/v1/scan", response_model=ScanResponse)
-async def create_scan(req: ScanRequest):
+async def create_scan(req: ScanRequest) -> ScanResponse:
     job_id = f"job-{uuid.uuid4().hex[:12]}"
     _JOBS[job_id] = {
         "status": "queued",
@@ -70,7 +70,7 @@ async def create_scan(req: ScanRequest):
 
 
 @app.get("/v1/scan/{job_id}")
-def get_scan(job_id: str):
+def get_scan(job_id: str) -> dict[str, Any]:
     job = _JOBS.get(job_id)
     if not job:
         raise HTTPException(404, "job not found")
@@ -119,7 +119,7 @@ async def _run_job(job_id: str, req: ScanRequest) -> None:
 
 @app.get("/ui", response_class=HTMLResponse)
 @app.get("/", response_class=HTMLResponse)
-def serve_ui():
+def serve_ui() -> str:
     return _load_template("dashboard.html")
 
 
@@ -166,7 +166,7 @@ async def _run_deep_scan_job_react(
 @app.post("/api/scan", response_model=ReactJobResponse)
 async def start_scan_react(
     request: ReactScanRequest, background_tasks: __import__("fastapi").BackgroundTasks
-):
+) -> ReactJobResponse:
     job_id = str(uuid.uuid4())
     _JOBS[job_id] = {
         "job_id": job_id,
@@ -187,7 +187,7 @@ async def start_scan_react(
 
 
 @app.get("/api/scan/{job_id}")
-async def get_scan_status_react(job_id: str):
+async def get_scan_status_react(job_id: str) -> dict[str, Any]:
     if job_id not in _JOBS:
         raise HTTPException(status_code=404, detail="Job not found")
     return _JOBS[job_id]

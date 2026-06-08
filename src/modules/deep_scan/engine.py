@@ -274,7 +274,7 @@ class DeepScanEngine:
                 if f.raw_data.get("platform") in high_value_platforms
             ][:5]
 
-            async def verify_finding(finding):
+            async def verify_finding(finding) -> None:
                 url = finding.raw_data.get("url")
                 if not url:
                     return
