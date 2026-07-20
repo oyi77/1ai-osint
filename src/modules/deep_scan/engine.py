@@ -22,6 +22,7 @@ from src.modules.deep_scan.extractor import (
     extract_identifiers,
     extract_usernames_from_profiles,
 )
+from src.modules.deep_scan.free_intel_adapter import list_free_intel_modules
 
 logger = logging.getLogger(__name__)
 
@@ -75,9 +76,6 @@ _MODULE_INPUTS: dict[str, set[IdentifierType]] = {
     "whatsapp_check": {IdentifierType.PHONE},
     "telegram_check": {IdentifierType.USERNAME},
 }
-
-# Derived from free_intel adapter's dispatch registry (single source of truth)
-from src.modules.deep_scan.free_intel_adapter import list_free_intel_modules  # noqa: E402
 _FREE_INTEL_MODULES: set[str] = set(list_free_intel_modules())
 
 # Sources handled by source_adapter (separate from CLI modules)
