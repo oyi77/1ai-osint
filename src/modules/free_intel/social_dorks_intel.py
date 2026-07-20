@@ -13,6 +13,7 @@ import re
 
 import httpx
 from pydantic import BaseModel
+from dataclasses import dataclass, field
 
 logger = logging.getLogger(__name__)
 
@@ -24,13 +25,12 @@ class SocialDorkResult(BaseModel):
     snippet: str = ""
 
 
-from dataclasses import dataclass, field
 
 
 @dataclass
 class SocialDorkSearchResult:
     """Return type for search() that includes blockage information.
-    
+
     Supports list-like operations (__len__, __iter__, __getitem__) by delegating
     to self.results for backward compatibility.
     """

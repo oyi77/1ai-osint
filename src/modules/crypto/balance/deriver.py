@@ -10,8 +10,6 @@ import re
 from dataclasses import dataclass
 from typing import Optional
 
-logger = logging.getLogger(__name__)
-
 from bip_utils import (
     Bip39MnemonicValidator,
     Bip39SeedGenerator,
@@ -36,6 +34,8 @@ from src.modules.crypto.balance.chains import (
     ChainType,
 )
 from src.modules.crypto.balance.provider_profiles import ProviderProfile
+
+logger = logging.getLogger(__name__)
 
 # --- Base58 encoding/decoding for Solana keys ---
 _BASE58_ALPHABET = b"123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"

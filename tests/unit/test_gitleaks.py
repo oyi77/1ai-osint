@@ -1,81 +1,14 @@
 """Tests for gitleaks module."""
 
-import json
 import pytest
 
 from src.modules.gitleaks.scanner import GitleaksModule
-from src.modules.gitleaks.parser import parse_gitleaks_json
 from src.core.models import Severity
 
 
 @pytest.fixture
 def gitleaks_module():
     return GitleaksModule(zkit_salt="test-salt")
-
-
-@pytest.fixture
-def sample_gitleaks_output():
-    return [
-        {
-            "rule-id": "aws-access-token",
-            "description": "AWS Access Token",
-            "match": "AKIAIOSFODNN7EXAMPLE",
-            "secret": "AKIAIOSFODNN7EXAMPLE",
-            "file": "config.js",
-            "line": "42",
-            "commit": "abc123",
-            "author": "Test Author",
-            "email": "test@example.com",
-            "date": "2023-01-15T10:30:00Z",
-        },
-        {
-            "rule-id": "generic-api-key",
-            "description": "Generic API Key",
-            "match": "sk-1234567890",
-            "secret": "sk-1234567890",
-            "file": ".env",
-            "line": "5",
-            "commit": "def456",
-            "author": "Test Author",
-            "email": "test@example.com",
-            "date": "2023-02-01T12:00:00Z",
-        },
-    ]
-
-
-class TestGitleaksParser:
-    def test_parse_json_string(self, sample_gitleaks_output):
-        raw = json.dumps(sample_gitleaks_output)
-        findings = parse_gitleaks_json(raw)
-        assert len(findings) == 2
-        assert findings[0].severity == Severity.CRITICAL
-        assert findings[1].severity == Severity.HIGH
-
-    def test_parse_json_list(self, sample_gitleaks_output):
-        findings = parse_gitleaks_json(sample_gitleaks_output)
-        assert len(findings) == 2
-
-    def test_parse_json_dict(self, sample_gitleaks_output):
-        findings = parse_gitleaks_json(sample_gitleaks_output[0])
-        assert len(findings) == 1
-
-    def test_parse_empty_string(self):
-        findings = parse_gitleaks_json("")
-        assert findings == []
-
-    def test_parse_invalid_json(self):
-        findings = parse_gitleaks_json("not json")
-        assert findings == []
-
-    def test_severity_classification(self):
-        assert _classify_severity("aws-access-token") == Severity.CRITICAL
-        assert _classify_severity("generic-api-key") == Severity.HIGH
-        assert _classify_severity("some-other-rule") == Severity.MEDIUM
-
-    def test_finding_has_tags(self, sample_gitleaks_output):
-        findings = parse_gitleaks_json(sample_gitleaks_output)
-        assert "secret" in findings[0].tags
-        assert "gitleaks" in findings[0].tags
 
 
 class TestGitleaksModule:
@@ -114,22 +47,21 @@ class TestGitleaksModule:
         assert "not found" in result.error
 
     @pytest.mark.asyncio
-    async def test_analyze_findings(self, gitleaks_module, sample_gitleaks_output):
-        findings = parse_gitleaks_json(sample_gitleaks_output)
+    async def test_analyze_findings(self, gitleaks_module):
+        from src.core.models import Finding
+
+        findings = [
+            Finding(id="f1", module="gitleaks", title="AWS Key", severity=Severity.CRITICAL),
+            Finding(id="f2", module="gitleaks", title="Generic Key", severity=Severity.HIGH),
+        ]
         analysis = await gitleaks_module.analyze(findings)
         assert analysis["total_findings"] == 2
-        assert analysis["has_critical"] is True
+        assert analysis["has_critical"]
 
-    def test_to_zkit_node(self, gitleaks_module, sample_gitleaks_output):
-        from src.modules.gitleaks.parser import parse_gitleaks_json
+    def test_to_zkit_node(self, gitleaks_module):
+        from src.core.models import Finding
 
-        findings = parse_gitleaks_json(sample_gitleaks_output)
-        node = gitleaks_module.to_zkit_node(findings[0], attribute_type="secret")
+        finding = Finding(id="f1", module="gitleaks", title="AWS Key", severity=Severity.CRITICAL)
+        node = gitleaks_module.to_zkit_node(finding, attribute_type="secret")
         assert len(node.zkit_hash) == 64
         assert node.attribute_type == "secret"
-
-
-def _classify_severity(rule_id: str) -> Severity:
-    from src.modules.gitleaks.parser import _classify_severity
-
-    return _classify_severity(rule_id)

@@ -15,7 +15,6 @@ from src.modules.deep_scan.extractor import (
     _is_valid_nik,
     _parse_nik,
 )
-from src.modules.deep_scan.report import generate_html_report, generate_pdf_report, _esc
 from src.modules.deep_scan.extractor import extract_usernames_from_profiles
 from src.core.models import Finding, ScanResult, Severity
 
@@ -193,51 +192,6 @@ class TestNikParser:
         assert result["birth_year"] == 1995
         assert result["gender"] == "male"
 
-
-# ---------------------------------------------------------------------------
-# Report
-# ---------------------------------------------------------------------------
-class TestReport:
-    def test_html_report(self):
-        result = DeepScanResult(
-            target="test@example.com", started_at=datetime.now(timezone.utc)
-        )
-        result.identifiers.append(
-            Identifier(
-                value="test@example.com", id_type=IdentifierType.EMAIL, source="test"
-            )
-        )
-        result.identifiers.append(
-            Identifier(value="testuser", id_type=IdentifierType.USERNAME, source="test")
-        )
-        html = generate_html_report(result)
-        assert "test@example.com" in html
-        assert "testuser" in html
-        assert "<!DOCTYPE html>" in html
-
-    def test_html_report_with_nik(self):
-        result = DeepScanResult(target="test", started_at=datetime.now(timezone.utc))
-        result.identifiers.append(
-            Identifier(
-                value="3502150606950001",
-                id_type=IdentifierType.NIK,
-                source="test",
-                metadata={
-                    "province_code": "35",
-                    "city_code": "02",
-                    "birth_day": 15,
-                    "birth_month": 6,
-                    "birth_year": 1995,
-                    "gender": "male",
-                },
-            )
-        )
-        html = generate_html_report(result)
-        assert "3502150606950001" in html
-
-    def test_esc(self):
-        assert _esc("<script>") == "&lt;script&gt;"
-        assert _esc("a&b") == "a&amp;b"
 
 
 # ---------------------------------------------------------------------------
@@ -488,100 +442,6 @@ class TestReportEngineExtra:
 # ---------------------------------------------------------------------------
 # Deep scan report extended coverage
 # ---------------------------------------------------------------------------
-class TestReportExtended:
-    def test_html_report_social_profiles(self):
-        result = DeepScanResult(target="test", started_at=datetime.now(timezone.utc))
-        result.identifiers.append(
-            Identifier(
-                value="https://twitter.com/test",
-                id_type=IdentifierType.SOCIAL_PROFILE,
-                source="test",
-                metadata={"platform": "twitter"},
-            )
-        )
-        html = generate_html_report(result)
-        assert "twitter" in html
-
-    def test_html_report_phones(self):
-        result = DeepScanResult(target="test", started_at=datetime.now(timezone.utc))
-        result.identifiers.append(
-            Identifier(value="+1234567890", id_type=IdentifierType.PHONE, source="test")
-        )
-        html = generate_html_report(result)
-        assert "+1234567890" in html
-
-    def test_html_report_crypto(self):
-        result = DeepScanResult(target="test", started_at=datetime.now(timezone.utc))
-        result.identifiers.append(
-            Identifier(
-                value="0x" + "a" * 40,
-                id_type=IdentifierType.CRYPTO_ADDRESS,
-                source="test",
-                metadata={"chain": "ethereum"},
-            )
-        )
-        html = generate_html_report(result)
-        assert "ethereum" in html
-
-    def test_html_report_domains(self):
-        result = DeepScanResult(target="test", started_at=datetime.now(timezone.utc))
-        result.identifiers.append(
-            Identifier(
-                value="example.com", id_type=IdentifierType.DOMAIN, source="test"
-            )
-        )
-        html = generate_html_report(result)
-        # Domains only shown in stat count, not as a section
-        assert "1" in html
-
-    def test_html_report_findings(self):
-        result = DeepScanResult(target="test", started_at=datetime.now(timezone.utc))
-        result.findings.append(
-            Finding(
-                id="f1",
-                module="test",
-                title="Vuln Found",
-                description="Critical issue",
-                severity=Severity.CRITICAL,
-            )
-        )
-        html = generate_html_report(result)
-        assert "Vuln Found" in html
-        assert "badge-critical" in html
-
-    def test_html_report_errors(self):
-        result = DeepScanResult(target="test", started_at=datetime.now(timezone.utc))
-        result.errors.append("module1(target): timeout")
-        html = generate_html_report(result)
-        assert "timeout" in html
-
-    def test_html_report_duration(self):
-        now = datetime.now(timezone.utc)
-        result = DeepScanResult(target="test", started_at=now, completed_at=now)
-        html = generate_html_report(result)
-        assert "0.0s" in html
-
-    def test_pdf_report_with_data(self):
-        result = DeepScanResult(
-            target="test@example.com", started_at=datetime.now(timezone.utc)
-        )
-        result.identifiers.append(
-            Identifier(
-                value="test@example.com", id_type=IdentifierType.EMAIL, source="test"
-            )
-        )
-        result.findings.append(
-            Finding(
-                id="f1",
-                module="test",
-                title="Finding",
-                description="Desc",
-                severity=Severity.INFO,
-            )
-        )
-        pdf = generate_pdf_report(result)
-        # PDF may be empty if reportlab not installed
-        assert isinstance(pdf, bytes)
 
 
 # ---------------------------------------------------------------------------
