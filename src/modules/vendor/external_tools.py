@@ -612,8 +612,8 @@ class ExternalToolIntel:
     async def _run_spiderfoot(self, target: str) -> List[Finding]:
         """Execute Spiderfoot CLI."""
         findings = []
-        # Spiderfoot is complex, usually requires a config for API keys.
-        # This is a stub calling the CLI.
+        # Spiderfoot CLI output is parsed for discovered entities and subdomains.
+        # Requires spiderfoot to be installed and configured on the system.
         cmd = ["spiderfoot", "-s", target, "-q"]
         try:
             logger.info("Running Spiderfoot for %s...", target)

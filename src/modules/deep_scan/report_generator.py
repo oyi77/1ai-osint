@@ -161,11 +161,7 @@ def generate_intel_report(result: Any) -> IntelReport:
     # ZKIT correlation
     if getattr(result, "zkit_result", None):
         report.correlation_clusters = _build_correlation(result.zkit_result)
-        report.correlation_stats = (
-            result.zkit_result.graph_stats
-            if hasattr(result.zkit_result, "graph_stats")
-            else {}
-        )
+        report.correlation_stats = result.zkit_result.graph_stats if hasattr(result.zkit_result, "graph_stats") else {}
 
     # Summary + warnings
     report.summary = _summarize(result, evidence, report.risk)
@@ -182,8 +178,8 @@ def generate_intel_report(result: Any) -> IntelReport:
 
         report.correlation_stats = report.correlation_stats or {}
         report.correlation_stats["neo4j"] = export_neo4j_json(report.identity_graph)
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning("Neo4j export failed: %s", exc)
 
     # Phase 5: CIA-level analytical layers (synchronous, all gracefully degrade on error)
     _run_phase5_analysis(report, result)
@@ -220,11 +216,7 @@ def _run_phase5_analysis(report: Any, result: Any) -> None:
         report.briefing.threat_trajectory_summary = (
             f"Archetype: {trajectory.most_likely_archetype.value.replace('_', ' ').title()} "
             f"({trajectory.confidence} confidence). "
-            + (
-                trajectory.predicted_next_actions[0]
-                if trajectory.predicted_next_actions
-                else ""
-            )
+            + (trajectory.predicted_next_actions[0] if trajectory.predicted_next_actions else "")
         )
     except Exception as exc:
         logger.warning("Phase 5 threat model failed: %s", exc)
@@ -239,11 +231,7 @@ def _run_phase5_analysis(report: Any, result: Any) -> None:
         report.briefing.counterintel_summary = (
             f"OPSEC: {ci_assessment.opsec_level.value.upper()} | "
             f"Legend probability: {ci_assessment.legend_confidence:.0%} | "
-            + (
-                "LEGEND SUSPECTED"
-                if ci_assessment.is_likely_legend
-                else "No legend detected"
-            )
+            + ("LEGEND SUSPECTED" if ci_assessment.is_likely_legend else "No legend detected")
         )
     except Exception as exc:
         logger.warning("Phase 5 counterintel failed: %s", exc)
@@ -255,9 +243,7 @@ def _run_phase5_analysis(report: Any, result: Any) -> None:
         )
 
         analyzer = LinguisticFingerprintAnalyzer()
-        texts = [
-            ev.snippet for ev in report.evidence if ev.snippet and len(ev.snippet) > 20
-        ]
+        texts = [ev.snippet for ev in report.evidence if ev.snippet and len(ev.snippet) > 20]
 
         # Phase 6 Injection: add actual deep scraped texts
         if hasattr(result, "scraped_texts") and result.scraped_texts:
@@ -277,9 +263,7 @@ def _run_phase5_analysis(report: Any, result: Any) -> None:
         location_events = geo_engine.build_location_timeline(report.evidence)
         if location_events:
             geo_clusters = geo_engine._cluster_events(location_events)
-            report.geo_clusters = [
-                c.model_dump() if hasattr(c, "model_dump") else c for c in geo_clusters
-            ]
+            report.geo_clusters = [c.model_dump() if hasattr(c, "model_dump") else c for c in geo_clusters]
             if geo_clusters:
                 report.briefing.geospatial_summary = (
                     f"{len(geo_clusters)} location cluster(s) identified. "
@@ -294,9 +278,8 @@ def _run_phase5_analysis(report: Any, result: Any) -> None:
         if hasattr(result, "vision_scores") and result.vision_scores:
             avg_score = sum(result.vision_scores) / len(result.vision_scores)
             report.briefing.cia_bluf_plus = (
-                (report.briefing.cia_bluf_plus or "")
-                + f" [VISION AI: Identities correlated across profiles with {avg_score:.0%} confidence.]"
-            )
+                report.briefing.cia_bluf_plus or ""
+            ) + f" [VISION AI: Identities correlated across profiles with {avg_score:.0%} confidence.]"
     except Exception as exc:
         logger.warning("Phase 6 vision injection failed: %s", exc)
 
@@ -329,16 +312,12 @@ def _extract_evidence(result: Any) -> list[EvidenceItem]:
 
         # Walk platform lists (e.g., social_osint) — emit per-platform evidence
         if "platforms" in rd and isinstance(rd["platforms"], list):
-            primary_ident = next(
-                (rd.get(k) for k in ["username", "email"] if k in rd), None
-            )
+            primary_ident = next((rd.get(k) for k in ["username", "email"] if k in rd), None)
             for plat in rd["platforms"]:
                 if not isinstance(plat, dict):
                     continue
                 platform = plat.get("platform", "?")
-                url = plat.get("url") or _build_platform_url(
-                    platform, str(primary_ident or finding.title)
-                )
+                url = plat.get("url") or _build_platform_url(platform, str(primary_ident or finding.title))
                 status = plat.get("status")
                 exists = plat.get("exists")
                 # Do not include non-existent accounts in the final report
@@ -356,9 +335,7 @@ def _extract_evidence(result: Any) -> list[EvidenceItem]:
                         source=source,
                         source_reliability=reliability,
                         url=url,
-                        http_status=int(status)
-                        if isinstance(status, (int, float))
-                        else None,
+                        http_status=int(status) if isinstance(status, (int, float)) else None,
                         snippet="Profile confirmed active" if exists else "Profile visibility unconfirmed",
                         raw_data=plat,
                         confidence=0.9 if exists else 0.2,
@@ -422,9 +399,7 @@ def _extract_evidence(result: Any) -> list[EvidenceItem]:
                         EvidenceItem(
                             id=f"ev-{uuid.uuid4().hex[:8]}",
                             identifier_value=str(primary),
-                            identifier_type="breach_record"
-                            if source.startswith("source_")
-                            else "record",
+                            identifier_type="breach_record" if source.startswith("source_") else "record",
                             source=source,
                             source_reliability=reliability,
                             url=rd.get("source_url") or rd.get("url"),
@@ -504,9 +479,7 @@ def _slugify(value: str) -> str:
 # ---------------------------------------------------------------------------
 # Confidence breakdown
 # ---------------------------------------------------------------------------
-def _compute_confidence(
-    result: Any, evidence: list[EvidenceItem]
-) -> dict[str, ConfidenceBreakdown]:
+def _compute_confidence(result: Any, evidence: list[EvidenceItem]) -> dict[str, ConfidenceBreakdown]:
     by_value: dict[str, ConfidenceBreakdown] = {}
 
     # Group evidence by identifier value
@@ -631,10 +604,7 @@ def _has_email(values: set) -> bool:
 def _has_nik_address_phone(values: set) -> bool:
     has_nik = any(re.match(r"^\d{16}$", v.replace(" ", "")) for v in values)
     has_phone = any(re.match(r"^\+?\d[\d\-\s]{6,}$", v) for v in values)
-    has_address = any(
-        ("street" in v.lower() or "jalan" in v.lower() or "address" in v.lower())
-        for v in values
-    )
+    has_address = any(("street" in v.lower() or "jalan" in v.lower() or "address" in v.lower()) for v in values)
     return has_nik and has_address and has_phone
 
 
@@ -650,11 +620,7 @@ def _has_password_email(values: set) -> bool:
 
 def _has_dob_nik(values: set) -> bool:
     has_nik = any(re.match(r"^\d{16}$", v.replace(" ", "")) for v in values)
-    has_dob = any(
-        re.match(r"\d{4}[-/]\d{2}[-/]\d{2}", v)
-        or re.match(r"\d{2}[-/]\d{2}[-/]\d{4}", v)
-        for v in values
-    )
+    has_dob = any(re.match(r"\d{4}[-/]\d{2}[-/]\d{2}", v) or re.match(r"\d{2}[-/]\d{2}[-/]\d{4}", v) for v in values)
     return has_dob and has_nik
 
 
@@ -690,16 +656,12 @@ def _build_timeline(result: Any, evidence: list[EvidenceItem]) -> list[TimelineE
     entries = TimelineBuilder.build(findings, breach_records)
 
     # Create seen set based on timestamp and detail
-    seen_keys = {
-        (t.timestamp.isoformat() if t.timestamp else "", t.detail) for t in entries
-    }
+    seen_keys = {(t.timestamp.isoformat() if t.timestamp else "", t.detail) for t in entries}
 
     # Fallback/complement: add evidence captured events
     for ev in evidence:
         ts = ev.captured_at
-        detail = f"{ev.identifier_type}={ev.identifier_value} on {ev.source}" + (
-            f" ({ev.url})" if ev.url else ""
-        )
+        detail = f"{ev.identifier_type}={ev.identifier_value} on {ev.source}" + (f" ({ev.url})" if ev.url else "")
         key = (ts.isoformat() if ts else "", detail)
         if key not in seen_keys:
             seen_keys.add(key)
@@ -714,11 +676,7 @@ def _build_timeline(result: Any, evidence: list[EvidenceItem]) -> list[TimelineE
             )
 
     # Sort final timeline chronologically
-    entries.sort(
-        key=lambda x: (
-            x.timestamp if x.timestamp else datetime.min.replace(tzinfo=timezone.utc)
-        )
-    )
+    entries.sort(key=lambda x: x.timestamp if x.timestamp else datetime.min.replace(tzinfo=timezone.utc))
     return entries
 
 
@@ -748,9 +706,7 @@ def _build_graph(result: Any, evidence: list[EvidenceItem]) -> IdentityGraph:
         graph.nodes.append(
             IdentityNode(
                 id=node_id,
-                label=ident.value
-                if len(ident.value) <= 30
-                else ident.value[:27] + "...",
+                label=ident.value if len(ident.value) <= 30 else ident.value[:27] + "...",
                 type=ident.id_type.value,
                 weight=ident.confidence,
                 metadata=ident.metadata or {},
@@ -810,9 +766,7 @@ def _suggest_pivots(result: Any, evidence: list[EvidenceItem]) -> list[PivotSugg
     pivots: list[PivotSuggestion] = []
     seen: set[tuple[str, str]] = set()
 
-    def _add(
-        target_type: str, value: str, rationale: str, priority: int, sources: list[str]
-    ):
+    def _add(target_type: str, value: str, rationale: str, priority: int, sources: list[str]):
         if not value or value.startswith(("http://", "https://")):
             return
         key = (target_type, value)
@@ -914,9 +868,7 @@ def _collect_warnings(result: Any, evidence: list[EvidenceItem]) -> list[str]:
         warnings.append("No evidence collected — all sources returned 0 results")
     low_conf = [e for e in evidence if e.confidence < 0.3]
     if low_conf:
-        warnings.append(
-            f"{len(low_conf)} low-confidence evidence item(s) — verify manually"
-        )
+        warnings.append(f"{len(low_conf)} low-confidence evidence item(s) — verify manually")
     return warnings
 
 

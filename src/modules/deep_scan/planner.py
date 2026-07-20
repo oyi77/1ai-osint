@@ -146,9 +146,11 @@ class DeepScanPlanner:
                         ident,
                     )
 
+
                 # Phase 10: Deep Identity Pivot (Social Dorks & Tech Jobs)
                 try:
                     from src.modules.free_intel.social_dorks_intel import (
+                        SocialDorkSearchResult,
                         SocialDorksIntel,
                     )
                     from src.modules.free_intel.tech_jobs_intel import TechJobsIntel
@@ -164,32 +166,66 @@ class DeepScanPlanner:
                         return_exceptions=True,
                     )
 
-                    for res_list in [social_res, tech_res]:
-                        if isinstance(res_list, list):
-                            for r in res_list:
-                                handle = getattr(r, "username", "")
-                                if not handle and hasattr(r, "url"):
-                                    handle = r.url.rstrip("/").split("/")[-1]
-                                if handle and handle not in [
-                                    i.value for i in state["identifiers"]
-                                ]:
-                                    self.engine._add_identifier(
-                                        DeepScanResult(
-                                            target=target,
-                                            started_at=datetime.now(timezone.utc),
-                                            identifiers=state["identifiers"],
-                                        ),
-                                        Identifier(
-                                            value=handle,
-                                            id_type=IdentifierType.USERNAME,
-                                            source="deep_dork_pivot",
-                                            confidence=0.8,
-                                        ),
-                                    )
-                except Exception as e:
-                    import logging
+                    # --- Handle social dork results (SocialDorkSearchResult) ---
+                    if not isinstance(social_res, Exception):
+                        if isinstance(social_res, SocialDorkSearchResult):
+                            if social_res.blocked_msg:
+                                logger.warning(
+                                    "Social dorks: %s", social_res.blocked_msg
+                                )
+                            res_list = social_res.results
+                        elif isinstance(social_res, list):
+                            res_list = social_res
+                        else:
+                            res_list = []
 
-                    logging.getLogger(__name__).warning("Phase 10 pivot failed: %s", e)
+                        for r in res_list:
+                            handle = getattr(r, "username", "")
+                            if not handle and hasattr(r, "url"):
+                                handle = r.url.rstrip("/").split("/")[-1]
+                            if handle and handle not in [
+                                i.value for i in state["identifiers"]
+                            ]:
+                                self.engine._add_identifier(
+                                    DeepScanResult(
+                                        target=target,
+                                        started_at=datetime.now(timezone.utc),
+                                        identifiers=state["identifiers"],
+                                    ),
+                                    Identifier(
+                                        value=handle,
+                                        id_type=IdentifierType.USERNAME,
+                                        source="deep_dork_pivot",
+                                        confidence=0.8,
+                                    ),
+                                )
+
+                    # --- Handle tech jobs results (plain list) ---
+                    if not isinstance(tech_res, Exception) and isinstance(
+                        tech_res, list
+                    ):
+                        for r in tech_res:
+                            handle = getattr(r, "username", "")
+                            if not handle and hasattr(r, "url"):
+                                handle = r.url.rstrip("/").split("/")[-1]
+                            if handle and handle not in [
+                                i.value for i in state["identifiers"]
+                            ]:
+                                self.engine._add_identifier(
+                                    DeepScanResult(
+                                        target=target,
+                                        started_at=datetime.now(timezone.utc),
+                                        identifiers=state["identifiers"],
+                                    ),
+                                    Identifier(
+                                        value=handle,
+                                        id_type=IdentifierType.USERNAME,
+                                        source="deep_dork_pivot",
+                                        confidence=0.8,
+                                    ),
+                                )
+                except Exception as e:
+                    logger.warning("Phase 10 pivot failed: %s", e)
 
         return state
 

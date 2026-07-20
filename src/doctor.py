@@ -8,6 +8,7 @@ from dataclasses import dataclass
 
 from src.core.config import Settings
 from src.modules.deep_scan.breach_router import breach_status_report
+from src.modules.deep_scan.source_status import check_sources_sync
 
 
 @dataclass
@@ -72,6 +73,51 @@ def run_doctor() -> list[CheckResult]:
         )
     except Exception as exc:
         results.append(CheckResult("people_finder providers", False, str(exc)))
+
+
+    # Source reachability checks
+    try:
+        report = check_sources_sync()
+        for name, st in sorted(report.sources.items()):
+            if st.is_blocked:
+                rec = ""
+                if "999" in (st.blocked_reason or ""):
+                    rec = " — use a residential proxy or logged-in browser"
+                elif "DNS" in (st.blocked_reason or ""):
+                    rec = " — use VPN to access Indonesian academic domains"
+                elif "429" in (st.blocked_reason or ""):
+                    rec = " — try a VPN or wait before retrying"
+                results.append(
+                    CheckResult(
+                        f"source:{name}",
+                        False,
+                        f"BLOCKED: {st.blocked_reason}{rec}",
+                    )
+                )
+            elif not st.reachable:
+                results.append(
+                    CheckResult(
+                        f"source:{name}",
+                        False,
+                        f"DOWN: {st.detail}",
+                    )
+                )
+            else:
+                results.append(
+                    CheckResult(
+                        f"source:{name}",
+                        True,
+                        "reachable",
+                    )
+                )
+    except Exception as exc:
+        results.append(
+            CheckResult(
+                "source:check",
+                False,
+                f"Failed to run source reachability check: {exc}",
+            )
+        )
 
     return results
 

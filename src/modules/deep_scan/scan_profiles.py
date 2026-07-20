@@ -13,7 +13,21 @@ from src.modules.deep_scan.profiles import (
 
 ProfileName = Literal["fast", "standard", "deep"]
 
-STANDARD_EXTRA: tuple[str, ...] = ("email_osint", "phone_finder")
+FREE_INTEL_MODULES: tuple[str, ...] = (
+    "social_dorks_intel",
+    "gravatar_intel",
+    "wayback_intel",
+    "github_intel",
+    "google_dork_intel",
+    "hibp_free",
+    "bts_intel",
+    "pddikti_intel",
+    "tech_jobs_intel",
+    "whatsapp_check",
+    "telegram_check",
+)
+
+STANDARD_EXTRA: tuple[str, ...] = ("email_osint", "phone_finder") + FREE_INTEL_MODULES
 DEEP_EXTRA: tuple[str, ...] = (
     "domain_recon",
     "gitleaks",
@@ -24,7 +38,7 @@ DEEP_EXTRA: tuple[str, ...] = (
     "vuln_scanner",
     "crypto_balance",
     "crypto_tracer",
-)
+) + FREE_INTEL_MODULES
 
 
 @dataclass(frozen=True)

@@ -1,5 +1,7 @@
 """LinkedIn Intelligence Module using CloakBrowser."""
 
+from __future__ import annotations
+
 import logging
 from typing import Optional
 
@@ -20,26 +22,73 @@ class LinkedInProfile(BaseModel):
     education: list[dict] = Field(default_factory=list)
 
 
+class LinkedInProfileResult(BaseModel):
+    """Return type that communicates both success and failure reasons."""
+
+    profile: Optional[LinkedInProfile] = None
+    blocked: bool = False
+    reason: str = ""
+    """Short description of why the profile could not be fetched, e.g.
+    'authwall', 'rate_limited', 'not_found', 'timeout', or empty on success."""
+
+
 class LinkedInIntel:
-    """Scrapes LinkedIn profiles utilizing anti-detect CloakBrowser."""
+    """Scrapes LinkedIn profiles utilizing anti-detect CloakBrowser.
 
-    def __init__(self, force_cloak: bool = False):
-        self.scraper = CloakScraper(force_cloak=force_cloak)
+    The get_profile() method returns a LinkedInProfileResult instead of None
+    on failure, so callers can distinguish between:
+    - Authwall (HTTP 999 / redirect to login page)
+    - Rate limiting
+    - Invalid URL
+    - Generic scrape failure
+    """
 
-    async def get_profile(self, url: str) -> Optional[LinkedInProfile]:
-        """Extract profile information from a LinkedIn URL."""
+    def __init__(self):
+        self.scraper = CloakScraper()
+
+    async def get_profile(self, url: str) -> LinkedInProfileResult:
+        """Extract profile information from a LinkedIn URL.
+
+        Returns a LinkedInProfileResult with:
+        - profile set to the LinkedInProfile on success
+        - blocked=True and a human-readable reason on failure
+        """
         if not url.startswith("https://www.linkedin.com/in/"):
-            return None
+            return LinkedInProfileResult(
+                blocked=True,
+                reason=f"Invalid LinkedIn URL: {url}",
+            )
 
         try:
             async with self.scraper.get_page() as page:
                 await page.goto(url, timeout=30000, wait_until="domcontentloaded")
 
-                # Check for auth wall / login redirect
+                # Detect auth wall / login redirect
                 current_url = page.url
-                if "authwall" in current_url or "login" in current_url:
-                    logger.warning("LinkedIn threw auth wall for %s", url)
-                    return None
+                if "authwall" in current_url:
+                    logger.warning("LinkedIn authwall for %s", url)
+                    return LinkedInProfileResult(
+                        blocked=True,
+                        reason=(
+                            "LinkedIn authwall (HTTP 999 rate limit) — "
+                            "use a residential proxy or a logged-in browser session"
+                        ),
+                    )
+
+                if "login" in current_url:
+                    logger.warning("LinkedIn login redirect for %s", url)
+                    return LinkedInProfileResult(
+                        blocked=True,
+                        reason=(
+                            "LinkedIn login wall — profile requires authentication"
+                        ),
+                    )
+
+                if "/notfound/" in current_url or "/pub/dir/" in current_url:
+                    return LinkedInProfileResult(
+                        blocked=False,
+                        reason="LinkedIn profile not found or inaccessible",
+                    )
 
                 # Extract basic info
                 name_el = await page.query_selector("h1.text-heading-xlarge")
@@ -69,8 +118,12 @@ class LinkedInIntel:
                 # For experience and education we'd need more complex selectors,
                 # skipping for fast MVP but structure is in place.
 
-                return profile
+                return LinkedInProfileResult(profile=profile)
 
         except Exception as e:
-            logger.debug("Failed to scrape LinkedIn profile %s: %s", url, e)
-            return None
+            exc_reason = str(e) or type(e).__name__
+            logger.debug("Failed to scrape LinkedIn profile %s: %s", url, exc_reason)
+            return LinkedInProfileResult(
+                blocked=True,
+                reason=f"LinkedIn scrape failed: {exc_reason}",
+            )

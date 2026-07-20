@@ -10,7 +10,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any, Awaitable, Optional
 
 from src.core.models import ScanResult
 from src.modules.deep_scan import (
@@ -62,6 +62,32 @@ _MODULE_INPUTS: dict[str, set[IdentifierType]] = {
         IdentifierType.DOMAIN,
         IdentifierType.NAME,
     },
+    # Free intel modules (search engine dorking, gravatar, wayback)
+    "social_dorks_intel": {IdentifierType.NAME},
+    "gravatar_intel": {IdentifierType.EMAIL},
+    "wayback_intel": {IdentifierType.URL},
+    "github_intel": {IdentifierType.USERNAME},
+    "google_dork_intel": {IdentifierType.NAME},
+    "hibp_free": {IdentifierType.EMAIL},
+    "bts_intel": {IdentifierType.PHONE},
+    "pddikti_intel": {IdentifierType.NAME},
+    "tech_jobs_intel": {IdentifierType.NAME},
+    "whatsapp_check": {IdentifierType.PHONE},
+    "telegram_check": {IdentifierType.USERNAME},
+}
+
+_FREE_INTEL_MODULES: set[str] = {
+    "social_dorks_intel",
+    "gravatar_intel",
+    "wayback_intel",
+    "github_intel",
+    "google_dork_intel",
+    "hibp_free",
+    "bts_intel",
+    "pddikti_intel",
+    "tech_jobs_intel",
+    "whatsapp_check",
+    "telegram_check",
 }
 
 # Sources handled by source_adapter (separate from CLI modules)
@@ -106,9 +132,7 @@ class DeepScanEngine:
 
             defaults = fast_scan_defaults()
             max_iterations = min(max_iterations, int(defaults["max_iterations"]))
-            timeout_per_module = min(
-                timeout_per_module, float(defaults["timeout_per_module"])
-            )
+            timeout_per_module = min(timeout_per_module, float(defaults["timeout_per_module"]))
             max_identifiers = min(max_identifiers, int(defaults["max_identifiers"]))
             max_pivot_handles = int(defaults["max_pivot_handles"])
             max_targets_per_iteration = int(defaults["max_targets_per_iteration"])
@@ -147,7 +171,31 @@ class DeepScanEngine:
                 )
 
                 pivots = username_candidates_from_name(target)[: self.max_pivot_handles]
+
+                # Verify handle existence before trusting name-permuted handles.
+                # This prevents the misattribution bug where a handle derived from
+                # a name (e.g. "izzuddinfikri" from "Fikri Izzuddin") gets scanned
+                # even though it belongs to a different person.
+                _unverified: set[str] = set()
+                try:
+                    from src.modules.deep_scan.handle_verifier import (
+                        batch_verify_handles,
+                    )
+
+                    handle_handles = [h for h, _ in pivots]
+                    _verifications = await batch_verify_handles(handle_handles)
+                    for h, _ in pivots:
+                        v = _verifications.get(h)
+                        if v and v.overall_confidence < 0.3:
+                            _unverified.add(h)
+                except Exception as exc:
+                    logger.debug("Handle verification skipped (non-fatal): %s", exc)
+
                 for handle, confidence in pivots:
+                    # Reduce confidence for handles that don't exist on any
+                    # platform — they won't pass _initial_targets (>= 0.65)
+                    if handle in _unverified:
+                        confidence = 0.1
                     self._add_identifier(
                         result,
                         Identifier(
@@ -163,9 +211,7 @@ class DeepScanEngine:
             self._initial_targets(target, result),
         )
 
-        logger.info(
-            "Deep scan starting: %s (%d initial targets)", target, len(initial_targets)
-        )
+        logger.info("Deep scan starting: %s (%d initial targets)", target, len(initial_targets))
         await self._run_iteration(result, initial_targets)
 
         # Phase 2: Recursive scanning with discovered identifiers
@@ -178,14 +224,10 @@ class DeepScanEngine:
             # Collect new identifiers to scan
             new_targets = self._cap_targets(self._get_new_targets(result, seen_targets))
             if not new_targets:
-                logger.info(
-                    "No new identifiers found at iteration %d — stopping", iteration
-                )
+                logger.info("No new identifiers found at iteration %d — stopping", iteration)
                 break
 
-            logger.info(
-                "Iteration %d: scanning %d new identifiers", iteration, len(new_targets)
-            )
+            logger.info("Iteration %d: scanning %d new identifiers", iteration, len(new_targets))
             result.iterations = iteration
             await self._run_iteration(result, new_targets)
             seen_targets.update(t.lower() for t in new_targets)
@@ -198,19 +240,10 @@ class DeepScanEngine:
         ext_intel = ExternalToolIntel()
 
         # Extract unique usernames and domains discovered during iterations
-        usernames = list(
-            {
-                i.value
-                for i in result.identifiers
-                if i.id_type == IdentifierType.USERNAME
-            }
-        )
+        usernames = list({i.value for i in result.identifiers if i.id_type == IdentifierType.USERNAME})
 
         # If no usernames were found directly, pivot the target name
-        if (
-            not usernames
-            and self._detect_identifier(target, "init").id_type == IdentifierType.NAME
-        ):
+        if not usernames and self._detect_identifier(target, "init").id_type == IdentifierType.NAME:
             from src.modules.deep_scan.name_pivots import primary_username_for_name
 
             p_uname = primary_username_for_name(target)
@@ -218,9 +251,9 @@ class DeepScanEngine:
                 usernames.append(p_uname)
 
         usernames = usernames[:3]  # Limit to 3 max
-        domains = list(
-            {i.value for i in result.identifiers if i.id_type == IdentifierType.DOMAIN}
-        )[:2]  # Limit to 2 max
+        domains = list({i.value for i in result.identifiers if i.id_type == IdentifierType.DOMAIN})[
+            :2
+        ]  # Limit to 2 max
 
         ext_tasks = []
         for uname in usernames:
@@ -243,9 +276,7 @@ class DeepScanEngine:
 
         # --- PHASE 4: Profile Scraping & Vision Correlation Verification ---
         social_findings = [
-            f
-            for f in result.findings
-            if f.module == "social_osint" and f.raw_data.get("type") == "social_account"
+            f for f in result.findings if f.module == "social_osint" and f.raw_data.get("type") == "social_account"
         ]
         if social_findings:
             logger.info(
@@ -268,11 +299,7 @@ class DeepScanEngine:
                 "instagram",
                 "tiktok",
             }
-            to_verify = [
-                f
-                for f in social_findings
-                if f.raw_data.get("platform") in high_value_platforms
-            ][:5]
+            to_verify = [f for f in social_findings if f.raw_data.get("platform") in high_value_platforms][:5]
 
             async def verify_finding(finding) -> None:
                 url = finding.raw_data.get("url")
@@ -282,14 +309,10 @@ class DeepScanEngine:
                     scraped = await scraper.scrape_profile(url)
                     if scraped:
                         finding.raw_data["bio"] = scraped.get("text_content", "")[:500]
-                        finding.raw_data["profile_picture"] = scraped.get(
-                            "profile_picture_url", ""
-                        )
+                        finding.raw_data["profile_picture"] = scraped.get("profile_picture_url", "")
 
                         target_profile = {"text_content": f"Full Name: {target}"}
-                        confidence = await correlator.correlate_profiles(
-                            target_profile, scraped
-                        )
+                        confidence = await correlator.correlate_profiles(target_profile, scraped)
                         finding.raw_data["correlation_confidence"] = confidence
                         finding.raw_data["verified"] = confidence >= 0.5
                         logger.info(
@@ -307,9 +330,7 @@ class DeepScanEngine:
                     finding.raw_data["correlation_confidence"] = 0.0
 
             if to_verify:
-                await asyncio.gather(
-                    *[verify_finding(f) for f in to_verify], return_exceptions=True
-                )
+                await asyncio.gather(*[verify_finding(f) for f in to_verify], return_exceptions=True)
 
             # Filter out unverified profiles to ensure we only report confirmed identities
             # Also deduplicate by URL to avoid showing the same profile multiple times
@@ -380,16 +401,22 @@ class DeepScanEngine:
                 source_cls = all_sources.get(mod_name)
                 if source_cls:
                     source_inst = source_cls()
-                    relevant_targets = self._filter_targets_for_module(
-                        mod_name, targets, result
-                    )
+                    relevant_targets = self._filter_targets_for_module(mod_name, targets, result)
                     for target in relevant_targets:
                         if self._should_scan(mod_name, target):
-                            tasks.append(
-                                self._scan_source_adapter(
-                                    mod_name, source_inst, target, result
-                                )
-                            )
+                            tasks.append(self._scan_source_adapter(mod_name, source_inst, target, result))
+                continue
+
+            if mod_name in _FREE_INTEL_MODULES:
+                # Free intel adapter path
+
+                relevant_targets = self._filter_targets_for_module(mod_name, targets, result)
+                if not relevant_targets:
+                    continue
+
+                for target in relevant_targets:
+                    if self._should_scan(mod_name, target):
+                        tasks.append(self._scan_free_intel_module(mod_name, target, result))
                 continue
 
             mod = _get_module(mod_name)
@@ -397,9 +424,7 @@ class DeepScanEngine:
                 continue
 
             # Filter targets relevant to this module
-            relevant_targets = self._filter_targets_for_module(
-                mod_name, targets, result
-            )
+            relevant_targets = self._filter_targets_for_module(mod_name, targets, result)
             if not relevant_targets:
                 continue
 
@@ -423,6 +448,29 @@ class DeepScanEngine:
         for pid in profile_ids:
             self._add_identifier(result, pid)
 
+    async def _run_module_scan(
+        self,
+        scan_coro: Awaitable[ScanResult],
+        error_prefix: str,
+        target: str,
+        result: DeepScanResult,
+    ) -> None:
+        """Run a module scan through a common sem/timeout/error-handling pattern."""
+        try:
+            async with self._sem:
+                scan_result = await asyncio.wait_for(
+                    scan_coro,
+                    timeout=self.timeout_per_module,
+                )
+            if isinstance(scan_result, ScanResult):
+                result.scan_results.append(scan_result)
+                for finding in scan_result.findings:
+                    result.findings.append(finding)
+        except asyncio.TimeoutError:
+            result.errors.append(f"{error_prefix}({target}): timeout")
+        except Exception as exc:
+            result.errors.append(f"{error_prefix}({target}): {exc}")
+
     async def _scan_module(
         self,
         mod_name: str,
@@ -434,21 +482,12 @@ class DeepScanEngine:
         scan_kwargs: dict[str, Any] = {}
         if mod_name == "people_finder":
             scan_kwargs["timeout"] = int(self.timeout_per_module)
-
-        try:
-            async with self._sem:
-                scan_result = await asyncio.wait_for(
-                    mod.scan(target, **scan_kwargs),
-                    timeout=self.timeout_per_module,
-                )
-            if isinstance(scan_result, ScanResult):
-                result.scan_results.append(scan_result)
-                for finding in scan_result.findings:
-                    result.findings.append(finding)
-        except asyncio.TimeoutError:
-            result.errors.append(f"{mod_name}({target}): timeout")
-        except Exception as exc:
-            result.errors.append(f"{mod_name}({target}): {exc}")
+        await self._run_module_scan(
+            mod.scan(target, **scan_kwargs),
+            mod_name,
+            target,
+            result,
+        )
 
     async def _scan_source_adapter(
         self,
@@ -458,22 +497,30 @@ class DeepScanEngine:
         result: DeepScanResult,
     ) -> None:
         """Run a breach/leak source via the source adapter."""
-        try:
-            from src.modules.deep_scan.source_adapter import run_source_scan
+        from src.modules.deep_scan.source_adapter import run_source_scan
 
-            async with self._sem:
-                scan_result = await asyncio.wait_for(
-                    run_source_scan(source_name, target, source_inst),
-                    timeout=self.timeout_per_module,
-                )
-            if isinstance(scan_result, ScanResult):
-                result.scan_results.append(scan_result)
-                for finding in scan_result.findings:
-                    result.findings.append(finding)
-        except asyncio.TimeoutError:
-            result.errors.append(f"source_{source_name}({target}): timeout")
-        except Exception as exc:
-            result.errors.append(f"source_{source_name}({target}): {exc}")
+        await self._run_module_scan(
+            run_source_scan(source_name, target, source_inst),
+            f"source_{source_name}",
+            target,
+            result,
+        )
+
+    async def _scan_free_intel_module(
+        self,
+        mod_name: str,
+        target: str,
+        result: DeepScanResult,
+    ) -> None:
+        """Run a free intel module via the free_intel_adapter."""
+        from src.modules.deep_scan.free_intel_adapter import run_free_intel_scan
+
+        await self._run_module_scan(
+            run_free_intel_scan(mod_name, target),
+            f"free_{mod_name}",
+            target,
+            result,
+        )
 
     def _get_new_targets(self, result: DeepScanResult, seen: set[str]) -> set[str]:
         """Extract new targets from discovered identifiers."""
@@ -527,10 +574,7 @@ class DeepScanEngine:
     def _add_identifier(self, result: DeepScanResult, ident: Identifier) -> None:
         """Add an identifier if not already present."""
         for existing in result.identifiers:
-            if (
-                existing.value.lower() == ident.value.lower()
-                and existing.id_type == ident.id_type
-            ):
+            if existing.value.lower() == ident.value.lower() and existing.id_type == ident.id_type:
                 # Update last_seen
                 existing.last_seen = ident.first_seen
                 return
@@ -584,9 +628,7 @@ class DeepScanEngine:
 
         # Email
         if re.match(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", value):
-            return Identifier(
-                value=value.lower(), id_type=IdentifierType.EMAIL, source=source
-            )
+            return Identifier(value=value.lower(), id_type=IdentifierType.EMAIL, source=source)
 
         # Phone
         if re.match(r"^[\+]?[0-9]{7,15}$", re.sub(r"[\s\-\.\(\)]", "", value)):
@@ -606,12 +648,8 @@ class DeepScanEngine:
             return Identifier(value=value, id_type=IdentifierType.IP, source=source)
 
         # Domain
-        if re.match(
-            r"^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z]{2,})+$", value
-        ):
-            return Identifier(
-                value=value.lower(), id_type=IdentifierType.DOMAIN, source=source
-            )
+        if re.match(r"^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z]{2,})+$", value):
+            return Identifier(value=value.lower(), id_type=IdentifierType.DOMAIN, source=source)
 
         # NIK (16 digits)
         if re.match(r"^\d{16}$", value):
@@ -619,9 +657,7 @@ class DeepScanEngine:
 
         # Default to username
         if re.match(r"^[a-zA-Z0-9_.-]{3,50}$", value):
-            return Identifier(
-                value=value, id_type=IdentifierType.USERNAME, source=source
-            )
+            return Identifier(value=value, id_type=IdentifierType.USERNAME, source=source)
 
         # Default to name
         return Identifier(value=value, id_type=IdentifierType.NAME, source=source)

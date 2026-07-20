@@ -5,9 +5,12 @@ Supports BTC (BIP-44/49/84), ETH, BSC, Polygon, and SOL.
 
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import dataclass
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 from bip_utils import (
     Bip39MnemonicValidator,
@@ -405,7 +408,7 @@ def derive_from_privatekey(
                     private_key_hex=decoded.hex(),
                 )
         except Exception:
-            pass
+            logger.debug("Failed to decode base58 key", exc_info=True)
 
     raise ValueError(
         "Invalid private key format (expected 64 hex chars or 88 base58 chars)"

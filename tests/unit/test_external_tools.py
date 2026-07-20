@@ -29,7 +29,7 @@ class TestExternalToolIntel:
         assert intel2.has_maigret is False
         assert intel2.has_theharvester is False
 
-    @patch("shutil.which", return_value="/usr/bin/tool")
+    @patch("shutil.which", side_effect=lambda cmd: "/usr/bin/sherlock" if cmd == "sherlock" else None)
     @patch.object(ExternalToolIntel, "_run_sherlock", new_callable=AsyncMock)
     @pytest.mark.asyncio
     async def test_scan_username_sherlock(self, mock_sherlock, mock_which):
@@ -82,7 +82,7 @@ class TestExternalToolIntel:
         assert len(res.findings) == 0
         assert "No username OSINT tools installed" in res.error
 
-    @patch("shutil.which", return_value="/usr/bin/theHarvester")
+    @patch("shutil.which", side_effect=lambda cmd: "/usr/bin/theHarvester" if cmd == "theHarvester" else None)
     @patch.object(ExternalToolIntel, "_run_theharvester", new_callable=AsyncMock)
     @pytest.mark.asyncio
     async def test_scan_domain(self, mock_harvester, mock_which):

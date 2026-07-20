@@ -15,7 +15,8 @@ class TelegramLeakTool(OSINTTool):
     name = "telegramleak"
 
     def search(self, query: str, **kwargs) -> dict[str, Any]:
-        return {"status": "stub", "tool": self.name, "query": query, "result": []}
+        """Search Telegram channels — delegates to scan()."""
+        return self.scan(query, **kwargs)
 
     def scan(self, query: str, **kwargs) -> dict[str, Any]:
         """Scan Telegram channels for leaked credentials.

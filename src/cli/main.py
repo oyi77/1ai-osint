@@ -277,9 +277,6 @@ def scan(
     ),
     ai: bool = typer.Option(False, "--ai", help="Enable AI analysis via orchestrator"),
     zkit: bool = typer.Option(False, "--zkit", help="Enable ZKIT identity tracking"),
-    cloak: bool = typer.Option(
-        False, "--cloak", help="Enforce CloakBrowser for anti-detect scraping"
-    ),
     zkit_salt: str = typer.Option(
         "", help="ZKIT salt for privacy-preserving identity hashing"
     ),
@@ -305,12 +302,9 @@ def scan(
     For crypto_balance module with 'random' target, generates random mnemonics.
     For crypto_balance with a mnemonic target, derives and checks balances.
     """
-    import os
 
     from src.core.config import settings
 
-    if cloak:
-        os.environ["FORCE_CLOAKBROWSER"] = "1"
 
     effective_salt = zkit_salt or settings.zkit_salt
 
@@ -911,9 +905,6 @@ def deep_scan(
     budget: float = typer.Option(
         15.0, "--budget", help="Execution budget for external APIs (0 = unlimited)"
     ),
-    cloak: bool = typer.Option(
-        False, "--cloak", help="Enforce CloakBrowser for anti-detect scraping"
-    ),
 ) -> None:
     """Deep scan — recursive identity investigation across all modules."""
     from src.investigations.case_manager import CaseManager
@@ -923,10 +914,6 @@ def deep_scan(
     from src.modules.deep_scan.scan_profiles import resolve_scan_profile
 
     async def _deep_scan():
-        import os
-
-        if cloak:
-            os.environ["FORCE_CLOAKBROWSER"] = "1"
 
         profile_name = "fast" if fast else profile
         try:
