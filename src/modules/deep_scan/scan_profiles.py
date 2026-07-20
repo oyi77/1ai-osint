@@ -6,26 +6,14 @@ from dataclasses import dataclass
 from typing import Literal
 
 from src.core.config import Settings
+from src.modules.deep_scan.free_intel_adapter import list_free_intel_modules
 from src.modules.deep_scan.profiles import (
     FAST_CORE_MODULES,
     breach_modules_with_keys,
 )
 
 ProfileName = Literal["fast", "standard", "deep"]
-
-FREE_INTEL_MODULES: tuple[str, ...] = (
-    "social_dorks_intel",
-    "gravatar_intel",
-    "wayback_intel",
-    "github_intel",
-    "google_dork_intel",
-    "hibp_free",
-    "bts_intel",
-    "pddikti_intel",
-    "tech_jobs_intel",
-    "whatsapp_check",
-    "telegram_check",
-)
+FREE_INTEL_MODULES: tuple[str, ...] = tuple(list_free_intel_modules())
 
 STANDARD_EXTRA: tuple[str, ...] = ("email_osint", "phone_finder") + FREE_INTEL_MODULES
 DEEP_EXTRA: tuple[str, ...] = (

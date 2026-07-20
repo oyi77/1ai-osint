@@ -76,19 +76,9 @@ _MODULE_INPUTS: dict[str, set[IdentifierType]] = {
     "telegram_check": {IdentifierType.USERNAME},
 }
 
-_FREE_INTEL_MODULES: set[str] = {
-    "social_dorks_intel",
-    "gravatar_intel",
-    "wayback_intel",
-    "github_intel",
-    "google_dork_intel",
-    "hibp_free",
-    "bts_intel",
-    "pddikti_intel",
-    "tech_jobs_intel",
-    "whatsapp_check",
-    "telegram_check",
-}
+# Derived from free_intel adapter's dispatch registry (single source of truth)
+from src.modules.deep_scan.free_intel_adapter import list_free_intel_modules  # noqa: E402
+_FREE_INTEL_MODULES: set[str] = set(list_free_intel_modules())
 
 # Sources handled by source_adapter (separate from CLI modules)
 _SOURCE_MODULES = {"dehashed", "leakcheck", "snylla", "snusbase", "hibp", "intelx"}
