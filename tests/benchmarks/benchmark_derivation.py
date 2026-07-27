@@ -21,13 +21,10 @@ import time
 
 import httpx
 
-from src.modules.crypto.balance.chains import ALL_CHAINS, ETHEREUM, BITCOIN
+from src.modules.crypto.balance.chains import ALL_CHAINS, BITCOIN, ETHEREUM
 from src.modules.crypto.balance.deriver import derive_from_mnemonic
 
-TEST_MNEMONIC = (
-    "abandon abandon abandon abandon abandon abandon abandon abandon "
-    "abandon abandon abandon about"
-)
+TEST_MNEMONIC = "abandon abandon abandon abandon abandon abandon abandon abandon " "abandon abandon abandon about"
 ITERATIONS = 100
 
 
@@ -66,8 +63,7 @@ def test_derivation_throughput() -> None:
 
     # Gate: must exceed 100 mnemonics/sec (minimum viable)
     assert mnemonics_per_sec >= 100, (
-        f"Throughput {mnemonics_per_sec:.1f} mnemonics/sec is below the 100/sec gate. "
-        f"Investigate optimization."
+        f"Throughput {mnemonics_per_sec:.1f} mnemonics/sec is below the 100/sec gate. " f"Investigate optimization."
     )
 
 
@@ -97,9 +93,7 @@ async def _benchmark_btc_api(n_requests: int = 10) -> dict:
         "errors": errors,
         "avg_ms": statistics.mean(latencies) * 1000 if latencies else 0,
         "median_ms": statistics.median(latencies) * 1000 if latencies else 0,
-        "p95_ms": sorted(latencies)[int(len(latencies) * 0.95)] * 1000
-        if latencies
-        else 0,
+        "p95_ms": sorted(latencies)[int(len(latencies) * 0.95)] * 1000 if latencies else 0,
     }
 
 
@@ -132,9 +126,7 @@ async def _benchmark_eth_api(n_requests: int = 10) -> dict:
         "errors": errors,
         "avg_ms": statistics.mean(latencies) * 1000 if latencies else 0,
         "median_ms": statistics.median(latencies) * 1000 if latencies else 0,
-        "p95_ms": sorted(latencies)[int(len(latencies) * 0.95)] * 1000
-        if latencies
-        else 0,
+        "p95_ms": sorted(latencies)[int(len(latencies) * 0.95)] * 1000 if latencies else 0,
     }
 
 

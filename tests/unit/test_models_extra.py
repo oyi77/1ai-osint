@@ -1,12 +1,17 @@
 """Tests for models.py uncovered properties and defaults."""
+
 from datetime import datetime, timezone
-from src.core.models import Finding, Severity, ScanResult, BreachRecord, Identity
+
+from src.core.models import BreachRecord, Finding, Identity, ScanResult, Severity
 
 
 class TestScanResult:
     def test_finding_count(self):
         r = ScanResult(
-            scan_id="t", module="test", target="t", status="ok",
+            scan_id="t",
+            module="test",
+            target="t",
+            status="ok",
             findings=[
                 Finding(id="1", module="m", title="t1", description="d1", severity=Severity.HIGH, confidence=0.9),
                 Finding(id="2", module="m", title="t2", description="d2", severity=Severity.LOW, confidence=0.5),
@@ -18,7 +23,10 @@ class TestScanResult:
 
     def test_critical_count(self):
         r = ScanResult(
-            scan_id="t", module="test", target="t", status="ok",
+            scan_id="t",
+            module="test",
+            target="t",
+            status="ok",
             findings=[
                 Finding(id="1", module="m", title="t1", description="d1", severity=Severity.CRITICAL, confidence=0.9),
                 Finding(id="2", module="m", title="t2", description="d2", severity=Severity.LOW, confidence=0.5),
@@ -31,7 +39,10 @@ class TestScanResult:
 
     def test_critical_count_empty(self):
         r = ScanResult(
-            scan_id="t", module="test", target="t", status="ok",
+            scan_id="t",
+            module="test",
+            target="t",
+            status="ok",
             findings=[],
             started_at=datetime.now(timezone.utc),
             completed_at=datetime.now(timezone.utc),
@@ -42,15 +53,25 @@ class TestScanResult:
         started = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
         completed = datetime(2026, 1, 1, 0, 0, 5, tzinfo=timezone.utc)
         r = ScanResult(
-            scan_id="t", module="test", target="t", status="ok",
-            findings=[], started_at=started, completed_at=completed,
+            scan_id="t",
+            module="test",
+            target="t",
+            status="ok",
+            findings=[],
+            started_at=started,
+            completed_at=completed,
         )
         assert r.duration_seconds == 5.0
 
     def test_duration_seconds_none(self):
         r = ScanResult(
-            scan_id="t", module="test", target="t", status="ok",
-            findings=[], started_at=datetime.now(timezone.utc), completed_at=None,
+            scan_id="t",
+            module="test",
+            target="t",
+            status="ok",
+            findings=[],
+            started_at=datetime.now(timezone.utc),
+            completed_at=None,
         )
         assert r.duration_seconds is None
 

@@ -4,22 +4,19 @@ language analysis, timing analysis."""
 from __future__ import annotations
 
 import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
 from src.ai.analyzers.behavioral_profiler import BehavioralProfiler
 from src.ai.schemas.responses import (
-    ActivityTimes,
-    BehavioralAnalysisResult,
     BehavioralProfile,
-    LanguageStyle,
 )
-
 
 # ------------------------------------------------------------------
 # Fixtures
 # ------------------------------------------------------------------
+
 
 @pytest.fixture
 def profiler() -> BehavioralProfiler:
@@ -29,12 +26,13 @@ def profiler() -> BehavioralProfiler:
 @pytest.fixture
 def sample_entity_data() -> list[dict]:
     return [
-        {"text": "Great work everyone! Love this project.", "source": "github",
-         "timestamp": "2025-06-01T14:30:00"},
-        {"text": "yeah im gonna fix this bug later lol tbh", "source": "github",
-         "timestamp": "2025-06-02T15:00:00"},
-        {"text": "This is a formal request regarding the aforementioned issue.",
-         "source": "email", "timestamp": "2025-06-03T09:00:00"},
+        {"text": "Great work everyone! Love this project.", "source": "github", "timestamp": "2025-06-01T14:30:00"},
+        {"text": "yeah im gonna fix this bug later lol tbh", "source": "github", "timestamp": "2025-06-02T15:00:00"},
+        {
+            "text": "This is a formal request regarding the aforementioned issue.",
+            "source": "email",
+            "timestamp": "2025-06-03T09:00:00",
+        },
     ]
 
 
@@ -50,6 +48,7 @@ def sample_texts_only() -> list[dict]:
 # ------------------------------------------------------------------
 # analyze_entity — empty / edge cases
 # ------------------------------------------------------------------
+
 
 class TestAnalyzeEntity:
     def test_empty_entity_data(self, profiler: BehavioralProfiler):
@@ -77,24 +76,27 @@ class TestAnalyzeEntity:
 # analyze_entity — LLM path
 # ------------------------------------------------------------------
 
+
 class TestAnalyzeEntityLLM:
     def test_llm_success(self, profiler: BehavioralProfiler, sample_entity_data: list[dict]):
-        llm_response = json.dumps({
-            "language_style": {
-                "formality_level": 0.7,
-                "common_phrases": ["good work"],
-                "writing_complexity": 0.6,
-                "sentiment_tendency": 0.8,
-            },
-            "activity_times": {
-                "active_hours": [14, 15],
-                "active_days": ["Monday", "Tuesday"],
-                "typical_frequency": "daily",
-            },
-            "platform_preferences": {"github": 0.8, "email": 0.2},
-            "confidence": 0.75,
-            "summary": "Moderate activity profile",
-        })
+        llm_response = json.dumps(
+            {
+                "language_style": {
+                    "formality_level": 0.7,
+                    "common_phrases": ["good work"],
+                    "writing_complexity": 0.6,
+                    "sentiment_tendency": 0.8,
+                },
+                "activity_times": {
+                    "active_hours": [14, 15],
+                    "active_days": ["Monday", "Tuesday"],
+                    "typical_frequency": "daily",
+                },
+                "platform_preferences": {"github": 0.8, "email": 0.2},
+                "confidence": 0.75,
+                "summary": "Moderate activity profile",
+            }
+        )
         profiler._client.chat = MagicMock(return_value=llm_response)
 
         result = profiler.analyze_entity(sample_entity_data, entity_key="test_user")
@@ -133,6 +135,7 @@ class TestAnalyzeEntityLLM:
 # analyze_text
 # ------------------------------------------------------------------
 
+
 class TestAnalyzeText:
     def test_empty_text(self, profiler: BehavioralProfiler):
         result = profiler.analyze_text("")
@@ -145,22 +148,24 @@ class TestAnalyzeText:
         assert "Empty text" in result.summary
 
     def test_llm_success(self, profiler: BehavioralProfiler):
-        llm_response = json.dumps({
-            "language_style": {
-                "formality_level": 0.9,
-                "common_phrases": [],
-                "writing_complexity": 0.8,
-                "sentiment_tendency": 0.3,
-            },
-            "activity_times": {
-                "active_hours": [],
-                "active_days": [],
-                "typical_frequency": None,
-            },
-            "platform_preferences": {},
-            "confidence": 0.6,
-            "summary": "Formal writing style",
-        })
+        llm_response = json.dumps(
+            {
+                "language_style": {
+                    "formality_level": 0.9,
+                    "common_phrases": [],
+                    "writing_complexity": 0.8,
+                    "sentiment_tendency": 0.3,
+                },
+                "activity_times": {
+                    "active_hours": [],
+                    "active_days": [],
+                    "typical_frequency": None,
+                },
+                "platform_preferences": {},
+                "confidence": 0.6,
+                "summary": "Formal writing style",
+            }
+        )
         profiler._client.chat = MagicMock(return_value=llm_response)
 
         result = profiler.analyze_text("This is a formal message regarding the situation.", entity_key="text_sample")
@@ -182,15 +187,23 @@ class TestAnalyzeText:
 # _parse_llm_response
 # ------------------------------------------------------------------
 
+
 class TestParseLLMResponse:
     def test_valid_json(self, profiler: BehavioralProfiler):
-        response = json.dumps({
-            "language_style": {"formality_level": 0.8, "common_phrases": ["hello"], "writing_complexity": 0.4, "sentiment_tendency": 0.6},
-            "activity_times": {"active_hours": [9, 10], "active_days": ["Monday"], "typical_frequency": "weekly"},
-            "platform_preferences": {"twitter": 1.0},
-            "confidence": 0.9,
-            "summary": "Test profile",
-        })
+        response = json.dumps(
+            {
+                "language_style": {
+                    "formality_level": 0.8,
+                    "common_phrases": ["hello"],
+                    "writing_complexity": 0.4,
+                    "sentiment_tendency": 0.6,
+                },
+                "activity_times": {"active_hours": [9, 10], "active_days": ["Monday"], "typical_frequency": "weekly"},
+                "platform_preferences": {"twitter": 1.0},
+                "confidence": 0.9,
+                "summary": "Test profile",
+            }
+        )
         result = profiler._parse_llm_response(response, "test_key")
         assert "test_key" in result.profiles
         assert result.profiles["test_key"].confidence == 0.9
@@ -212,10 +225,12 @@ class TestParseLLMResponse:
 
     def test_llm_response_with_optional_missing(self, profiler: BehavioralProfiler):
         """Missing optional fields should use defaults."""
-        response = json.dumps({
-            "language_style": {},
-            "activity_times": {},
-        })
+        response = json.dumps(
+            {
+                "language_style": {},
+                "activity_times": {},
+            }
+        )
         result = profiler._parse_llm_response(response, "k")
         profile = result.profiles["k"]
         assert profile.language_style.formality_level == 0.5
@@ -226,6 +241,7 @@ class TestParseLLMResponse:
 # ------------------------------------------------------------------
 # Deterministic language analysis
 # ------------------------------------------------------------------
+
 
 class TestDeterministicLanguageAnalysis:
     def test_analyze_language_style_empty(self):
@@ -279,6 +295,7 @@ class TestDeterministicLanguageAnalysis:
 # ------------------------------------------------------------------
 # Deterministic activity times
 # ------------------------------------------------------------------
+
 
 class TestDeterministicActivityTimes:
     def test_activity_times_with_int_timestamps(self):
@@ -339,6 +356,7 @@ class TestDeterministicActivityTimes:
 # Deterministic platform analysis
 # ------------------------------------------------------------------
 
+
 class TestDeterministicPlatforms:
     def test_platform_analysis(self):
         data = [
@@ -367,13 +385,12 @@ class TestDeterministicPlatforms:
 # Deterministic profile builder
 # ------------------------------------------------------------------
 
+
 class TestDeterministicProfile:
     def test_deterministic_profile_from_data(self):
         data = [
-            {"text": "Great work everyone! Love this.", "source": "github",
-             "timestamp": "2025-06-01T14:00:00"},
-            {"text": "yeah gonna fix this later lol", "source": "github",
-             "timestamp": "2025-06-02T15:00:00"},
+            {"text": "Great work everyone! Love this.", "source": "github", "timestamp": "2025-06-01T14:00:00"},
+            {"text": "yeah gonna fix this later lol", "source": "github", "timestamp": "2025-06-02T15:00:00"},
         ]
         profile = BehavioralProfiler._deterministic_profile(data)
         assert isinstance(profile, BehavioralProfile)

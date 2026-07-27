@@ -129,19 +129,34 @@ _BUILTIN_PROFILES: dict[str, dict[str, Any]] = {
 # ------------------------------------------------------------------
 
 _REQUIRED_PROFILE_KEYS: frozenset[str] = frozenset({"description", "modules", "settings"})
-_REQUIRED_SETTINGS_KEYS: frozenset[str] = frozenset({
-    "max_iterations", "timeout_per_module", "max_identifiers",
-    "max_pivot_handles", "max_targets_per_iteration", "max_concurrency",
-})
-_VALID_MODULES: frozenset[str] = frozenset({
-    "social_osint", "people_finder", "data_leaks", "vuln_scanner",
-    "gitleaks", "crypto_balance", "crypto_tracer", "domain_recon",
-})
+_REQUIRED_SETTINGS_KEYS: frozenset[str] = frozenset(
+    {
+        "max_iterations",
+        "timeout_per_module",
+        "max_identifiers",
+        "max_pivot_handles",
+        "max_targets_per_iteration",
+        "max_concurrency",
+    }
+)
+_VALID_MODULES: frozenset[str] = frozenset(
+    {
+        "social_osint",
+        "people_finder",
+        "data_leaks",
+        "vuln_scanner",
+        "gitleaks",
+        "crypto_balance",
+        "crypto_tracer",
+        "domain_recon",
+    }
+)
 
 
 # ------------------------------------------------------------------
 # ProfilesManager
 # ------------------------------------------------------------------
+
 
 class ProfilesManager:
     """Data-driven scan profile manager.
@@ -156,9 +171,7 @@ class ProfilesManager:
     """
 
     def __init__(self, config_dir: Path | str | None = None):
-        root = Path(config_dir) if config_dir else (
-            Settings().project_root / "config" / "profiles"
-        )
+        root = Path(config_dir) if config_dir else (Settings().project_root / "config" / "profiles")
         self._config_dir = Path(root)
         self._profiles: dict[str, dict[str, Any]] = {}
         self._loaded = False
@@ -201,13 +214,9 @@ class ProfilesManager:
         if file_path.exists():
             existing = json.loads(file_path.read_text(encoding="utf-8"))
             existing[name] = profile
-            file_path.write_text(
-                json.dumps(existing, indent=2, default=str), encoding="utf-8"
-            )
+            file_path.write_text(json.dumps(existing, indent=2, default=str), encoding="utf-8")
         else:
-            file_path.write_text(
-                json.dumps({name: profile}, indent=2, default=str), encoding="utf-8"
-            )
+            file_path.write_text(json.dumps({name: profile}, indent=2, default=str), encoding="utf-8")
         self._profiles[name] = profile
         logger.info("Saved profile '%s' to %s", name, file_path)
 
@@ -349,9 +358,7 @@ class ProfilesManager:
                     ("max_concurrency", int),
                 ]:
                     val = settings_.get(key)
-                    if not isinstance(val, expected_type):
-                        errors.append(f"'{key}' must be {expected_type.__name__}, got {type(val).__name__}")
+                    if not isinstance(val, expected_type):  # type: ignore[arg-type]
+                        errors.append(f"'{key}' must be {expected_type.__name__}, got {type(val).__name__}")  # type: ignore[attr-defined]
 
         return errors
-
-

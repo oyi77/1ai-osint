@@ -1,10 +1,11 @@
 """Tests for IdentityGraph data structure."""
 
 import pytest
+
 from src.modules.identity_tracking.identity_graph import (
-    IdentityGraph,
-    GraphNode,
     GraphEdge,
+    GraphNode,
+    IdentityGraph,
     NodeType,
 )
 
@@ -116,9 +117,7 @@ class TestIdentityGraphAddNode:
 
     def test_add_existing_node_updates(self, graph: IdentityGraph):
         graph.add_node("hash1", NodeType.EMAIL_HASH, source="sherlock")
-        node = graph.add_node(
-            "hash1", NodeType.EMAIL_HASH, source="holehe", metadata={"extra": True}
-        )
+        node = graph.add_node("hash1", NodeType.EMAIL_HASH, source="holehe", metadata={"extra": True})
         assert graph.node_count == 1
         assert "holehe" in node.sources
         assert node.metadata["extra"] is True
@@ -221,9 +220,7 @@ class TestIdentityGraphQueryNeighbors:
 
 class TestIdentityGraphConvenience:
     def test_add_raw_attribute(self, graph: IdentityGraph):
-        hash_hex, node = graph.add_raw_attribute(
-            "alice@example.com", NodeType.EMAIL_HASH, source="test"
-        )
+        hash_hex, node = graph.add_raw_attribute("alice@example.com", NodeType.EMAIL_HASH, source="test")
         assert len(hash_hex) == 64
         assert graph.node_count == 1
         assert node.node_id == hash_hex

@@ -49,8 +49,7 @@ def breach_status_report(
     """For doctor: (module, configured, env_var)."""
     cfg = settings or Settings()
     return [
-        (mod, bool((getattr(cfg, field, "") or "").strip()), field.upper())
-        for mod, field in BREACH_API_KEYS.items()
+        (mod, bool((getattr(cfg, field, "") or "").strip()), field.upper()) for mod, field in BREACH_API_KEYS.items()
     ]
 
 
@@ -80,6 +79,7 @@ DEFAULT_FALLBACK_CHAINS: dict[str, list[str]] = {
 # ------------------------------------------------------------------
 # BreachRouter
 # ------------------------------------------------------------------
+
 
 class BreachRouter:
     """Dynamic breach source router with health checks, rate limiting and fallback chains.
@@ -137,7 +137,7 @@ class BreachRouter:
         if env_path:
             import os
 
-            from dotenv import load_dotenv  # type: ignore[import-untyped]
+            from dotenv import load_dotenv
 
             load_dotenv(dotenv_path=str(env_path))
             # Re-read from env
@@ -275,11 +275,13 @@ class BreachRouter:
             configured = self._has_key(field)
             healthy = self.health_check(module) if configured else False
             chain = self.fallback_chain(module)
-            rows.append({
-                "module": module,
-                "configured": configured,
-                "healthy": healthy,
-                "field": field,
-                "fallbacks": chain,
-            })
+            rows.append(
+                {
+                    "module": module,
+                    "configured": configured,
+                    "healthy": healthy,
+                    "field": field,
+                    "fallbacks": chain,
+                }
+            )
         return rows

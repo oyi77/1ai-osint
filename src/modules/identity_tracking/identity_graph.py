@@ -9,62 +9,21 @@ from __future__ import annotations
 
 import hashlib
 from collections import defaultdict
-from datetime import datetime, timezone
-from enum import Enum
 from typing import Any, Optional
 
-from pydantic import BaseModel, Field
+from src.modules.identity_tracking._graph_models import (
+    GraphEdge,
+    GraphNode,
+    NodeType,
+)
 
-
-class NodeType(str, Enum):
-    """Supported node types in the identity graph."""
-
-    EMAIL_HASH = "email_hash"
-    USERNAME_HASH = "username_hash"
-    PHONE_HASH = "phone_hash"
-    DOMAIN_HASH = "domain_hash"
-
-
-class GraphNode(BaseModel):
-    """A hashed attribute node in the identity graph."""
-
-    node_id: str = Field(..., description="ZKIT salted SHA-256 hash (node key)")
-    node_type: NodeType = Field(..., description="Type of hashed attribute")
-    first_seen: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    last_seen: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    sources: list[str] = Field(default_factory=list)
-    metadata: dict[str, Any] = Field(default_factory=dict)
-
-    def touch(self, source: Optional[str] = None) -> None:
-        """Update last_seen timestamp and optionally add a source."""
-        self.last_seen = datetime.now(timezone.utc)
-        if source and source not in self.sources:
-            self.sources.append(source)
-
-
-class GraphEdge(BaseModel):
-    """A co-occurrence edge connecting two attribute nodes."""
-
-    source_id: str = Field(..., description="Source node_id (hash)")
-    target_id: str = Field(..., description="Target node_id (hash)")
-    weight: float = Field(default=1.0, ge=0.0, description="Edge confidence weight")
-    co_occurrences: int = Field(
-        default=1, ge=1, description="Number of co-observations"
-    )
-    first_seen: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    last_seen: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    sources: list[str] = Field(default_factory=list)
-    metadata: dict[str, Any] = Field(default_factory=dict)
-
-    def touch(
-        self, source: Optional[str] = None, weight_increment: float = 0.0
-    ) -> None:
-        """Update co-occurrence count, weight, and timestamp."""
-        self.last_seen = datetime.now(timezone.utc)
-        self.co_occurrences += 1
-        self.weight = min(self.weight + weight_increment, 1.0)
-        if source and source not in self.sources:
-            self.sources.append(source)
+# Re-export models so importers can still import from identity_graph
+__all__ = [
+    "GraphEdge",
+    "GraphNode",
+    "IdentityGraph",
+    "NodeType",
+]
 
 
 class IdentityGraph:
@@ -176,7 +135,7 @@ class IdentityGraph:
             raise ValueError("Self-loops are not allowed")
 
         # Normalize to undirected key
-        key = tuple(sorted((source_id, target_id)))
+        key = (source_id, target_id) if source_id < target_id else (target_id, source_id)
 
         if key in self._edges:
             edge = self._edges[key]
@@ -232,15 +191,15 @@ class IdentityGraph:
                 self._adjacency[key[1]].add(key[0])
                 added += 1
             else:
-                existing = self._edges[key]
-                existing.co_occurrences += edge.co_occurrences
-                existing.weight = min(existing.weight + edge.weight * 0.1, 1.0)
-                existing.last_seen = max(existing.last_seen, edge.last_seen)
-                existing.first_seen = min(existing.first_seen, edge.first_seen)
+                existing_edge = self._edges[key]
+                existing_edge.co_occurrences += edge.co_occurrences
+                existing_edge.weight = min(existing_edge.weight + edge.weight * 0.1, 1.0)
+                existing_edge.last_seen = max(existing_edge.last_seen, edge.last_seen)
+                existing_edge.first_seen = min(existing_edge.first_seen, edge.first_seen)
                 for s in edge.sources:
-                    if s not in existing.sources:
-                        existing.sources.append(s)
-                existing.metadata.update(edge.metadata)
+                    if s not in existing_edge.sources:
+                        existing_edge.sources.append(s)
+                existing_edge.metadata.update(edge.metadata)
 
         return added
 
@@ -277,7 +236,7 @@ class IdentityGraph:
                 for neighbor_id in self._adjacency.get(current, set()):
                     if neighbor_id in visited:
                         continue
-                    key = tuple(sorted((current, neighbor_id)))
+                    key = (current, neighbor_id) if current < neighbor_id else (neighbor_id, current)
                     edge = self._edges.get(key)
                     if edge and edge.weight >= min_weight:
                         result_nodes.append(self._nodes[neighbor_id])
@@ -373,8 +332,6 @@ class IdentityGraph:
         Note: Salt is NOT serialized to prevent leakage. Only a salt
         fingerprint (truncated SHA-256) is included for verification.
         """
-        import hashlib
-
         salt_fp = hashlib.sha256(self._salt.encode()).hexdigest()[:16]
         return {
             "salt_fingerprint": salt_fp,
@@ -395,7 +352,11 @@ class IdentityGraph:
             graph._nodes[node.node_id] = node
         for e in data.get("edges", []):
             edge = GraphEdge(**e)
-            key = tuple(sorted((edge.source_id, edge.target_id)))
+            key = (
+                (edge.source_id, edge.target_id)
+                if edge.source_id < edge.target_id
+                else (edge.target_id, edge.source_id)
+            )
             graph._edges[key] = edge
             graph._adjacency[edge.source_id].add(edge.target_id)
             graph._adjacency[edge.target_id].add(edge.source_id)

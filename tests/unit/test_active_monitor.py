@@ -1,6 +1,7 @@
 """Unit tests for ActiveMonitorDaemon threat intel monitor."""
 
 import pytest
+
 from src.modules.node.active_monitor import ActiveMonitorDaemon
 
 
@@ -18,9 +19,7 @@ async def test_process_message_with_hits():
     # Add targets to watchlist
     email_hash = daemon.add_to_watchlist("attacker@threat.org")
     phone_hash = daemon.add_to_watchlist("+15551234567")
-    key_hash = daemon.add_to_watchlist(
-        "0xabc1230000000000000000000000000000000000000000000000000000001234"
-    )
+    key_hash = daemon.add_to_watchlist("0xabc1230000000000000000000000000000000000000000000000000000001234")
 
     # Raw message to process
     msg = (

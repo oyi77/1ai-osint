@@ -5,9 +5,9 @@ the expected interface patterns (Google dorking, GitHub search)
 with mocked external calls.
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 
 # --- Pattern Detection Tests ---
 
@@ -81,11 +81,7 @@ class TestDorkQueryGeneration:
             '"12 words" wallet recovery',
         ]
         for q in queries:
-            assert (
-                "github" in q.lower()
-                or "wallet" in q.lower()
-                or "mnemonic" in q.lower()
-            )
+            assert "github" in q.lower() or "wallet" in q.lower() or "mnemonic" in q.lower()
 
     def test_google_dork_formats(self):
         """Generate Google dork formats for credential leaks."""

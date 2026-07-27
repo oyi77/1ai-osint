@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import patch
@@ -12,10 +11,10 @@ import pytest
 from src.modules.monitoring.models import WatchlistTarget
 from src.modules.monitoring.watchlist import WatchlistManager
 
-
 # ------------------------------------------------------------------
 # Fixtures
 # ------------------------------------------------------------------
+
 
 @pytest.fixture
 def tmp_storage(tmp_path: Path) -> Path:
@@ -42,6 +41,7 @@ def populated_manager(manager: WatchlistManager) -> WatchlistManager:
 # Initialisation
 # ------------------------------------------------------------------
 
+
 def test_init_creates_storage_dir(tmp_storage: Path):
     assert not tmp_storage.exists()
     WatchlistManager(storage_dir=tmp_storage)
@@ -60,6 +60,7 @@ def test_init_default_storage_dir():
 # ------------------------------------------------------------------
 # CRUD — add
 # ------------------------------------------------------------------
+
 
 def test_add_target(manager: WatchlistManager):
     obj = manager.add_target("test@example.com", "email", tags=["a", "b"])
@@ -112,6 +113,7 @@ def test_add_target_update_preserves_last_scan(manager: WatchlistManager):
 # CRUD — remove
 # ------------------------------------------------------------------
 
+
 def test_remove_target_exists(manager: WatchlistManager):
     manager.add_target("x@y.com", "email")
     assert manager.remove_target("x@y.com") is True
@@ -130,6 +132,7 @@ def test_remove_target_normalised(manager: WatchlistManager):
 # ------------------------------------------------------------------
 # CRUD — list / get
 # ------------------------------------------------------------------
+
 
 def test_list_targets_all(populated_manager: WatchlistManager):
     targets = populated_manager.list_targets()
@@ -175,6 +178,7 @@ def test_get_target_normalised(populated_manager: WatchlistManager):
 # Due targets
 # ------------------------------------------------------------------
 
+
 def test_get_due_targets_all_new(manager: WatchlistManager):
     """All targets with no last_scan are due."""
     manager.add_target("a@x.com", "email")
@@ -190,7 +194,6 @@ def test_get_due_targets_some_due(manager: WatchlistManager):
     assert len(due) == 2  # both un-scanned
 
     now = datetime.now(timezone.utc)
-    frequent_obj = manager.get_target("frequent@x.com")
 
     # Create a fresh manager so we start clean
     mgr2 = WatchlistManager(storage_dir=manager._storage_dir)
@@ -222,6 +225,7 @@ def test_get_due_targets_empty_watchlist(manager: WatchlistManager):
 # mark_scanned
 # ------------------------------------------------------------------
 
+
 def test_mark_scanned_updates_timestamp(manager: WatchlistManager):
     manager.add_target("x@y.com", "email")
     now = datetime.now(timezone.utc)
@@ -252,6 +256,7 @@ def test_mark_scanned_default_now(manager: WatchlistManager):
 # count / clear
 # ------------------------------------------------------------------
 
+
 def test_count(populated_manager: WatchlistManager):
     assert populated_manager.count() == 3
 
@@ -272,6 +277,7 @@ def test_clear_empty(manager: WatchlistManager):
 # ------------------------------------------------------------------
 # Persistence (survives re-creation of manager)
 # ------------------------------------------------------------------
+
 
 def test_persistence_add_then_reload(tmp_storage: Path):
     mgr1 = WatchlistManager(storage_dir=tmp_storage)
@@ -320,6 +326,7 @@ def test_persistence_mark_scanned_survives(tmp_storage: Path):
 # ------------------------------------------------------------------
 # Corrupt index
 # ------------------------------------------------------------------
+
 
 def test_corrupt_index_starts_fresh(tmp_storage: Path):
     idx = tmp_storage / "index.json"

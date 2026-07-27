@@ -33,7 +33,7 @@ def test_get_scan_404():
 async def test_run_job_completes():
     from unittest.mock import MagicMock
 
-    from src.api.app import ScanRequest, _JOBS, _run_job
+    from src.api.app import _JOBS, ScanRequest, _run_job
 
     job_id = "job-unit-test"
     _JOBS[job_id] = {"status": "queued"}
@@ -58,14 +58,12 @@ async def test_run_job_completes():
 
 @pytest.mark.asyncio
 async def test_run_job_failure():
-    from src.api.app import ScanRequest, _JOBS, _run_job
+    from src.api.app import _JOBS, ScanRequest, _run_job
 
     job_id = "job-fail"
     _JOBS[job_id] = {"status": "queued"}
     req = ScanRequest(target="x", profile="fast")
-    with patch(
-        "src.modules.deep_scan.engine.DeepScanEngine", side_effect=RuntimeError("boom")
-    ):
+    with patch("src.modules.deep_scan.engine.DeepScanEngine", side_effect=RuntimeError("boom")):
         await _run_job(job_id, req)
     assert _JOBS[job_id]["status"] == "failed"
     assert "error" in _JOBS[job_id]
@@ -101,7 +99,8 @@ def test_ui_endpoints():
 @pytest.mark.asyncio
 async def test_run_job_with_case_id():
     from unittest.mock import MagicMock
-    from src.api.app import ScanRequest, _JOBS, _run_job
+
+    from src.api.app import _JOBS, ScanRequest, _run_job
 
     job_id = "job-unit-test-case-id"
     _JOBS[job_id] = {"status": "queued"}
@@ -120,9 +119,7 @@ async def test_run_job_with_case_id():
                 "src.modules.deep_scan.exports.export_report",
                 side_effect=lambda _r, fmt: b"pdf" if fmt == "pdf" else "{}",
             ):
-                with patch(
-                    "src.investigations.case_manager.CaseManager"
-                ) as mock_case_mgr:
+                with patch("src.investigations.case_manager.CaseManager") as mock_case_mgr:
                     await _run_job(job_id, req)
                     assert mock_case_mgr.return_value.save_run.called
     assert _JOBS[job_id]["status"] == "completed"
@@ -130,16 +127,21 @@ async def test_run_job_with_case_id():
 
 @pytest.mark.asyncio
 async def test_run_job_returns_valid_identity_graph():
-    from unittest.mock import MagicMock
     import json
-    from src.api.app import ScanRequest, _JOBS, _run_job
+    from unittest.mock import MagicMock
+
+    from src.api.app import _JOBS, ScanRequest, _run_job
     from src.modules.deep_scan.models_report import (
-        IntelReport,
+        IdentityEdge as ReportIdentityEdge,
+    )
+    from src.modules.deep_scan.models_report import (
         IdentityGraph as ReportIdentityGraph,
     )
     from src.modules.deep_scan.models_report import (
         IdentityNode as ReportIdentityNode,
-        IdentityEdge as ReportIdentityEdge,
+    )
+    from src.modules.deep_scan.models_report import (
+        IntelReport,
     )
 
     job_id = "job-unit-test-graph"
@@ -153,12 +155,8 @@ async def test_run_job_returns_valid_identity_graph():
         target="test_target",
         identity_graph=ReportIdentityGraph(
             nodes=[
-                ReportIdentityNode(
-                    id="node1", label="test_target", type="name", weight=1.0
-                ),
-                ReportIdentityNode(
-                    id="node2", label="test@email.com", type="email", weight=0.8
-                ),
+                ReportIdentityNode(id="node1", label="test_target", type="name", weight=1.0),
+                ReportIdentityNode(id="node2", label="test@email.com", type="email", weight=0.8),
             ],
             edges=[
                 ReportIdentityEdge(

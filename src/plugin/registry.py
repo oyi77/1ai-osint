@@ -6,7 +6,7 @@ import importlib
 import importlib.metadata
 import logging
 import pkgutil
-from typing import Any
+from typing import Any, List
 
 from src.plugin.base import BasePlugin
 
@@ -45,8 +45,7 @@ class PluginRegistry:
         """
         if plugin.name in self._plugins:
             raise ValueError(
-                f"Plugin {plugin.name!r} is already registered "
-                f"(version {self._plugins[plugin.name].version})"
+                f"Plugin {plugin.name!r} is already registered " f"(version {self._plugins[plugin.name].version})"
             )
         self._plugins[plugin.name] = plugin
         logger.info("Registered plugin %s v%s", plugin.name, plugin.version)
@@ -95,17 +94,14 @@ class PluginRegistry:
             KeyError: If no plugin with *name* is registered.
         """
         if name not in self._plugins:
-            raise KeyError(
-                f"Plugin {name!r} not found. "
-                f"Registered: {list(self._plugins.keys())}"
-            )
+            raise KeyError(f"Plugin {name!r} not found. " f"Registered: {list(self._plugins.keys())}")
         return self._plugins[name]
 
-    def list(self) -> list[BasePlugin]:
+    def list(self) -> List[BasePlugin]:
         """Return all registered plugin instances."""
         return list(self._plugins.values())
 
-    def get_hooks(self, hook_name: str) -> list[BasePlugin]:
+    def get_hooks(self, hook_name: str) -> List[BasePlugin]:
         """Return plugins that implement a specific hook.
 
         Args:
@@ -120,7 +116,7 @@ class PluginRegistry:
     # Internal helpers
     # ------------------------------------------------------------------
 
-    def _discover_from_package(self, plugins_pkg: str) -> list[BasePlugin]:
+    def _discover_from_package(self, plugins_pkg: str) -> List[BasePlugin]:
         """Scan a package directory for ``plugin`` attributes."""
         discovered: list[BasePlugin] = []
 
@@ -132,9 +128,7 @@ class PluginRegistry:
 
         # __path__ may be a _NamespacePath, iterate all paths
         pkg_paths = pkg.__path__ if hasattr(pkg, "__path__") else []
-        for importer, modname, ispkg in pkgutil.walk_packages(
-            pkg_paths, prefix=f"{plugins_pkg}."
-        ):
+        for importer, modname, ispkg in pkgutil.walk_packages(pkg_paths, prefix=f"{plugins_pkg}."):
             if ispkg:
                 continue
             try:
@@ -147,9 +141,7 @@ class PluginRegistry:
             if plugin is None:
                 continue
             if not isinstance(plugin, BasePlugin):
-                logger.warning(
-                    "%s.plugin is not a BasePlugin instance, skipping", modname
-                )
+                logger.warning("%s.plugin is not a BasePlugin instance, skipping", modname)
                 continue
 
             try:
@@ -161,7 +153,7 @@ class PluginRegistry:
 
         return discovered
 
-    def _discover_from_entry_points(self) -> list[BasePlugin]:
+    def _discover_from_entry_points(self) -> List[BasePlugin]:
         """Discover plugins via ``1ai_osint.plugins`` entry points."""
         discovered: list[BasePlugin] = []
 
@@ -170,7 +162,7 @@ class PluginRegistry:
         except TypeError:
             # Python <3.12 fallback
             all_eps = importlib.metadata.entry_points()
-            eps = all_eps.get("1ai_osint.plugins", [])  # type: ignore[union-attr]
+            eps = all_eps.get("1ai_osint.plugins", [])  # type: ignore[arg-type]
 
         for ep in eps:
             try:
@@ -184,9 +176,7 @@ class PluginRegistry:
             elif isinstance(plugin_cls, BasePlugin):
                 plugin = plugin_cls
             else:
-                logger.warning(
-                    "Entry point %s does not resolve to a BasePlugin, skipping", ep.name
-                )
+                logger.warning("Entry point %s does not resolve to a BasePlugin, skipping", ep.name)
                 continue
 
             try:

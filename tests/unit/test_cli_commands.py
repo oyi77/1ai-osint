@@ -3,14 +3,18 @@
 import asyncio
 from datetime import datetime, timezone
 
-from src.cli.main import _get_module, _PassphraseModule
+from src.cli.helpers import _PassphraseModule
+from src.cli.helpers import get_module as _get_module
 from src.core.models import ScanResult
 
 
 def _scan_result(**overrides):
     defaults = dict(
-        scan_id="test", module="test", target="test",
-        status="ok", findings=[],
+        scan_id="test",
+        module="test",
+        target="test",
+        status="ok",
+        findings=[],
         started_at=datetime.now(timezone.utc),
         completed_at=datetime.now(timezone.utc),
     )
@@ -20,13 +24,15 @@ def _scan_result(**overrides):
 
 class TestVersionModules:
     def test_version_outputs_string(self, capsys):
-        from src.cli.main import version
+        from src.cli.commands.config_commands import version
+
         version()
         output = capsys.readouterr().out
         assert "1ai-osint" in output
 
     def test_modules_outputs_list(self, capsys):
-        from src.cli.main import modules
+        from src.cli.commands.config_commands import modules
+
         modules()
         output = capsys.readouterr().out
         assert "Available modules" in output
@@ -45,7 +51,9 @@ class TestGetModule:
 class TestPassphraseModule:
     def test_properties(self):
         async def fake_gen(**kw):
-            return {"mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"}
+            return {
+                "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+            }
 
         mod = _PassphraseModule(fake_gen)
         assert mod.name == "crypto_passphrase"
@@ -54,7 +62,9 @@ class TestPassphraseModule:
 
     def test_scan_returns_result(self):
         async def fake_gen(**kw):
-            return {"mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"}
+            return {
+                "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+            }
 
         mod = _PassphraseModule(fake_gen)
         result = asyncio.run(mod.scan("english 12"))
@@ -64,9 +74,11 @@ class TestPassphraseModule:
 
 class TestScanCommand:
     def test_scan_callable(self):
-        from src.cli.main import scan
+        from src.cli.commands.scan_commands import scan
+
         assert callable(scan)
 
     def test_leak_finder_callable(self):
-        from src.cli.main import leak_finder
+        from src.cli.commands.crypto_commands import leak_finder
+
         assert callable(leak_finder)

@@ -1,7 +1,9 @@
 """Tests for VisionCorrelator - profile correlation using OmniRoute."""
 
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+
 from src.modules.deep_scan.vision_correlator import VisionCorrelator
 
 
@@ -38,9 +40,7 @@ async def test_fallback_similar(sample_profiles):
     correlator = VisionCorrelator()
     # When async_chat_multimodal raises, fallback kicks in
     mock_client = MagicMock()
-    mock_client.async_chat_multimodal = AsyncMock(
-        side_effect=Exception("No API key")
-    )
+    mock_client.async_chat_multimodal = AsyncMock(side_effect=Exception("No API key"))
     correlator._client = mock_client
 
     score = await correlator.correlate_profiles(sample_profiles[0], sample_profiles[1])
@@ -51,14 +51,10 @@ async def test_fallback_similar(sample_profiles):
 async def test_fallback_different(different_profiles):
     correlator = VisionCorrelator()
     mock_client = MagicMock()
-    mock_client.async_chat_multimodal = AsyncMock(
-        side_effect=Exception("No API key")
-    )
+    mock_client.async_chat_multimodal = AsyncMock(side_effect=Exception("No API key"))
     correlator._client = mock_client
 
-    score = await correlator.correlate_profiles(
-        different_profiles[0], different_profiles[1]
-    )
+    score = await correlator.correlate_profiles(different_profiles[0], different_profiles[1])
     assert score == 0.2
 
 
@@ -67,15 +63,11 @@ async def test_fallback_name_match():
     correlator = VisionCorrelator()
 
     profile_a = {"text_content": "Full Name: John Doe"}
-    profile_b = {
-        "text_content": "This profile page belongs to John Doe, who works as a developer."
-    }
+    profile_b = {"text_content": "This profile page belongs to John Doe, who works as a developer."}
 
     # Simulate LLM failure so we test deterministic fallback
     mock_client = MagicMock()
-    mock_client.async_chat_multimodal = AsyncMock(
-        side_effect=Exception("No API key")
-    )
+    mock_client.async_chat_multimodal = AsyncMock(side_effect=Exception("No API key"))
     correlator._client = mock_client
 
     score = await correlator.correlate_profiles(profile_a, profile_b)
@@ -88,9 +80,7 @@ async def test_llm_success(sample_profiles):
     correlator = VisionCorrelator()
 
     mock_client = MagicMock()
-    mock_client.async_chat_multimodal = AsyncMock(
-        return_value='{"confidence": 0.85, "reasoning": "Look similar"}'
-    )
+    mock_client.async_chat_multimodal = AsyncMock(return_value='{"confidence": 0.85, "reasoning": "Look similar"}')
     correlator._client = mock_client
 
     score = await correlator.correlate_profiles(sample_profiles[0], sample_profiles[1])
@@ -103,9 +93,7 @@ async def test_llm_failure_fallback(sample_profiles):
     correlator = VisionCorrelator()
 
     mock_client = MagicMock()
-    mock_client.async_chat_multimodal = AsyncMock(
-        side_effect=Exception("API error")
-    )
+    mock_client.async_chat_multimodal = AsyncMock(side_effect=Exception("API error"))
     correlator._client = mock_client
 
     score = await correlator.correlate_profiles(sample_profiles[0], sample_profiles[1])

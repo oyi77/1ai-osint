@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import APIRouter, Request
+from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
 HERE = Path(__file__).resolve().parent.parent
@@ -42,38 +42,42 @@ def _load_all_events() -> list[dict]:
                     # Scan-level event
                     if scan_id:
                         finding_count = len(item.get("findings", [])) if isinstance(item.get("findings"), list) else 0
-                        events.append({
-                            "event_type": "scan",
-                            "entity_id": target or scan_id,
-                            "timestamp": ts or "",
-                            "source": module,
-                            "title": f"Scan: {target or scan_id}",
-                            "context": {
-                                "scan_id": scan_id,
-                                "target": target,
-                                "finding_count": finding_count,
-                                "status": item.get("status", ""),
-                            },
-                        })
+                        events.append(
+                            {
+                                "event_type": "scan",
+                                "entity_id": target or scan_id,
+                                "timestamp": ts or "",
+                                "source": module,
+                                "title": f"Scan: {target or scan_id}",
+                                "context": {
+                                    "scan_id": scan_id,
+                                    "target": target,
+                                    "finding_count": finding_count,
+                                    "status": item.get("status", ""),
+                                },
+                            }
+                        )
 
                     # Individual findings as events
                     findings = item.get("findings", [])
                     if isinstance(findings, list):
                         for finding in findings:
                             if isinstance(finding, dict):
-                                events.append({
-                                    "event_type": "finding",
-                                    "entity_id": target or finding.get("id", ""),
-                                    "timestamp": str(finding.get("timestamp", ts or "")),
-                                    "source": finding.get("module", module),
-                                    "title": finding.get("title", ""),
-                                    "context": {
-                                        "finding_id": finding.get("id", ""),
-                                        "severity": finding.get("severity", "info"),
-                                        "confidence": finding.get("confidence", 0),
-                                        "scan_id": scan_id,
-                                    },
-                                })
+                                events.append(
+                                    {
+                                        "event_type": "finding",
+                                        "entity_id": target or finding.get("id", ""),
+                                        "timestamp": str(finding.get("timestamp", ts or "")),
+                                        "source": finding.get("module", module),
+                                        "title": finding.get("title", ""),
+                                        "context": {
+                                            "finding_id": finding.get("id", ""),
+                                            "severity": finding.get("severity", "info"),
+                                            "confidence": finding.get("confidence", 0),
+                                            "scan_id": scan_id,
+                                        },
+                                    }
+                                )
             except (json.JSONDecodeError, OSError):
                 continue
 
@@ -129,11 +133,13 @@ def _build_graph_data(entity_id: str) -> dict:
             "size": 10 + (ev.get("context", {}).get("confidence", 0) * 10),
         }
 
-        edges.append({
-            "from": entity_id,
-            "to": event_id,
-            "label": source,
-        })
+        edges.append(
+            {
+                "from": entity_id,
+                "to": event_id,
+                "label": source,
+            }
+        )
 
         # Source module node
         if source and source not in nodes:
@@ -145,12 +151,14 @@ def _build_graph_data(entity_id: str) -> dict:
                 "size": 15,
             }
         if source:
-            edges.append({
-                "from": event_id,
-                "to": source,
-                "label": "from",
-                "color": {"color": "rgba(100, 180, 255, 0.3)"},
-            })
+            edges.append(
+                {
+                    "from": event_id,
+                    "to": source,
+                    "label": "from",
+                    "color": {"color": "rgba(100, 180, 255, 0.3)"},
+                }
+            )
 
     return {
         "nodes": [v for v in nodes.values()],
@@ -159,7 +167,7 @@ def _build_graph_data(entity_id: str) -> dict:
 
 
 @router.get("/timeline", response_class=HTMLResponse, include_in_schema=False)
-async def timeline_global(request: Request) -> str:
+async def timeline_global(request: Request):
     """Render global timeline of all events."""
     events = _load_all_events()
     return TEMPLATES.TemplateResponse(
@@ -170,7 +178,7 @@ async def timeline_global(request: Request) -> str:
 
 
 @router.get("/timeline/{entity_id:path}", response_class=HTMLResponse, include_in_schema=False)
-async def timeline_for_entity(request: Request, entity_id: str) -> str:
+async def timeline_for_entity(request: Request, entity_id: str):
     """Render per-entity timeline."""
     events = _load_timeline_for_entity(entity_id)
     graph_data = _build_graph_data(entity_id)

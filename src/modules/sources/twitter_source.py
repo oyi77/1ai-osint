@@ -49,15 +49,9 @@ class TwitterSource:
                     text = tweet.get("text", "")
                     tweet_id = tweet.get("id", "")
                     username = tweet.get("author", {}).get("screen_name", "")
-                    url = (
-                        f"https://x.com/{username}/status/{tweet_id}"
-                        if username and tweet_id
-                        else ""
-                    )
+                    url = f"https://x.com/{username}/status/{tweet_id}" if username and tweet_id else ""
                     if text:
-                        leaks.append(
-                            RawLeak(text=text, source_name="twitter", source_url=url)
-                        )
+                        leaks.append(RawLeak(text=text, source_name="twitter", source_url=url))
             except Exception as exc:
                 logger.error("Twitter search error for '%s': %s", query, exc)
 
@@ -82,8 +76,8 @@ class TwitterSource:
 
     async def _search(self, query: str) -> list[dict]:
         """Run twitter search and return parsed tweet objects."""
-        cmd = [
-            self._cli_path,
+        cmd: list[str] = [
+            str(self._cli_path),
             "search",
             query,
             "--json",
@@ -95,9 +89,7 @@ class TwitterSource:
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
-        stdout, stderr = await asyncio.wait_for(
-            proc.communicate(), timeout=self.timeout
-        )
+        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=self.timeout)
 
         if proc.returncode != 0:
             err_msg = stderr.decode().strip()

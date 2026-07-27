@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
@@ -60,7 +60,9 @@ def _load_all_entities() -> list[dict]:
                         ent["finding_count"] += finding_count
                         if item.get("completed_at", "") > ent["last_seen"]:
                             ent["last_seen"] = item["completed_at"]
-                        if item.get("started_at", "") and (not ent["first_seen"] or item["started_at"] < ent["first_seen"]):
+                        if item.get("started_at", "") and (
+                            not ent["first_seen"] or item["started_at"] < ent["first_seen"]
+                        ):
                             ent["first_seen"] = item["started_at"]
                         # Risk from deep scan reports
                         risk = item.get("risk", {})
@@ -102,7 +104,6 @@ def _load_all_entities() -> list[dict]:
 def _load_entity_timeline(entity_id: str) -> list[dict]:
     """Load timeline events for a specific entity from scan results."""
     import json
-    from datetime import datetime, timezone
 
     events: list[dict] = []
     search_dirs = [Path.cwd(), Path.home() / ".1ai-osint"]
@@ -128,17 +129,21 @@ def _load_entity_timeline(entity_id: str) -> list[dict]:
                     event_type = "scan"
 
                     if target and entity_id.lower() in target.lower():
-                        events.append({
-                            "event_type": event_type,
-                            "entity_id": entity_id,
-                            "timestamp": ts_str,
-                            "source": module,
-                            "context": {
-                                "scan_id": scan_id,
-                                "target": target,
-                                "finding_count": len(item.get("findings", [])) if isinstance(item.get("findings"), list) else 0,
-                            },
-                        })
+                        events.append(
+                            {
+                                "event_type": event_type,
+                                "entity_id": entity_id,
+                                "timestamp": ts_str,
+                                "source": module,
+                                "context": {
+                                    "scan_id": scan_id,
+                                    "target": target,
+                                    "finding_count": len(item.get("findings", []))
+                                    if isinstance(item.get("findings"), list)
+                                    else 0,
+                                },
+                            }
+                        )
 
                     # Also check findings
                     findings = item.get("findings", [])
@@ -151,19 +156,21 @@ def _load_entity_timeline(entity_id: str) -> list[dict]:
                                 ]
                                 match_keywords.append(finding.get("title", ""))
                                 if any(entity_id.lower() in str(v).lower() for v in match_keywords if v):
-                                    events.append({
-                                        "event_type": "finding",
-                                        "entity_id": entity_id,
-                                        "timestamp": finding.get("timestamp", ts_str),
-                                        "source": finding.get("module", module),
-                                        "context": {
-                                            "finding_id": finding.get("id", ""),
-                                            "title": finding.get("title", ""),
-                                            "severity": finding.get("severity", "info"),
-                                            "confidence": finding.get("confidence", 0),
-                                            "scan_id": scan_id,
-                                        },
-                                    })
+                                    events.append(
+                                        {
+                                            "event_type": "finding",
+                                            "entity_id": entity_id,
+                                            "timestamp": finding.get("timestamp", ts_str),
+                                            "source": finding.get("module", module),
+                                            "context": {
+                                                "finding_id": finding.get("id", ""),
+                                                "title": finding.get("title", ""),
+                                                "severity": finding.get("severity", "info"),
+                                                "confidence": finding.get("confidence", 0),
+                                                "scan_id": scan_id,
+                                            },
+                                        }
+                                    )
                                     break
             except (json.JSONDecodeError, OSError):
                 continue
@@ -180,7 +187,7 @@ def _load_entity_timeline(entity_id: str) -> list[dict]:
 
 
 @router.get("/entities", response_class=HTMLResponse, include_in_schema=False)
-async def entities_list(request: Request) -> str:
+async def entities_list(request: Request):
     """List all entities found in scan results."""
     entities = _load_all_entities()
     return TEMPLATES.TemplateResponse(
@@ -191,7 +198,7 @@ async def entities_list(request: Request) -> str:
 
 
 @router.get("/entities/{entity_id:path}", response_class=HTMLResponse, include_in_schema=False)
-async def entity_detail(request: Request, entity_id: str) -> str:
+async def entity_detail(request: Request, entity_id: str):
     """Show detail view for a specific entity with timeline events."""
     entities = _load_all_entities()
     entity = next((e for e in entities if e["id"] == entity_id), None)
@@ -201,11 +208,9 @@ async def entity_detail(request: Request, entity_id: str) -> str:
     timeline = _load_entity_timeline(entity_id)
 
     # Try to integrate with EntityTimeline module if available
-    try:
-        from src.modules.entity_timeline.models import Timeline, TimelineEvent
-        et_available = True
-    except ImportError:
-        et_available = False
+    import importlib
+
+    et_available = importlib.util.find_spec("src.modules.entity_timeline") is not None
 
     return TEMPLATES.TemplateResponse(
         request,

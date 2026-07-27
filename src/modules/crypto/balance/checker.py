@@ -63,6 +63,8 @@ async def check_btc_balance(
         _created_client = client is None
         if _created_client:
             client = httpx.AsyncClient(timeout=_TIMEOUT)
+        else:
+            assert client is not None
         try:
             # Try standard format first (mempool.space, blockstream.info)
             resp = await client.get(f"{api_url}/address/{address}")
@@ -150,6 +152,8 @@ async def check_evm_balance(
         _created_client = client is None
         if _created_client:
             client = httpx.AsyncClient(timeout=_TIMEOUT)
+        else:
+            assert client is not None
         try:
             payload = {
                 "jsonrpc": "2.0",
@@ -217,6 +221,8 @@ async def check_evm_token_balances(
         _created_client = client is None
         if _created_client:
             client = httpx.AsyncClient(timeout=_TIMEOUT)
+        else:
+            assert client is not None
         try:
             results = []
             batch = []
@@ -263,9 +269,7 @@ async def check_evm_token_balances(
             if _created_client:
                 await client.aclose()
     except Exception as e:
-        logger.debug(
-            "Token balance check failed for %s on %s: %s", address[:10], chain.name, e
-        )
+        logger.debug("Token balance check failed for %s on %s: %s", address[:10], chain.name, e)
         return []
 
 
@@ -280,6 +284,8 @@ async def check_sol_balance(
         _created_client = client is None
         if _created_client:
             client = httpx.AsyncClient(timeout=_TIMEOUT)
+        else:
+            assert client is not None
         try:
             payload = {
                 "jsonrpc": "2.0",
@@ -332,15 +338,11 @@ async def check_balance(
 ) -> BalanceResult:
     """Route balance check to the appropriate chain-specific function."""
     if chain.chain_type == ChainType.BITCOIN:
-        return await check_btc_balance(
-            address, chain.api_url or "", derivation_path, client=client
-        )
+        return await check_btc_balance(address, chain.api_url or "", derivation_path, client=client)
     elif chain.chain_type == ChainType.EVM:
         return await check_evm_balance(address, chain, derivation_path, client=client)
     elif chain.chain_type == ChainType.SOLANA:
-        return await check_sol_balance(
-            address, chain.rpc_url or "", derivation_path, client=client
-        )
+        return await check_sol_balance(address, chain.rpc_url or "", derivation_path, client=client)
     else:
         return BalanceResult(
             address=address,
@@ -393,6 +395,8 @@ async def get_usd_prices(
             _created_client = client is None
             if _created_client:
                 client = httpx.AsyncClient(timeout=_TIMEOUT)
+            else:
+                assert client is not None
             try:
                 ids_str = ",".join(uncached)
                 resp = await client.get(
@@ -416,9 +420,7 @@ async def get_usd_prices(
     return {cid: cached.get(cid, 0.0) for cid in coin_ids}
 
 
-def apply_usd_prices(
-    results: list[BalanceResult], prices: dict[str, float]
-) -> list[BalanceResult]:
+def apply_usd_prices(results: list[BalanceResult], prices: dict[str, float]) -> list[BalanceResult]:
     """Apply USD prices to balance results in-place and compute usd_value."""
     from src.modules.crypto.balance.chains import CHAIN_MAP
 

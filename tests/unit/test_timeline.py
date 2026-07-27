@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone
 
-from src.core.models import Finding, BreachRecord
+from src.core.models import BreachRecord, Finding
 from src.modules.deep_scan.timeline_builder import TimelineBuilder, parse_datetime
 
 

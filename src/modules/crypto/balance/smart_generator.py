@@ -253,9 +253,7 @@ class SmartMnemonicGenerator:
                 for i, word in enumerate(words):
                     if word in self._word_index:
                         pos_key = f"{word}:{i}"
-                        self._hit_weights[pos_key] = (
-                            self._hit_weights.get(pos_key, 1.0) + 5.0
-                        )
+                        self._hit_weights[pos_key] = self._hit_weights.get(pos_key, 1.0) + 5.0
                         self._hit_weights[word] = self._hit_weights.get(word, 1.0) + 2.0
             logger.info("Loaded %d hit patterns from disk", len(self._hit_patterns))
         except (FileNotFoundError, json.JSONDecodeError):
@@ -340,7 +338,7 @@ class SmartMnemonicGenerator:
 
         # Last word: checksum-aware
         # words has word_count-1 elements; _fix_checksum needs them all as prefix
-        return self._fix_checksum(words + ["placeholder"], word_count)
+        return self._fix_checksum(words + ["placeholder"], word_count) or ""
 
     def _mutate_hit_pattern(self, word_count: int) -> Optional[str]:
         """Mutate a known funded mnemonic by changing 1-3 words."""
@@ -376,9 +374,7 @@ class SmartMnemonicGenerator:
         checksum_bits = _CHECKSUM_BITS.get(word_count, 4)
         entropy_bits = word_count * 11 - checksum_bits
 
-        weighted_candidates = sorted(
-            range(2048), key=lambda i: self._weights[i], reverse=True
-        )
+        weighted_candidates = sorted(range(2048), key=lambda i: self._weights[i], reverse=True)
         random.shuffle(weighted_candidates[:200])
 
         for cand_idx in weighted_candidates:
@@ -386,9 +382,7 @@ class SmartMnemonicGenerator:
             entropy_val = full_value >> checksum_bits
             checksum_val = full_value & ((1 << checksum_bits) - 1)
 
-            entropy_bytes = entropy_val.to_bytes(
-                (entropy_bits + 7) // 8, byteorder="big"
-            )
+            entropy_bytes = entropy_val.to_bytes((entropy_bits + 7) // 8, byteorder="big")
             sha = hashlib.sha256(entropy_bytes).digest()
             expected = (sha[0] >> (8 - checksum_bits)) if checksum_bits < 8 else sha[0]
 

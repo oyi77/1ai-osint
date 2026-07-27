@@ -1,8 +1,10 @@
 """Tests for new modules: domain_recon, email_osint, social_osint."""
 
 from __future__ import annotations
-import pytest
+
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 
 # ---------------------------------------------------------------------------
@@ -30,9 +32,7 @@ class TestDomainReconTool:
         mock_client.get = AsyncMock(return_value=mock_resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch(
-            "src.modules.domain_recon.httpx.AsyncClient", return_value=mock_client
-        ):
+        with patch("src.modules.domain_recon.httpx.AsyncClient", return_value=mock_client):
             result = await tool.scan("example.com")
         assert result.status == "ok"
         assert result.module == "domain_recon"
@@ -40,8 +40,9 @@ class TestDomainReconTool:
     @pytest.mark.asyncio
     async def test_analyze(self):
         tool = self._make_tool()
-        from src.core.models import ScanResult
         from datetime import datetime, timezone
+
+        from src.core.models import ScanResult
 
         sr = ScanResult(
             scan_id="test",
@@ -85,16 +86,12 @@ class TestEmailOSINTTool:
         tool = self._make_tool()
         mock_resp = MagicMock()
         mock_resp.status_code = 200
-        mock_resp.json.return_value = {
-            "Answer": [{"data": "mail.example.com", "type": 15}]
-        }
+        mock_resp.json.return_value = {"Answer": [{"data": "mail.example.com", "type": 15}]}
         mock_client = AsyncMock()
         mock_client.get = AsyncMock(return_value=mock_resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch(
-            "src.modules.email_osint.httpx.AsyncClient", return_value=mock_client
-        ):
+        with patch("src.modules.email_osint.httpx.AsyncClient", return_value=mock_client):
             result = await tool.scan("test@example.com")
         assert result.status == "ok"
         assert result.module == "email_osint"
@@ -138,9 +135,7 @@ class TestSocialOSINTTool:
         mock_client.get = AsyncMock(return_value=mock_resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch(
-            "src.modules.social_osint.httpx.AsyncClient", return_value=mock_client
-        ):
+        with patch("src.modules.social_osint.httpx.AsyncClient", return_value=mock_client):
             result = await tool.scan("testuser")
         assert result.status == "ok"
         assert result.module == "social_osint"
@@ -176,21 +171,15 @@ class TestPypiSource:
         pkg_resp.status_code = 200
         pkg_resp.json.return_value = {"info": {"description": "PRIVATE_KEY=test123"}}
         mock_client = AsyncMock()
-        mock_client.get = AsyncMock(
-            side_effect=[search_resp, pkg_resp, search_resp, pkg_resp]
-        )
+        mock_client.get = AsyncMock(side_effect=[search_resp, pkg_resp, search_resp, pkg_resp])
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
         with patch(
             "src.modules.sources.pypi_source.httpx.AsyncClient",
             return_value=mock_client,
         ):
-            with patch(
-                "src.modules.sources.pypi_source.asyncio.sleep", new_callable=AsyncMock
-            ):
-                with patch(
-                    "src.modules.sources.pypi_source.time.monotonic", return_value=0.0
-                ):
+            with patch("src.modules.sources.pypi_source.asyncio.sleep", new_callable=AsyncMock):
+                with patch("src.modules.sources.pypi_source.time.monotonic", return_value=0.0):
                     leaks = await source.fetch_raw_leaks()
         assert len(leaks) >= 1
 
@@ -208,12 +197,8 @@ class TestPypiSource:
             "src.modules.sources.pypi_source.httpx.AsyncClient",
             return_value=mock_client,
         ):
-            with patch(
-                "src.modules.sources.pypi_source.asyncio.sleep", new_callable=AsyncMock
-            ):
-                with patch(
-                    "src.modules.sources.pypi_source.time.monotonic", return_value=0.0
-                ):
+            with patch("src.modules.sources.pypi_source.asyncio.sleep", new_callable=AsyncMock):
+                with patch("src.modules.sources.pypi_source.time.monotonic", return_value=0.0):
                     leaks = await source.search_for_address("test-pkg")
         assert len(leaks) >= 1
 
@@ -229,9 +214,7 @@ class TestCargoSource:
         source = self._make_source()
         resp = MagicMock()
         resp.status_code = 200
-        resp.json.return_value = {
-            "crates": [{"name": "test-crate", "description": "test desc"}]
-        }
+        resp.json.return_value = {"crates": [{"name": "test-crate", "description": "test desc"}]}
         mock_client = AsyncMock()
         mock_client.get = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
@@ -240,12 +223,8 @@ class TestCargoSource:
             "src.modules.sources.cargo_source.httpx.AsyncClient",
             return_value=mock_client,
         ):
-            with patch(
-                "src.modules.sources.cargo_source.asyncio.sleep", new_callable=AsyncMock
-            ):
-                with patch(
-                    "src.modules.sources.cargo_source.time.monotonic", return_value=0.0
-                ):
+            with patch("src.modules.sources.cargo_source.asyncio.sleep", new_callable=AsyncMock):
+                with patch("src.modules.sources.cargo_source.time.monotonic", return_value=0.0):
                     leaks = await source.fetch_raw_leaks()
         assert len(leaks) >= 1
         assert leaks[0].source_name == "cargo"
@@ -264,12 +243,8 @@ class TestCargoSource:
             "src.modules.sources.cargo_source.httpx.AsyncClient",
             return_value=mock_client,
         ):
-            with patch(
-                "src.modules.sources.cargo_source.asyncio.sleep", new_callable=AsyncMock
-            ):
-                with patch(
-                    "src.modules.sources.cargo_source.time.monotonic", return_value=0.0
-                ):
+            with patch("src.modules.sources.cargo_source.asyncio.sleep", new_callable=AsyncMock):
+                with patch("src.modules.sources.cargo_source.time.monotonic", return_value=0.0):
                     leaks = await source.search_for_address("test")
         assert len(leaks) >= 1
 
@@ -294,12 +269,8 @@ class TestGomodSource:
             "src.modules.sources.gomod_source.httpx.AsyncClient",
             return_value=mock_client,
         ):
-            with patch(
-                "src.modules.sources.gomod_source.asyncio.sleep", new_callable=AsyncMock
-            ):
-                with patch(
-                    "src.modules.sources.gomod_source.time.monotonic", return_value=0.0
-                ):
+            with patch("src.modules.sources.gomod_source.asyncio.sleep", new_callable=AsyncMock):
+                with patch("src.modules.sources.gomod_source.time.monotonic", return_value=0.0):
                     leaks = await source.fetch_raw_leaks()
         assert isinstance(leaks, list)
 
@@ -415,9 +386,7 @@ class TestBlockchairSource:
         source = self._make_source()
         resp = MagicMock()
         resp.status_code = 200
-        resp.json.return_value = {
-            "data": {"0xabc": {"address": {"balance": 100, "transaction_count": 5}}}
-        }
+        resp.json.return_value = {"data": {"0xabc": {"address": {"balance": 100, "transaction_count": 5}}}}
         mock_client = AsyncMock()
         mock_client.get = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
@@ -484,11 +453,7 @@ class TestMastodonSource:
         source = self._make_source()
         resp = MagicMock()
         resp.status_code = 200
-        resp.json.return_value = {
-            "statuses": [
-                {"content": "test post", "url": "https://mastodon.social/test"}
-            ]
-        }
+        resp.json.return_value = {"statuses": [{"content": "test post", "url": "https://mastodon.social/test"}]}
         mock_client = AsyncMock()
         mock_client.get = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
@@ -523,9 +488,7 @@ class TestMalwareBazaarSource:
         source = self._make_source()
         resp = MagicMock()
         resp.status_code = 200
-        resp.json.return_value = {
-            "data": [{"sha256_hash": "abc123", "file_type": "exe", "tags": ["malware"]}]
-        }
+        resp.json.return_value = {"data": [{"sha256_hash": "abc123", "file_type": "exe", "tags": ["malware"]}]}
         mock_client = AsyncMock()
         mock_client.post = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
@@ -558,9 +521,7 @@ class TestThreatFoxSource:
         source = self._make_source()
         resp = MagicMock()
         resp.status_code = 200
-        resp.json.return_value = {
-            "data": [{"ioc": "1.2.3.4", "ioc_type": "ip:port", "malware": "test"}]
-        }
+        resp.json.return_value = {"data": [{"ioc": "1.2.3.4", "ioc_type": "ip:port", "malware": "test"}]}
         mock_client = AsyncMock()
         mock_client.post = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
@@ -602,12 +563,8 @@ class TestFeodoSource:
             "src.modules.sources.feodo_source.httpx.AsyncClient",
             return_value=mock_client,
         ):
-            with patch(
-                "src.modules.sources.feodo_source.asyncio.sleep", new_callable=AsyncMock
-            ):
-                with patch(
-                    "src.modules.sources.feodo_source.time.monotonic", return_value=0.0
-                ):
+            with patch("src.modules.sources.feodo_source.asyncio.sleep", new_callable=AsyncMock):
+                with patch("src.modules.sources.feodo_source.time.monotonic", return_value=0.0):
                     leaks = await source.fetch_raw_leaks()
         assert len(leaks) == 2
 
@@ -637,15 +594,9 @@ class TestS3Source:
         mock_client.get = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch(
-            "src.modules.sources.s3_source.httpx.AsyncClient", return_value=mock_client
-        ):
-            with patch(
-                "src.modules.sources.s3_source.asyncio.sleep", new_callable=AsyncMock
-            ):
-                with patch(
-                    "src.modules.sources.s3_source.time.monotonic", return_value=0.0
-                ):
+        with patch("src.modules.sources.s3_source.httpx.AsyncClient", return_value=mock_client):
+            with patch("src.modules.sources.s3_source.asyncio.sleep", new_callable=AsyncMock):
+                with patch("src.modules.sources.s3_source.time.monotonic", return_value=0.0):
                     leaks = await source.search_for_address("target-name")
         assert len(leaks) >= 1
         assert leaks[0].source_name == "s3"
@@ -659,15 +610,9 @@ class TestS3Source:
         mock_client.get = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch(
-            "src.modules.sources.s3_source.httpx.AsyncClient", return_value=mock_client
-        ):
-            with patch(
-                "src.modules.sources.s3_source.asyncio.sleep", new_callable=AsyncMock
-            ):
-                with patch(
-                    "src.modules.sources.s3_source.time.monotonic", return_value=0.0
-                ):
+        with patch("src.modules.sources.s3_source.httpx.AsyncClient", return_value=mock_client):
+            with patch("src.modules.sources.s3_source.asyncio.sleep", new_callable=AsyncMock):
+                with patch("src.modules.sources.s3_source.time.monotonic", return_value=0.0):
                     leaks = await source.search_for_address("target-name")
         assert leaks == []
 
@@ -688,15 +633,9 @@ class TestRSSSource:
         mock_client.get = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch(
-            "src.modules.sources.rss_source.httpx.AsyncClient", return_value=mock_client
-        ):
-            with patch(
-                "src.modules.sources.rss_source.asyncio.sleep", new_callable=AsyncMock
-            ):
-                with patch(
-                    "src.modules.sources.rss_source.time.monotonic", return_value=0.0
-                ):
+        with patch("src.modules.sources.rss_source.httpx.AsyncClient", return_value=mock_client):
+            with patch("src.modules.sources.rss_source.asyncio.sleep", new_callable=AsyncMock):
+                with patch("src.modules.sources.rss_source.time.monotonic", return_value=0.0):
                     leaks = await source.fetch_raw_leaks()
         assert len(leaks) >= 1
 
@@ -735,16 +674,15 @@ class TestMasterAPI:
         monkeypatch.setattr(db_mod, "release_sweep_lock", AsyncMock())
         monkeypatch.setattr(db_mod, "record_heartbeat", AsyncMock(return_value="test"))
         monkeypatch.setattr(db_mod, "mark_swept", AsyncMock())
-        monkeypatch.setattr(
-            db_mod, "get_assigned_sources", AsyncMock(return_value=["reddit"])
-        )
+        monkeypatch.setattr(db_mod, "get_assigned_sources", AsyncMock(return_value=["reddit"]))
         monkeypatch.setattr(db_mod, "assign_sources", AsyncMock())
         monkeypatch.setattr(db_mod, "enqueue_command", AsyncMock())
         monkeypatch.setattr(db_mod, "claim_commands", AsyncMock(return_value=[]))
 
     def _make_client(self):
-        from src.modules.node.master_api import app
         from fastapi.testclient import TestClient
+
+        from src.modules.node.master_api import app
 
         return TestClient(app, raise_server_exceptions=False)
 
@@ -920,9 +858,7 @@ class TestExiftoolSourceExtra:
 
         source = ExiftoolSource(timeout=5.0)
         mock_proc = MagicMock()
-        mock_proc.communicate = AsyncMock(
-            return_value=(b'[{"SourceFile": "test.jpg"}]', b"")
-        )
+        mock_proc.communicate = AsyncMock(return_value=(b'[{"SourceFile": "test.jpg"}]', b""))
         with patch(
             "src.modules.sources.exiftool_source.shutil.which",
             return_value="/usr/bin/exiftool",
@@ -947,12 +883,8 @@ class TestNmapSourceExtra:
 
         source = NmapSource(timeout=5.0)
         mock_proc = MagicMock()
-        mock_proc.communicate = AsyncMock(
-            return_value=(b"<nmaprun>test</nmaprun>", b"")
-        )
-        with patch(
-            "src.modules.sources.nmap_source.shutil.which", return_value="/usr/bin/nmap"
-        ):
+        mock_proc.communicate = AsyncMock(return_value=(b"<nmaprun>test</nmaprun>", b""))
+        with patch("src.modules.sources.nmap_source.shutil.which", return_value="/usr/bin/nmap"):
             with patch(
                 "src.modules.sources.nmap_source.asyncio.create_subprocess_exec",
                 return_value=mock_proc,
@@ -973,9 +905,7 @@ class TestTheharvesterSourceExtra:
 
         source = TheHarvesterSource(timeout=5.0)
         mock_proc = MagicMock()
-        mock_proc.communicate = AsyncMock(
-            return_value=(b"test@example.com\nadmin@example.com", b"")
-        )
+        mock_proc.communicate = AsyncMock(return_value=(b"test@example.com\nadmin@example.com", b""))
         with patch(
             "src.modules.sources.theharvester_source.shutil.which",
             return_value="/usr/bin/theHarvester",
@@ -1003,9 +933,7 @@ class TestSubfinderSourceExtra:
 
         source = SubfinderSource(timeout=5.0)
         mock_proc = MagicMock()
-        mock_proc.communicate = AsyncMock(
-            return_value=(b"sub1.example.com\nsub2.example.com", b"")
-        )
+        mock_proc.communicate = AsyncMock(return_value=(b"sub1.example.com\nsub2.example.com", b""))
         with patch(
             "src.modules.sources.subfinder_source.shutil.which",
             return_value="/usr/bin/subfinder",
@@ -1033,9 +961,7 @@ class TestAmassSourceExtra:
 
         source = AmassSource(timeout=5.0)
         mock_proc = MagicMock()
-        mock_proc.communicate = AsyncMock(
-            return_value=(b"sub1.example.com\nsub2.example.com", b"")
-        )
+        mock_proc.communicate = AsyncMock(return_value=(b"sub1.example.com\nsub2.example.com", b""))
         with patch(
             "src.modules.sources.amass_source.shutil.which",
             return_value="/usr/bin/amass",
@@ -1069,9 +995,7 @@ class TestDomainReconExtra:
         mock_client.get = AsyncMock(side_effect=Exception("timeout"))
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch(
-            "src.modules.domain_recon.httpx.AsyncClient", return_value=mock_client
-        ):
+        with patch("src.modules.domain_recon.httpx.AsyncClient", return_value=mock_client):
             result = await tool.scan("example.com")
         assert result.status == "ok"
 
@@ -1088,9 +1012,7 @@ class TestDomainReconExtra:
         mock_client.get = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch(
-            "src.modules.domain_recon.httpx.AsyncClient", return_value=mock_client
-        ):
+        with patch("src.modules.domain_recon.httpx.AsyncClient", return_value=mock_client):
             result = await tool.scan("example.com")
         assert result.finding_count >= 1
 
@@ -1108,9 +1030,7 @@ class TestDomainReconExtra:
         mock_client.get = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch(
-            "src.modules.domain_recon.httpx.AsyncClient", return_value=mock_client
-        ):
+        with patch("src.modules.domain_recon.httpx.AsyncClient", return_value=mock_client):
             result = await tool.scan("example.com")
         assert result.status == "ok"
 
@@ -1128,9 +1048,7 @@ class TestEmailOSINTExtra:
         mock_client.get = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch(
-            "src.modules.email_osint.httpx.AsyncClient", return_value=mock_client
-        ):
+        with patch("src.modules.email_osint.httpx.AsyncClient", return_value=mock_client):
             result = await tool.scan("test@example.com")
         assert result.finding_count >= 1
 
@@ -1146,17 +1064,16 @@ class TestEmailOSINTExtra:
         mock_client.get = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch(
-            "src.modules.email_osint.httpx.AsyncClient", return_value=mock_client
-        ):
+        with patch("src.modules.email_osint.httpx.AsyncClient", return_value=mock_client):
             result = await tool.scan("test@mailinator.com")
         assert result.status == "ok"
 
     @pytest.mark.asyncio
     async def test_analyze_with_result(self):
-        from src.modules.email_osint import EmailOSINTTool
-        from src.core.models import ScanResult
         from datetime import datetime, timezone
+
+        from src.core.models import ScanResult
+        from src.modules.email_osint import EmailOSINTTool
 
         tool = EmailOSINTTool(timeout=5.0)
         sr = ScanResult(
@@ -1190,9 +1107,7 @@ class TestSocialOSINTExtra:
         mock_client.get = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch(
-            "src.modules.social_osint.httpx.AsyncClient", return_value=mock_client
-        ):
+        with patch("src.modules.social_osint.httpx.AsyncClient", return_value=mock_client):
             result = await tool.scan("testuser")
         assert result.finding_count >= 1
 
@@ -1208,17 +1123,16 @@ class TestSocialOSINTExtra:
         mock_client.get = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch(
-            "src.modules.social_osint.httpx.AsyncClient", return_value=mock_client
-        ):
+        with patch("src.modules.social_osint.httpx.AsyncClient", return_value=mock_client):
             result = await tool.scan("testuser")
         assert result.status == "ok"
 
     @pytest.mark.asyncio
     async def test_analyze_with_result(self):
-        from src.modules.social_osint import SocialOSINTTool
-        from src.core.models import ScanResult
         from datetime import datetime, timezone
+
+        from src.core.models import ScanResult
+        from src.modules.social_osint import SocialOSINTTool
 
         tool = SocialOSINTTool(timeout=5.0)
         sr = ScanResult(
@@ -1268,9 +1182,7 @@ class TestNodeAgentCoverage:
         mock_client.get = AsyncMock(side_effect=Exception("fail"))
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch(
-            "src.modules.node.agent.httpx.AsyncClient", return_value=mock_client
-        ):
+        with patch("src.modules.node.agent.httpx.AsyncClient", return_value=mock_client):
             keys = await agent.sync_seen_keys()
         assert keys == set()
 
@@ -1281,12 +1193,8 @@ class TestNodeAgentCoverage:
         mock_client.post = AsyncMock(side_effect=Exception("fail"))
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch(
-            "src.modules.node.agent.httpx.AsyncClient", return_value=mock_client
-        ):
-            result = await agent.report_keys_api(
-                [{"key_hash": "a", "key_type": "hex", "source": "r"}]
-            )
+        with patch("src.modules.node.agent.httpx.AsyncClient", return_value=mock_client):
+            result = await agent.report_keys_api([{"key_hash": "a", "key_type": "hex", "source": "r"}])
         assert result == 0
 
     @pytest.mark.asyncio
@@ -1296,9 +1204,7 @@ class TestNodeAgentCoverage:
         mock_client.post = AsyncMock(side_effect=Exception("fail"))
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch(
-            "src.modules.node.agent.httpx.AsyncClient", return_value=mock_client
-        ):
+        with patch("src.modules.node.agent.httpx.AsyncClient", return_value=mock_client):
             result = await agent.acquire_sweep_lock("0x123")
         assert result is False
 
@@ -1309,9 +1215,7 @@ class TestNodeAgentCoverage:
         mock_client.post = AsyncMock(side_effect=Exception("fail"))
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch(
-            "src.modules.node.agent.httpx.AsyncClient", return_value=mock_client
-        ):
+        with patch("src.modules.node.agent.httpx.AsyncClient", return_value=mock_client):
             await agent.report_sweep_api("0x123", "tx")
 
 
@@ -1321,11 +1225,9 @@ class TestNodeAgentCoverage:
 class TestMasterBotCoverage:
     @pytest.mark.asyncio
     async def test_protocol_message_roundtrip(self):
-        from src.modules.node.protocol import NodeMessage, MessageType
+        from src.modules.node.protocol import MessageType, NodeMessage
 
-        msg = NodeMessage(
-            msg_type=MessageType.RESULT, node_id="n1", payload={"found": 5}
-        )
+        msg = NodeMessage(msg_type=MessageType.RESULT, node_id="n1", payload={"found": 5})
         text = msg.to_telegram()
         parsed = NodeMessage.from_telegram(text)
         assert parsed.node_id == "n1"
@@ -1369,9 +1271,7 @@ class TestNodeAgentExtra:
         mock_client.get = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch(
-            "src.modules.node.agent.httpx.AsyncClient", return_value=mock_client
-        ):
+        with patch("src.modules.node.agent.httpx.AsyncClient", return_value=mock_client):
             keys = await agent.sync_seen_keys()
         assert len(keys) == 2
 
@@ -1385,12 +1285,8 @@ class TestNodeAgentExtra:
         mock_client.post = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch(
-            "src.modules.node.agent.httpx.AsyncClient", return_value=mock_client
-        ):
-            result = await agent.report_keys_api(
-                [{"key_hash": "a", "key_type": "hex", "source": "r"}]
-            )
+        with patch("src.modules.node.agent.httpx.AsyncClient", return_value=mock_client):
+            result = await agent.report_keys_api([{"key_hash": "a", "key_type": "hex", "source": "r"}])
         assert result == 3
 
     @pytest.mark.asyncio
@@ -1402,9 +1298,7 @@ class TestNodeAgentExtra:
         mock_client.post = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch(
-            "src.modules.node.agent.httpx.AsyncClient", return_value=mock_client
-        ):
+        with patch("src.modules.node.agent.httpx.AsyncClient", return_value=mock_client):
             result = await agent.acquire_sweep_lock("0x123")
         assert result is True
 
@@ -1417,9 +1311,7 @@ class TestNodeAgentExtra:
         mock_client.post = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch(
-            "src.modules.node.agent.httpx.AsyncClient", return_value=mock_client
-        ):
+        with patch("src.modules.node.agent.httpx.AsyncClient", return_value=mock_client):
             await agent.report_sweep_api("0x123", "tx")
 
     @pytest.mark.asyncio
@@ -1431,9 +1323,7 @@ class TestNodeAgentExtra:
         mock_client.post = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch(
-            "src.modules.node.agent.httpx.AsyncClient", return_value=mock_client
-        ):
+        with patch("src.modules.node.agent.httpx.AsyncClient", return_value=mock_client):
             with patch("src.modules.node.agent.psutil") as mock_psutil:
                 mock_psutil.virtual_memory.return_value = MagicMock(used=1000000)
                 mock_psutil.cpu_percent.return_value = 5.0
@@ -1442,7 +1332,7 @@ class TestNodeAgentExtra:
     @pytest.mark.asyncio
     async def test_send_to_master(self):
         agent = self._make_agent()
-        from src.modules.node.protocol import NodeMessage, MessageType
+        from src.modules.node.protocol import MessageType, NodeMessage
 
         msg = NodeMessage(msg_type=MessageType.HEARTBEAT, node_id="test", payload={})
         resp = MagicMock()
@@ -1451,9 +1341,7 @@ class TestNodeAgentExtra:
         mock_client.post = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch(
-            "src.modules.node.agent.httpx.AsyncClient", return_value=mock_client
-        ):
+        with patch("src.modules.node.agent.httpx.AsyncClient", return_value=mock_client):
             await agent._send_to_master(msg)
 
 
@@ -1505,9 +1393,7 @@ class TestNodeAgentSimple:
         mock_client.get = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch(
-            "src.modules.node.agent.httpx.AsyncClient", return_value=mock_client
-        ):
+        with patch("src.modules.node.agent.httpx.AsyncClient", return_value=mock_client):
             keys = await agent.sync_seen_keys()
         assert len(keys) == 2
 
@@ -1521,12 +1407,8 @@ class TestNodeAgentSimple:
         mock_client.post = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch(
-            "src.modules.node.agent.httpx.AsyncClient", return_value=mock_client
-        ):
-            result = await agent.report_keys_api(
-                [{"key_hash": "a", "key_type": "hex", "source": "r"}]
-            )
+        with patch("src.modules.node.agent.httpx.AsyncClient", return_value=mock_client):
+            result = await agent.report_keys_api([{"key_hash": "a", "key_type": "hex", "source": "r"}])
         assert result == 3
 
     @pytest.mark.asyncio
@@ -1538,9 +1420,7 @@ class TestNodeAgentSimple:
         mock_client.post = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch(
-            "src.modules.node.agent.httpx.AsyncClient", return_value=mock_client
-        ):
+        with patch("src.modules.node.agent.httpx.AsyncClient", return_value=mock_client):
             result = await agent.acquire_sweep_lock("0x123")
         assert result is True
 
@@ -1553,15 +1433,13 @@ class TestNodeAgentSimple:
         mock_client.post = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch(
-            "src.modules.node.agent.httpx.AsyncClient", return_value=mock_client
-        ):
+        with patch("src.modules.node.agent.httpx.AsyncClient", return_value=mock_client):
             await agent.report_sweep_api("0x123", "tx")
 
     @pytest.mark.asyncio
     async def test_send_to_master(self):
         agent = self._make_agent()
-        from src.modules.node.protocol import NodeMessage, MessageType
+        from src.modules.node.protocol import MessageType, NodeMessage
 
         msg = NodeMessage(msg_type=MessageType.HEARTBEAT, node_id="test", payload={})
         resp = MagicMock()
@@ -1570,9 +1448,7 @@ class TestNodeAgentSimple:
         mock_client.post = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch(
-            "src.modules.node.agent.httpx.AsyncClient", return_value=mock_client
-        ):
+        with patch("src.modules.node.agent.httpx.AsyncClient", return_value=mock_client):
             await agent._send_to_master(msg)
 
 
@@ -1582,6 +1458,7 @@ class TestNodeAgentSimple:
 class TestCLICommands:
     def test_version(self):
         from typer.testing import CliRunner
+
         from src.cli.main import app
 
         runner = CliRunner()
@@ -1590,6 +1467,7 @@ class TestCLICommands:
 
     def test_modules(self):
         from typer.testing import CliRunner
+
         from src.cli.main import app
 
         runner = CliRunner()
@@ -1598,6 +1476,7 @@ class TestCLICommands:
 
     def test_scan_help(self):
         from typer.testing import CliRunner
+
         from src.cli.main import app
 
         runner = CliRunner()
@@ -1607,6 +1486,7 @@ class TestCLICommands:
 
     def test_leak_finder_help(self):
         from typer.testing import CliRunner
+
         from src.cli.main import app
 
         runner = CliRunner()
@@ -1615,6 +1495,7 @@ class TestCLICommands:
 
     def test_resolve_help(self):
         from typer.testing import CliRunner
+
         from src.cli.main import app
 
         runner = CliRunner()
@@ -1624,6 +1505,7 @@ class TestCLICommands:
 
     def test_monitor_help(self):
         from typer.testing import CliRunner
+
         from src.cli.main import app
 
         runner = CliRunner()
@@ -1632,6 +1514,7 @@ class TestCLICommands:
 
     def test_sweep_help(self):
         from typer.testing import CliRunner
+
         from src.cli.main import app
 
         runner = CliRunner()
@@ -1640,6 +1523,7 @@ class TestCLICommands:
 
     def test_node_help(self):
         from typer.testing import CliRunner
+
         from src.cli.main import app
 
         runner = CliRunner()
@@ -1648,18 +1532,21 @@ class TestCLICommands:
 
     def test_master_help(self):
         from typer.testing import CliRunner
+
         from src.cli.main import app
 
         runner = CliRunner()
         result = runner.invoke(app, ["master", "--help"])
         assert result.exit_code == 0
 
-    @patch("src.cli.main._get_module")
+    @patch("src.cli.helpers.get_module")
     def test_scan_json(self, mock_get_module):
-        from typer.testing import CliRunner
-        from src.cli.main import app
-        from src.core.models import ScanResult, Finding, Severity
         from datetime import datetime, timezone
+
+        from typer.testing import CliRunner
+
+        from src.cli.main import app
+        from src.core.models import Finding, ScanResult, Severity
 
         mock_mod = MagicMock()
         mock_mod.name = "test"
@@ -1692,65 +1579,65 @@ class TestCLICommands:
 
 
 # ---------------------------------------------------------------------------
-# CLI _get_module coverage
+# CLI get_module coverage
 # ---------------------------------------------------------------------------
 class TestGetModule:
     def test_gitleaks(self):
-        from src.cli.main import _get_module
+        from src.cli.helpers import get_module as _get_module
 
         mod = _get_module("gitleaks")
         assert mod is not None
         assert mod.name == "gitleaks"
 
     def test_data_leaks(self):
-        from src.cli.main import _get_module
+        from src.cli.helpers import get_module as _get_module
 
         mod = _get_module("data_leaks")
         assert mod is not None
         assert mod.name == "data_leaks"
 
     def test_people(self):
-        from src.cli.main import _get_module
+        from src.cli.helpers import get_module as _get_module
 
         mod = _get_module("people")
         assert mod is not None
 
     def test_phone(self):
-        from src.cli.main import _get_module
+        from src.cli.helpers import get_module as _get_module
 
         mod = _get_module("phone")
         assert mod is not None
 
     def test_crypto_balance(self):
-        from src.cli.main import _get_module
+        from src.cli.helpers import get_module as _get_module
 
         mod = _get_module("crypto_balance")
         assert mod is not None
         assert mod.name == "crypto_balance"
 
     def test_domain(self):
-        from src.cli.main import _get_module
+        from src.cli.helpers import get_module as _get_module
 
         mod = _get_module("domain")
         assert mod is not None
         assert mod.name == "domain_recon"
 
     def test_email(self):
-        from src.cli.main import _get_module
+        from src.cli.helpers import get_module as _get_module
 
         mod = _get_module("email")
         assert mod is not None
         assert mod.name == "email_osint"
 
     def test_social_osint(self):
-        from src.cli.main import _get_module
+        from src.cli.helpers import get_module as _get_module
 
         mod = _get_module("social_osint")
         assert mod is not None
         assert mod.name == "social_osint"
 
     def test_unknown(self):
-        from src.cli.main import _get_module
+        from src.cli.helpers import get_module as _get_module
 
         mod = _get_module("nonexistent")
         assert mod is None
@@ -1758,13 +1645,13 @@ class TestGetModule:
 
 class TestGetModuleExtra:
     def test_crypto_passphrase(self):
-        from src.cli.main import _get_module
+        from src.cli.helpers import get_module as _get_module
 
         mod = _get_module("crypto_passphrase")
         assert mod is not None
 
     def test_crypto_privatekey(self):
-        from src.cli.main import _get_module
+        from src.cli.helpers import get_module as _get_module
 
         mod = _get_module("crypto_privatekey")
         assert mod is not None
@@ -1772,7 +1659,7 @@ class TestGetModuleExtra:
 
 class TestPrivateKeyScanner:
     def test_name(self):
-        from src.cli.main import _get_module
+        from src.cli.helpers import get_module as _get_module
 
         mod = _get_module("privatekey")
         assert mod is not None
@@ -1780,7 +1667,7 @@ class TestPrivateKeyScanner:
 
     @pytest.mark.asyncio
     async def test_scan(self):
-        from src.cli.main import _get_module
+        from src.cli.helpers import get_module as _get_module
 
         mod = _get_module("privatekey")
         result = await mod.scan("0x" + "a" * 64)
@@ -1789,7 +1676,7 @@ class TestPrivateKeyScanner:
 
     @pytest.mark.asyncio
     async def test_analyze(self):
-        from src.cli.main import _get_module
+        from src.cli.helpers import get_module as _get_module
 
         mod = _get_module("privatekey")
         result = await mod.analyze({})
@@ -1797,7 +1684,7 @@ class TestPrivateKeyScanner:
 
     @pytest.mark.asyncio
     async def test_learn(self):
-        from src.cli.main import _get_module
+        from src.cli.helpers import get_module as _get_module
 
         mod = _get_module("privatekey")
         await mod.learn({})
@@ -1805,9 +1692,10 @@ class TestPrivateKeyScanner:
 
 class TestZkitTracking:
     def test_run_zkit_tracking(self):
-        from src.cli.main import _run_zkit_tracking
-        from src.core.models import ScanResult, Finding, Severity, BreachRecord
         from datetime import datetime, timezone
+
+        from src.cli.helpers import run_zkit_tracking as _run_zkit_tracking
+        from src.core.models import BreachRecord, Finding, ScanResult, Severity
 
         result = ScanResult(
             scan_id="test",
@@ -1840,7 +1728,7 @@ class TestZkitTracking:
 
 class TestScanAll:
     def test_scan_all_modules(self):
-        from src.cli.main import _get_module
+        from src.cli.helpers import get_module as _get_module
 
         for name in (
             "gitleaks",
@@ -1870,12 +1758,8 @@ class TestBbotSourceFull:
 
         source = BbotSource(timeout=5.0)
         mock_proc = MagicMock()
-        mock_proc.communicate = AsyncMock(
-            return_value=(b"sub1.example.com\nsub2.example.com", b"")
-        )
-        with patch(
-            "src.modules.sources.bbot_source.shutil.which", return_value="/usr/bin/bbot"
-        ):
+        mock_proc.communicate = AsyncMock(return_value=(b"sub1.example.com\nsub2.example.com", b""))
+        with patch("src.modules.sources.bbot_source.shutil.which", return_value="/usr/bin/bbot"):
             with patch(
                 "src.modules.sources.bbot_source.asyncio.create_subprocess_exec",
                 return_value=mock_proc,
@@ -1896,9 +1780,7 @@ class TestBbotSourceFull:
         from src.modules.sources.bbot_source import BbotSource
 
         source = BbotSource(timeout=5.0)
-        with patch(
-            "src.modules.sources.bbot_source.shutil.which", return_value="/usr/bin/bbot"
-        ):
+        with patch("src.modules.sources.bbot_source.shutil.which", return_value="/usr/bin/bbot"):
             with patch(
                 "src.modules.sources.bbot_source.asyncio.create_subprocess_exec",
                 side_effect=Exception("fail"),

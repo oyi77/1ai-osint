@@ -44,17 +44,12 @@ def _load_scan_history() -> list[dict]:
                 data = json.loads(f.read_text())
                 # Accept files that look like scan results
                 if isinstance(data, dict) and (
-                    "scan_id" in data
-                    or "report_id" in data
-                    or "findings" in data
-                    or "modules_run" in data
+                    "scan_id" in data or "report_id" in data or "findings" in data or "modules_run" in data
                 ):
                     results.append(data)
                 elif isinstance(data, list):
                     for item in data:
-                        if isinstance(item, dict) and (
-                            "scan_id" in item or "findings" in item
-                        ):
+                        if isinstance(item, dict) and ("scan_id" in item or "findings" in item):
                             results.append(item)
             except (json.JSONDecodeError, OSError):
                 continue
@@ -136,7 +131,7 @@ def _compute_dashboard_stats(history: list[dict]) -> dict:
 
 
 @router.get("/", response_class=HTMLResponse, include_in_schema=False)
-async def dashboard(request: Request) -> str:
+async def dashboard(request: Request):
     """Render the dashboard with summary statistics."""
     history = _load_scan_history()
     stats = _compute_dashboard_stats(history)

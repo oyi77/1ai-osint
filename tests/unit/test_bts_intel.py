@@ -1,6 +1,8 @@
 import os
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
 from src.modules.free_intel.bts_intel import BTSIntel
 
 

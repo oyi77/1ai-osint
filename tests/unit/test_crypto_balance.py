@@ -1,39 +1,39 @@
 """Tests for the crypto balance checker module."""
 
-import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
-from src.modules.crypto.balance.deriver import (
-    detect_input_type,
-    is_valid_mnemonic,
-    derive_from_mnemonic,
-    derive_from_privatekey,
-    DerivedAddress,
+import pytest
+
+from src.core.models import Severity
+from src.modules.crypto.balance import CryptoBalanceTool
+from src.modules.crypto.balance.chains import (
+    ALL_CHAINS,
+    ARBITRUM,
+    AVALANCHE,
+    BASE,
+    BITCOIN,
+    BSC,
+    CHAIN_MAP,
+    ETHEREUM,
+    FANTOM,
+    OPTIMISM,
+    POLYGON,
+    SOLANA,
+    ChainType,
 )
 from src.modules.crypto.balance.checker import (
     BalanceResult,
     apply_usd_prices,
     get_usd_prices,
 )
-from src.modules.crypto.balance.smart_generator import SmartMnemonicGenerator
-from src.modules.crypto.balance.chains import (
-    ETHEREUM,
-    BITCOIN,
-    SOLANA,
-    BSC,
-    POLYGON,
-    ARBITRUM,
-    OPTIMISM,
-    BASE,
-    AVALANCHE,
-    FANTOM,
-    ALL_CHAINS,
-    CHAIN_MAP,
-    ChainType,
+from src.modules.crypto.balance.deriver import (
+    DerivedAddress,
+    derive_from_mnemonic,
+    derive_from_privatekey,
+    detect_input_type,
+    is_valid_mnemonic,
 )
-from src.modules.crypto.balance import CryptoBalanceTool
-from src.core.models import Severity
-
+from src.modules.crypto.balance.smart_generator import SmartMnemonicGenerator
 
 # --- Test Data ---
 
@@ -251,9 +251,7 @@ class TestGetUsdPrices:
         mock_resp.raise_for_status = MagicMock()
         mock_resp.json.return_value = {"bitcoin": {"usd": 60000.0}}
 
-        with patch(
-            "httpx.AsyncClient.get", new_callable=AsyncMock, return_value=mock_resp
-        ):
+        with patch("httpx.AsyncClient.get", new_callable=AsyncMock, return_value=mock_resp):
             prices = await get_usd_prices(["bitcoin"])
             assert prices["bitcoin"] == 60000.0
 
@@ -278,9 +276,7 @@ class TestGetUsdPrices:
 class TestCryptoBalanceTool:
     async def test_scan_mnemonic(self):
         tool = CryptoBalanceTool(chains=[ETHEREUM])
-        with patch(
-            "src.modules.crypto.balance.check_balance", new_callable=AsyncMock
-        ) as mock_check:
+        with patch("src.modules.crypto.balance.check_balance", new_callable=AsyncMock) as mock_check:
             mock_check.return_value = BalanceResult(
                 address="0x123",
                 chain="Ethereum",
@@ -307,9 +303,7 @@ class TestCryptoBalanceTool:
 
     async def test_scan_address(self):
         tool = CryptoBalanceTool(chains=[ETHEREUM])
-        with patch(
-            "src.modules.crypto.balance.check_balance", new_callable=AsyncMock
-        ) as mock_check:
+        with patch("src.modules.crypto.balance.check_balance", new_callable=AsyncMock) as mock_check:
             mock_check.return_value = BalanceResult(
                 address=VALID_ETH_ADDRESS,
                 chain="Ethereum",
@@ -381,7 +375,7 @@ class TestCryptoBalanceTool:
 
 # --- API Rotation Tests ---
 
-from src.modules.crypto.balance.api_rotation import EndpointRotator, EndpointHealth  # noqa: E402
+from src.modules.crypto.balance.api_rotation import EndpointHealth, EndpointRotator  # noqa: E402
 
 
 class TestEndpointHealth:
@@ -414,9 +408,7 @@ class TestEndpointHealth:
 
 class TestEndpointRotator:
     def test_round_robin(self):
-        rotator = EndpointRotator(
-            ["https://rpc1.com", "https://rpc2.com", "https://rpc3.com"]
-        )
+        rotator = EndpointRotator(["https://rpc1.com", "https://rpc2.com", "https://rpc3.com"])
         urls = [rotator.next() for _ in range(6)]
         # Should cycle through endpoints
         assert urls[0] != urls[1] or urls[1] != urls[2]
@@ -486,9 +478,9 @@ class TestEndpointRotator:
 # --- Targeted Search Tests ---
 
 from src.modules.crypto.balance.targeted_search import (  # noqa: E402
-    KnownMnemonicLookup,
     AccountRangeScan,
     FilteredRandomScan,
+    KnownMnemonicLookup,
     TargetedScanResult,
     targeted_scan_to_scanresult,
 )
@@ -580,9 +572,7 @@ class TestAccountRangeScan:
                 new_callable=AsyncMock,
                 return_value={"ethereum": 2000.0},
             ):
-                scanner = AccountRangeScan(
-                    mnemonic=VALID_MNEMONIC, chain=ETHEREUM, start=0, end=5
-                )
+                scanner = AccountRangeScan(mnemonic=VALID_MNEMONIC, chain=ETHEREUM, start=0, end=5)
                 result = await scanner.execute(scan_id="test-ar-1")
                 assert result.mode == "account_range"
                 assert result.addresses_checked == 5 * len(ETHEREUM.derivation_paths)
@@ -710,9 +700,7 @@ class TestScannerEngine:
             api_errors=0,
         )
         mock_stats.start_time = mock_stats.start_time - 1.0
-        with patch(
-            "src.modules.crypto.balance.scanner_engine.RandomScanner"
-        ) as MockScanner:
+        with patch("src.modules.crypto.balance.scanner_engine.RandomScanner") as MockScanner:
             instance = MockScanner.return_value
             instance.run = AsyncMock(return_value=mock_stats)
             result = await tool.scan("random", scan_mode="random", duration=5)
@@ -742,26 +730,20 @@ class TestScannerEngine:
                 new_callable=AsyncMock,
                 return_value={},
             ):
-                result = await tool.scan(
-                    VALID_MNEMONIC, scan_mode="targeted", account_count=2
-                )
+                result = await tool.scan(VALID_MNEMONIC, scan_mode="targeted", account_count=2)
                 assert result.status in ("ok", "partial")
                 assert result.metadata.get("mode") == "known_mnemonic"
 
     @pytest.mark.asyncio
     async def test_scanner_stats_properties(self):
-        stats = ScannerStats(
-            mnemonics_generated=100, addresses_checked=500, hits_found=3, api_errors=2
-        )
+        stats = ScannerStats(mnemonics_generated=100, addresses_checked=500, hits_found=3, api_errors=2)
         assert stats.mnemonics_per_sec >= 0
         assert stats.elapsed >= 0
 
     @pytest.mark.asyncio
     async def test_scanner_worker_pool_runs(self):
         scanner = RandomScanner(workers=2, chains=[ETHEREUM])
-        with patch(
-            "src.modules.crypto.balance.deriver.derive_from_mnemonic_provider"
-        ) as mock_derive:
+        with patch("src.modules.crypto.balance.deriver.derive_from_mnemonic_provider") as mock_derive:
             mock_derive.return_value = [
                 DerivedAddress(
                     address="0x123",
@@ -787,9 +769,7 @@ class TestScannerEngine:
     @pytest.mark.asyncio
     async def test_scanner_semaphore_limits_concurrency(self):
         scanner = RandomScanner(workers=5, api_concurrency=2, chains=[ETHEREUM])
-        with patch(
-            "src.modules.crypto.balance.deriver.derive_from_mnemonic_provider"
-        ) as mock_derive:
+        with patch("src.modules.crypto.balance.deriver.derive_from_mnemonic_provider") as mock_derive:
             mock_derive.return_value = [
                 DerivedAddress(
                     address="0x123",
@@ -822,8 +802,8 @@ class TestHitLogger:
 
     @pytest.mark.asyncio
     async def test_log_hit_strips_private_key(self):
-        import tempfile
         import os
+        import tempfile
 
         with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
             db_path = f.name
@@ -851,8 +831,8 @@ class TestHitLogger:
 
     @pytest.mark.asyncio
     async def test_batch_flush(self):
-        import tempfile
         import os
+        import tempfile
 
         with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
             db_path = f.name
@@ -877,8 +857,8 @@ class TestHitLogger:
 
     @pytest.mark.asyncio
     async def test_auto_flush_at_batch_size(self):
-        import tempfile
         import os
+        import tempfile
 
         with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
             db_path = f.name
@@ -900,20 +880,16 @@ class TestHitLogger:
 
     @pytest.mark.asyncio
     async def test_telegram_alert_mock(self):
-        import tempfile
         import os
+        import tempfile
 
         with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
             db_path = f.name
         try:
-            hl = HitLogger(
-                db_path=db_path, telegram_token="fake-token", telegram_chat_id="12345"
-            )
+            hl = HitLogger(db_path=db_path, telegram_token="fake-token", telegram_chat_id="12345")
             await hl.start()
             with patch.object(hl, "_send_telegram", new_callable=AsyncMock) as mock_tg:
-                await hl.log_hit(
-                    address="0xabc", chain="Ethereum", balance=1.0, usd_value=2000.0
-                )
+                await hl.log_hit(address="0xabc", chain="Ethereum", balance=1.0, usd_value=2000.0)
                 await hl.flush()
                 mock_tg.assert_called_once()
             await hl.close()
@@ -922,20 +898,16 @@ class TestHitLogger:
 
     @pytest.mark.asyncio
     async def test_no_alert_for_zero_balance(self):
-        import tempfile
         import os
+        import tempfile
 
         with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
             db_path = f.name
         try:
-            hl = HitLogger(
-                db_path=db_path, telegram_token="fake-token", telegram_chat_id="12345"
-            )
+            hl = HitLogger(db_path=db_path, telegram_token="fake-token", telegram_chat_id="12345")
             await hl.start()
             with patch.object(hl, "_send_telegram", new_callable=AsyncMock) as mock_tg:
-                await hl.log_hit(
-                    address="0xabc", chain="Ethereum", balance=0.0, usd_value=0.0
-                )
+                await hl.log_hit(address="0xabc", chain="Ethereum", balance=0.0, usd_value=0.0)
                 await hl.flush()
                 mock_tg.assert_not_called()
             await hl.close()
@@ -984,9 +956,7 @@ class TestEndToEnd:
 
                 assert result.has_hits is True
                 # Should have CRITICAL finding (>$1000)
-                critical_findings = [
-                    f for f in result.findings if f.severity == Severity.CRITICAL
-                ]
+                critical_findings = [f for f in result.findings if f.severity == Severity.CRITICAL]
                 assert len(critical_findings) >= 1
 
                 # Convert to ScanResult
@@ -1023,31 +993,23 @@ class TestEndToEnd:
                 new_callable=AsyncMock,
                 return_value={"ethereum": 2000.0},
             ):
-                scanner = AccountRangeScan(
-                    mnemonic=VALID_MNEMONIC, chain=ETHEREUM, start=0, end=5
-                )
+                scanner = AccountRangeScan(mnemonic=VALID_MNEMONIC, chain=ETHEREUM, start=0, end=5)
                 result = await scanner.execute(scan_id="e2e-ar-1")
 
                 assert result.addresses_checked == 5 * len(ETHEREUM.derivation_paths)
                 # Only account 2 should have a hit
-                hit_findings = [
-                    f
-                    for f in result.findings
-                    if f.severity in (Severity.HIGH, Severity.CRITICAL)
-                ]
+                hit_findings = [f for f in result.findings if f.severity in (Severity.HIGH, Severity.CRITICAL)]
                 assert len(hit_findings) == 1
 
     @pytest.mark.asyncio
     async def test_hit_logger_e2e_with_alert(self):
-        import tempfile
         import os
+        import tempfile
 
         with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
             db_path = f.name
         try:
-            hl = HitLogger(
-                db_path=db_path, telegram_token="fake-token", telegram_chat_id="12345"
-            )
+            hl = HitLogger(db_path=db_path, telegram_token="fake-token", telegram_chat_id="12345")
             await hl.start()
             with patch.object(hl, "_send_telegram", new_callable=AsyncMock) as mock_tg:
                 await hl.log_hit(
@@ -1073,7 +1035,7 @@ class TestEndToEnd:
 
 # --- Sweeper Tests ---
 
-from src.modules.crypto.balance.sweeper import Sweeper, DESTINATION_WALLETS  # noqa: E402
+from src.modules.crypto.balance.sweeper import DESTINATION_WALLETS, Sweeper  # noqa: E402
 
 
 class TestSweeper:
@@ -1107,9 +1069,7 @@ class TestSweeper:
         s = Sweeper()
         mock_client = MagicMock()
         mock_resp = MagicMock()
-        mock_resp.json.return_value = {
-            "result": {"value": {"owner": "11111111111111111111111111111111"}}
-        }
+        mock_resp.json.return_value = {"result": {"value": {"owner": "11111111111111111111111111111111"}}}
         mock_client.post = AsyncMock(return_value=mock_resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=None)
@@ -1122,11 +1082,7 @@ class TestSweeper:
         s = Sweeper()
         mock_client = MagicMock()
         mock_resp = MagicMock()
-        mock_resp.json.return_value = {
-            "result": {
-                "value": {"owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"}
-            }
-        }
+        mock_resp.json.return_value = {"result": {"value": {"owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"}}}
         mock_client.post = AsyncMock(return_value=mock_resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=None)
@@ -1269,8 +1225,9 @@ class TestCheckEvmTokenBalances:
 
     @pytest.mark.asyncio
     async def test_token_balance_with_mock(self):
-        from src.modules.crypto.balance.checker import check_evm_token_balances
         from unittest.mock import AsyncMock, MagicMock
+
+        from src.modules.crypto.balance.checker import check_evm_token_balances
 
         mock_client = MagicMock()
         mock_resp = MagicMock()
@@ -1330,19 +1287,15 @@ class TestBatchTokenBalances:
 
     @pytest.mark.asyncio
     async def test_batch_no_rpc_returns_empty(self):
-        from src.modules.crypto.balance.multicall import batch_check_token_balances
         from src.modules.crypto.balance.chains import (
             ChainConfig,
             ChainType,
             TokenContract,
         )
+        from src.modules.crypto.balance.multicall import batch_check_token_balances
 
-        chain = ChainConfig(
-            name="Test", symbol="T", chain_type=ChainType.EVM, coin_id="test"
-        )
-        result = await batch_check_token_balances(
-            ["0xaddr"], [TokenContract("USDT", "0x123", 6)], chain
-        )
+        chain = ChainConfig(name="Test", symbol="T", chain_type=ChainType.EVM, coin_id="test")
+        result = await batch_check_token_balances(["0xaddr"], [TokenContract("USDT", "0x123", 6)], chain)
         assert result == []
 
 

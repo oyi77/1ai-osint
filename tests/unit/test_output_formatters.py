@@ -1,12 +1,13 @@
 """Tests for output formatters — JSON, SARIF, PDF."""
 
 import json
-from src.core.models import Finding, ScanResult, Severity, Identity, BreachRecord
+
+from src.core.models import BreachRecord, Finding, Identity, ScanResult, Severity
 from src.modules.output.json_formatter import JSONFormatter
-from src.modules.output.sarif_formatter import SARIFFormatter
-from src.modules.output.sarif import format_sarif
 from src.modules.output.pdf_export import format_pdf
 from src.modules.output.pdf_generator import PDFGenerator
+from src.modules.output.sarif import format_sarif
+from src.modules.output.sarif_formatter import SARIFFormatter
 
 
 def _make_scan_result(findings=None, breach_records=None, identities=None):

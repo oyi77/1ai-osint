@@ -29,22 +29,18 @@ class DiscordSource:
             "site:discord.com mnemonic seed phrase",
             "site:discord.com wallet dump",
         ]
-        async with httpx.AsyncClient(
-            timeout=self.timeout, follow_redirects=True
-        ) as client:
+        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
             for query in queries:
                 try:
                     await self._rate_limit()
                     resp = await client.get(
                         "https://html.duckduckgo.com/html/",
-                        data={"q": query},
+                        params={"q": query},
                     )
                     if resp.status_code == 200:
                         import re
 
-                        urls = re.findall(
-                            r'href="(https?://discord\.com[^"]+)"', resp.text
-                        )
+                        urls = re.findall(r'href="(https?://discord\.com[^"]+)"', resp.text)
                         for url in urls[:5]:
                             leaks.append(
                                 RawLeak(
@@ -60,14 +56,12 @@ class DiscordSource:
     async def search_for_address(self, address: str) -> list[RawLeak]:
         """Search Discord for a specific address."""
         leaks: list[RawLeak] = []
-        async with httpx.AsyncClient(
-            timeout=self.timeout, follow_redirects=True
-        ) as client:
+        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
             try:
                 await self._rate_limit()
                 resp = await client.get(
                     "https://html.duckduckgo.com/html/",
-                    data={"q": f'site:discord.com "{address}"'},
+                    params={"q": f'site:discord.com "{address}"'},
                 )
                 if resp.status_code == 200:
                     import re

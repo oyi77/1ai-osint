@@ -4,13 +4,12 @@ Flags unusual behavior in monitored entities using statistical methods
 (z-score), temporal analysis, and cross-platform comparison.
 """
 
-import json
 import logging
 import math
-from collections import Counter, defaultdict
 from datetime import datetime
 from typing import Any, Optional
 
+from src.ai.analyzers._anomaly_utils import build_summary, parse_llm_anomalies
 from src.ai.omniroute_client import OmniRouteClient
 from src.ai.schemas.responses import (
     AnomalyDetectionResult,
@@ -177,8 +176,7 @@ class AnomalyDetector:
                     DetectedAnomaly(
                         anomaly_type="timing_anomaly",
                         description=(
-                            f"{off_hour_count}/{total_with_time} observations "
-                            f"outside baseline active hours"
+                            f"{off_hour_count}/{total_with_time} observations " f"outside baseline active hours"
                         ),
                         severity=min(1.0, off_hour_ratio),
                         confidence=min(1.0, 0.5 + off_hour_ratio * 0.3),
@@ -238,7 +236,7 @@ class AnomalyDetector:
                             )
 
         # Frequency anomaly
-        source_dates = {}
+        source_dates: dict[str, set[str]] = {}
         for d in entity_data:
             source = str(d.get("source", "unknown"))
             ts = d.get("timestamp")
@@ -259,10 +257,7 @@ class AnomalyDetector:
                 anomalies.append(
                     DetectedAnomaly(
                         anomaly_type="frequency_spike",
-                        description=(
-                            f"High activity volume from {source}: "
-                            f"{len(dates)} distinct dates"
-                        ),
+                        description=(f"High activity volume from {source}: " f"{len(dates)} distinct dates"),
                         severity=min(1.0, len(dates) / 20.0),
                         confidence=0.6,
                         dimension="frequency",
@@ -359,31 +354,7 @@ class AnomalyDetector:
     @staticmethod
     def _parse_llm_anomalies(raw_response: str) -> list[DetectedAnomaly]:
         """Parse LLM JSON response into DetectedAnomaly list."""
-        try:
-            data = json.loads(raw_response)
-        except json.JSONDecodeError:
-            logger.warning("Failed to parse LLM anomaly response as JSON")
-            return []
-
-        anomalies: list[DetectedAnomaly] = []
-        for item in data.get("detected_anomalies", []):
-            try:
-                anomalies.append(
-                    DetectedAnomaly(
-                        anomaly_type=str(item.get("anomaly_type", "other")),
-                        description=str(item.get("description", "")),
-                        severity=float(item.get("severity", 0.5)),
-                        confidence=float(item.get("confidence", 0.5)),
-                        dimension=str(item.get("dimension", "")),
-                        baseline_value=str(item.get("baseline_value", "") or None),
-                        observed_value=str(item.get("observed_value", "") or None),
-                    )
-                )
-            except (ValueError, TypeError) as e:
-                logger.warning("Skipping malformed anomaly item: %s", e)
-                continue
-
-        return anomalies
+        return parse_llm_anomalies(raw_response)
 
     # ------------------------------------------------------------------ #
     #  Helpers
@@ -392,15 +363,4 @@ class AnomalyDetector:
     @staticmethod
     def _build_summary(anomalies: list[DetectedAnomaly]) -> str:
         """Build human-readable summary."""
-        if not anomalies:
-            return "No anomalies detected"
-
-        by_type: Counter[str] = Counter()
-        for a in anomalies:
-            by_type[a.anomaly_type] += 1
-
-        parts = [f"Detected {len(anomalies)} anomalies:"]
-        for atype, count in by_type.most_common():
-            parts.append(f"  - {atype}: {count}")
-
-        return "\n".join(parts)
+        return build_summary(anomalies)

@@ -146,6 +146,7 @@ class EndpointRotator:
         self._endpoints = {url: EndpointHealth(url=url) for url in endpoints}
         self._url_list = list(endpoints)
         self._index = 0
+        self._last_degraded_log: float = 0.0
 
     def next(self) -> str:
         """Return the next healthy endpoint via round-robin.
@@ -185,10 +186,7 @@ class EndpointRotator:
                     best_time_left = time_left
                     best_reattempt_url = url
         if best_reattempt_url:
-            if (
-                not hasattr(self, "_last_degraded_log")
-                or time.monotonic() - self._last_degraded_log > 30
-            ):
+            if not hasattr(self, "_last_degraded_log") or time.monotonic() - self._last_degraded_log > 30:
                 logger.warning(
                     "All endpoints disabled — next re-enable in %.0fs",
                     max(0, best_time_left),
@@ -229,10 +227,7 @@ class EndpointRotator:
             return
         health.failure_count += 1
         health.consecutive_failures += 1
-        if (
-            health.consecutive_failures >= _MAX_CONSECUTIVE_FAILURES
-            and health.disabled_at is None
-        ):
+        if health.consecutive_failures >= _MAX_CONSECUTIVE_FAILURES and health.disabled_at is None:
             health.disabled_at = time.monotonic()
             logger.warning(
                 "Disabled endpoint %s after %d consecutive failures",

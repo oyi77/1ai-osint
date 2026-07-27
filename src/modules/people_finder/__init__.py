@@ -14,9 +14,7 @@ class PeopleFinderTool(BaseOSINTTool):
     """Search for user profiles across social media platforms."""
 
     name = "people_finder"
-    description = (
-        "Search for usernames across social media platforms using Sherlock/Maigret"
-    )
+    description = "Search for usernames across social media platforms using Sherlock/Maigret"
     version = "0.1.0"
 
     def __init__(
@@ -47,7 +45,7 @@ class PeopleFinderTool(BaseOSINTTool):
         else:
             return {"error": "Unsupported data type"}
 
-        sites = {}
+        sites: dict[str, int] = {}
         for f in findings:
             site = f.raw_data.get("site", "unknown")
             sites[site] = sites.get(site, 0) + 1

@@ -136,9 +136,7 @@ class Sweeper:
 
         try:
             if chain.chain_type == ChainType.EVM:
-                return await self._sweep_evm(
-                    private_key_hex, chain, source_address, dest, balance_raw
-                )
+                return await self._sweep_evm(private_key_hex, chain, source_address, dest, balance_raw)
             elif chain.chain_type == ChainType.SOLANA:
                 # Check if account is system-owned before sweep
                 if not await self._is_solana_system_account(source_address, chain):
@@ -151,13 +149,9 @@ class Sweeper:
                         amount_raw=balance_raw,
                         error="Program-owned account (not System Program) — cannot sweep",
                     )
-                return await self._sweep_sol(
-                    private_key_hex, chain, source_address, dest, balance_raw
-                )
+                return await self._sweep_sol(private_key_hex, chain, source_address, dest, balance_raw)
             elif chain.chain_type == ChainType.BITCOIN:
-                return await self._sweep_btc(
-                    private_key_hex, chain, source_address, dest, balance_raw
-                )
+                return await self._sweep_btc(private_key_hex, chain, source_address, dest, balance_raw)
             else:
                 return SweepResult(
                     success=False,
@@ -169,9 +163,7 @@ class Sweeper:
                     error=f"Unsupported chain type: {chain.chain_type}",
                 )
         except Exception as e:
-            logger.error(
-                "Sweep failed for %s on %s: %s", source_address[:10], chain.name, e
-            )
+            logger.error("Sweep failed for %s on %s: %s", source_address[:10], chain.name, e)
             return SweepResult(
                 success=False,
                 chain=chain.name,
@@ -214,7 +206,7 @@ class Sweeper:
             )
 
         # Build transaction
-        nonce = w3.eth.get_transaction_count(source)
+        nonce = w3.eth.get_transaction_count(w3.to_checksum_address(source))
         tx = {
             "nonce": nonce,
             "to": dest,
@@ -252,7 +244,8 @@ class Sweeper:
                     "method": "getAccountInfo",
                     "params": [address, {"encoding": "base64"}],
                 }
-                resp = await client.post(chain.rpc_url, json=payload)
+                rpc_url = chain.rpc_url or ""
+                resp = await client.post(rpc_url, json=payload)
                 data = resp.json()
                 value = data.get("result", {}).get("value")
                 if value is None:
@@ -442,9 +435,7 @@ class Sweeper:
             # Get fee estimate
             try:
                 fee_resp = httpx.get(f"{api}/fee-estimates", timeout=_TIMEOUT)
-                fee_per_byte = (
-                    fee_resp.json().get("6", 10) if fee_resp.status_code == 200 else 10
-                )
+                fee_per_byte = fee_resp.json().get("6", 10) if fee_resp.status_code == 200 else 10
             except Exception:
                 fee_per_byte = 10
 
@@ -455,9 +446,7 @@ class Sweeper:
                 Unspent(
                     amount=u["value"],
                     confirmations=0,
-                    script=bytes.fromhex("76a914")
-                    + key.address.encode()
-                    + bytes.fromhex("88ac"),
+                    script=bytes.fromhex("76a914") + key.address.encode() + bytes.fromhex("88ac"),
                     txid=u["txid"],
                     txindex=u["vout"],
                 )
@@ -471,13 +460,9 @@ class Sweeper:
             fee_sat = int(fee_per_byte * tx_size_estimate)
             amount_sat = total_sat - fee_sat
             if amount_sat <= 0:
-                raise RuntimeError(
-                    f"Insufficient for fee (need ~{fee_sat} sat, have {total_sat})"
-                )
+                raise RuntimeError(f"Insufficient for fee (need ~{fee_sat} sat, have {total_sat})")
 
-            tx_hash = key.send(
-                [(dest, amount_sat, "sat")], fee=fee_sat, absolute_fee=True
-            )
+            tx_hash = key.send([(dest, amount_sat, "sat")], fee=fee_sat, absolute_fee=True)
             return tx_hash, amount_sat
 
         loop = _asyncio.get_event_loop()

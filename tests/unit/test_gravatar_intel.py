@@ -1,8 +1,10 @@
 """Tests for Gravatar Intelligence module."""
 
-import pytest
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import httpx
-from unittest.mock import patch, MagicMock, AsyncMock
+import pytest
+
 from src.modules.free_intel.gravatar_intel import GravatarIntel
 
 
@@ -52,9 +54,7 @@ async def test_gravatar_lookup_success():
         assert len(profile.verified_accounts) == 1
         assert profile.verified_accounts[0]["domain"] == "github.com"
         assert profile.verified_accounts[0]["username"] == "testuser"
-        mock_client.get.assert_called_once_with(
-            f"https://en.gravatar.com/{email_hash}.json"
-        )
+        mock_client.get.assert_called_once_with(f"https://en.gravatar.com/{email_hash}.json")
 
 
 @pytest.mark.asyncio

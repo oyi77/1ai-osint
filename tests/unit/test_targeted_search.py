@@ -1,9 +1,10 @@
 """Tests for the targeted search module: known mnemonic, account range, and filtered random scan."""
 
-import pytest
 from unittest.mock import AsyncMock, patch
 
-from src.modules.crypto.balance.chains import ETHEREUM, ALL_CHAINS
+import pytest
+
+from src.modules.crypto.balance.chains import ALL_CHAINS, ETHEREUM
 from src.modules.crypto.balance.checker import BalanceResult
 from src.modules.crypto.balance.targeted_search import (
     AccountRangeScan,
@@ -12,7 +13,6 @@ from src.modules.crypto.balance.targeted_search import (
     TargetedScanResult,
     targeted_scan_to_scanresult,
 )
-
 
 VALID_MNEMONIC = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
 

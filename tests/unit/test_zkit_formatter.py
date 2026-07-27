@@ -4,15 +4,14 @@ import json
 
 import pytest
 
-from src.core.models import Finding, ScanResult, BreachRecord, Identity, Severity
-from src.modules.output.zkit_formatter import (
-    ZKITFormatter,
-)
+from src.core.models import BreachRecord, Finding, Identity, ScanResult, Severity
 from src.modules.identity_tracking.zkit_engine import (
     CorrelatedCluster,
     CorrelationConfidence,
 )
-
+from src.modules.output.zkit_formatter import (
+    ZKITFormatter,
+)
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -257,20 +256,14 @@ class TestRedactionAudit:
 
 
 class TestFormatWithClusters:
-    def test_format_with_clusters_returns_json(
-        self, formatter, sample_results, sample_clusters
-    ):
-        output = formatter.format_with_clusters(
-            sample_results, sample_clusters, investigation_id="inv-001"
-        )
+    def test_format_with_clusters_returns_json(self, formatter, sample_results, sample_clusters):
+        output = formatter.format_with_clusters(sample_results, sample_clusters, investigation_id="inv-001")
         parsed = json.loads(output)
         assert parsed["report_type"] == "1ai-osint-zkit-correlated"
         assert parsed["investigation_id"] == "inv-001"
 
     def test_clusters_in_output(self, formatter, sample_results, sample_clusters):
-        parsed = json.loads(
-            formatter.format_with_clusters(sample_results, sample_clusters)
-        )
+        parsed = json.loads(formatter.format_with_clusters(sample_results, sample_clusters))
         clusters = parsed["correlation_clusters"]
         assert len(clusters) == 1
         assert clusters[0]["cluster_id"] == "cluster-0000"
@@ -281,21 +274,13 @@ class TestFormatWithClusters:
         output = formatter.format_with_clusters(sample_results, sample_clusters)
         assert "user@example.com" not in output
 
-    def test_clusters_sorted_attribute_types(
-        self, formatter, sample_results, sample_clusters
-    ):
-        parsed = json.loads(
-            formatter.format_with_clusters(sample_results, sample_clusters)
-        )
+    def test_clusters_sorted_attribute_types(self, formatter, sample_results, sample_clusters):
+        parsed = json.loads(formatter.format_with_clusters(sample_results, sample_clusters))
         cluster = parsed["correlation_clusters"][0]
         assert cluster["attribute_types"] == sorted(cluster["attribute_types"])
 
-    def test_audit_present_with_clusters(
-        self, formatter, sample_results, sample_clusters
-    ):
-        parsed = json.loads(
-            formatter.format_with_clusters(sample_results, sample_clusters)
-        )
+    def test_audit_present_with_clusters(self, formatter, sample_results, sample_clusters):
+        parsed = json.loads(formatter.format_with_clusters(sample_results, sample_clusters))
         assert "redaction_audit" in parsed
         assert parsed["redaction_audit"]["total_redactions"] > 0
 

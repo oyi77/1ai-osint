@@ -1,8 +1,9 @@
 from unittest.mock import MagicMock
+
 from src.modules.deep_scan.dossier_compiler import DossierCompiler
 from src.modules.free_intel.github_intel import GitHubProfile
-from src.modules.free_intel.gravatar_intel import GravatarProfile
 from src.modules.free_intel.google_dork_intel import DorkResult
+from src.modules.free_intel.gravatar_intel import GravatarProfile
 
 
 def test_compile_with_github():
@@ -70,9 +71,7 @@ def test_compile_confidence_score():
 
 def test_deduplication():
     compiler = DossierCompiler()
-    gh = GitHubProfile(
-        username="u", email="same@email.com", commit_emails=["same@email.com"]
-    )
+    gh = GitHubProfile(username="u", email="same@email.com", commit_emails=["same@email.com"])
     dossier = compiler.compile("User", github_profiles=[gh])
     email_count = sum(1 for e in dossier.emails if e.address == "same@email.com")
     assert email_count == 1  # Should not duplicate
@@ -112,10 +111,7 @@ def test_compile_with_messaging():
 
     # 1. No existing phone in dossier
     dossier1 = compiler.compile("User", messaging_results=[mr])
-    assert any(
-        p.number == "0812345678" and p.whatsapp_registered is True
-        for p in dossier1.phones
-    )
+    assert any(p.number == "0812345678" and p.whatsapp_registered is True for p in dossier1.phones)
 
     # 2. Existing phone in dossier (from dorks)
     dr = DorkResult(query="User", extracted_phones=["0812345678"])
@@ -179,10 +175,7 @@ def test_compile_with_social_findings():
     assert any(e.address == "direct@example.com" for e in dossier.emails)
     assert dossier.current_employer == "DirectCo"
     assert "Surabaya, Indonesia" in dossier.known_locations
-    assert any(
-        a.platform == "instagram" and a.username == "directuser"
-        for a in dossier.social_accounts
-    )
+    assert any(a.platform == "instagram" and a.username == "directuser" for a in dossier.social_accounts)
     assert "External Open-Source Tools" in dossier.data_sources_used
 
 

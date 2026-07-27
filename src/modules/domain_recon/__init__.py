@@ -58,7 +58,7 @@ class DomainReconTool(BaseOSINTTool):
 
         except Exception as exc:
             logger.error("Domain recon failed: %s", exc)
-            results = []
+            results = []  # type: ignore[assignment]
 
         return ScanResult(
             scan_id=scan_id,
@@ -68,9 +68,7 @@ class DomainReconTool(BaseOSINTTool):
             findings=findings,
             metadata={
                 "target": target,
-                "tasks_completed": len(
-                    [r for r in results if not isinstance(r, Exception)]
-                ),
+                "tasks_completed": len([r for r in results if not isinstance(r, Exception)]),
                 "tasks_failed": len([r for r in results if isinstance(r, Exception)]),
             },
             started_at=started_at,
@@ -117,9 +115,7 @@ class DomainReconTool(BaseOSINTTool):
         """Enumerate DNS records."""
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                resp = await client.get(
-                    f"https://dns.google/resolve?name={domain}&type=ANY"
-                )
+                resp = await client.get(f"https://dns.google/resolve?name={domain}&type=ANY")
                 if resp.status_code == 200:
                     data = resp.json()
                     answers = data.get("Answer", [])
@@ -192,20 +188,16 @@ class DomainReconTool(BaseOSINTTool):
                             },
                         )
         except Exception as exc:
-            logger.debug(
-                "Certificate transparency check failed for %s: %s", domain, exc
-            )
+            logger.debug("Certificate transparency check failed for %s: %s", domain, exc)
         return None
 
     async def _tech_stack_detection(self, domain: str) -> Finding | None:
         """Detect technology stack via HTTP headers."""
         try:
-            async with httpx.AsyncClient(
-                timeout=self.timeout, follow_redirects=True
-            ) as client:
+            async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
                 resp = await client.get(f"https://{domain}")
                 headers = dict(resp.headers)
-                tech_indicators = {}
+                tech_indicators: dict[str, Any] = {}
 
                 # Server header
                 if "server" in headers:
@@ -217,7 +209,7 @@ class DomainReconTool(BaseOSINTTool):
 
                 # Content-Security-Policy
                 if "content-security-policy" in headers:
-                    tech_indicators["csp"] = True
+                    tech_indicators["csp"] = "true"
 
                 # X-Frame-Options
                 if "x-frame-options" in headers:

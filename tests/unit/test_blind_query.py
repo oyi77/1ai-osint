@@ -1,7 +1,9 @@
 """Unit tests for BlindQueryResolver privacy ranges."""
 
-import pytest
 from unittest.mock import patch
+
+import pytest
+
 from src.modules.data_leaks.breach_checker import BlindQueryResolver
 
 

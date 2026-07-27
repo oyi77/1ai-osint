@@ -1,14 +1,14 @@
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-from src.modules.free_intel.google_dork_intel import GoogleDorkIntel, DorkResult
+
+import pytest
+
+from src.modules.free_intel.google_dork_intel import DorkResult, GoogleDorkIntel
 
 
 @pytest.mark.asyncio
 async def test_search_extracts_emails():
     intel = GoogleDorkIntel()
-    mock_html = (
-        '<span class="result__snippet">Contact us at admin@example.com for info</span>'
-    )
+    mock_html = '<span class="result__snippet">Contact us at admin@example.com for info</span>'
     with patch("httpx.AsyncClient") as MockClient:
         client = AsyncMock()
         MockClient.return_value.__aenter__ = AsyncMock(return_value=client)
@@ -28,9 +28,7 @@ async def test_search_extracts_emails():
 @pytest.mark.asyncio
 async def test_search_extracts_phones():
     intel = GoogleDorkIntel()
-    mock_html = (
-        '<span class="result__snippet">Call +6281234567890 or 081234567890</span>'
-    )
+    mock_html = '<span class="result__snippet">Call +6281234567890 or 081234567890</span>'
     with patch("httpx.AsyncClient") as MockClient:
         client = AsyncMock()
         MockClient.return_value.__aenter__ = AsyncMock(return_value=client)

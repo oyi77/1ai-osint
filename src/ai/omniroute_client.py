@@ -7,7 +7,7 @@ import logging
 import time
 from typing import Any, Optional
 
-from openai import APIConnectionError, APITimeoutError, OpenAI, AsyncOpenAI, RateLimitError
+from openai import APIConnectionError, APITimeoutError, AsyncOpenAI, OpenAI, RateLimitError
 
 from src.core.config import settings
 
@@ -47,10 +47,7 @@ class OmniRouteClient:
         # Fallback: direct OpenAI (only if OmniRoute differs and direct key exists)
         self._fallback_client: Optional[OpenAI] = None
         self._async_fallback: Optional[AsyncOpenAI] = None
-        if (
-            settings.openai_api_key
-            and settings.openai_base_url != settings.omniroute_base_url
-        ):
+        if settings.openai_api_key and settings.openai_base_url != settings.omniroute_base_url:
             self._fallback_client = OpenAI(
                 base_url=settings.openai_base_url,
                 api_key=settings.openai_api_key,
@@ -65,7 +62,10 @@ class OmniRouteClient:
     # ------------------------------------------------------------------ #
 
     def _call_with_retry(
-        self, client: OpenAI, messages: list[dict[str, Any]], **kwargs: Any,
+        self,
+        client: OpenAI,
+        messages: list[dict[str, Any]],
+        **kwargs: Any,
     ) -> str:
         """Send a chat completion request with exponential backoff retry."""
         delay = _RETRY_DELAY
@@ -98,7 +98,10 @@ class OmniRouteClient:
     # ------------------------------------------------------------------ #
 
     async def _async_call_with_retry(
-        self, client: AsyncOpenAI, messages: list[dict[str, Any]], **kwargs: Any,
+        self,
+        client: AsyncOpenAI,
+        messages: list[dict[str, Any]],
+        **kwargs: Any,
     ) -> str:
         """Send an async chat completion request with exponential backoff retry."""
         delay = _RETRY_DELAY
@@ -157,9 +160,7 @@ class OmniRouteClient:
             if self._fallback_client:
                 logger.info("Falling back to direct OpenAI endpoint")
                 try:
-                    return self._call_with_retry(
-                        self._fallback_client, messages, **call_kwargs
-                    )
+                    return self._call_with_retry(self._fallback_client, messages, **call_kwargs)
                 except Exception as fallback_err:
                     logger.error("OpenAI fallback also failed: %s", fallback_err)
                     raise fallback_err
@@ -210,17 +211,13 @@ class OmniRouteClient:
             call_kwargs["model"] = model
 
         try:
-            return await self._async_call_with_retry(
-                self._async_primary, messages, **call_kwargs
-            )
+            return await self._async_call_with_retry(self._async_primary, messages, **call_kwargs)
         except Exception as primary_err:
             logger.error("OmniRoute async failed after retries: %s", primary_err)
             if self._async_fallback:
                 logger.info("Falling back to direct OpenAI async endpoint")
                 try:
-                    return await self._async_call_with_retry(
-                        self._async_fallback, messages, **call_kwargs
-                    )
+                    return await self._async_call_with_retry(self._async_fallback, messages, **call_kwargs)
                 except Exception as fallback_err:
                     logger.error("OpenAI async fallback also failed: %s", fallback_err)
                     raise fallback_err
@@ -312,4 +309,5 @@ class OmniRouteClient:
 async def _async_sleep(delay: float) -> None:
     """Async sleep helper (avoids asyncio import at module level)."""
     import asyncio
+
     await asyncio.sleep(delay)

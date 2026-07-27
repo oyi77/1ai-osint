@@ -1,8 +1,10 @@
 """Tests for Social Media Dorks Intelligence module."""
 
-import pytest
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import httpx
-from unittest.mock import patch, MagicMock, AsyncMock
+import pytest
+
 from src.modules.free_intel.social_dorks_intel import SocialDorksIntel
 
 

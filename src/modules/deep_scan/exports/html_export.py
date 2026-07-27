@@ -77,7 +77,7 @@ def _svg_graph(report: IntelReport) -> str:
         tgt = positions.get(edge.target_id)
         if src and tgt:
             color = "#94a3b8"
-            sw = 1
+            sw: float = 1
             if edge.relationship == "found_on":
                 color = "#3b82f6"
                 sw = 1.5
@@ -98,9 +98,7 @@ def _svg_graph(report: IntelReport) -> str:
             fill = "#f59e0b"
         r = 18
         label = node.label[:12] + (".." if len(node.label) > 12 else "")
-        svg_parts.append(
-            f'<circle cx="{pos[0]}" cy="{pos[1]}" r="{r}" fill="{fill}" opacity="0.8"/>'
-        )
+        svg_parts.append(f'<circle cx="{pos[0]}" cy="{pos[1]}" r="{r}" fill="{fill}" opacity="0.8"/>')
         svg_parts.append(
             f'<text x="{pos[0]}" y="{pos[1] + 4}" text-anchor="middle" fill="white" font-size="9">{label}</text>'
         )
@@ -155,9 +153,7 @@ def export_html(report: IntelReport) -> str:
 
 def _reliability_badge(reliability: str) -> str:
     """Render a colored NATO A-F reliability badge."""
-    cls = (
-        f"badge-{reliability.lower()}" if reliability.lower() in "abcdf" else "badge-f"
-    )
+    cls = f"badge-{reliability.lower()}" if reliability.lower() in "abcdf" else "badge-f"
     return f'<span class="badge {cls}">{reliability}</span>'
 
 

@@ -18,12 +18,8 @@ class Profile(BaseModel):
     username: str = Field(..., description="Username on the platform")
     url: Optional[str] = Field(default=None, description="Profile URL")
     status: str = Field(default="found", description="found, possibly, error")
-    source_providers: list[str] = Field(
-        default_factory=list, description="Providers that found this profile"
-    )
-    confidence: float = Field(
-        default=0.5, ge=0.0, le=1.0, description="Confidence score"
-    )
+    source_providers: list[str] = Field(default_factory=list, description="Providers that found this profile")
+    confidence: float = Field(default=0.5, ge=0.0, le=1.0, description="Confidence score")
     raw_data: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -54,7 +50,7 @@ class PeopleFinderSearch(BaseOSINTTool):
 
     def _get_providers(self) -> dict[str, Any]:
         """Get available social media search providers."""
-        available = {}
+        available: dict[str, Any] = {}
         if shutil.which("sherlock"):
             try:
                 from src.vendor.chiasmodon.providers.sherlock import SherlockProvider
@@ -80,9 +76,7 @@ class PeopleFinderSearch(BaseOSINTTool):
                 pass
 
         if self._requested_providers:
-            return {
-                k: v for k, v in available.items() if k in self._requested_providers
-            }
+            return {k: v for k, v in available.items() if k in self._requested_providers}
         return available
 
     async def search(self, query: str, **kwargs) -> ScanResult:
@@ -131,9 +125,7 @@ class PeopleFinderSearch(BaseOSINTTool):
         # Score confidence for each profile
         total_providers = len(providers) - len(errors)
         for profile in profiles:
-            profile.confidence = self._score_confidence(
-                profile.source_providers, total_providers
-            )
+            profile.confidence = self._score_confidence(profile.source_providers, total_providers)
 
         # Filter low-confidence profiles
         profiles = [p for p in profiles if p.confidence >= _CONFIDENCE_THRESHOLD]
@@ -211,9 +203,7 @@ class PeopleFinderSearch(BaseOSINTTool):
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, provider.search, query)
 
-    def _parse_provider_results(
-        self, provider_name: str, result: Any
-    ) -> list[dict[str, Any]]:
+    def _parse_provider_results(self, provider_name: str, result: Any) -> list[dict[str, Any]]:
         """
         Parse a provider's raw result into normalized profile dicts.
 
@@ -222,7 +212,7 @@ class PeopleFinderSearch(BaseOSINTTool):
         - Maigret: {"site": {"url": ..., "status": ..., ...}}
         - WhatsMyName: [{"platform": ..., "url": ..., ...}]
         """
-        profiles = []
+        profiles: list[dict[str, Any]] = []
 
         if isinstance(result, dict) and result.get("error"):
             return profiles
@@ -265,8 +255,7 @@ class PeopleFinderSearch(BaseOSINTTool):
                 if status in ("claimed", "found", "active"):
                     profiles.append(
                         {
-                            "platform": item.get("platform")
-                            or item.get("site", "unknown"),
+                            "platform": item.get("platform") or item.get("site", "unknown"),
                             "username": item.get("username", ""),
                             "url": item.get("url", ""),
                             "status": "found",
@@ -277,9 +266,7 @@ class PeopleFinderSearch(BaseOSINTTool):
 
         return profiles
 
-    def _deduplicate_profiles(
-        self, raw_profiles: list[dict[str, Any]]
-    ) -> list[Profile]:
+    def _deduplicate_profiles(self, raw_profiles: list[dict[str, Any]]) -> list[Profile]:
         """
         Deduplicate profiles across providers by platform key.
 
@@ -312,7 +299,7 @@ class PeopleFinderSearch(BaseOSINTTool):
                     "raw_data": p.get("raw_data", {}),
                 }
 
-        profiles = []
+        profiles: list[Profile] = []
         for data in seen.values():
             profiles.append(
                 Profile(

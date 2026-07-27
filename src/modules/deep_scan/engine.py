@@ -18,68 +18,36 @@ from src.modules.deep_scan import (
     Identifier,
     IdentifierType,
 )
+from src.modules.deep_scan._module_config import (
+    MODULE_INPUTS,
+    SOURCE_MODULES,
+)
+from src.modules.deep_scan.deep_scraper import DeepScraperEngine
 from src.modules.deep_scan.extractor import (
     extract_identifiers,
     extract_usernames_from_profiles,
+    username_from_profile_url,
 )
-from src.modules.deep_scan.free_intel_adapter import list_free_intel_modules
+from src.modules.deep_scan.free_intel_adapter import (
+    list_free_intel_modules,
+    run_free_intel_scan,
+)
+from src.modules.deep_scan.handle_verifier import batch_verify_handles
+from src.modules.deep_scan.name_pivots import (
+    primary_username_for_name,
+    username_candidates_from_name,
+)
+from src.modules.deep_scan.profiles import fast_module_list, fast_scan_defaults
+from src.modules.deep_scan.source_adapter import run_source_scan
+from src.modules.deep_scan.vision_correlator import VisionCorrelator
 
 logger = logging.getLogger(__name__)
 
-# Module → identifier types it can consume
-_MODULE_INPUTS: dict[str, set[IdentifierType]] = {
-    "social_osint": {
-        IdentifierType.USERNAME,
-        IdentifierType.NAME,
-        IdentifierType.SOCIAL_PROFILE,
-    },
-    "email_osint": {IdentifierType.EMAIL},
-    "domain_recon": {IdentifierType.DOMAIN},
-    "people_finder": {IdentifierType.USERNAME, IdentifierType.NAME},
-    "phone_finder": {IdentifierType.PHONE},
-    "data_leaks": {IdentifierType.EMAIL, IdentifierType.USERNAME, IdentifierType.PHONE},
-    "crypto_balance": {IdentifierType.CRYPTO_ADDRESS},
-    "gitleaks": {IdentifierType.DOMAIN, IdentifierType.URL},
-    "vuln_scanner": {IdentifierType.DOMAIN, IdentifierType.IP},
-    "dehashed": {
-        IdentifierType.EMAIL,
-        IdentifierType.USERNAME,
-        IdentifierType.PHONE,
-        IdentifierType.DOMAIN,
-    },
-    "leakcheck": {IdentifierType.EMAIL, IdentifierType.USERNAME},
-    "snylla": {
-        IdentifierType.EMAIL,
-        IdentifierType.USERNAME,
-        IdentifierType.PHONE,
-        IdentifierType.DOMAIN,
-    },
-    "snusbase": {IdentifierType.EMAIL, IdentifierType.USERNAME, IdentifierType.PHONE},
-    "hibp": {IdentifierType.EMAIL},
-    "intelx": {
-        IdentifierType.EMAIL,
-        IdentifierType.USERNAME,
-        IdentifierType.PHONE,
-        IdentifierType.DOMAIN,
-        IdentifierType.NAME,
-    },
-    # Free intel modules (search engine dorking, gravatar, wayback)
-    "social_dorks_intel": {IdentifierType.NAME},
-    "gravatar_intel": {IdentifierType.EMAIL},
-    "wayback_intel": {IdentifierType.URL},
-    "github_intel": {IdentifierType.USERNAME},
-    "google_dork_intel": {IdentifierType.NAME},
-    "hibp_free": {IdentifierType.EMAIL},
-    "bts_intel": {IdentifierType.PHONE},
-    "pddikti_intel": {IdentifierType.NAME},
-    "tech_jobs_intel": {IdentifierType.NAME},
-    "whatsapp_check": {IdentifierType.PHONE},
-    "telegram_check": {IdentifierType.USERNAME},
-}
-_FREE_INTEL_MODULES: set[str] = set(list_free_intel_modules())
+# Module-level aliases for imported config
+_MODULE_INPUTS = MODULE_INPUTS
+_SOURCE_MODULES = SOURCE_MODULES
 
-# Sources handled by source_adapter (separate from CLI modules)
-_SOURCE_MODULES = {"dehashed", "leakcheck", "snylla", "snusbase", "hibp", "intelx"}
+_FREE_INTEL_MODULES: set[str] = set(list_free_intel_modules())
 
 
 class DeepScanEngine:
@@ -113,11 +81,6 @@ class DeepScanEngine:
             fast = profile_config.fast_mode
             modules = list(profile_config.modules)
         elif fast:
-            from src.modules.deep_scan.profiles import (
-                fast_module_list,
-                fast_scan_defaults,
-            )
-
             defaults = fast_scan_defaults()
             max_iterations = min(max_iterations, int(defaults["max_iterations"]))
             timeout_per_module = min(timeout_per_module, float(defaults["timeout_per_module"]))
@@ -154,10 +117,6 @@ class DeepScanEngine:
         if initial:
             result.identifiers.append(initial)
             if initial.id_type == IdentifierType.NAME:
-                from src.modules.deep_scan.name_pivots import (
-                    username_candidates_from_name,
-                )
-
                 pivots = username_candidates_from_name(target)[: self.max_pivot_handles]
 
                 # Verify handle existence before trusting name-permuted handles.
@@ -166,10 +125,6 @@ class DeepScanEngine:
                 # even though it belongs to a different person.
                 _unverified: set[str] = set()
                 try:
-                    from src.modules.deep_scan.handle_verifier import (
-                        batch_verify_handles,
-                    )
-
                     handle_handles = [h for h, _ in pivots]
                     _verifications = await batch_verify_handles(handle_handles)
                     for h, _ in pivots:
@@ -231,9 +186,8 @@ class DeepScanEngine:
         usernames = list({i.value for i in result.identifiers if i.id_type == IdentifierType.USERNAME})
 
         # If no usernames were found directly, pivot the target name
-        if not usernames and self._detect_identifier(target, "init").id_type == IdentifierType.NAME:
-            from src.modules.deep_scan.name_pivots import primary_username_for_name
-
+        init_ident = self._detect_identifier(target, "init")
+        if not usernames and init_ident is not None and init_ident.id_type == IdentifierType.NAME:
             p_uname = primary_username_for_name(target)
             if p_uname:
                 usernames.append(p_uname)
@@ -271,9 +225,6 @@ class DeepScanEngine:
                 "Executing Phase 4: Scraping and correlating %d social profiles...",
                 len(social_findings),
             )
-            from src.modules.deep_scan.deep_scraper import DeepScraperEngine
-            from src.modules.deep_scan.vision_correlator import VisionCorrelator
-
             scraper = DeepScraperEngine()
             correlator = VisionCorrelator()
 
@@ -375,7 +326,7 @@ class DeepScanEngine:
 
     async def _run_iteration(self, result: DeepScanResult, targets: set[str]) -> None:
         """Run one iteration of scanning across all modules."""
-        from src.cli.main import _get_module
+        from src.cli.helpers import get_module as _get_module
 
         modules = self._get_active_modules()
         tasks = []
@@ -438,7 +389,7 @@ class DeepScanEngine:
 
     async def _run_module_scan(
         self,
-        scan_coro: Awaitable[ScanResult],
+        scan_coro: Awaitable[ScanResult | None],
         error_prefix: str,
         target: str,
         result: DeepScanResult,
@@ -485,8 +436,6 @@ class DeepScanEngine:
         result: DeepScanResult,
     ) -> None:
         """Run a breach/leak source via the source adapter."""
-        from src.modules.deep_scan.source_adapter import run_source_scan
-
         await self._run_module_scan(
             run_source_scan(source_name, target, source_inst),
             f"source_{source_name}",
@@ -501,8 +450,6 @@ class DeepScanEngine:
         result: DeepScanResult,
     ) -> None:
         """Run a free intel module via the free_intel_adapter."""
-        from src.modules.deep_scan.free_intel_adapter import run_free_intel_scan
-
         await self._run_module_scan(
             run_free_intel_scan(mod_name, target),
             f"free_{mod_name}",
@@ -512,8 +459,6 @@ class DeepScanEngine:
 
     def _get_new_targets(self, result: DeepScanResult, seen: set[str]) -> set[str]:
         """Extract new targets from discovered identifiers."""
-        from src.modules.deep_scan.extractor import username_from_profile_url
-
         targets: set[str] = set()
         for ident in result.identifiers:
             if ident.confidence < 0.3:

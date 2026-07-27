@@ -46,9 +46,7 @@ class HookDispatcher:
         if not plugins:
             return []
 
-        coros = [
-            self._safe_call(plugin, hook_name, **kwargs) for plugin in plugins
-        ]
+        coros = [self._safe_call(plugin, hook_name, **kwargs) for plugin in plugins]
 
         # Run concurrently — one failure doesn't stop the rest
         results: list[Any] = []
@@ -99,10 +97,8 @@ class HookDispatcher:
                 return None
             result = method(**kwargs)
             if hasattr(result, "__await__") or hasattr(result, "__aiter__"):
-                return await result  # type: ignore[union-attr]
+                return await result
             return result
         except Exception as exc:
-            logger.exception(
-                "Plugin %s hook %s raised: %s", plugin.name, hook_name, exc
-            )
+            logger.exception("Plugin %s hook %s raised: %s", plugin.name, hook_name, exc)
             raise  # re-raise so as_completed / sequential loop can catch

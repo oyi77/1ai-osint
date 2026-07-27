@@ -28,12 +28,8 @@ class ExtractedKey:
     derived_addresses: dict[str, str] = field(default_factory=dict)
 
 
-_HEX_KEY_PATTERN = re.compile(
-    r"(?:0x)?(?<![0-9a-fA-F])([0-9a-fA-F]{64})(?![0-9a-fA-F])"
-)
-_WIF_PATTERN = re.compile(
-    r"(?<![1-9A-HJ-NP-Za-km-z])([5KL][1-9A-HJ-NP-Za-km-z]{50,51})(?![1-9A-HJ-NP-Za-km-z])"
-)
+_HEX_KEY_PATTERN = re.compile(r"(?:0x)?(?<![0-9a-fA-F])([0-9a-fA-F]{64})(?![0-9a-fA-F])")
+_WIF_PATTERN = re.compile(r"(?<![1-9A-HJ-NP-Za-km-z])([5KL][1-9A-HJ-NP-Za-km-z]{50,51})(?![1-9A-HJ-NP-Za-km-z])")
 _BASE58_SOLANA_PATTERN = re.compile(
     r"(?<![1-9A-HJ-NP-Za-km-z])([2-9A-HJ-NP-Za-km-z][1-9A-HJ-NP-Za-km-z]{85,87})(?![1-9A-HJ-NP-Za-km-z])"
 )
@@ -173,7 +169,7 @@ def extract_keys(text: str) -> list[ExtractedKey]:
             k = hex_match.group(1).lower()
             if k not in seen:
                 seen.add(k)
-                addrs: dict[str, str] = {}
+                addrs = {}
                 evm = _derive_evm_address(k)
                 if evm:
                     addrs["Ethereum"] = addrs["BSC"] = addrs["Polygon"] = evm
@@ -198,7 +194,7 @@ def extract_keys(text: str) -> list[ExtractedKey]:
             k = hex_match.group(1).lower()
             if k not in seen:
                 seen.add(k)
-                addrs: dict[str, str] = {}
+                addrs = {}
                 evm = _derive_evm_address(k)
                 if evm:
                     addrs["Ethereum"] = addrs["BSC"] = addrs["Polygon"] = evm
@@ -221,13 +217,10 @@ def extract_keys(text: str) -> list[ExtractedKey]:
         if k in seen:
             continue
         start = max(0, m.start() - 200)
-        if not (
-            m.group(0).startswith("0x")
-            or bool(_KEY_CONTEXT_PATTERN.search(text[start : m.start()]))
-        ):
+        if not (m.group(0).startswith("0x") or bool(_KEY_CONTEXT_PATTERN.search(text[start : m.start()]))):
             continue
         seen.add(k)
-        addrs: dict[str, str] = {}
+        addrs = {}
         evm = _derive_evm_address(k)
         if evm:
             addrs["Ethereum"] = addrs["BSC"] = addrs["Polygon"] = evm

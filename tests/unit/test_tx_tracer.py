@@ -1,7 +1,8 @@
 """Unit tests for BlockchainTxTracer module."""
 
-import pytest
 from unittest.mock import patch
+
+import pytest
 
 from src.core.models import Severity
 from src.modules.crypto.tx_tracer import BlockchainTxTracer
@@ -39,9 +40,7 @@ async def test_tracer_btc_exchange():
     res = await tracer.scan(btc_target)
     assert res.status == "ok"
     finding = res.findings[0]
-    assert (
-        finding.raw_data["mixer_interactions"] > 0
-    )  # Mixer Sinbad is matched in tracer trace mock
+    assert finding.raw_data["mixer_interactions"] > 0  # Mixer Sinbad is matched in tracer trace mock
     assert finding.raw_data["risk_score"] >= 0.7
 
 

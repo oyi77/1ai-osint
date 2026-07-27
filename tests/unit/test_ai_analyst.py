@@ -1,14 +1,15 @@
 """Tests for Phase 5 Pillar 1: Adversarial AI Analyst."""
 
 from __future__ import annotations
-import pytest
+
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
 from src.modules.deep_scan.ai_analyst import AdversarialAnalyst, CIAAnalysis
 
 
-def _make_mock_report(
-    risk_score=0.5, risk_level="medium", evidence_count=10, modules_run=None
-):
+def _make_mock_report(risk_score=0.5, risk_level="medium", evidence_count=10, modules_run=None):
     report = MagicMock()
     report.target = "test@example.com"
     risk = MagicMock()
@@ -68,9 +69,7 @@ async def test_llm_fallback_on_error():
     report = _make_mock_report()
     with (
         patch.object(analyst, "_llm_available", True),
-        patch.object(
-            analyst, "_llm_analysis", new=AsyncMock(side_effect=Exception("API error"))
-        ),
+        patch.object(analyst, "_llm_analysis", new=AsyncMock(side_effect=Exception("API error"))),
     ):
         result = await analyst.run_analysis(report)
     assert isinstance(result, CIAAnalysis)
@@ -101,9 +100,7 @@ async def test_check_llm_not_available_without_keys():
     """Without API keys, LLM should not be available."""
     import os
 
-    keys_backup = {
-        k: os.environ.pop(k, None) for k in ["OPENAI_API_KEY", "OMNIROUTE_API_KEY"]
-    }
+    keys_backup = {k: os.environ.pop(k, None) for k in ["OPENAI_API_KEY", "OMNIROUTE_API_KEY"]}
     try:
         available = AdversarialAnalyst._check_llm_available()
         assert not available

@@ -1,16 +1,16 @@
 """Tests for extractor.py key extraction engine."""
 
+from src.modules.crypto.balance.deriver import _base58_encode
 from src.modules.crypto.leak_finder.extractor import (
+    _HEX_KEY_PATTERN,
+    _MNEMONIC_WORD_RE,
+    _WIF_PATTERN,
     ExtractedKey,
     KeyType,
-    extract_keys,
     _base58_decode,
     _load_bip39_words,
-    _HEX_KEY_PATTERN,
-    _WIF_PATTERN,
-    _MNEMONIC_WORD_RE,
+    extract_keys,
 )
-from src.modules.crypto.balance.deriver import _base58_encode
 
 
 class TestBase58:

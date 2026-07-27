@@ -19,7 +19,6 @@ import pytest
 from src.modules.identity_tracking.identity_graph import IdentityGraph, NodeType
 from src.modules.identity_tracking.zkit_engine import ZKITEngine
 
-
 # ---------------------------------------------------------------------------
 # Test data generators
 # ---------------------------------------------------------------------------
@@ -144,29 +143,20 @@ class TestGraphPerformance:
             )
 
         print("\n=== Graph Construction Performance ===")
-        print(
-            f"  {'Records':>8} | {'Time (s)':>10} | {'Nodes':>8} | {'Edges':>8} | {'ms/rec':>8}"
-        )
+        print(f"  {'Records':>8} | {'Time (s)':>10} | {'Nodes':>8} | {'Edges':>8} | {'ms/rec':>8}")
         print(f"  {'-' * 8}-+-{'-' * 10}-+-{'-' * 8}-+-{'-' * 8}-+-{'-' * 8}")
         for r in results:
             ms_per = (r["time_s"] / r["n"]) * 1000
-            print(
-                f"  {r['n']:>8} | {r['time_s']:>10.4f} | {r['nodes']:>8} | "
-                f"{r['edges']:>8} | {ms_per:>8.2f}"
-            )
+            print(f"  {r['n']:>8} | {r['time_s']:>10.4f} | {r['nodes']:>8} | " f"{r['edges']:>8} | {ms_per:>8.2f}")
 
         # 5000 records should complete in under 10 seconds
         large = results[-1]
-        assert large["time_s"] < 10.0, (
-            f"Graph construction for {large['n']} records took {large['time_s']:.2f}s"
-        )
+        assert large["time_s"] < 10.0, f"Graph construction for {large['n']} records took {large['time_s']:.2f}s"
 
     def test_correlation_scaling(self) -> None:
         """Measure correlation (connected components) time for varying graph sizes."""
         salt = ZKITEngine.new_salt()
-        records = _generate_overlapping_records(
-            50, 10
-        )  # 50 groups, 10 each = 500 records
+        records = _generate_overlapping_records(50, 10)  # 50 groups, 10 each = 500 records
 
         engine = ZKITEngine(salt=salt, investigation_id="corr-perf")
         ingested = engine.ingest(records)
@@ -245,11 +235,7 @@ class TestMemoryUsage:
         total_after = sum(s.size for s in stats_after)
         delta_mb = (total_after - total_before) / (1024 * 1024)
 
-        per_node_bytes = (
-            (total_after - total_before) / engine.graph.node_count
-            if engine.graph.node_count > 0
-            else 0
-        )
+        per_node_bytes = (total_after - total_before) / engine.graph.node_count if engine.graph.node_count > 0 else 0
 
         print("\n=== Memory Usage (5000 records) ===")
         print(f"  Nodes:           {engine.graph.node_count}")

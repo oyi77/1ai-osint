@@ -1,6 +1,8 @@
 import os
+from unittest.mock import AsyncMock, patch
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+
 from src.modules.free_intel.ai_enricher import AIExtractor, EnrichedDossierData
 
 
@@ -22,9 +24,7 @@ async def test_ai_extractor_empty_snippets():
         result = await extractor.extract_from_snippets("John Doe", [])
         assert result.current_employer == ""
 
-        result_empty_str = await extractor.extract_from_snippets(
-            "John Doe", ["   ", ""]
-        )
+        result_empty_str = await extractor.extract_from_snippets("John Doe", ["   ", ""])
         assert result_empty_str.current_employer == ""
 
 
@@ -39,12 +39,8 @@ async def test_ai_extractor_success():
     ):
         extractor = AIExtractor()
         mock_json = '{"current_employer": "Google", "job_title": "Engineer", "location": "Jakarta", "work_history": [{"company": "TechCo", "title": "Dev", "source": "LinkedIn", "confidence": 0.9}], "education": [{"institution": "UI", "degree": "CS", "source": "PDDIKTI"}]}'
-        with patch.object(
-            extractor._client, "async_chat", new=AsyncMock(return_value=mock_json)
-        ):
-            result = await extractor.extract_from_snippets(
-                "John Doe", ["John Doe works at Google"]
-            )
+        with patch.object(extractor._client, "async_chat", new=AsyncMock(return_value=mock_json)):
+            result = await extractor.extract_from_snippets("John Doe", ["John Doe works at Google"])
             assert result.current_employer == "Google"
             assert result.job_title == "Engineer"
             assert result.location == "Jakarta"
@@ -63,7 +59,5 @@ async def test_ai_extractor_exception():
             "async_chat",
             new=AsyncMock(side_effect=Exception("API limit")),
         ):
-            result = await extractor.extract_from_snippets(
-                "John Doe", ["John Doe at Google"]
-            )
+            result = await extractor.extract_from_snippets("John Doe", ["John Doe at Google"])
             assert result.current_employer == ""

@@ -2,8 +2,8 @@
 
 import pytest
 
-from src.modules.gitleaks.scanner import GitleaksModule
 from src.core.models import Severity
+from src.modules.gitleaks.scanner import GitleaksModule
 
 
 @pytest.fixture

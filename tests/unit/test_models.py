@@ -1,7 +1,8 @@
 """Tests for Pydantic models."""
 
 from datetime import datetime, timezone
-from src.core.models import Finding, ScanResult, BreachRecord, Identity, Severity
+
+from src.core.models import BreachRecord, Finding, Identity, ScanResult, Severity
 
 
 class TestFinding:
@@ -18,9 +19,7 @@ class TestFinding:
 
 class TestScanResult:
     def test_create(self, sample_finding):
-        s = ScanResult(
-            scan_id="s1", module="test", target="t", findings=[sample_finding]
-        )
+        s = ScanResult(scan_id="s1", module="test", target="t", findings=[sample_finding])
         assert s.finding_count == 1
         assert s.status == "ok"
 

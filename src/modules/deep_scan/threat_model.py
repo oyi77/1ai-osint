@@ -17,7 +17,6 @@ LLM enhancement available when OPENAI/OMNIROUTE API key is present.
 from __future__ import annotations
 
 import logging
-import os
 from enum import Enum
 from typing import Any
 
@@ -120,17 +119,11 @@ class PredictiveThreatModeler:
         risk_score = getattr(risk, "score", 0.0) if risk else 0.0
 
         # Crypto exposure
-        crypto_ev = [
-            e for e in evidence if "crypto" in getattr(e, "source", "").lower()
-        ]
+        crypto_ev = [e for e in evidence if "crypto" in getattr(e, "source", "").lower()]
         indicators["crypto_exposure"] = min(1.0, len(crypto_ev) * 0.2)
 
         # Breach credential count
-        breach_ev = [
-            e
-            for e in evidence
-            if getattr(e, "identifier_type", "") in ("email", "password", "hash")
-        ]
+        breach_ev = [e for e in evidence if getattr(e, "identifier_type", "") in ("email", "password", "hash")]
         indicators["breach_credential_count"] = min(1.0, len(breach_ev) * 0.05)
 
         # Corporate email exposure
@@ -139,8 +132,7 @@ class PredictiveThreatModeler:
             e
             for e in email_ev
             if any(
-                corp in getattr(e, "identifier_value", "").lower()
-                for corp in (".corp.", ".internal.", ".enterprise.")
+                corp in getattr(e, "identifier_value", "").lower() for corp in (".corp.", ".internal.", ".enterprise.")
             )
         ]
         indicators["corporate_email_exposure"] = 1.0 if corp_emails else 0.0
@@ -150,11 +142,7 @@ class PredictiveThreatModeler:
         indicators["github_sensitive_repos"] = min(1.0, len(git_ev) * 0.3)
 
         # Social footprint size (inverse for state actor)
-        social_ev = [
-            e
-            for e in evidence
-            if getattr(e, "source", "") in ("social_osint", "sherlock", "maigret")
-        ]
+        social_ev = [e for e in evidence if getattr(e, "source", "") in ("social_osint", "sherlock", "maigret")]
         indicators["minimal_social_footprint"] = max(0.0, 1.0 - len(social_ev) * 0.1)
 
         # Technical sophistication (high risk score proxy)
@@ -168,9 +156,7 @@ class PredictiveThreatModeler:
         indicators["dark_web_presence"] = 1.0 if dark_ev else 0.0
 
         # Multiple identities
-        username_ev = [
-            e for e in evidence if getattr(e, "identifier_type", "") == "username"
-        ]
+        username_ev = [e for e in evidence if getattr(e, "identifier_type", "") == "username"]
         indicators["multiple_pseudonyms"] = min(1.0, len(username_ev) * 0.15)
 
         return indicators
@@ -215,18 +201,12 @@ class PredictiveThreatModeler:
         # High risk indicators
         high_risk = []
         if risk_score >= 0.7:
-            high_risk.append(
-                f"Overall risk score {risk_score:.2f} exceeds HIGH threshold"
-            )
+            high_risk.append(f"Overall risk score {risk_score:.2f} exceeds HIGH threshold")
         indicators = self._extract_indicators(report)
         if indicators.get("dark_web_presence", 0) > 0:
-            high_risk.append(
-                "Confirmed darknet presence — active threat intelligence value"
-            )
+            high_risk.append("Confirmed darknet presence — active threat intelligence value")
         if indicators.get("crypto_exposure", 0) >= 0.5:
-            high_risk.append(
-                "Significant cryptocurrency exposure — potential financial nexus"
-            )
+            high_risk.append("Significant cryptocurrency exposure — potential financial nexus")
         if indicators.get("breach_credential_count", 0) >= 0.5:
             high_risk.append("High breach credential count — credential abuse likely")
 
@@ -273,9 +253,7 @@ class PredictiveThreatModeler:
                 response_format={"type": "json_object"},
             )
             parsed = json.loads(data)
-            trajectory.predicted_next_actions = parsed.get(
-                "next_actions", trajectory.predicted_next_actions
-            )
+            trajectory.predicted_next_actions = parsed.get("next_actions", trajectory.predicted_next_actions)
             trajectory.reasoning = parsed.get("reasoning", trajectory.reasoning)
             trajectory.analytical_method = "llm"
         except Exception as exc:

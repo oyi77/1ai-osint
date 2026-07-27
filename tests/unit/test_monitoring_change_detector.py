@@ -3,22 +3,19 @@ first-scan events."""
 
 from __future__ import annotations
 
-from unittest.mock import ANY, patch
-
 import pytest
 
 from src.modules.monitoring.change_detector import ChangeDetector
 from src.modules.monitoring.models import (
-    ChangeEvent,
     ChangeSeverity,
     ChangeType,
     WatchlistTarget,
 )
 
-
 # ------------------------------------------------------------------
 # Fixtures
 # ------------------------------------------------------------------
+
 
 @pytest.fixture
 def detector() -> ChangeDetector:
@@ -66,6 +63,7 @@ def snapshot_with_data() -> dict:
 # ------------------------------------------------------------------
 # First scan (previous is None)
 # ------------------------------------------------------------------
+
 
 def test_first_scan_no_data(detector: ChangeDetector, snapshot_no_data: dict):
     events = detector.detect_changes(None, snapshot_no_data, target="tester")
@@ -115,6 +113,7 @@ def test_first_scan_target_fallback(detector: ChangeDetector, snapshot_no_data: 
 # No changes
 # ------------------------------------------------------------------
 
+
 def test_no_changes(detector: ChangeDetector, snapshot_with_data: dict):
     events = detector.detect_changes(snapshot_with_data, snapshot_with_data, target="tester")
     assert events == []
@@ -123,6 +122,7 @@ def test_no_changes(detector: ChangeDetector, snapshot_with_data: dict):
 # ------------------------------------------------------------------
 # Set changes — additions
 # ------------------------------------------------------------------
+
 
 def test_new_emails(detector: ChangeDetector):
     prev = {"briefing": {"subject": {"emails": ["a@x.com"]}}}
@@ -174,6 +174,7 @@ def test_new_crypto_address(detector: ChangeDetector):
 # Set changes — removals
 # ------------------------------------------------------------------
 
+
 def test_removed_entities(detector: ChangeDetector):
     prev = {"briefing": {"subject": {"emails": ["stay@x.com", "gone@x.com"], "known_handles": ["old_h"]}}}
     curr = {"briefing": {"subject": {"emails": ["stay@x.com"], "known_handles": []}}}
@@ -187,6 +188,7 @@ def test_removed_entities(detector: ChangeDetector):
 # ------------------------------------------------------------------
 # Breach changes
 # ------------------------------------------------------------------
+
 
 def test_new_breach(detector: ChangeDetector):
     prev = {"briefing": {"breach_records": [{"breach_name": "b1"}]}}
@@ -230,6 +232,7 @@ def test_breach_count_small_delta(detector: ChangeDetector):
 # ------------------------------------------------------------------
 # Risk changes
 # ------------------------------------------------------------------
+
 
 def test_risk_score_change(detector: ChangeDetector):
     prev = {"briefing": {"risk": {"risk_score": 30}}}
@@ -278,6 +281,7 @@ def test_risk_missing_from_both(detector: ChangeDetector):
 # Attribute changes
 # ------------------------------------------------------------------
 
+
 def test_attribute_change(detector: ChangeDetector):
     prev = {"briefing": {"subject": {"primary_name": "Old Name", "city": "Paris"}}}
     curr = {"briefing": {"subject": {"primary_name": "New Name", "city": "London"}}}
@@ -299,6 +303,7 @@ def test_attribute_change_only_when_new_value_not_none(detector: ChangeDetector)
 # watchlist_target parameter
 # ------------------------------------------------------------------
 
+
 def test_watchlist_target_passed_but_not_used_yet(detector: ChangeDetector):
     """The watchlist_target parameter is accepted but not yet used in logic."""
     prev = {"briefing": {"subject": {"emails": ["old@x.com"]}}}
@@ -313,6 +318,7 @@ def test_watchlist_target_passed_but_not_used_yet(detector: ChangeDetector):
 # Event identity
 # ------------------------------------------------------------------
 
+
 def test_event_ids_are_unique(detector: ChangeDetector):
     prev = {"briefing": {"subject": {"emails": []}}}
     curr = {"briefing": {"subject": {"emails": ["a@x.com", "b@x.com", "c@x.com"]}}}
@@ -324,6 +330,7 @@ def test_event_ids_are_unique(detector: ChangeDetector):
 # ------------------------------------------------------------------
 # Edge cases
 # ------------------------------------------------------------------
+
 
 def test_empty_briefing(detector: ChangeDetector):
     prev = {}

@@ -189,22 +189,22 @@ class CrossModuleCorrelator:
 
         # Extract from breach records
         for breach in scan_result.breach_records:
-            record: dict[str, Any] = {"source": module_name}
+            breach_record: dict[str, Any] = {"source": module_name}
             has_attr = False
             if breach.email:
-                record["email"] = breach.email
+                breach_record["email"] = breach.email
                 has_attr = True
             if breach.username:
-                record["username"] = breach.username
+                breach_record["username"] = breach.username
                 has_attr = True
             if breach.phone:
-                record["phone"] = breach.phone
+                breach_record["phone"] = breach.phone
                 has_attr = True
             if breach.domain:
-                record["domain"] = breach.domain
+                breach_record["domain"] = breach.domain
                 has_attr = True
             if has_attr:
-                records.append(record)
+                records.append(breach_record)
 
         # Extract from identities
         for identity in scan_result.identities:
@@ -319,20 +319,15 @@ class CrossModuleCorrelator:
         # Co-occurrence evidence
         if cluster.total_co_occurrences > 1:
             evidence.append(
-                f"Observed {cluster.total_co_occurrences} co-occurrences "
-                f"across {cluster.edge_count} edges"
+                f"Observed {cluster.total_co_occurrences} co-occurrences " f"across {cluster.edge_count} edges"
             )
 
         # Cross-module evidence
         if len(source_modules) > 1:
-            evidence.append(
-                f"Confirmed across modules: {', '.join(sorted(source_modules))}"
-            )
+            evidence.append(f"Confirmed across modules: {', '.join(sorted(source_modules))}")
 
         # Confidence evidence
-        evidence.append(
-            f"Confidence: {cluster.confidence.value} (score={cluster.score:.4f})"
-        )
+        evidence.append(f"Confidence: {cluster.confidence.value} (score={cluster.score:.4f})")
 
         return evidence
 

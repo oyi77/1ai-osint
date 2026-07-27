@@ -1,11 +1,11 @@
 """Tests for Phase 5 Pillar 2: Behavioral Biometrics & Linguistic Fingerprinting."""
 
 from __future__ import annotations
+
 from src.modules.identity_tracking.behavioral_fingerprint import (
     LinguisticFingerprintAnalyzer,
     PotentialMatch,
 )
-
 
 SAMPLE_TEXTS_A = [
     "Hello there! This is a simple sentence. How are you doing today? I am fine.",
@@ -90,10 +90,7 @@ def test_cross_platform_correlation_detects_match():
         "linkedin": SAMPLE_TEXTS_C,  # very different style
     }
     matches = analyzer.cross_platform_correlation(profiles, threshold=0.85)
-    assert any(
-        m.platform_a in ("reddit", "twitter") and m.platform_b in ("reddit", "twitter")
-        for m in matches
-    )
+    assert any(m.platform_a in ("reddit", "twitter") and m.platform_b in ("reddit", "twitter") for m in matches)
 
 
 def test_cross_platform_no_false_positives_below_threshold():

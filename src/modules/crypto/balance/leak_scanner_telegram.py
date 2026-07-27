@@ -21,7 +21,7 @@ import logging
 import os
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Any, Optional
 
 from src.modules.crypto.balance._leak_shared import (
     LeakFinding,
@@ -80,7 +80,7 @@ class TelethonLeakScanner:
         self.api_hash = api_hash or os.environ.get("TELEGRAM_API_HASH", "")
         self.session_path = session_path
         self.hit_logger = hit_logger
-        self._client = None
+        self._client: Optional[Any] = None
         self._connected = False
 
     async def connect(self) -> bool:
@@ -97,6 +97,7 @@ class TelethonLeakScanner:
 
         try:
             self._client = TelegramClient(self.session_path, self.api_id, self.api_hash)
+            assert self._client is not None
             await self._client.connect()
             if not await self._client.is_user_authorized():
                 logger.warning(
@@ -111,7 +112,7 @@ class TelethonLeakScanner:
             logger.error("Telegram connection failed: %s", e)
             return False
 
-    async def interactive_auth(self, phone: str = None) -> None:
+    async def interactive_auth(self, phone: Optional[str] = None) -> None:
         """Interactive auth flow for initial setup. Run once manually."""
         try:
             from telethon import TelegramClient
@@ -133,9 +134,7 @@ class TelethonLeakScanner:
             await self._client.disconnect()
             self._connected = False
 
-    async def scan_channels(
-        self, channel_usernames: list[str], limit: int = 200
-    ) -> list[LeakFinding]:
+    async def scan_channels(self, channel_usernames: list[str], limit: int = 200) -> list[LeakFinding]:
         """Scan specified channels for leaked keys.
 
         Args:
@@ -162,8 +161,9 @@ class TelethonLeakScanner:
 
     async def _scan_single_channel(self, channel: str, limit: int) -> list[LeakFinding]:
         """Scan a single channel for keys in text AND document attachments."""
-        findings = []
+        findings: list[LeakFinding] = []
         try:
+            assert self._client is not None
             entity = await self._client.get_entity(channel)
             async for message in self._client.iter_messages(entity, limit=limit):
                 # Scan message text
@@ -173,21 +173,14 @@ class TelethonLeakScanner:
                 # Scan document attachments (text/plain, .txt files)
                 if message.document and hasattr(message.document, "mime_type"):
                     mime = message.document.mime_type or ""
-                    size = (
-                        message.document.size
-                        if hasattr(message.document, "size")
-                        else 0
-                    )
-                    if (
-                        "text" in mime or "json" in mime
-                    ) and size < 500_000:  # Max 500KB
+                    size = message.document.size if hasattr(message.document, "size") else 0
+                    if ("text" in mime or "json" in mime) and size < 500_000:  # Max 500KB
                         try:
+                            assert self._client is not None
                             data = await self._client.download_media(message, bytes)
                             if data:
                                 text = data.decode("utf-8", errors="ignore")
-                                self._extract_from_text(
-                                    text, channel, message.id, findings
-                                )
+                                self._extract_from_text(text, channel, message.id, findings)
                                 del data  # Free memory immediately
                         except Exception as e:
                             logger.debug("Document download error: %s", e)
@@ -197,9 +190,7 @@ class TelethonLeakScanner:
 
         return findings
 
-    def _extract_from_text(
-        self, text: str, channel: str, message_id: int, findings: list
-    ):
+    def _extract_from_text(self, text: str, channel: str, message_id: int, findings: list):
         """Extract keys and mnemonics from text, append to findings."""
         # Check for private keys
         keys = detect_key_format(text)
@@ -226,9 +217,7 @@ class TelethonLeakScanner:
                 )
             )
 
-    async def discover_channels(
-        self, keywords: Optional[list[str]] = None, max_channels: int = 20
-    ) -> list[str]:
+    async def discover_channels(self, keywords: Optional[list[str]] = None, max_channels: int = 20) -> list[str]:
         """Auto-discover Telegram channels matching crypto leak keywords.
 
         Args:
@@ -243,29 +232,24 @@ class TelethonLeakScanner:
                 return []
 
         keywords = keywords or DISCOVERY_KEYWORDS
-        found = set()
+        found: set[str] = set()
 
         for kw in keywords:
             try:
+                assert self._client is not None
                 result = await self._client.get_dialogs(limit=50)
                 # Search in joined dialogs
                 for dialog in result:
                     if dialog.is_channel and dialog.name:
                         name_lower = dialog.name.lower()
-                        if any(
-                            k in name_lower
-                            for k in ["leak", "dump", "wallet", "seed", "key", "crypto"]
-                        ):
-                            if (
-                                dialog.entity
-                                and hasattr(dialog.entity, "username")
-                                and dialog.entity.username
-                            ):
+                        if any(k in name_lower for k in ["leak", "dump", "wallet", "seed", "key", "crypto"]):
+                            if dialog.entity and hasattr(dialog.entity, "username") and dialog.entity.username:
                                 found.add(dialog.entity.username)
 
                 # Use global search
                 from telethon.tl.functions.contacts import SearchRequest
 
+                assert self._client is not None
                 search_result = await self._client(SearchRequest(q=kw, limit=10))
                 for chat in search_result.chats:
                     if hasattr(chat, "username") and chat.username:
@@ -277,9 +261,7 @@ class TelethonLeakScanner:
 
         return list(found)[:max_channels]
 
-    async def search_messages(
-        self, query: str, limit: int = 50
-    ) -> list[TelegramMessage]:
+    async def search_messages(self, query: str, limit: int = 50) -> list[TelegramMessage]:
         """Search across joined channels for messages matching query.
 
         Useful for reverse lookup: search for a specific address.
@@ -291,9 +273,8 @@ class TelethonLeakScanner:
         messages = []
         try:
             # Search in all dialogs
-            async for message in self._client.iter_messages(
-                None, search=query, limit=limit
-            ):
+            assert self._client is not None
+            async for message in self._client.iter_messages(None, search=query, limit=limit):
                 if message.text:
                     channel = ""
                     if message.chat and hasattr(message.chat, "username"):

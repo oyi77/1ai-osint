@@ -138,9 +138,7 @@ class GitleaksModule(BaseOSINTTool):
                         "rule_id": rule_id,
                         "file": raw.get("file", raw.get("File", "")),
                         "line": raw.get("line", raw.get("Line", "")),
-                        "match": raw.get("match", raw.get("Match", ""))[
-                            :100
-                        ],  # Truncate
+                        "match": raw.get("match", raw.get("Match", ""))[:100],  # Truncate
                         "commit": raw.get("commit", raw.get("Commit", "")),
                         "author": raw.get("author", raw.get("Author", "")),
                         "email": raw.get("email", raw.get("Email", "")),
@@ -195,8 +193,8 @@ class GitleaksModule(BaseOSINTTool):
         else:
             return {"error": "Unsupported data type"}
 
-        severity_counts = {}
-        rule_counts = {}
+        severity_counts: dict[str, int] = {}
+        rule_counts: dict[str, int] = {}
         for f in findings:
             sev = f.severity.value if hasattr(f.severity, "value") else str(f.severity)
             severity_counts[sev] = severity_counts.get(sev, 0) + 1

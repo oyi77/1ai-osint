@@ -2,13 +2,12 @@
 
 import pytest
 
-from src.core.models import Finding, ScanResult, BreachRecord, Severity
+from src.core.models import BreachRecord, Finding, ScanResult, Severity
 from src.modules.identity_tracking.correlation import (
-    CrossModuleCorrelator,
     CorrelationResult,
+    CrossModuleCorrelator,
 )
 from src.modules.identity_tracking.identity_graph import IdentityGraph, NodeType
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -161,22 +160,16 @@ class TestCrossModuleCorrelatorInit:
 
 
 class TestIngestScanResults:
-    def test_ingest_returns_count(
-        self, correlator: CrossModuleCorrelator, sample_module_results
-    ):
+    def test_ingest_returns_count(self, correlator: CrossModuleCorrelator, sample_module_results):
         count = correlator.ingest_scan_results(sample_module_results)
         assert count > 0
 
-    def test_ingest_populates_graph(
-        self, correlator: CrossModuleCorrelator, sample_module_results
-    ):
+    def test_ingest_populates_graph(self, correlator: CrossModuleCorrelator, sample_module_results):
         correlator.ingest_scan_results(sample_module_results)
         assert correlator.graph.node_count > 0
         assert correlator.graph.edge_count > 0
 
-    def test_ingest_creates_nodes_for_all_attributes(
-        self, correlator: CrossModuleCorrelator, sample_module_results
-    ):
+    def test_ingest_creates_nodes_for_all_attributes(self, correlator: CrossModuleCorrelator, sample_module_results):
         correlator.ingest_scan_results(sample_module_results)
         # alice@example.com, alice_dev, +15551234567, example.com
         email_nodes = correlator.graph.get_nodes_by_type(NodeType.EMAIL_HASH)
@@ -191,9 +184,7 @@ class TestIngestScanResults:
         assert count == 0
         assert correlator.graph.node_count == 0
 
-    def test_ingest_findings_and_breach_records(
-        self, correlator: CrossModuleCorrelator, sample_module_results
-    ):
+    def test_ingest_findings_and_breach_records(self, correlator: CrossModuleCorrelator, sample_module_results):
         """Both findings.raw_data and breach_records contribute attributes."""
         correlator.ingest_scan_results(sample_module_results)
         # domain comes from breach_record in data_leaks module
@@ -215,23 +206,17 @@ class TestIngestScanResults:
 
 
 class TestCorrelate:
-    def test_correlate_returns_result(
-        self, correlator: CrossModuleCorrelator, sample_module_results
-    ):
+    def test_correlate_returns_result(self, correlator: CrossModuleCorrelator, sample_module_results):
         correlator.ingest_scan_results(sample_module_results)
         result = correlator.correlate()
         assert isinstance(result, CorrelationResult)
 
-    def test_correlate_finds_linked_entity(
-        self, correlator: CrossModuleCorrelator, sample_module_results
-    ):
+    def test_correlate_finds_linked_entity(self, correlator: CrossModuleCorrelator, sample_module_results):
         correlator.ingest_scan_results(sample_module_results)
         result = correlator.correlate()
         assert len(result.resolved_entities) >= 1
 
-    def test_correlate_shared_attributes_same_entity(
-        self, correlator: CrossModuleCorrelator, sample_module_results
-    ):
+    def test_correlate_shared_attributes_same_entity(self, correlator: CrossModuleCorrelator, sample_module_results):
         """alice@example.com links data_leaks, people_finder, phone_finder."""
         correlator.ingest_scan_results(sample_module_results)
         result = correlator.correlate()
@@ -239,9 +224,7 @@ class TestCorrelate:
         largest = max(result.resolved_entities, key=lambda e: len(e.zkit_hashes))
         assert len(largest.zkit_hashes) >= 3  # email, username, phone, domain
 
-    def test_correlate_cross_module_sources(
-        self, correlator: CrossModuleCorrelator, sample_module_results
-    ):
+    def test_correlate_cross_module_sources(self, correlator: CrossModuleCorrelator, sample_module_results):
         correlator.ingest_scan_results(sample_module_results)
         result = correlator.correlate()
         largest = max(result.resolved_entities, key=lambda e: len(e.zkit_hashes))
@@ -259,26 +242,20 @@ class TestCorrelate:
         assert result.resolved_entities == []
         assert result.unresolved_hashes == []
 
-    def test_correlate_confidence_scores(
-        self, correlator: CrossModuleCorrelator, sample_module_results
-    ):
+    def test_correlate_confidence_scores(self, correlator: CrossModuleCorrelator, sample_module_results):
         correlator.ingest_scan_results(sample_module_results)
         result = correlator.correlate()
         for entity in result.resolved_entities:
             assert 0.0 <= entity.confidence <= 1.0
 
-    def test_correlate_graph_stats(
-        self, correlator: CrossModuleCorrelator, sample_module_results
-    ):
+    def test_correlate_graph_stats(self, correlator: CrossModuleCorrelator, sample_module_results):
         correlator.ingest_scan_results(sample_module_results)
         result = correlator.correlate()
         assert result.graph_stats["node_count"] > 0
         assert result.graph_stats["edge_count"] > 0
         assert result.graph_stats["entity_count"] == len(result.resolved_entities)
 
-    def test_correlate_unresolved_hashes(
-        self, correlator: CrossModuleCorrelator, sample_module_results
-    ):
+    def test_correlate_unresolved_hashes(self, correlator: CrossModuleCorrelator, sample_module_results):
         """Hashes below min_confidence appear in unresolved list."""
         correlator = CrossModuleCorrelator(
             salt="test-correlation-salt",
@@ -292,9 +269,7 @@ class TestCorrelate:
         total_hashes += len(result.unresolved_hashes)
         assert total_hashes == correlator.graph.node_count
 
-    def test_correlate_investigation_id(
-        self, correlator: CrossModuleCorrelator, sample_module_results
-    ):
+    def test_correlate_investigation_id(self, correlator: CrossModuleCorrelator, sample_module_results):
         correlator.ingest_scan_results(sample_module_results)
         result = correlator.correlate()
         assert result.investigation_id == "test-corr"
@@ -306,9 +281,7 @@ class TestCorrelate:
 
 
 class TestResolvedEntity:
-    def test_entity_has_hashes(
-        self, correlator: CrossModuleCorrelator, sample_module_results
-    ):
+    def test_entity_has_hashes(self, correlator: CrossModuleCorrelator, sample_module_results):
         correlator.ingest_scan_results(sample_module_results)
         result = correlator.correlate()
         for entity in result.resolved_entities:
@@ -316,33 +289,25 @@ class TestResolvedEntity:
             for h in entity.zkit_hashes:
                 assert len(h) == 64
 
-    def test_entity_has_attribute_types(
-        self, correlator: CrossModuleCorrelator, sample_module_results
-    ):
+    def test_entity_has_attribute_types(self, correlator: CrossModuleCorrelator, sample_module_results):
         correlator.ingest_scan_results(sample_module_results)
         result = correlator.correlate()
         for entity in result.resolved_entities:
             assert len(entity.attribute_types) >= 1
 
-    def test_entity_has_evidence(
-        self, correlator: CrossModuleCorrelator, sample_module_results
-    ):
+    def test_entity_has_evidence(self, correlator: CrossModuleCorrelator, sample_module_results):
         correlator.ingest_scan_results(sample_module_results)
         result = correlator.correlate()
         for entity in result.resolved_entities:
             assert len(entity.correlation_evidence) >= 1
 
-    def test_entity_confidence_in_metadata(
-        self, correlator: CrossModuleCorrelator, sample_module_results
-    ):
+    def test_entity_confidence_in_metadata(self, correlator: CrossModuleCorrelator, sample_module_results):
         correlator.ingest_scan_results(sample_module_results)
         result = correlator.correlate()
         for entity in result.resolved_entities:
             assert "confidence_tier" in entity.metadata
 
-    def test_entity_no_raw_pii(
-        self, correlator: CrossModuleCorrelator, sample_module_results
-    ):
+    def test_entity_no_raw_pii(self, correlator: CrossModuleCorrelator, sample_module_results):
         correlator.ingest_scan_results(sample_module_results)
         result = correlator.correlate()
         for entity in result.resolved_entities:
@@ -357,9 +322,7 @@ class TestResolvedEntity:
 
 
 class TestQueryHelpers:
-    def test_find_entity_by_hash(
-        self, correlator: CrossModuleCorrelator, sample_module_results
-    ):
+    def test_find_entity_by_hash(self, correlator: CrossModuleCorrelator, sample_module_results):
         correlator.ingest_scan_results(sample_module_results)
         # Get a hash from the graph
         all_nodes = correlator.graph.get_all_nodes()
@@ -372,9 +335,7 @@ class TestQueryHelpers:
         entity = correlator.find_entity_by_hash("nonexistent_hash_64_chars_" + "a" * 38)
         assert entity is None
 
-    def test_get_neighbors(
-        self, correlator: CrossModuleCorrelator, sample_module_results
-    ):
+    def test_get_neighbors(self, correlator: CrossModuleCorrelator, sample_module_results):
         correlator.ingest_scan_results(sample_module_results)
         all_nodes = correlator.graph.get_all_nodes()
         first_hash = all_nodes[0].node_id
@@ -385,9 +346,7 @@ class TestQueryHelpers:
 
     def test_merge_graph(self, correlator: CrossModuleCorrelator):
         other = IdentityGraph(salt="test-correlation-salt")
-        other.add_raw_attribute(
-            "merge@test.com", NodeType.EMAIL_HASH, source="external"
-        )
+        other.add_raw_attribute("merge@test.com", NodeType.EMAIL_HASH, source="external")
         added = correlator.merge_graph(other)
         assert added >= 1
         assert correlator.graph.node_count >= 1
@@ -399,30 +358,21 @@ class TestQueryHelpers:
 
 
 class TestEvidenceBuilding:
-    def test_multi_type_evidence(
-        self, correlator: CrossModuleCorrelator, sample_module_results
-    ):
+    def test_multi_type_evidence(self, correlator: CrossModuleCorrelator, sample_module_results):
         correlator.ingest_scan_results(sample_module_results)
         result = correlator.correlate()
         largest = max(result.resolved_entities, key=lambda e: len(e.zkit_hashes))
         evidence_text = " ".join(largest.correlation_evidence)
-        assert (
-            "Linked attribute types" in evidence_text
-            or "co-occurrences" in evidence_text
-        )
+        assert "Linked attribute types" in evidence_text or "co-occurrences" in evidence_text
 
-    def test_cross_module_evidence(
-        self, correlator: CrossModuleCorrelator, sample_module_results
-    ):
+    def test_cross_module_evidence(self, correlator: CrossModuleCorrelator, sample_module_results):
         correlator.ingest_scan_results(sample_module_results)
         result = correlator.correlate()
         largest = max(result.resolved_entities, key=lambda e: len(e.zkit_hashes))
         evidence_text = " ".join(largest.correlation_evidence)
         assert "Confirmed across modules" in evidence_text
 
-    def test_confidence_in_evidence(
-        self, correlator: CrossModuleCorrelator, sample_module_results
-    ):
+    def test_confidence_in_evidence(self, correlator: CrossModuleCorrelator, sample_module_results):
         correlator.ingest_scan_results(sample_module_results)
         result = correlator.correlate()
         for entity in result.resolved_entities:

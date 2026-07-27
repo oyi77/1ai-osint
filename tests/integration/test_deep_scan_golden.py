@@ -6,7 +6,6 @@ import json
 from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock
 
-
 from src.modules.deep_scan import DeepScanResult, Identifier, IdentifierType
 from src.modules.deep_scan.exports import export_report
 from src.modules.deep_scan.report_generator import generate_intel_report

@@ -6,7 +6,7 @@ import asyncio
 import logging
 import os
 import re
-from typing import Optional
+from typing import Any, Optional
 
 from src.modules.sources.base import RawLeak
 
@@ -32,9 +32,7 @@ class TelegramSource:
         self.max_messages_per_channel = max_messages_per_channel
         self.timeout = timeout
 
-    async def fetch_raw_leaks(
-        self, keywords: Optional[list[str]] = None, max_channels: int = 50
-    ) -> list[RawLeak]:
+    async def fetch_raw_leaks(self, keywords: Optional[list[str]] = None, max_channels: int = 50) -> list[RawLeak]:
         try:
             from telethon import TelegramClient
         except ImportError:
@@ -45,9 +43,7 @@ class TelegramSource:
         # Use a unique session file to avoid IP conflicts between local and VPS
         import hashlib
 
-        session_id = hashlib.md5(f"{self.api_id}:{self.api_hash}".encode()).hexdigest()[
-            :8
-        ]
+        session_id = hashlib.md5(f"{self.api_id}:{self.api_hash}".encode()).hexdigest()[:8]
         session_name = f"leak_finder_{session_id}"
         bot_token = os.getenv("TELEGRAM_BOT_TOKEN", "")
         client = TelegramClient(session_name, self.api_id, self.api_hash)
@@ -79,7 +75,7 @@ class TelegramSource:
             "cryptoleaked",
         ]
         try:
-            channels = []
+            channels: list[Any] = []
             for kw in keywords:
                 if len(channels) >= max_channels:
                     break
@@ -104,12 +100,8 @@ class TelegramSource:
                         await asyncio.sleep(self._extract_flood_wait(str(exc)) + 1)
             for channel in channels:
                 try:
-                    entity = await client.get_entity(
-                        channel.get("username") or channel["id"]
-                    )
-                    async for message in client.iter_messages(
-                        entity, limit=self.max_messages_per_channel
-                    ):
+                    entity = await client.get_entity(channel.get("username") or channel["id"])
+                    async for message in client.iter_messages(entity, limit=self.max_messages_per_channel):
                         text = message.text or ""
                         if text and _KEY_HINTS_RE.search(text):
                             ref = channel.get("username") or str(channel["id"])
@@ -129,9 +121,7 @@ class TelegramSource:
 
     async def search_for_address(self, address: str) -> list[RawLeak]:
         pattern = re.compile(re.escape(address), re.IGNORECASE)
-        return [
-            leak for leak in await self.fetch_raw_leaks() if pattern.search(leak.text)
-        ]
+        return [leak for leak in await self.fetch_raw_leaks() if pattern.search(leak.text)]
 
     @staticmethod
     def _extract_flood_wait(error_msg: str) -> int:

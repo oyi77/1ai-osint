@@ -1,10 +1,11 @@
 """Tests for PhoneFinderTool wrapper class."""
 
-import pytest
-from unittest.mock import patch, MagicMock, AsyncMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
-from src.modules.phone_finder import PhoneFinderTool
+import pytest
+
 from src.core.models import Finding, ScanResult, Severity
+from src.modules.phone_finder import PhoneFinderTool
 
 
 @pytest.fixture
@@ -46,9 +47,7 @@ class TestPhoneFinderToolScan:
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
 
-        with patch(
-            "src.modules.phone_finder.httpx.AsyncClient", return_value=mock_client
-        ):
+        with patch("src.modules.phone_finder.httpx.AsyncClient", return_value=mock_client):
             result = await tool.scan("+447911123456")
 
         assert result.status == "ok"
@@ -74,9 +73,7 @@ class TestPhoneFinderToolScan:
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
 
-        with patch(
-            "src.modules.phone_finder.httpx.AsyncClient", return_value=mock_client
-        ):
+        with patch("src.modules.phone_finder.httpx.AsyncClient", return_value=mock_client):
             result = await tool.scan("+14155552671")
 
         assert result.finding_count >= 2
@@ -92,9 +89,7 @@ class TestPhoneFinderToolScan:
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
 
-        with patch(
-            "src.modules.phone_finder.httpx.AsyncClient", return_value=mock_client
-        ):
+        with patch("src.modules.phone_finder.httpx.AsyncClient", return_value=mock_client):
             result = await tool.scan("+14155552671")
 
         assert result.status == "partial"
@@ -109,9 +104,7 @@ class TestPhoneFinderToolScan:
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
 
-        with patch(
-            "src.modules.phone_finder.httpx.AsyncClient", return_value=mock_client
-        ):
+        with patch("src.modules.phone_finder.httpx.AsyncClient", return_value=mock_client):
             result = await tool.scan("(415) 555-2671")
 
         assert result.metadata["phone"].startswith("+")
@@ -125,9 +118,7 @@ class TestPhoneFinderToolScan:
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
 
-        with patch(
-            "src.modules.phone_finder.httpx.AsyncClient", return_value=mock_client
-        ):
+        with patch("src.modules.phone_finder.httpx.AsyncClient", return_value=mock_client):
             result = await tool.search("+14155552671")
 
         assert result.module == "phone_finder"
@@ -183,11 +174,7 @@ class TestPhoneFinderToolAnalyze:
 
     @pytest.mark.asyncio
     async def test_analyze_list(self, tool):
-        findings = [
-            Finding(
-                id="f1", module="m", title="t", tags=["phone"], severity=Severity.INFO
-            )
-        ]
+        findings = [Finding(id="f1", module="m", title="t", tags=["phone"], severity=Severity.INFO)]
         result = await tool.analyze(findings)
         assert result["total_findings"] == 1
 

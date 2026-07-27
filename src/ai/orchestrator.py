@@ -9,11 +9,13 @@ Pipeline stages:
 6. score       - Aggregate risk scoring
 7. report      - Generate final report
 """
+# mypy: disable-error-code="type-var"
 
 import logging
 from typing import Any, Optional
 
 from langgraph.graph import END, StateGraph
+from langgraph.graph.state import CompiledStateGraph
 
 from src.ai.analyzers.anomaly_detector import AnomalyDetector
 from src.ai.analyzers.behavioral_profiler import BehavioralProfiler
@@ -30,6 +32,11 @@ from src.ai.schemas.responses import (
 from src.core.models import ScanResult
 
 logger = logging.getLogger(__name__)
+
+
+# State is a plain dict — LangGraph handles it internally as dict[str, Any].
+# PipelineState is kept as a view-only wrapper for property access.
+StateT = dict
 
 
 class PipelineState(dict):
@@ -110,11 +117,18 @@ class AnalysisOrchestrator:
         self._anomaly_detector = anomaly_detector or AnomalyDetector(self._client)
         self._enable_behavioral = enable_behavioral_profiling
         self._enable_anomaly = enable_anomaly_detection
-        self._graph = self._build_graph()
+        self._graph: CompiledStateGraph = self._build_graph()
 
-    def _build_graph(self) -> StateGraph:
+    async def _call_llm(self, prompt: str) -> str | None:
+        """Call the LLM with a plain-text prompt via OmniRouteClient."""
+        try:
+            return await self._client.async_chat([{"role": "user", "content": prompt}])
+        except Exception:
+            return None
+
+    def _build_graph(self) -> CompiledStateGraph:
         """Build the LangGraph state graph."""
-        graph = StateGraph(dict)
+        graph: StateGraph = StateGraph(dict)
 
         graph.add_node("ingest", self._ingest)
         graph.add_node("extract", self._extract)
@@ -202,13 +216,13 @@ class AnalysisOrchestrator:
             logger.error("Pipeline execution failed: %s", e)
             return {"error": str(e)}
 
-    def _ingest(self, state: dict) -> dict:
+    def _ingest(self, state: dict[str, Any]) -> dict[str, Any]:
         """Ingest stage: validate and normalize inputs."""
         logger.info("Pipeline: ingest stage")
         state["error"] = None
         return state
 
-    def _extract(self, state: dict) -> dict:
+    def _extract(self, state: dict[str, Any]) -> dict[str, Any]:
         """Extract stage: LLM-based entity extraction."""
         logger.info("Pipeline: extract stage")
         raw_data = state.get("raw_data", "")
@@ -223,14 +237,12 @@ class AnalysisOrchestrator:
                     findings.append(f.model_dump())
             extraction_result = self._extractor.extract_from_findings(findings)
         else:
-            extraction_result = EntityExtractionResult(
-                entities=[], summary="No data to extract from"
-            )
+            extraction_result = EntityExtractionResult(entities=[], summary="No data to extract from")
 
         state["extraction_result"] = extraction_result
         return state
 
-    def _correlate(self, state: dict) -> dict:
+    def _correlate(self, state: dict[str, Any]) -> dict[str, Any]:
         """Correlate stage: cross-module entity linking."""
         logger.info("Pipeline: correlate stage")
         extraction_result = state.get("extraction_result")
@@ -243,7 +255,7 @@ class AnalysisOrchestrator:
         state["correlation_result"] = correlation_result
         return state
 
-    def _profile(self, state: dict) -> dict:
+    def _profile(self, state: dict[str, Any]) -> dict[str, Any]:
         """Profile stage: behavioral profiling (optional)."""
         logger.info("Pipeline: profile stage")
         extraction_result = state.get("extraction_result")
@@ -252,21 +264,21 @@ class AnalysisOrchestrator:
             # Build entity data from extraction results for profiling
             entity_data = []
             for entity in extraction_result.entities:
-                entity_data.append({
-                    "text": f"{entity.value} {entity.context}",
-                    "source": entity.entity_type.value,
-                })
+                entity_data.append(
+                    {
+                        "text": f"{entity.value} {entity.context}",
+                        "source": entity.entity_type.value,
+                    }
+                )
 
-            result = self._profiler.analyze_entity(
-                entity_data, entity_key="default"
-            )
+            result = self._profiler.analyze_entity(entity_data, entity_key="default")
         else:
             result = BehavioralAnalysisResult(summary="No entities to profile")
 
         state["behavioral_result"] = result
         return state
 
-    def _anomaly(self, state: dict) -> dict:
+    def _anomaly(self, state: dict[str, Any]) -> dict[str, Any]:
         """Anomaly stage: anomaly detection (optional)."""
         logger.info("Pipeline: anomaly stage")
         behavioral_result = state.get("behavioral_result")
@@ -276,11 +288,13 @@ class AnalysisOrchestrator:
         entity_data = []
         for sr in scan_results:
             for f in sr.findings:
-                entity_data.append({
-                    "text": f"{f.title} {f.description}",
-                    "source": f.module,
-                    "timestamp": f.timestamp.isoformat() if hasattr(f.timestamp, "isoformat") else str(f.timestamp),
-                })
+                entity_data.append(
+                    {
+                        "text": f"{f.title} {f.description}",
+                        "source": f.module,
+                        "timestamp": f.timestamp.isoformat() if hasattr(f.timestamp, "isoformat") else str(f.timestamp),
+                    }
+                )
 
         baseline = None
         if behavioral_result:
@@ -296,7 +310,7 @@ class AnalysisOrchestrator:
         state["anomaly_result"] = result
         return state
 
-    def _score(self, state: dict) -> dict:
+    def _score(self, state: dict[str, Any]) -> dict[str, Any]:
         """Score stage: aggregate risk scoring."""
         logger.info("Pipeline: score stage")
         scan_results = state.get("scan_results", [])
@@ -313,7 +327,7 @@ class AnalysisOrchestrator:
         state["risk_score"] = risk_score
         return state
 
-    def _report(self, state: dict) -> dict:
+    def _report(self, state: dict[str, Any]) -> dict[str, Any]:
         """Report stage: generate final report."""
         logger.info("Pipeline: report stage")
         extraction = state.get("extraction_result")
@@ -343,16 +357,10 @@ class AnalysisOrchestrator:
             }
 
         if behavioral:
-            report["behavioral"] = {
-                key: profile.model_dump()
-                for key, profile in behavioral.profiles.items()
-            }
+            report["behavioral"] = {key: profile.model_dump() for key, profile in behavioral.profiles.items()}
 
         if anomaly:
-            report["anomaly"] = {
-                key: report_item.model_dump()
-                for key, report_item in anomaly.reports.items()
-            }
+            report["anomaly"] = {key: report_item.model_dump() for key, report_item in anomaly.reports.items()}
 
         if risk_score:
             report["risk"] = risk_score.to_dict()
@@ -362,21 +370,15 @@ class AnalysisOrchestrator:
         if extraction and extraction.entities:
             lines.append(f"Extracted {len(extraction.entities)} entities")
         if correlation and correlation.correlated_groups:
-            lines.append(
-                f"Found {len(correlation.correlated_groups)} correlated groups"
-            )
+            lines.append(f"Found {len(correlation.correlated_groups)} correlated groups")
         if behavioral and behavioral.profiles:
             lines.append(f"Profiled {len(behavioral.profiles)} entities")
         if anomaly:
             for key, r in anomaly.reports.items():
                 if r.detected_anomalies:
-                    lines.append(
-                        f"Detected {len(r.detected_anomalies)} anomalies for {key}"
-                    )
+                    lines.append(f"Detected {len(r.detected_anomalies)} anomalies for {key}")
         if risk_score:
-            lines.append(
-                f"Risk level: {risk_score.risk_level} ({risk_score.overall_score:.1f}/100)"
-            )
+            lines.append(f"Risk level: {risk_score.risk_level} ({risk_score.overall_score:.1f}/100)")
         report["summary"] = ". ".join(lines) if lines else "No analysis performed"
 
         state["report"] = report

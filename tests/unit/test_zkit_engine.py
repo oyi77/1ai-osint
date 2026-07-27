@@ -13,7 +13,6 @@ from src.modules.identity_tracking.zkit_engine import (
     _normalize_attribute,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -65,9 +64,7 @@ class TestNormalizeAttribute:
         assert _normalize_attribute("email", "  alice@test.org  ") == "alice@test.org"
 
     def test_domain_lowercase_no_protocol(self):
-        assert (
-            _normalize_attribute("domain", "https://www.Example.com/") == "example.com"
-        )
+        assert _normalize_attribute("domain", "https://www.Example.com/") == "example.com"
 
     def test_domain_http_prefix(self):
         assert _normalize_attribute("domain", "http://test.org") == "test.org"
@@ -341,8 +338,7 @@ class TestScoreComponents:
         for cluster in clusters:
             assert len(cluster.attribute_types) >= 1
             assert all(
-                t in ("email_hash", "username_hash", "phone_hash", "domain_hash")
-                for t in cluster.attribute_types
+                t in ("email_hash", "username_hash", "phone_hash", "domain_hash") for t in cluster.attribute_types
             )
 
     def test_confidence_tiers(self, engine: ZKITEngine):
@@ -398,9 +394,7 @@ class TestProduceOutput:
         output = engine_with_graph.produce_output(clusters)
         assert isinstance(output, ZKITOutput)
 
-    def test_output_has_salt_fingerprint_not_salt(
-        self, engine_with_graph: ZKITEngine, salt: str
-    ):
+    def test_output_has_salt_fingerprint_not_salt(self, engine_with_graph: ZKITEngine, salt: str):
         components = engine_with_graph.correlate()
         clusters = engine_with_graph.score_components(components)
         output = engine_with_graph.produce_output(clusters)
@@ -443,15 +437,11 @@ class TestProduceOutput:
 
 
 class TestFullPipeline:
-    def test_run_returns_zkit_output(
-        self, engine: ZKITEngine, sample_records: list[dict]
-    ):
+    def test_run_returns_zkit_output(self, engine: ZKITEngine, sample_records: list[dict]):
         output = engine.run(sample_records)
         assert isinstance(output, ZKITOutput)
 
-    def test_run_clusters_have_hashes_not_raw(
-        self, engine: ZKITEngine, sample_records: list[dict]
-    ):
+    def test_run_clusters_have_hashes_not_raw(self, engine: ZKITEngine, sample_records: list[dict]):
         output = engine.run(sample_records)
         for cluster in output.clusters:
             for h in cluster.hash_members:
@@ -472,9 +462,7 @@ class TestFullPipeline:
         output = engine.run([{"email": "a@b.com"}], default_source="default")
         assert len(output.clusters) == 1
 
-    def test_run_no_pii_in_output_repr(
-        self, engine: ZKITEngine, sample_records: list[dict]
-    ):
+    def test_run_no_pii_in_output_repr(self, engine: ZKITEngine, sample_records: list[dict]):
         output = engine.run(sample_records)
         output_str = repr(output)
         # Verify none of the raw values appear

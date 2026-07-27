@@ -42,7 +42,7 @@ def _load_reports() -> list[dict]:
                         # Compute summary if missing
                         findings_list = item.get("findings", [])
                         if isinstance(findings_list, list):
-                            severity_counts = {}
+                            severity_counts: dict[str, int] = {}
                             for finding in findings_list:
                                 if isinstance(finding, dict):
                                     sev = finding.get("severity", "info")
@@ -50,23 +50,25 @@ def _load_reports() -> list[dict]:
                         else:
                             severity_counts = {}
 
-                        reports.append({
-                            "file": str(f.relative_to(Path.cwd()) if f.is_relative_to(Path.cwd()) else f),
-                            "filename": f.name,
-                            "scan_id": item.get("scan_id") or item.get("report_id", ""),
-                            "target": item.get("target", ""),
-                            "module": item.get("module", ""),
-                            "modules_run": item.get("modules_run", []),
-                            "status": item.get("status", "ok"),
-                            "started_at": item.get("started_at", ""),
-                            "completed_at": item.get("completed_at", ""),
-                            "duration_sec": item.get("duration_sec", None),
-                            "finding_count": len(findings_list) if isinstance(findings_list, list) else 0,
-                            "severity_counts": severity_counts,
-                            "risk": item.get("risk", {}),
-                            "summary": item.get("summary", ""),
-                            "full_data": item,
-                        })
+                        reports.append(
+                            {
+                                "file": str(f.relative_to(Path.cwd()) if f.is_relative_to(Path.cwd()) else f),
+                                "filename": f.name,
+                                "scan_id": item.get("scan_id") or item.get("report_id", ""),
+                                "target": item.get("target", ""),
+                                "module": item.get("module", ""),
+                                "modules_run": item.get("modules_run", []),
+                                "status": item.get("status", "ok"),
+                                "started_at": item.get("started_at", ""),
+                                "completed_at": item.get("completed_at", ""),
+                                "duration_sec": item.get("duration_sec", None),
+                                "finding_count": len(findings_list) if isinstance(findings_list, list) else 0,
+                                "severity_counts": severity_counts,
+                                "risk": item.get("risk", {}),
+                                "summary": item.get("summary", ""),
+                                "full_data": item,
+                            }
+                        )
             except (json.JSONDecodeError, OSError):
                 continue
 
@@ -74,7 +76,7 @@ def _load_reports() -> list[dict]:
 
 
 @router.get("/reports", response_class=HTMLResponse, include_in_schema=False)
-async def reports_list(request: Request) -> str:
+async def reports_list(request: Request):
     """List all reports."""
     reports = _load_reports()
     return TEMPLATES.TemplateResponse(
@@ -85,7 +87,7 @@ async def reports_list(request: Request) -> str:
 
 
 @router.get("/reports/{report_id:path}", response_class=HTMLResponse, include_in_schema=False)
-async def report_detail(request: Request, report_id: str) -> str:
+async def report_detail(request: Request, report_id: str):
     """Show full report view with evidence."""
     all_reports = _load_reports()
 

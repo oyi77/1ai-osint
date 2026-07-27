@@ -1,8 +1,11 @@
 """Tests for Phase 5 Pillar 6: Predictive Threat Modeling."""
 
 from __future__ import annotations
-import pytest
+
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
 from src.modules.deep_scan.threat_model import (
     PredictiveThreatModeler,
     ThreatArchetype,
@@ -92,10 +95,7 @@ def test_high_risk_indicators_populated():
         sources=["darknet"],
     )
     trajectory = modeler.predict_trajectory(report)
-    assert any(
-        "risk score" in ind.lower() or "darknet" in ind.lower()
-        for ind in trajectory.high_risk_indicators
-    )
+    assert any("risk score" in ind.lower() or "darknet" in ind.lower() for ind in trajectory.high_risk_indicators)
 
 
 def test_confidence_high_when_score_above_threshold():
@@ -118,9 +118,7 @@ async def test_llm_enhanced_fallback_no_key():
     trajectory = modeler.predict_trajectory(report)
     import os
 
-    keys_backup = {
-        k: os.environ.pop(k, None) for k in ["OPENAI_API_KEY", "OMNIROUTE_API_KEY"]
-    }
+    keys_backup = {k: os.environ.pop(k, None) for k in ["OPENAI_API_KEY", "OMNIROUTE_API_KEY"]}
     try:
         result = await modeler.llm_enhanced_prediction(report, trajectory)
         assert result.analytical_method == "deterministic"  # unchanged

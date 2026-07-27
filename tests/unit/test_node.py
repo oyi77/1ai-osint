@@ -6,10 +6,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from src.modules.node.protocol import (
+    CommandType,
+    MessageType,
     NodeMessage,
     NodeStatus,
-    MessageType,
-    CommandType,
 )
 
 
@@ -27,9 +27,7 @@ class TestProtocol:
         assert data["p"]["hostname"] == "vps1"
 
     def test_message_deserialize(self):
-        text = json.dumps(
-            {"t": "heartbeat", "n": "node1", "p": {"cpu": 5.0}, "ts": "2026-01-01"}
-        )
+        text = json.dumps({"t": "heartbeat", "n": "node1", "p": {"cpu": 5.0}, "ts": "2026-01-01"})
         msg = NodeMessage.from_telegram(text)
         assert msg is not None
         assert msg.msg_type == MessageType.HEARTBEAT
@@ -243,18 +241,14 @@ class TestNodeAgentAdvanced:
             telegram_token="fake-token",
             master_chat_id="12345",
         )
-        msg = NodeMessage(
-            msg_type=MessageType.HEARTBEAT, node_id="test-node", payload={"test": True}
-        )
+        msg = NodeMessage(msg_type=MessageType.HEARTBEAT, node_id="test-node", payload={"test": True})
         mock_client = AsyncMock()
         mock_resp = MagicMock()
         mock_resp.status_code = 200
         mock_client.post = AsyncMock(return_value=mock_resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch(
-            "src.modules.node.agent.httpx.AsyncClient", return_value=mock_client
-        ):
+        with patch("src.modules.node.agent.httpx.AsyncClient", return_value=mock_client):
             await agent._send_to_master(msg)
         mock_client.post.assert_called_once()
 
@@ -268,9 +262,7 @@ class TestNodeAgentAdvanced:
             telegram_token="fake-token",
             master_chat_id="12345",
         )
-        with patch.object(
-            agent, "_send_to_master", new_callable=AsyncMock
-        ) as mock_send:
+        with patch.object(agent, "_send_to_master", new_callable=AsyncMock) as mock_send:
             await agent.report_result({"leaks": 5, "keys": 2})
         mock_send.assert_called_once()
 
@@ -316,9 +308,7 @@ class TestMasterBotAdvanced:
         mock_client.post = AsyncMock(return_value=mock_resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch(
-            "src.modules.node.master.httpx.AsyncClient", return_value=mock_client
-        ):
+        with patch("src.modules.node.master.httpx.AsyncClient", return_value=mock_client):
             await bot._send_to("12345", "test message")
         mock_client.post.assert_called_once()
 
@@ -443,9 +433,7 @@ class TestNodeAgentDeep:
             telegram_token="fake-token",
             master_chat_id="12345",
         )
-        with patch.object(
-            agent, "_send_to_master", new_callable=AsyncMock
-        ) as mock_send:
+        with patch.object(agent, "_send_to_master", new_callable=AsyncMock) as mock_send:
             await agent._heartbeat()
         mock_send.assert_called_once()
         call_msg = mock_send.call_args[0][0]
@@ -468,9 +456,7 @@ class TestNodeAgentDeep:
             "src.modules.node.agent.asyncio.create_subprocess_exec",
             return_value=mock_proc,
         ):
-            with patch(
-                "src.modules.node.agent.asyncio.wait_for", new_callable=AsyncMock
-            ) as mock_wait:
+            with patch("src.modules.node.agent.asyncio.wait_for", new_callable=AsyncMock) as mock_wait:
                 mock_wait.return_value = (b"Already up to date.\n", b"")
                 result = await agent._cmd_sync()
         assert result["status"] == "synced"
@@ -491,9 +477,7 @@ class TestNodeAgentDeep:
             "src.modules.node.agent.asyncio.create_subprocess_exec",
             return_value=mock_proc,
         ):
-            with patch(
-                "src.modules.node.agent.asyncio.wait_for", new_callable=AsyncMock
-            ) as mock_wait:
+            with patch("src.modules.node.agent.asyncio.wait_for", new_callable=AsyncMock) as mock_wait:
                 mock_wait.return_value = (b"scan output", b"")
                 result = await agent._cmd_scan_once({})
         assert result["status"] == "completed"
@@ -541,9 +525,7 @@ class TestMasterBotDeep:
                 "role": "worker",
             },
         )
-        with patch.object(
-            bot, "_handle_node_message", new_callable=AsyncMock
-        ) as mock_handle:
+        with patch.object(bot, "_handle_node_message", new_callable=AsyncMock) as mock_handle:
             await bot._handle_message("123", f"[1ai-node]\n{msg.to_telegram()}")
         mock_handle.assert_called_once()
 
@@ -552,9 +534,7 @@ class TestMasterBotDeep:
         from src.modules.node.master import MasterBot
 
         bot = MasterBot(telegram_token="fake-token", allowed_chat_ids=["123"])
-        with patch.object(
-            bot, "_handle_command", new_callable=AsyncMock
-        ) as mock_handle:
+        with patch.object(bot, "_handle_command", new_callable=AsyncMock) as mock_handle:
             await bot._handle_message("123", "/help")
         mock_handle.assert_called_once()
 
@@ -563,9 +543,7 @@ class TestMasterBotDeep:
         from src.modules.node.master import MasterBot
 
         bot = MasterBot(telegram_token="fake-token", allowed_chat_ids=["123"])
-        with patch.object(
-            bot, "_handle_command", new_callable=AsyncMock
-        ) as mock_handle:
+        with patch.object(bot, "_handle_command", new_callable=AsyncMock) as mock_handle:
             await bot._handle_message("123", "just plain text")
         mock_handle.assert_not_called()
 
@@ -657,9 +635,7 @@ class TestNodeAgentAPISync:
         mock_client.get = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch(
-            "src.modules.node.agent.httpx.AsyncClient", return_value=mock_client
-        ):
+        with patch("src.modules.node.agent.httpx.AsyncClient", return_value=mock_client):
             keys = await agent.sync_seen_keys()
         assert len(keys) == 2
 
@@ -670,9 +646,7 @@ class TestNodeAgentAPISync:
         mock_client.get = AsyncMock(side_effect=Exception("connection failed"))
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch(
-            "src.modules.node.agent.httpx.AsyncClient", return_value=mock_client
-        ):
+        with patch("src.modules.node.agent.httpx.AsyncClient", return_value=mock_client):
             keys = await agent.sync_seen_keys()
         assert keys == set()
 
@@ -686,12 +660,8 @@ class TestNodeAgentAPISync:
         mock_client.post = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch(
-            "src.modules.node.agent.httpx.AsyncClient", return_value=mock_client
-        ):
-            result = await agent.report_keys_api(
-                [{"key_hash": "abc", "key_type": "hex", "source": "test"}]
-            )
+        with patch("src.modules.node.agent.httpx.AsyncClient", return_value=mock_client):
+            result = await agent.report_keys_api([{"key_hash": "abc", "key_type": "hex", "source": "test"}])
         assert result == 2
 
     @pytest.mark.asyncio
@@ -703,9 +673,7 @@ class TestNodeAgentAPISync:
         mock_client.post = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch(
-            "src.modules.node.agent.httpx.AsyncClient", return_value=mock_client
-        ):
+        with patch("src.modules.node.agent.httpx.AsyncClient", return_value=mock_client):
             result = await agent.acquire_sweep_lock("0x123")
         assert result is True
 
@@ -718,9 +686,7 @@ class TestNodeAgentAPISync:
         mock_client.post = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch(
-            "src.modules.node.agent.httpx.AsyncClient", return_value=mock_client
-        ):
+        with patch("src.modules.node.agent.httpx.AsyncClient", return_value=mock_client):
             result = await agent.acquire_sweep_lock("0x123")
         assert result is False
 
@@ -733,9 +699,7 @@ class TestNodeAgentAPISync:
         mock_client.post = AsyncMock(return_value=resp)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        with patch(
-            "src.modules.node.agent.httpx.AsyncClient", return_value=mock_client
-        ):
+        with patch("src.modules.node.agent.httpx.AsyncClient", return_value=mock_client):
             await agent.report_sweep_api("0x123", "tx_hash")
 
     def test_is_key_seen(self):
@@ -799,9 +763,7 @@ class TestDBMocked:
         mock_pool.return_value = MagicMock(acquire=MagicMock(return_value=mock_acquire))
         from src.modules.node.db import record_heartbeat
 
-        result = await record_heartbeat(
-            "test", {"hostname": "h", "ip": "1.2.3.4", "version": "v"}
-        )
+        result = await record_heartbeat("test", {"hostname": "h", "ip": "1.2.3.4", "version": "v"})
         assert result == "test"
         mock_conn.execute.assert_called_once()
 
@@ -876,11 +838,9 @@ class TestProtocolExtra:
         assert s.errors == []
 
     def test_node_message_roundtrip(self):
-        from src.modules.node.protocol import NodeMessage, MessageType
+        from src.modules.node.protocol import MessageType, NodeMessage
 
-        msg = NodeMessage(
-            msg_type=MessageType.RESULT, node_id="n1", payload={"found": 5}
-        )
+        msg = NodeMessage(msg_type=MessageType.RESULT, node_id="n1", payload={"found": 5})
         text = msg.to_telegram()
         parsed = NodeMessage.from_telegram(text)
         assert parsed.node_id == "n1"
@@ -1125,7 +1085,5 @@ class TestDBComprehensive:
         mock_pool.return_value = MagicMock(acquire=MagicMock(return_value=mock_acquire))
         from src.modules.node.db import bulk_mark_seen
 
-        await bulk_mark_seen(
-            [{"key_hash": "a", "key_type": "hex", "source": "r", "node_id": "n"}]
-        )
+        await bulk_mark_seen([{"key_hash": "a", "key_type": "hex", "source": "r", "node_id": "n"}])
         mock_conn.executemany.assert_called_once()

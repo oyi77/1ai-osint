@@ -21,7 +21,6 @@ from src.modules.identity_tracking.zkit_engine import (
     ZKITEngine,
 )
 
-
 # ---------------------------------------------------------------------------
 # Ground-truth datasets
 # ---------------------------------------------------------------------------
@@ -81,11 +80,7 @@ def _precision_recall_f1(
 
     precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
     recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-    f1 = (
-        2 * precision * recall / (precision + recall)
-        if (precision + recall) > 0
-        else 0.0
-    )
+    f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
     return precision, recall, f1
 
 
@@ -136,9 +131,7 @@ class TestBreachDetectionAccuracy:
         BREACH_GROUND_TRUTH,
         ids=[f"case_{i}" for i in range(len(BREACH_GROUND_TRUTH))],
     )
-    def test_severity_classification(
-        self, data_classes: list[str], expected: Severity
-    ) -> None:
+    def test_severity_classification(self, data_classes: list[str], expected: Severity) -> None:
         """Each ground-truth case must produce the expected severity."""
         record = BreachRecord(
             source="benchmark",
@@ -147,8 +140,7 @@ class TestBreachDetectionAccuracy:
         )
         predicted = self.checker.score_severity(record)
         assert predicted == expected, (
-            f"data_classes={data_classes}: expected {expected.value}, "
-            f"got {predicted.value}"
+            f"data_classes={data_classes}: expected {expected.value}, " f"got {predicted.value}"
         )
 
     def test_overall_metrics(self) -> None:
@@ -178,11 +170,7 @@ class TestBreachDetectionAccuracy:
 
         precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
         recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-        f1 = (
-            2 * precision * recall / (precision + recall)
-            if (precision + recall) > 0
-            else 0.0
-        )
+        f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
 
         # Report metrics (always passes; this is for benchmarking)
         print("\n=== Breach Severity Detection Metrics ===")
@@ -240,9 +228,7 @@ class TestCorrelationDetectionAccuracy:
         # Check that all hashed attributes are in the graph
         total_hashes = sum(len(entry) - 1 for entry in hashed)  # subtract _source
         graph_nodes = self.engine.graph.node_count
-        assert graph_nodes == total_hashes, (
-            f"Expected {total_hashes} nodes, got {graph_nodes}"
-        )
+        assert graph_nodes == total_hashes, f"Expected {total_hashes} nodes, got {graph_nodes}"
 
     def test_multi_entity_separation(self) -> None:
         """Different entities should produce separate clusters (no cross-linking)."""
@@ -261,9 +247,7 @@ class TestCorrelationDetectionAccuracy:
         # entity_1 records are linked (alice@example.com appears twice, alice_dev appears twice)
         # entity_2 records are linked (bob@test.org appears twice)
         # So we expect exactly 2 connected components
-        assert len(components) == 2, (
-            f"Expected 2 components for disjoint entities, got {len(components)}"
-        )
+        assert len(components) == 2, f"Expected 2 components for disjoint entities, got {len(components)}"
 
     def test_cluster_purity_metrics(self) -> None:
         """Compute clustering purity precision/recall/F1."""
@@ -305,14 +289,9 @@ class TestCorrelationDetectionAccuracy:
 
         # At least one cluster should have MEDIUM or higher confidence
         high_or_medium = [
-            c
-            for c in clusters
-            if c.confidence
-            in (CorrelationConfidence.HIGH, CorrelationConfidence.MEDIUM)
+            c for c in clusters if c.confidence in (CorrelationConfidence.HIGH, CorrelationConfidence.MEDIUM)
         ]
-        assert len(high_or_medium) >= 1, (
-            "Expected at least one MEDIUM/HIGH confidence cluster"
-        )
+        assert len(high_or_medium) >= 1, "Expected at least one MEDIUM/HIGH confidence cluster"
 
 
 # ---------------------------------------------------------------------------
@@ -349,11 +328,7 @@ class TestPrivacyDetectionAccuracy:
         precision = detected / len(pii_fields) if pii_fields else 0.0
         # All known PII fields should be detected
         recall = detected / len(pii_fields) if pii_fields else 0.0
-        f1 = (
-            2 * precision * recall / (precision + recall)
-            if (precision + recall) > 0
-            else 0.0
-        )
+        f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
 
         print("\n=== PII Detection Metrics ===")
         print(f"  Detected:  {detected}/{len(pii_fields)}")
@@ -361,9 +336,7 @@ class TestPrivacyDetectionAccuracy:
         print(f"  Recall:    {recall:.3f}")
         print(f"  F1 Score:  {f1:.3f}")
 
-        assert detected == len(pii_fields), (
-            f"Only detected {detected}/{len(pii_fields)} PII fields"
-        )
+        assert detected == len(pii_fields), f"Only detected {detected}/{len(pii_fields)} PII fields"
 
     def test_no_pii_in_output(self) -> None:
         """Full pipeline output must contain zero raw PII."""

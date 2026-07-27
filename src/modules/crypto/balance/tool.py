@@ -27,10 +27,14 @@ from src.modules.crypto.balance.targeted_search import (
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "CryptoBalanceTool",
+    "_chain_for_address_type",
+    "_chain_by_name",
+]
 
-def _chain_for_address_type(
-    input_type: str, chains: list[ChainConfig]
-) -> Optional[ChainConfig]:
+
+def _chain_for_address_type(input_type: str, chains: list[ChainConfig]) -> Optional[ChainConfig]:
     """Determine chain from address type."""
     mapping = {
         "btc_address": "Bitcoin",
@@ -56,9 +60,7 @@ class CryptoBalanceTool(BaseOSINTTool):
     """
 
     name = "crypto_balance"
-    description = (
-        "Derive wallet addresses and check on-chain balances (BTC/ETH/BSC/Polygon/SOL)"
-    )
+    description = "Derive wallet addresses and check on-chain balances (BTC/ETH/BSC/Polygon/SOL)"
     version = "0.1.0"
 
     def __init__(
@@ -146,16 +148,12 @@ class CryptoBalanceTool(BaseOSINTTool):
         chain_filter = kwargs.get("chains")
         active_chains = self.chains
         if chain_filter:
-            active_chains = [
-                CHAIN_MAP[c.lower()] for c in chain_filter if c.lower() in CHAIN_MAP
-            ]
+            active_chains = [CHAIN_MAP[c.lower()] for c in chain_filter if c.lower() in CHAIN_MAP]
 
         # Step 1: Derive or resolve addresses
         addresses: list[DerivedAddress] = []
         if input_type == "mnemonic":
-            addresses = derive_from_mnemonic(
-                target, chains=active_chains, count=account_count
-            )
+            addresses = derive_from_mnemonic(target, chains=active_chains, count=account_count)
         elif input_type == "private_key":
             # Try to derive for each chain (ETH-like keys work for ETH/BSC/Polygon)
             for chain in active_chains:
@@ -166,13 +164,13 @@ class CryptoBalanceTool(BaseOSINTTool):
                     errors.append(f"{chain.name}: {e}")
         elif input_type in ("btc_address", "evm_address", "sol_address"):
             # Direct address — determine chain and check balance
-            chain = _chain_for_address_type(input_type, active_chains)
-            if chain:
+            target_chain = _chain_for_address_type(input_type, active_chains)
+            if target_chain:
                 addresses.append(
                     DerivedAddress(
                         address=target.strip(),
-                        chain=chain.name,
-                        symbol=chain.symbol,
+                        chain=target_chain.name,
+                        symbol=target_chain.symbol,
                         derivation_path="direct",
                     )
                 )
@@ -183,9 +181,7 @@ class CryptoBalanceTool(BaseOSINTTool):
                 module=self.name,
                 target=target[:20] + "...",
                 status="error",
-                error=f"No addresses derived. Errors: {'; '.join(errors)}"
-                if errors
-                else "No addresses derived.",
+                error=f"No addresses derived. Errors: {'; '.join(errors)}" if errors else "No addresses derived.",
                 started_at=started_at,
                 completed_at=datetime.now(timezone.utc),
             )
@@ -211,7 +207,7 @@ class CryptoBalanceTool(BaseOSINTTool):
             if isinstance(result, Exception):
                 errors.append(f"{addresses[i].chain}: {result}")
                 continue
-            valid_results.append(result)
+            valid_results.append(result)  # type: ignore[arg-type]
 
         apply_usd_prices(valid_results, prices)
 
@@ -308,17 +304,13 @@ class CryptoBalanceTool(BaseOSINTTool):
         """No-op — future: watch addresses for balance changes."""
         pass
 
-    async def _run_targeted_scan(
-        self, target: str, scan_id: str, started_at: datetime, **kwargs
-    ) -> ScanResult:
+    async def _run_targeted_scan(self, target: str, scan_id: str, started_at: datetime, **kwargs) -> ScanResult:
         """Delegate to targeted search for a known mnemonic."""
         account_range = kwargs.get("account_range", (0, self.account_count))
         chain_filter = kwargs.get("chains")
         active_chains = self.chains
         if chain_filter:
-            active_chains = [
-                CHAIN_MAP[c.lower()] for c in chain_filter if c.lower() in CHAIN_MAP
-            ]
+            active_chains = [CHAIN_MAP[c.lower()] for c in chain_filter if c.lower() in CHAIN_MAP]
 
         lookup = KnownMnemonicLookup(
             mnemonic=target,
@@ -326,16 +318,12 @@ class CryptoBalanceTool(BaseOSINTTool):
             account_range=account_range,
         )
         targeted_result = await lookup.execute(scan_id=scan_id)
-        scan_result = targeted_scan_to_scanresult(
-            targeted_result, target_label="targeted"
-        )
+        scan_result = targeted_scan_to_scanresult(targeted_result, target_label="targeted")
         scan_result.started_at = started_at
         scan_result.completed_at = datetime.now(timezone.utc)
         return scan_result
 
-    async def _run_random_scan(
-        self, scan_id: str, started_at: datetime, **kwargs
-    ) -> ScanResult:
+    async def _run_random_scan(self, scan_id: str, started_at: datetime, **kwargs) -> ScanResult:
         """Delegate to RandomScanner for random mnemonic scanning."""
         from src.modules.crypto.balance.scanner_engine import RandomScanner
 
@@ -388,9 +376,7 @@ class CryptoBalanceTool(BaseOSINTTool):
             completed_at=datetime.now(timezone.utc),
         )
 
-    async def _run_leak_scan(
-        self, scan_id: str, started_at: datetime, **kwargs
-    ) -> ScanResult:
+    async def _run_leak_scan(self, scan_id: str, started_at: datetime, **kwargs) -> ScanResult:
         """Delegate to leak scanner (GitHub + Pastebin) for leaked mnemonic discovery."""
         import os
 
@@ -413,9 +399,7 @@ class CryptoBalanceTool(BaseOSINTTool):
         await coordinator.start()
 
         github_token = os.environ.get("GITHUB_TOKEN", "")
-        github_scanner = GitHubLeakScanner(
-            github_token=github_token, hit_logger=hit_logger
-        )
+        github_scanner = GitHubLeakScanner(github_token=github_token, hit_logger=hit_logger)
         paste_scanner = PasteSiteScanner(hit_logger=hit_logger)
 
         total_candidates = 0
@@ -430,9 +414,7 @@ class CryptoBalanceTool(BaseOSINTTool):
 
             for finding in github_findings:
                 if not coordinator.is_mnemonic_seen(finding.mnemonic_candidate):
-                    coordinator.mark_mnemonic_seen(
-                        finding.mnemonic_candidate, source="leak"
-                    )
+                    coordinator.mark_mnemonic_seen(finding.mnemonic_candidate, source="leak")
                     result = await verify_and_alert(
                         finding.mnemonic_candidate,
                         chains=self.chains,
@@ -447,9 +429,7 @@ class CryptoBalanceTool(BaseOSINTTool):
 
             for finding in paste_findings:
                 if not coordinator.is_mnemonic_seen(finding.mnemonic_candidate):
-                    coordinator.mark_mnemonic_seen(
-                        finding.mnemonic_candidate, source="leak"
-                    )
+                    coordinator.mark_mnemonic_seen(finding.mnemonic_candidate, source="leak")
                     result = await verify_and_alert(
                         finding.mnemonic_candidate,
                         chains=self.chains,
@@ -499,9 +479,7 @@ class CryptoBalanceTool(BaseOSINTTool):
             completed_at=datetime.now(timezone.utc),
         )
 
-    async def _run_leak_key_scan(
-        self, scan_id: str, started_at: datetime, **kwargs
-    ) -> ScanResult:
+    async def _run_leak_key_scan(self, scan_id: str, started_at: datetime, **kwargs) -> ScanResult:
         """Delegate to KeyLeakScanner for leaked private key discovery."""
         import os
 
@@ -580,9 +558,7 @@ class CryptoBalanceTool(BaseOSINTTool):
             completed_at=datetime.now(timezone.utc),
         )
 
-    async def _run_leak_telegram_scan(
-        self, scan_id: str, started_at: datetime, **kwargs
-    ) -> ScanResult:
+    async def _run_leak_telegram_scan(self, scan_id: str, started_at: datetime, **kwargs) -> ScanResult:
         """Scan Telegram channels for leaked private keys using Telethon."""
         import os
 
@@ -626,7 +602,7 @@ class CryptoBalanceTool(BaseOSINTTool):
             module=self.name,
             target="leak_telegram",
             status="ok",
-            findings=findings,
+            findings=findings,  # type: ignore[arg-type]
             metadata={
                 "mode": "leak_telegram",
                 "candidates": len(findings),
@@ -636,9 +612,7 @@ class CryptoBalanceTool(BaseOSINTTool):
             completed_at=datetime.now(timezone.utc),
         )
 
-    async def _run_smart_scan(
-        self, scan_id: str, started_at: datetime, **kwargs
-    ) -> ScanResult:
+    async def _run_smart_scan(self, scan_id: str, started_at: datetime, **kwargs) -> ScanResult:
         """Delegate to smart generator for AI word-frequency biased scanning."""
         import os
 

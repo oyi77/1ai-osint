@@ -37,9 +37,7 @@ class WalletHit:
     mnemonic_hash: str = ""
     derivation_path: str = ""
     source: str = "scanner"
-    found_at: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    found_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
 _BATCH_SIZE = 10
@@ -259,6 +257,8 @@ class HitLogger:
     async def _send_webhook(self, hit: dict[str, Any]) -> None:
         """POST hit data to a webhook endpoint."""
         if not self._http:
+            return
+        if self._webhook_url is None:
             return
         # private_key_hex already stripped in log_hit, but double-check
         payload = {k: v for k, v in hit.items() if k != "private_key_hex"}

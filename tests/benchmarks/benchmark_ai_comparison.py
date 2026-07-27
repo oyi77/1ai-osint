@@ -9,9 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-
 from src.core.models import Finding, Severity
-
 
 # ---------------------------------------------------------------------------
 # Synthetic test data
@@ -126,13 +124,7 @@ def baseline_process(findings: list[Finding]) -> dict[str, Any]:
         "module_breakdown": modules,
         "risk_score": risk_score,
         "risk_level": (
-            "critical"
-            if risk_score >= 80
-            else "high"
-            if risk_score >= 60
-            else "medium"
-            if risk_score >= 30
-            else "low"
+            "critical" if risk_score >= 80 else "high" if risk_score >= 60 else "medium" if risk_score >= 30 else "low"
         ),
         "false_positives_filtered": 0,
         "entities_extracted": 0,
@@ -189,13 +181,7 @@ def ai_enriched_process(findings: list[Finding]) -> dict[str, Any]:
         "severity_breakdown": severity_counts,
         "risk_score": ai_score,
         "risk_level": (
-            "critical"
-            if ai_score >= 80
-            else "high"
-            if ai_score >= 60
-            else "medium"
-            if ai_score >= 30
-            else "low"
+            "critical" if ai_score >= 80 else "high" if ai_score >= 60 else "medium" if ai_score >= 30 else "low"
         ),
         "false_positives_filtered": fp_removed,
         "entities_extracted": sum(len(v) for v in entities.values()),
@@ -217,9 +203,7 @@ class TestAIComparison:
         ai_result = ai_enriched_process(all_findings)
         baseline_result = baseline_process(all_findings)
 
-        assert ai_result["false_positives_filtered"] > 0, (
-            "AI should filter at least one FP"
-        )
+        assert ai_result["false_positives_filtered"] > 0, "AI should filter at least one FP"
         assert ai_result["total_findings"] <= baseline_result["total_findings"]
 
     def test_ai_extracts_entities(self):
@@ -230,9 +214,7 @@ class TestAIComparison:
     def test_ai_finds_correlations(self):
         """AI layer should find cross-module correlations."""
         result = ai_enriched_process(SAMPLE_FINDINGS)
-        assert result["correlations_found"] >= 0, (
-            "Correlations count should be non-negative"
-        )
+        assert result["correlations_found"] >= 0, "Correlations count should be non-negative"
 
     def test_ai_risk_score_higher_with_correlations(self):
         """AI risk score should be >= baseline when correlations exist."""

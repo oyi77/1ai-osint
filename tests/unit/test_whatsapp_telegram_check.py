@@ -1,6 +1,8 @@
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
 import httpx
+import pytest
+
 from src.modules.free_intel.whatsapp_telegram_check import MessagingIntel
 
 

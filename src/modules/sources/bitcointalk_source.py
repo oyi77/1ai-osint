@@ -32,9 +32,7 @@ _BOARDS = [
 class BitcoinTalkSource:
     """Scan BitcoinTalk forum for leaked crypto keys/mnemonics."""
 
-    def __init__(
-        self, max_topics: int = 10, request_delay: float = 3.0, timeout: float = 30.0
-    ):
+    def __init__(self, max_topics: int = 10, request_delay: float = 3.0, timeout: float = 30.0):
         self.max_topics = max_topics
         self.request_delay = request_delay
         self.timeout = timeout
@@ -45,9 +43,7 @@ class BitcoinTalkSource:
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         }
-        async with httpx.AsyncClient(
-            timeout=self.timeout, follow_redirects=True
-        ) as client:
+        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
             for board_url, _ in _BOARDS:
                 try:
                     await self._rate_limit()
@@ -58,7 +54,7 @@ class BitcoinTalkSource:
                     # Find topic links
                     topic_links = []
                     for a in soup.find_all("a", href=True):
-                        href = a.get("href", "")
+                        href = str(a.get("href", "") or "")
                         if "topic=" in href and href.startswith("http"):
                             topic_links.append(href)
                     topic_links = list(dict.fromkeys(topic_links))[: self.max_topics]

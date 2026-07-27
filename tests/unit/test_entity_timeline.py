@@ -8,9 +8,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-import pytest
-
-from src.core.models import ScanResult, Finding, Severity
+from src.core.models import Finding, ScanResult, Severity
 from src.modules.deep_scan.models_report import (
     EvidenceItem,
     IntelReport,
@@ -25,7 +23,6 @@ from src.modules.entity_timeline import (
     TimelineEvent,
 )
 from src.modules.entity_timeline.timeline_viz import TimelineVizData
-
 
 # ======================================================================
 # Helpers
@@ -419,7 +416,6 @@ class TestEndToEnd:
 
         # Verify structure
         assert t.event_count >= 6  # 2×(started+completed) + 3 findings
-        has_snapshots = t.snapshot_count == t.event_count
 
         # Diff between first and last snapshot
         changes = _BUILDER.diff_snapshots(t.snapshots[0], t.snapshots[-1])

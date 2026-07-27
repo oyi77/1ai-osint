@@ -1,1 +1,1 @@
-"""Web UI route modules."""
+"""Web route handlers — dashboard, entities, reports, timeline."""

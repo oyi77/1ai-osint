@@ -62,7 +62,7 @@ class InfraFingerprintEngine:
         """Resolve domain to IP addresses."""
         try:
             results = socket.getaddrinfo(domain, None)
-            return list({r[4][0] for r in results})
+            return list({str(r[4][0]) for r in results})
         except (socket.gaierror, OSError):
             return []
 
@@ -75,9 +75,7 @@ class InfraFingerprintEngine:
                 with ctx.wrap_socket(sock, server_hostname=domain) as ssock:
                     cert = ssock.getpeercert(binary_form=False)
                     cert_bin = ssock.getpeercert(binary_form=True)
-                    cert_sha256 = (
-                        hashlib.sha256(cert_bin).hexdigest() if cert_bin else None
-                    )
+                    cert_sha256 = hashlib.sha256(cert_bin).hexdigest() if cert_bin else None
                     return {"cert": cert, "sha256": cert_sha256}
         except Exception:
             return None
@@ -114,9 +112,7 @@ class InfraFingerprintEngine:
         for scheme in ("https", "http"):
             url = f"{scheme}://{domain}/favicon.ico"
             try:
-                async with httpx.AsyncClient(
-                    timeout=_TIMEOUT, follow_redirects=True
-                ) as client:
+                async with httpx.AsyncClient(timeout=_TIMEOUT, follow_redirects=True) as client:
                     resp = await client.get(url)
                     if resp.status_code == 200 and resp.content:
                         return self._simple_hash(resp.content)
@@ -147,11 +143,7 @@ class InfraFingerprintEngine:
                 text=True,
                 timeout=5.0,
             )
-            ns = [
-                ns.rstrip(".")
-                for ns in result.stdout.strip().splitlines()
-                if ns.strip()
-            ]
+            ns = [ns.rstrip(".") for ns in result.stdout.strip().splitlines() if ns.strip()]
             return ns[:4]
         except Exception:
             return []
@@ -172,16 +164,12 @@ class InfraFingerprintEngine:
             fp.tls_cert_issuer = self._extract_cert_field(cert, "issuer")
             fp.tls_cert_subject = self._extract_cert_field(cert, "subject")
             # Related domains from SANs (excluding wildcards)
-            fp.related_domains = [
-                s for s in fp.tls_cert_sans if not s.startswith("*") and s != domain
-            ][:20]
+            fp.related_domains = [s for s in fp.tls_cert_sans if not s.startswith("*") and s != domain][:20]
 
         # ASN/hosting info
         if fp.resolved_ips:
             asn_data = await self._fetch_asn_info(fp.resolved_ips[0])
-            fp.asn = (
-                asn_data.get("org", "").split(" ")[0] if asn_data.get("org") else None
-            )
+            fp.asn = asn_data.get("org", "").split(" ")[0] if asn_data.get("org") else None
             fp.hosting_provider = asn_data.get("org", "")
 
         # Favicon hash

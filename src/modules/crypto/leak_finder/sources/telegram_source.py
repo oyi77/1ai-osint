@@ -1,20 +1,31 @@
 """Telegram source adapter for crypto leak discovery."""
+
 from __future__ import annotations
 
 import asyncio
 import logging
 import os
 import re
-from typing import Optional
+from typing import Any, Optional
 
 from src.modules.crypto.leak_finder.sources.github_source import RawLeak
 
 logger = logging.getLogger(__name__)
 
-_KEY_HINTS_RE = re.compile(r"(?i)(private[_\s-]*key|secret[_\s-]*key|mnemonic|seed[_\s-]*phrase|wallet|0x[0-9a-fA-F]{40,}|[5KL][1-9A-HJ-NP-Za-km-z]{50,51}|[0-9a-fA-F]{64})")
+_KEY_HINTS_RE = re.compile(
+    r"(?i)(private[_\s-]*key|secret[_\s-]*key|mnemonic|seed[_\s-]*phrase|wallet|0x[0-9a-fA-F]{40,}|[5KL][1-9A-HJ-NP-Za-km-z]{50,51}|[0-9a-fA-F]{64})"
+)
+
 
 class TelegramSource:
-    def __init__(self, api_id: Optional[int] = None, api_hash: Optional[str] = None, session_name: str = "leak_finder", max_messages_per_channel: int = 100, timeout: float = 30.0):
+    def __init__(
+        self,
+        api_id: Optional[int] = None,
+        api_hash: Optional[str] = None,
+        session_name: str = "leak_finder",
+        max_messages_per_channel: int = 100,
+        timeout: float = 30.0,
+    ):
         self.api_id = api_id or int(os.getenv("TELEGRAM_API_ID", "0"))
         self.api_hash = api_hash or os.getenv("TELEGRAM_API_HASH", "")
         self.session_name = session_name
@@ -34,18 +45,25 @@ class TelegramSource:
         leaks: list[RawLeak] = []
         keywords = keywords or ["crypto leak", "wallet dump", "seed phrase", "private key leak", "mnemonic leak"]
         try:
-            channels = []
+            channels: list[dict[str, Any]] = []
             for kw in keywords:
                 if len(channels) >= max_channels:
                     break
                 try:
                     from telethon.tl.functions.contacts import SearchRequest
+
                     result = await client(SearchRequest(q=kw, limit=10))
                     for chat in result.chats:
                         if len(channels) >= max_channels:
                             break
                         if chat.id not in [c["id"] for c in channels]:
-                            channels.append({"id": chat.id, "title": getattr(chat, "title", ""), "username": getattr(chat, "username", "")})
+                            channels.append(
+                                {
+                                    "id": chat.id,
+                                    "title": getattr(chat, "title", ""),
+                                    "username": getattr(chat, "username", ""),
+                                }
+                            )
                     await asyncio.sleep(2)
                 except Exception as exc:
                     if "flood" in str(exc).lower():
@@ -57,7 +75,11 @@ class TelegramSource:
                         text = message.text or ""
                         if text and _KEY_HINTS_RE.search(text):
                             ref = channel.get("username") or str(channel["id"])
-                            leaks.append(RawLeak(text=text, source_name="telegram", source_url=f"https://t.me/{ref}/{message.id}"))
+                            leaks.append(
+                                RawLeak(
+                                    text=text, source_name="telegram", source_url=f"https://t.me/{ref}/{message.id}"
+                                )
+                            )
                 except Exception as exc:
                     if "flood" in str(exc).lower():
                         await asyncio.sleep(self._extract_flood_wait(str(exc)) + 1)

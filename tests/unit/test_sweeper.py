@@ -1,13 +1,14 @@
 """Tests for sweeper.py uncovered branches."""
 
-import pytest
 from unittest.mock import AsyncMock, patch
 
-from src.modules.crypto.balance.sweeper import (
-    Sweeper,
-    DESTINATION_WALLETS,
-)
+import pytest
+
 from src.modules.crypto.balance.chains import ChainConfig, ChainType
+from src.modules.crypto.balance.sweeper import (
+    DESTINATION_WALLETS,
+    Sweeper,
+)
 
 
 class TestSweeperCore:

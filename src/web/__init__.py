@@ -1,1 +1,1 @@
-"""1ai-osint Web UI package."""
+"""Web dashboard — FastAPI routes, templates, static assets."""

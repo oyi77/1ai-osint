@@ -1,6 +1,6 @@
 """Tests for the production-grade DeepScraperEngine."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import httpx
 import pytest
@@ -92,9 +92,7 @@ async def test_scrape_profile_http_error(engine, mock_httpx_client):
     """scrape_profile handles HTTP errors gracefully."""
     error_response = MagicMock(spec=httpx.Response)
     error_response.status_code = 404
-    mock_httpx_client.get.side_effect = httpx.HTTPStatusError(
-        "Not Found", request=MagicMock(), response=error_response
-    )
+    mock_httpx_client.get.side_effect = httpx.HTTPStatusError("Not Found", request=MagicMock(), response=error_response)
 
     result = await engine.scrape_profile("https://example.com/notfound")
     assert result["url"] == "https://example.com/notfound"
@@ -105,9 +103,7 @@ async def test_scrape_profile_http_error(engine, mock_httpx_client):
 @pytest.mark.asyncio
 async def test_scrape_profile_timeout(engine, mock_httpx_client):
     """scrape_profile handles timeouts gracefully."""
-    mock_httpx_client.get.side_effect = httpx.TimeoutException(
-        "Connection timed out"
-    )
+    mock_httpx_client.get.side_effect = httpx.TimeoutException("Connection timed out")
 
     result = await engine.scrape_profile("https://example.com/slow")
     assert result["url"] == "https://example.com/slow"
@@ -256,7 +252,5 @@ async def test_no_retry_on_non_http_error(tmp_path):
 @pytest.mark.asyncio
 async def test_async_context_manager(tmp_path):
     """DeepScraperEngine can be used as an async context manager."""
-    async with DeepScraperEngine(
-        max_retries=1, cache_ttl=0, cache_dir=str(tmp_path / "cache4")
-    ) as eng:
+    async with DeepScraperEngine(max_retries=1, cache_ttl=0, cache_dir=str(tmp_path / "cache4")) as eng:
         assert isinstance(eng, DeepScraperEngine)

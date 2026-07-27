@@ -17,7 +17,7 @@ from contextlib import asynccontextmanager
 from typing import Any, AsyncGenerator, Optional
 
 import httpx
-from playwright.async_api import Browser, BrowserContext, Page, async_playwright
+from playwright.async_api import Browser, Page, async_playwright
 
 logger = logging.getLogger(__name__)
 
@@ -112,9 +112,7 @@ class CloakScraper:
                 Default ``"America/New_York"``.
         """
         self.cloak_ws = cloak_ws or os.environ.get("CLOAKBROWSER_CDP_WS", "")
-        self.cloak_api = cloak_api or os.environ.get(
-            "CLOAKBROWSER_API_URL", ""
-        )
+        self.cloak_api = cloak_api or os.environ.get("CLOAKBROWSER_API_URL", "")
         self.headless = headless
         self._viewport = viewport or DEFAULT_VIEWPORT
         self._locale = locale or DEFAULT_LOCALE
@@ -139,15 +137,10 @@ class CloakScraper:
         if self.cloak_api:
             try:
                 async with httpx.AsyncClient(timeout=5.0) as client:
-                    resp = await client.get(
-                        f"{self.cloak_api}/api/v1/active-profile"
-                    )
+                    resp = await client.get(f"{self.cloak_api}/api/v1/active-profile")
                     if resp.status_code == 200:
                         data = resp.json()
-                        ws_url = (
-                            data.get("websocket_url")
-                            or data.get("ws_endpoint")
-                        )
+                        ws_url = data.get("websocket_url") or data.get("ws_endpoint")
                         if ws_url:
                             return ws_url
             except Exception as e:
@@ -304,9 +297,7 @@ class CloakScraper:
             async with async_playwright() as p:
                 logger.info("Connecting to CloakBrowser via CDP: %s", ws_url)
                 browser = await p.chromium.connect_over_cdp(ws_url)
-                context = (
-                    browser.contexts[0] if browser.contexts else await browser.new_context()
-                )
+                context = browser.contexts[0] if browser.contexts else await browser.new_context()
                 page = await context.new_page()
                 await self._apply_stealth(page)
                 try:

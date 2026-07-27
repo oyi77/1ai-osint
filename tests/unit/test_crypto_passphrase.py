@@ -2,20 +2,19 @@
 
 import pytest
 
+from src.modules.crypto.passphrase.checker import (
+    charset_entropy,
+    check_passphrase_strength,
+    dictionary_check,
+    shannon_entropy,
+)
 from src.modules.crypto.passphrase.generator import (
+    MnemonicGenerationError,
     generate_mnemonic,
     generate_with_details,
     mnemonic_to_seed,
     validate_mnemonic,
-    MnemonicGenerationError,
 )
-from src.modules.crypto.passphrase.checker import (
-    check_passphrase_strength,
-    shannon_entropy,
-    charset_entropy,
-    dictionary_check,
-)
-
 
 # --- Generator tests ---
 
@@ -168,9 +167,7 @@ class TestDictionaryCheck:
         # Use words that are not in the common weak-words list.
         # BIP-39 wordlists can overlap with common words (e.g. "master",
         # "solo", "shadow"), so we test with a known-clean string.
-        matches = dictionary_check(
-            "abandon ability able about above absent absorb abstract absurd abuse"
-        )
+        matches = dictionary_check("abandon ability able about above absent absorb abstract absurd abuse")
         assert matches == []
 
     def test_password_detected(self):
@@ -267,7 +264,8 @@ class TestLoadBip39Wordlist:
 
     def test_load_wordlist_success_path_mocked(self):
         """Cover the success path of load_bip39_wordlist (lines 145-161)."""
-        from unittest.mock import patch, MagicMock, mock_open
+        from unittest.mock import MagicMock, mock_open, patch
+
         import src.modules.crypto.passphrase.checker as checker_mod
 
         mock_finder = MagicMock()
@@ -317,6 +315,7 @@ class TestLoadBip39Wordlist:
     def test_load_wordlist_exception_returns_empty(self):
         """When bip_utils import fails, returns empty set."""
         from unittest.mock import patch
+
         import src.modules.crypto.passphrase.checker as mod
 
         with patch.dict("sys.modules", {"bip_utils": None}):

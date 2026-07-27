@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from src.modules.deep_scan.dossier_compiler import TargetDossier
+from src.modules.deep_scan._dossier_models import TargetDossier
 
 
 def export_dossier_html(dossier: TargetDossier) -> str:
@@ -52,18 +52,10 @@ def export_dossier_html(dossier: TargetDossier) -> str:
     if not socials_html:
         socials_html = "<p>No social accounts discovered.</p>"
 
-    gaps_html = (
-        "".join([f"<li>{gap}</li>" for gap in data["intelligence_gaps"]])
-        or "<li>None</li>"
-    )
+    gaps_html = "".join([f"<li>{gap}</li>" for gap in data["intelligence_gaps"]]) or "<li>None</li>"
 
     breaches_html = (
-        "".join(
-            [
-                f"<li><span class='badge red'>{b}</span></li>"
-                for b in data["breached_services"]
-            ]
-        )
+        "".join([f"<li><span class='badge red'>{b}</span></li>" for b in data["breached_services"]])
         or "<li>No breaches found</li>"
     )
 

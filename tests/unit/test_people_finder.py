@@ -1,7 +1,8 @@
 """Tests for people finder search module."""
 
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 
 from src.modules.people_finder.search import PeopleFinderSearch
 
@@ -157,9 +158,7 @@ class TestPeopleFinderSearch:
         assert 0.65 <= score <= 0.9
 
     def test_score_confidence_three_providers(self, finder):
-        score = PeopleFinderSearch._score_confidence(
-            ["sherlock", "maigret", "whatsmyname"], 3
-        )
+        score = PeopleFinderSearch._score_confidence(["sherlock", "maigret", "whatsmyname"], 3)
         assert score >= 0.85
 
     def test_score_confidence_zero_available(self, finder):
@@ -167,9 +166,7 @@ class TestPeopleFinderSearch:
         assert score == 0.3
 
     @pytest.mark.asyncio
-    async def test_search_integration(
-        self, finder, sherlock_result, maigret_result, whatsmyname_result
-    ):
+    async def test_search_integration(self, finder, sherlock_result, maigret_result, whatsmyname_result):
         mock_sherlock = MagicMock()
         mock_sherlock.search.return_value = sherlock_result
         mock_maigret = MagicMock()

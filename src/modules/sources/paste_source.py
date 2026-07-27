@@ -62,13 +62,9 @@ class PasteSource:
 
     async def search_for_address(self, address: str) -> list[RawLeak]:
         pattern = re.compile(re.escape(address), re.IGNORECASE)
-        return [
-            leak for leak in await self.fetch_raw_leaks() if pattern.search(leak.text)
-        ]
+        return [leak for leak in await self.fetch_raw_leaks() if pattern.search(leak.text)]
 
-    async def _get_paste_ids(
-        self, client: httpx.AsyncClient, archive_url: str, source_name: str
-    ) -> list[str]:
+    async def _get_paste_ids(self, client: httpx.AsyncClient, archive_url: str, source_name: str) -> list[str]:
         resp = await client.get(archive_url)
         resp.raise_for_status()
         if source_name == "pastebin":
@@ -101,7 +97,7 @@ class PasteSource:
         soup = BeautifulSoup(html, "lxml")
         ids = []
         for link in soup.find_all("a", href=True):
-            match = re.search(r"/([a-zA-Z0-9]{5,8})(?:\.|$)", link["href"])
+            match = re.search(r"/([a-zA-Z0-9]{5,8})(?:\.|$)", str(link.get("href", "")))
             if match:
                 ids.append(match.group(1))
         return list(dict.fromkeys(ids))
@@ -111,7 +107,7 @@ class PasteSource:
         soup = BeautifulSoup(html, "lxml")
         ids = []
         for link in soup.find_all("a", href=True):
-            href = link["href"]
+            href = str(link.get("href", ""))
             if href.startswith("/") and len(href) > 1:
                 slug = href.strip("/").split("/")[0]
                 if slug and slug not in ("api", "login", "new", "edit", "raw"):

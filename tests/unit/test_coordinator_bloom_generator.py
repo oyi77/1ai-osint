@@ -1,9 +1,8 @@
 """Tests for scanner_coordinator, bloom, and smart_generator modules."""
 
 from src.modules.crypto.balance.bloom import BloomFilter
-from src.modules.crypto.balance.smart_generator import SmartMnemonicGenerator
 from src.modules.crypto.balance.scanner_coordinator import ScannerCoordinator
-
+from src.modules.crypto.balance.smart_generator import SmartMnemonicGenerator
 
 # --- BloomFilter Tests ---
 
@@ -94,9 +93,7 @@ class TestScannerCoordinator:
         hash1 = ScannerCoordinator.hash_mnemonic(
             "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
         )
-        hash2 = ScannerCoordinator.hash_mnemonic(
-            "zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo wrong"
-        )
+        hash2 = ScannerCoordinator.hash_mnemonic("zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo wrong")
         assert hash1 != hash2
 
     def test_hash_mnemonic_length(self):

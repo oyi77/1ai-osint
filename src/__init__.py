@@ -1,3 +1,8 @@
-"""1ai-osint: AI-Powered OSINT & ZKIT Research Platform."""
+"""1ai-osint — AI-Powered OSINT & ZKIT Research Platform."""
 
-__version__ = "0.1.0"
+try:
+    from importlib.metadata import version as _v
+
+    __version__ = _v("1ai-osint")
+except (ImportError, Exception):
+    __version__ = "0.1.0"

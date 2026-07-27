@@ -13,7 +13,6 @@ from src.plugin.hooks import HookDispatcher
 from src.plugin.registry import PluginRegistry
 from src.plugins.example_plugin import ExampleLoggingPlugin
 
-
 # ============================================================================
 # Helper plugins for testing
 # ============================================================================
@@ -255,7 +254,7 @@ class TestHookDispatch:
 
     async def test_dispatch_only_matching_hooks(self, registry: PluginRegistry, dispatcher: HookDispatcher) -> None:
         p1 = ScanStartPlugin()  # hooks: on_scan_start
-        p2 = ScanEndPlugin()    # hooks: on_scan_end
+        p2 = ScanEndPlugin()  # hooks: on_scan_end
         registry.register(p1)
         registry.register(p2)
 
@@ -274,6 +273,7 @@ class TestHookDispatch:
 
     async def test_on_report_transformation_chain(self, registry: PluginRegistry, dispatcher: HookDispatcher) -> None:
         """Sequential dispatch where each plugin can modify the report."""
+
         class ReportModifier2(ReportModifierPlugin):
             name: str = "report_modifier_2"
 
@@ -352,6 +352,7 @@ class TestErrorIsolation:
         self, registry: PluginRegistry, dispatcher: HookDispatcher
     ) -> None:
         """Sequential dispatch continues even if one plugin fails."""
+
         class GoodScanStartPlugin2(ScanStartPlugin):
             name: str = "scan_starter_good2"
 
@@ -440,10 +441,11 @@ class TestCLIIntegration:
         """The plugins command lists example_logger when discovered."""
         from typer.testing import CliRunner
 
-        from src.cli.main import _init_plugins, app
+        from src.cli.helpers import init_plugins
+        from src.cli.main import app
 
         # Force discovery
-        _init_plugins()
+        init_plugins()
 
         runner = CliRunner()
         result = runner.invoke(app, ["plugins"])

@@ -5,7 +5,6 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from unittest.mock import MagicMock
 
-
 from src.modules.deep_scan import DeepScanResult, Identifier, IdentifierType
 from src.modules.deep_scan.models_report import (
     IntelReport,
@@ -168,9 +167,7 @@ class TestEvidenceExtraction:
         result = _make_result(findings=[f])
         report = generate_intel_report(result)
         # 1 platform evidence + 1 username evidence = 2 total; duplicates deduplicated
-        assert (
-            len([e for e in report.evidence if e.notes == "github"]) == 1
-        )  # only 1 github platform
+        assert len([e for e in report.evidence if e.notes == "github"]) == 1  # only 1 github platform
 
     def test_builds_url_from_platform_and_value(self):
         f = _make_finding(
@@ -201,9 +198,7 @@ class TestConfidence:
 
     def test_email_uniqueness_higher_than_username(self):
         f_username = _make_finding(module="github", raw_data={"username": "alice"})
-        f_email = _make_finding(
-            module="leakcheck", raw_data={"email": "alice@example.com"}
-        )
+        f_email = _make_finding(module="leakcheck", raw_data={"email": "alice@example.com"})
         result = _make_result(findings=[f_username, f_email])
         report = generate_intel_report(result)
         cb_username = report.confidence_by_identifier["alice"]
@@ -455,6 +450,4 @@ class TestSummary:
         result = _make_result(findings=[f])
         report = generate_intel_report(result)
         assert report.briefing.breach_records
-        assert (
-            report.briefing.breach_records[0].fields.get("email") == "leak@example.com"
-        )
+        assert report.briefing.breach_records[0].fields.get("email") == "leak@example.com"

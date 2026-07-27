@@ -2,9 +2,9 @@
 
 import pytest
 
+from src.core.models import BreachRecord, Severity
 from src.modules.data_leaks.aggregator import DataLeaksAggregator
 from src.modules.data_leaks.breach_checker import BreachChecker
-from src.core.models import BreachRecord, Severity
 
 
 @pytest.fixture

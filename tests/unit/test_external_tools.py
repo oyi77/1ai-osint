@@ -1,12 +1,13 @@
 """Tests for the external tool adapters (Sherlock, Maigret, theHarvester)."""
 
-import os
-import json
-import csv
 import asyncio
-import pytest
-from unittest.mock import patch, MagicMock, AsyncMock
+import csv
+import json
+import os
 from datetime import datetime, timezone
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from src.core.models import Finding
 from src.modules.vendor.external_tools import ExternalToolIntel
@@ -55,9 +56,7 @@ class TestExternalToolIntel:
     @pytest.mark.asyncio
     async def test_scan_username_maigret(self, mock_maigret, mock_which):
         # Case where sherlock is missing but maigret exists
-        mock_which.side_effect = lambda cmd: (
-            "/usr/bin/maigret" if cmd == "maigret" else None
-        )
+        mock_which.side_effect = lambda cmd: ("/usr/bin/maigret" if cmd == "maigret" else None)
         mock_maigret.return_value = [
             Finding(
                 id="f2",
@@ -303,9 +302,7 @@ class TestExternalToolIntel:
         intel = ExternalToolIntel()
         mock_proc = AsyncMock()
         mock_proc.communicate.return_value = (
-            json.dumps(
-                [{"status": "found", "site": "Facebook", "url": "http"}]
-            ).encode(),
+            json.dumps([{"status": "found", "site": "Facebook", "url": "http"}]).encode(),
             b"",
         )
         mock_exec.return_value = mock_proc

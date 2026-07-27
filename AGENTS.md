@@ -16,9 +16,9 @@ Every task follows this sequence. No exceptions.
 Full details: `~/.1ai/core/PROCESS.md` (auto-injected by hooks)
 
 ## This repo
-[One sentence: what this repo does]
+AI-powered OSINT & ZKIT research platform — breach aggregation, secret scanning, crypto analysis, identity correlation, and AI orchestration.
 Stack: Python
-Domain: [what this repo is responsible for]
+Domain: Security intelligence, OSINT, crypto forensics, identity tracking
 
 ## Rules — thin loader, no submodule
 Rules are NOT vendored into this repo. This repo does NOT need a rules submodule.
@@ -54,10 +54,19 @@ Do NOT add the rules repo as a git submodule. Update rules centrally, then run/s
 5. Run GATE.md before commit/PR.
 
 ## Repo-specific conventions
-- [add conventions specific to this repo]
+- All modules use async/await patterns
+- Pydantic models for all data shapes — always provide `id` and `scan_id` on Finding/ScanResult
+- Mock external APIs in tests, never call real endpoints
+- Module registration via `__init__.py` exports
+- Rate limiting via `rate_limiter.py` for all external calls
+- Caching via `cache.py` to avoid redundant API hits
+- Patch source module for locally-imported functions, not calling module
+- Always `rm -f .coverage` before full pytest runs (known corruption issue)
 
 ## Commands
-- Dev:   `python -m app`
-- Test:  `pytest`
-- Build: `python -m compileall .`
-- Lint:  `ruff check .`
+- Dev:   `uv run python -m app`
+- Test:  `make test`
+- CI:    `make ci` (lint → typecheck → test)
+- Lint:  `make lint`
+- Type:  `make typecheck`
+- Coverage: `make coverage`

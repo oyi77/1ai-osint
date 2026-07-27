@@ -1,12 +1,13 @@
 """Tests for PeopleFinderTool wrapper class."""
 
-import pytest
 import json
-from unittest.mock import patch, MagicMock, AsyncMock
 from datetime import datetime, timezone
+from unittest.mock import AsyncMock, MagicMock, patch
 
-from src.modules.people_finder import PeopleFinderTool
+import pytest
+
 from src.core.models import Finding, ScanResult, Severity
+from src.modules.people_finder import PeopleFinderTool
 
 
 @pytest.fixture
@@ -33,10 +34,7 @@ class TestPeopleFinderToolBasics:
         assert tool.name == "people_finder"
 
     def test_description(self, tool):
-        assert (
-            "social" in tool.description.lower()
-            or "username" in tool.description.lower()
-        )
+        assert "social" in tool.description.lower() or "username" in tool.description.lower()
 
     def test_version(self, tool):
         assert tool.version == "0.1.0"
@@ -98,9 +96,7 @@ class TestPeopleFinderToolScan:
             started_at=datetime.now(timezone.utc),
             completed_at=datetime.now(timezone.utc),
         )
-        with patch.object(
-            tool._search, "scan", new_callable=AsyncMock, return_value=mock_sr
-        ):
+        with patch.object(tool._search, "scan", new_callable=AsyncMock, return_value=mock_sr):
             result = await tool.scan("testuser", timeout=30)
 
         assert result.status == "ok"
@@ -134,9 +130,7 @@ class TestPeopleFinderToolScan:
             started_at=datetime.now(timezone.utc),
             completed_at=datetime.now(timezone.utc),
         )
-        with patch.object(
-            tool._search, "scan", new_callable=AsyncMock, return_value=mock_sr
-        ):
+        with patch.object(tool._search, "scan", new_callable=AsyncMock, return_value=mock_sr):
             result = await tool.scan("testuser", timeout=30)
 
         assert result.status == "ok"
@@ -153,9 +147,7 @@ class TestPeopleFinderToolScan:
             started_at=datetime.now(timezone.utc),
             completed_at=datetime.now(timezone.utc),
         )
-        with patch.object(
-            tool._search, "scan", new_callable=AsyncMock, return_value=mock_sr
-        ):
+        with patch.object(tool._search, "scan", new_callable=AsyncMock, return_value=mock_sr):
             result = await tool.scan("testuser")
 
         assert result.status == "error"
@@ -172,9 +164,7 @@ class TestPeopleFinderToolScan:
             started_at=datetime.now(timezone.utc),
             completed_at=datetime.now(timezone.utc),
         )
-        with patch.object(
-            tool._search, "scan", new_callable=AsyncMock, return_value=mock_sr
-        ):
+        with patch.object(tool._search, "scan", new_callable=AsyncMock, return_value=mock_sr):
             result = await tool.scan("testuser")
 
         assert result.status == "error"
@@ -200,9 +190,7 @@ class TestPeopleFinderToolScan:
             started_at=datetime.now(timezone.utc),
             completed_at=datetime.now(timezone.utc),
         )
-        with patch.object(
-            tool._search, "scan", new_callable=AsyncMock, return_value=mock_sr
-        ):
+        with patch.object(tool._search, "scan", new_callable=AsyncMock, return_value=mock_sr):
             result = await tool.scan("testuser")
 
         assert result.status == "partial"
@@ -227,9 +215,7 @@ class TestPeopleFinderToolScan:
             started_at=datetime.now(timezone.utc),
             completed_at=datetime.now(timezone.utc),
         )
-        with patch.object(
-            tool._search, "scan", new_callable=AsyncMock, return_value=mock_sr
-        ):
+        with patch.object(tool._search, "scan", new_callable=AsyncMock, return_value=mock_sr):
             result = await tool.search("testuser", timeout=30)
 
         assert result.module == "people_finder"

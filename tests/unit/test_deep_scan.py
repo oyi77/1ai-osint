@@ -1,22 +1,24 @@
 """Tests for deep_scan module."""
 
 from __future__ import annotations
-import pytest
+
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+
+from src.core.models import Finding, ScanResult, Severity
 from src.modules.deep_scan import (
     DeepScanResult,
     Identifier,
     IdentifierType,
 )
 from src.modules.deep_scan.extractor import (
-    extract_identifiers,
     _is_valid_nik,
     _parse_nik,
+    extract_identifiers,
+    extract_usernames_from_profiles,
 )
-from src.modules.deep_scan.extractor import extract_usernames_from_profiles
-from src.core.models import Finding, ScanResult, Severity
 
 
 # ---------------------------------------------------------------------------
@@ -24,17 +26,13 @@ from src.core.models import Finding, ScanResult, Severity
 # ---------------------------------------------------------------------------
 class TestIdentifier:
     def test_create(self):
-        ident = Identifier(
-            value="test@example.com", id_type=IdentifierType.EMAIL, source="test"
-        )
+        ident = Identifier(value="test@example.com", id_type=IdentifierType.EMAIL, source="test")
         assert ident.value == "test@example.com"
         assert ident.id_type == IdentifierType.EMAIL
         assert ident.confidence == 1.0
 
     def test_hash(self):
-        ident = Identifier(
-            value="test@example.com", id_type=IdentifierType.EMAIL, source="test"
-        )
+        ident = Identifier(value="test@example.com", id_type=IdentifierType.EMAIL, source="test")
         assert len(ident.hash) == 16
 
 
@@ -47,19 +45,13 @@ class TestDeepScanResult:
 
     def test_get_emails(self):
         result = DeepScanResult(target="test", started_at=datetime.now(timezone.utc))
-        result.identifiers.append(
-            Identifier(value="a@b.com", id_type=IdentifierType.EMAIL, source="t")
-        )
-        result.identifiers.append(
-            Identifier(value="user", id_type=IdentifierType.USERNAME, source="t")
-        )
+        result.identifiers.append(Identifier(value="a@b.com", id_type=IdentifierType.EMAIL, source="t"))
+        result.identifiers.append(Identifier(value="user", id_type=IdentifierType.USERNAME, source="t"))
         assert result.get_emails() == ["a@b.com"]
 
     def test_get_usernames(self):
         result = DeepScanResult(target="test", started_at=datetime.now(timezone.utc))
-        result.identifiers.append(
-            Identifier(value="user1", id_type=IdentifierType.USERNAME, source="t")
-        )
+        result.identifiers.append(Identifier(value="user1", id_type=IdentifierType.USERNAME, source="t"))
         assert result.get_usernames() == ["user1"]
 
     def test_to_dict(self):
@@ -86,9 +78,7 @@ class TestExtractor:
         assert emails[0].value == "test@example.com"
 
     def test_extract_eth_address(self):
-        ids = extract_identifiers(
-            "Wallet: 0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18", "test"
-        )
+        ids = extract_identifiers("Wallet: 0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18", "test")
         crypto = [i for i in ids if i.id_type == IdentifierType.CRYPTO_ADDRESS]
         assert len(crypto) == 1
         assert crypto[0].metadata.get("chain") == "ethereum"
@@ -193,7 +183,6 @@ class TestNikParser:
         assert result["gender"] == "male"
 
 
-
 # ---------------------------------------------------------------------------
 # DeepScanEngine
 # ---------------------------------------------------------------------------
@@ -206,9 +195,7 @@ class TestDeepScanEngine:
     def _make_engine(self):
         from src.modules.deep_scan.engine import DeepScanEngine
 
-        return DeepScanEngine(
-            max_iterations=1, max_identifiers=50, timeout_per_module=5
-        )
+        return DeepScanEngine(max_iterations=1, max_identifiers=50, timeout_per_module=5)
 
     def test_detect_email(self):
         engine = self._make_engine()
@@ -258,9 +245,7 @@ class TestDeepScanEngine:
     @pytest.mark.asyncio
     async def test_scan_basic(self):
         engine = self._make_engine()
-        with patch(
-            "src.modules.deep_scan.engine.asyncio.wait_for", new_callable=AsyncMock
-        ) as mock_wait:
+        with patch("src.modules.deep_scan.engine.asyncio.wait_for", new_callable=AsyncMock) as mock_wait:
             mock_wait.return_value = ScanResult(
                 scan_id="t",
                 module="test",
@@ -300,13 +285,11 @@ class TestReportEngine:
         from src.modules.report_engine import ReportEngine
 
         engine = ReportEngine()
-        report = engine.parse_report_json(
-            '{"target": "test", "title": "Test", "identifiers": [], "metadata": {}}'
-        )
+        report = engine.parse_report_json('{"target": "test", "title": "Test", "identifiers": [], "metadata": {}}')
         assert report.target == "test"
 
     def test_extract_identifiers_for_scan(self):
-        from src.modules.report_engine import ReportEngine, ReportData
+        from src.modules.report_engine import ReportData, ReportEngine
 
         engine = ReportEngine()
         report = ReportData(target="test", title="Test")
@@ -432,7 +415,7 @@ class TestReportEngineExtra:
         assert len(report.identifiers) == 1
 
     def test_extract_identifiers_empty(self):
-        from src.modules.report_engine import ReportEngine, ReportData
+        from src.modules.report_engine import ReportData, ReportEngine
 
         engine = ReportEngine()
         report = ReportData(target="t", title="T")
@@ -528,9 +511,7 @@ class TestDeepScanEngineExtended:
     def _make_engine(self, **kw):
         from src.modules.deep_scan.engine import DeepScanEngine
 
-        return DeepScanEngine(
-            max_iterations=2, max_identifiers=50, timeout_per_module=5, **kw
-        )
+        return DeepScanEngine(max_iterations=2, max_identifiers=50, timeout_per_module=5, **kw)
 
     def test_detect_none_for_empty(self):
         engine = self._make_engine()
@@ -539,9 +520,7 @@ class TestDeepScanEngineExtended:
     def test_detect_solana_address(self):
         engine = self._make_engine()
         # Long base58 string matches username regex (3-50 alphanumeric)
-        ident = engine._detect_identifier(
-            "HAgk6YWDPri5UyX4Y18XzYrFf5C7R5m9v6kQ2J3j8tXr", "input"
-        )
+        ident = engine._detect_identifier("HAgk6YWDPri5UyX4Y18XzYrFf5C7R5m9v6kQ2J3j8tXr", "input")
         assert ident is not None  # matches username or name
 
     def test_add_identifier_dedup(self):
@@ -556,9 +535,7 @@ class TestDeepScanEngineExtended:
     def test_add_identifier_max_limit(self):
         from src.modules.deep_scan.engine import DeepScanEngine
 
-        engine = DeepScanEngine(
-            max_iterations=1, max_identifiers=1, timeout_per_module=5
-        )
+        engine = DeepScanEngine(max_iterations=1, max_identifiers=1, timeout_per_module=5)
         result = DeepScanResult(target="t", started_at=datetime.now(timezone.utc))
         engine._add_identifier(
             result,
@@ -573,9 +550,7 @@ class TestDeepScanEngineExtended:
     def test_get_new_targets_skips_seen(self):
         engine = self._make_engine()
         result = DeepScanResult(target="t", started_at=datetime.now(timezone.utc))
-        result.identifiers.append(
-            Identifier(value="a@b.com", id_type=IdentifierType.EMAIL, source="s")
-        )
+        result.identifiers.append(Identifier(value="a@b.com", id_type=IdentifierType.EMAIL, source="s"))
         targets = engine._get_new_targets(result, {"a@b.com"})
         assert "a@b.com" not in targets
 
@@ -602,15 +577,9 @@ class TestDeepScanEngineExtended:
     def test_filter_targets_for_email_module(self):
         engine = self._make_engine()
         result = DeepScanResult(target="t", started_at=datetime.now(timezone.utc))
-        result.identifiers.append(
-            Identifier(value="a@b.com", id_type=IdentifierType.EMAIL, source="s")
-        )
-        result.identifiers.append(
-            Identifier(value="user1", id_type=IdentifierType.USERNAME, source="s")
-        )
-        filtered = engine._filter_targets_for_module(
-            "email_osint", {"a@b.com", "user1"}, result
-        )
+        result.identifiers.append(Identifier(value="a@b.com", id_type=IdentifierType.EMAIL, source="s"))
+        result.identifiers.append(Identifier(value="user1", id_type=IdentifierType.USERNAME, source="s"))
+        filtered = engine._filter_targets_for_module("email_osint", {"a@b.com", "user1"}, result)
         assert "a@b.com" in filtered
         assert "user1" not in filtered
 
@@ -618,9 +587,7 @@ class TestDeepScanEngineExtended:
         engine = self._make_engine()
         result = DeepScanResult(target="t", started_at=datetime.now(timezone.utc))
         # target not in identifiers, but detectable as email
-        filtered = engine._filter_targets_for_module(
-            "email_osint", {"new@test.com"}, result
-        )
+        filtered = engine._filter_targets_for_module("email_osint", {"new@test.com"}, result)
         assert "new@test.com" in filtered
 
     def test_filter_targets_empty_accepted_passes_all(self):
@@ -632,9 +599,7 @@ class TestDeepScanEngineExtended:
         old = _MODULE_INPUTS.get("test_empty")
         _MODULE_INPUTS["test_empty"] = set()
         try:
-            filtered = engine._filter_targets_for_module(
-                "test_empty", {"a@b.com"}, result
-            )
+            filtered = engine._filter_targets_for_module("test_empty", {"a@b.com"}, result)
             assert filtered == {"a@b.com"}  # empty set means pass-all
         finally:
             if old is None:
@@ -650,9 +615,7 @@ class TestDeepScanEngineExtended:
     async def test_scan_module_timeout(self):
         from src.modules.deep_scan.engine import DeepScanEngine
 
-        engine = DeepScanEngine(
-            max_iterations=1, max_identifiers=50, timeout_per_module=0.001
-        )
+        engine = DeepScanEngine(max_iterations=1, max_identifiers=50, timeout_per_module=0.001)
         result = DeepScanResult(target="t", started_at=datetime.now(timezone.utc))
         mod = MagicMock()
 
@@ -714,16 +677,12 @@ class TestDeepScanEngineExtended:
         """Full scan with all modules mocked."""
         from src.modules.deep_scan.engine import DeepScanEngine
 
-        engine = DeepScanEngine(
-            max_iterations=1, max_identifiers=50, timeout_per_module=5
-        )
+        engine = DeepScanEngine(max_iterations=1, max_identifiers=50, timeout_per_module=5)
         with patch(
             "src.modules.deep_scan.engine._MODULE_INPUTS",
             {"email_osint": {IdentifierType.EMAIL}},
         ):
-            with patch.object(
-                engine, "_get_active_modules", return_value=["email_osint"]
-            ):
+            with patch.object(engine, "_get_active_modules", return_value=["email_osint"]):
                 with patch(
                     "src.modules.deep_scan.engine.asyncio.gather",
                     new_callable=AsyncMock,
@@ -737,9 +696,7 @@ class TestDeepScanEngineExtended:
     async def test_scan_phase_4_correlation(self):
         from src.modules.deep_scan.engine import DeepScanEngine
 
-        engine = DeepScanEngine(
-            max_iterations=1, max_identifiers=50, timeout_per_module=5
-        )
+        engine = DeepScanEngine(max_iterations=1, max_identifiers=50, timeout_per_module=5)
 
         # Mock gather to return social findings
         finding = Finding(
@@ -758,11 +715,7 @@ class TestDeepScanEngineExtended:
         async def mock_run_iteration(result_obj, targets_set):
             result_obj.findings.append(finding)
             # Also add to identifiers to prevent Phase 3 logic from crashing or being skipped
-            result_obj.identifiers.append(
-                Identifier(
-                    value="testuser", id_type=IdentifierType.USERNAME, source="test"
-                )
-            )
+            result_obj.identifiers.append(Identifier(value="testuser", id_type=IdentifierType.USERNAME, source="test"))
 
         mock_scrape = AsyncMock(
             return_value={
@@ -772,9 +725,7 @@ class TestDeepScanEngineExtended:
         )
         mock_correlate = AsyncMock(return_value=0.8)
         mock_ext_scan = AsyncMock(
-            return_value=ScanResult(
-                scan_id="ext", module="external_tools_username", target="testuser"
-            )
+            return_value=ScanResult(scan_id="ext", module="external_tools_username", target="testuser")
         )
 
         with (

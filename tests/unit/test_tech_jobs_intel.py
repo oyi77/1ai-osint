@@ -1,8 +1,10 @@
 """Tests for Tech Jobs Intelligence module."""
 
-import pytest
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import httpx
-from unittest.mock import patch, MagicMock, AsyncMock
+import pytest
+
 from src.modules.free_intel.tech_jobs_intel import TechJobsIntel
 
 

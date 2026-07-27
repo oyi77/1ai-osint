@@ -1,1 +1,1 @@
-"""HTTP API for 1ai-osint."""
+"""FastAPI application and REST endpoints."""

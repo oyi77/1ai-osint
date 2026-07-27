@@ -1,11 +1,14 @@
 """Tests for Phase 5 Pillar 5: Infrastructure Fingerprinting Engine."""
 
 from __future__ import annotations
+
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import patch, AsyncMock, MagicMock
+
 from src.modules.domain_recon.infra_fingerprint import (
-    InfraFingerprintEngine,
     InfraFingerprint,
+    InfraFingerprintEngine,
 )
 
 
@@ -143,9 +146,7 @@ async def test_correlate_empty(engine):
 @pytest.mark.asyncio
 async def test_correlate_by_nameserver(engine):
     fps = [
-        InfraFingerprint(
-            domain="a.com", nameservers=["ns1.cloudflare.com", "ns2.cloudflare.com"]
-        ),
+        InfraFingerprint(domain="a.com", nameservers=["ns1.cloudflare.com", "ns2.cloudflare.com"]),
         InfraFingerprint(domain="b.com", nameservers=["ns1.cloudflare.com"]),
     ]
     clusters = await engine.correlate_infrastructure(fps)

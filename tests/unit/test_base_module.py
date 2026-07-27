@@ -9,7 +9,6 @@ import pytest
 from src.core.models import Finding, ScanResult
 from src.modules.base.base import BaseOSINTTool, ZKITNode
 
-
 # --- Concrete subclass for testing abstract base ---
 
 

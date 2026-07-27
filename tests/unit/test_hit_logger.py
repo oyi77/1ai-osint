@@ -1,7 +1,8 @@
 """Tests for hit_logger module."""
 
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock, AsyncMock
 
 
 class TestWalletHit:
@@ -103,9 +104,7 @@ class TestHitLoggerLogHit:
 
         hl = HitLogger()
         for i in range(5):
-            await hl.log_hit(
-                address=f"0x{i}", chain="ETH", balance=float(i), usd_value=0
-            )
+            await hl.log_hit(address=f"0x{i}", chain="ETH", balance=float(i), usd_value=0)
         assert len(hl._buffer) == 5
 
 
@@ -144,9 +143,7 @@ class TestHitLoggerStartClose:
         hl._http = AsyncMock()
         hl._closed = False
         # Put something in buffer
-        hl._buffer.append(
-            {"address": "0x1", "chain": "ETH", "balance": 0, "usd_value": 0}
-        )
+        hl._buffer.append({"address": "0x1", "chain": "ETH", "balance": 0, "usd_value": 0})
         await hl.close()
         assert hl._closed is True
         mock_db.close.assert_called_once()

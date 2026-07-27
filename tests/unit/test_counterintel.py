@@ -1,11 +1,13 @@
 """Tests for Phase 5 Pillar 7: Counterintelligence & Legend Detection."""
 
 from __future__ import annotations
+
 from unittest.mock import MagicMock
+
 from src.modules.identity_tracking.counterintel import (
     CounterIntelAnalyzer,
-    OPSECLevel,
     LegendIndicator,
+    OPSECLevel,
 )
 
 
@@ -71,11 +73,7 @@ def test_no_historical_footprint_triggers_on_empty_timeline():
     report = _make_report(timeline=[])
     assessment = analyzer.assess_legend_probability(report)
     no_hist = next(
-        (
-            i
-            for i in assessment.legend_indicators
-            if i.rule == "NO_HISTORICAL_FOOTPRINT"
-        ),
+        (i for i in assessment.legend_indicators if i.rule == "NO_HISTORICAL_FOOTPRINT"),
         None,
     )
     assert no_hist is not None

@@ -8,16 +8,16 @@ from datetime import datetime, timezone
 import pytest
 
 from src.modules.deep_scan import DeepScanResult, Identifier, IdentifierType
+from src.modules.deep_scan.exports import (
+    export_html,
+    export_json,
+    export_report,
+    export_stix,
+)
 from src.modules.deep_scan.models_report import (
     IntelReport,
 )
 from src.modules.deep_scan.report_generator import generate_intel_report
-from src.modules.deep_scan.exports import (
-    export_report,
-    export_json,
-    export_stix,
-    export_html,
-)
 
 
 def _sample_report() -> IntelReport:
@@ -103,10 +103,7 @@ class TestJsonExport:
         report = _sample_report()
         data = json.loads(export_json(report))
         assert len(data["evidence"]) == len(report.evidence)
-        assert (
-            data["evidence"][0]["identifier_value"]
-            == report.evidence[0].identifier_value
-        )
+        assert data["evidence"][0]["identifier_value"] == report.evidence[0].identifier_value
 
     def test_risk_level_is_string(self):
         report = _sample_report()

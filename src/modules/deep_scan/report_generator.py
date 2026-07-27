@@ -540,8 +540,8 @@ def _assess_risk(result: Any, evidence: list[EvidenceItem]) -> RiskAssessment:
     assessment.factors = factors
 
     # Compute risk score and level
-    triggered = [f for f in factors if f.triggered]
-    score = min(1.0, sum(f.weight for f in triggered))
+    triggered_factors = [f for f in factors if f.triggered]
+    score = min(1.0, sum(f.weight for f in triggered_factors))
     assessment.score = score
 
     if score >= 0.7:
@@ -556,8 +556,8 @@ def _assess_risk(result: Any, evidence: list[EvidenceItem]) -> RiskAssessment:
         assessment.level = RiskLevel.NONE
 
     # Reasoning
-    if triggered:
-        assessment.reasoning = "; ".join(f.description for f in triggered)
+    if triggered_factors:
+        assessment.reasoning = "; ".join(f.description for f in triggered_factors)
     else:
         assessment.reasoning = "No high-risk indicators detected"
 

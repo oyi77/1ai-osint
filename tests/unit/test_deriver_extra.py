@@ -1,17 +1,17 @@
 """Tests for deriver.py uncovered functions: base58, raw path derivation."""
 
 import pytest
+from bip_utils import Bip44Coins
 
 from src.modules.crypto.balance.deriver import (
+    DerivedAddress,
     _base58_decode,
     _base58_encode,
     _get_purpose_from_path,
-    derive_with_raw_path,
     derive_from_mnemonic,
     derive_from_privatekey,
-    DerivedAddress,
+    derive_with_raw_path,
 )
-from bip_utils import Bip44Coins
 
 
 class TestBase58:
@@ -126,6 +126,7 @@ class TestDeriveFromPrivatekey:
 class TestDeriveFromMnemonic:
     def test_with_specific_chains(self):
         from src.modules.crypto.balance.chains import ETHEREUM
+
         mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
         results = derive_from_mnemonic(mnemonic, chains=[ETHEREUM], count=2)
         assert len(results) >= 1

@@ -55,15 +55,14 @@ async def batch_check_balances(
         List of BatchBalanceResult, one per address.
     """
     if not chain.rpc_url or not addresses:
-        return [
-            BatchBalanceResult(address=a, balance_wei=0, error="No RPC URL")
-            for a in addresses
-        ]
+        return [BatchBalanceResult(address=a, balance_wei=0, error="No RPC URL") for a in addresses]
 
     all_results: list[BatchBalanceResult] = []
     _created = client is None
     if _created:
         client = httpx.AsyncClient(timeout=_TIMEOUT)
+    else:
+        assert client is not None
 
     try:
         # Process in chunks to avoid overwhelming free endpoints
@@ -92,11 +91,7 @@ async def batch_check_balances(
                 for i, addr in enumerate(chunk):
                     r = id_to_result.get(i)
                     if r is None:
-                        all_results.append(
-                            BatchBalanceResult(
-                                address=addr, balance_wei=0, error="No response"
-                            )
-                        )
+                        all_results.append(BatchBalanceResult(address=addr, balance_wei=0, error="No response"))
                     elif "error" in r:
                         all_results.append(
                             BatchBalanceResult(
@@ -108,21 +103,12 @@ async def batch_check_balances(
                     else:
                         try:
                             balance = int(r["result"], 16)
-                            all_results.append(
-                                BatchBalanceResult(address=addr, balance_wei=balance)
-                            )
+                            all_results.append(BatchBalanceResult(address=addr, balance_wei=balance))
                         except (ValueError, TypeError) as e:
-                            all_results.append(
-                                BatchBalanceResult(
-                                    address=addr, balance_wei=0, error=str(e)
-                                )
-                            )
+                            all_results.append(BatchBalanceResult(address=addr, balance_wei=0, error=str(e)))
             except Exception as e:
                 logger.warning("EVM batch chunk failed for %s: %s", chain.name, e)
-                all_results.extend(
-                    BatchBalanceResult(address=a, balance_wei=0, error=str(e))
-                    for a in chunk
-                )
+                all_results.extend(BatchBalanceResult(address=a, balance_wei=0, error=str(e)) for a in chunk)
 
             # Delay between chunks to avoid burst rate limiting
             await asyncio.sleep(0.1)
@@ -159,6 +145,8 @@ async def batch_check_sol_balances(
     _created = client is None
     if _created:
         client = httpx.AsyncClient(timeout=_TIMEOUT)
+    else:
+        assert client is not None
 
     try:
         # Process in chunks of 100 (getMultipleAccountsInfo limit)
@@ -191,18 +179,12 @@ async def batch_check_sol_balances(
                 for i, addr in enumerate(chunk):
                     if i < len(values) and values[i] is not None:
                         lamports = values[i].get("lamports", 0)
-                        results.append(
-                            BatchBalanceResult(address=addr, balance_wei=lamports)
-                        )
+                        results.append(BatchBalanceResult(address=addr, balance_wei=lamports))
                     elif i < len(values):
                         # Account doesn't exist
                         results.append(BatchBalanceResult(address=addr, balance_wei=0))
                     else:
-                        results.append(
-                            BatchBalanceResult(
-                                address=addr, balance_wei=0, error="No response"
-                            )
-                        )
+                        results.append(BatchBalanceResult(address=addr, balance_wei=0, error="No response"))
             except Exception as e:
                 # On HTTP error (e.g. 403 from WAF), fall back to individual calls
                 logger.debug(
@@ -214,10 +196,7 @@ async def batch_check_sol_balances(
                     results.extend(fallback)
                 except Exception as e2:
                     logger.warning("SOL fallback also failed: %s", e2)
-                    results.extend(
-                        BatchBalanceResult(address=a, balance_wei=0, error=str(e2))
-                        for a in chunk
-                    )
+                    results.extend(BatchBalanceResult(address=a, balance_wei=0, error=str(e2)) for a in chunk)
     finally:
         if _created:
             await client.aclose()
@@ -305,6 +284,8 @@ async def batch_check_token_balances(
     _created = client is None
     if _created:
         client = httpx.AsyncClient(timeout=_TIMEOUT)
+    else:
+        assert client is not None
 
     try:
         # Build eth_call requests for all address × token pairs

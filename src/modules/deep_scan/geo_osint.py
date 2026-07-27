@@ -99,15 +99,10 @@ class GeoOSINTEngine:
         phi1, phi2 = math.radians(lat1), math.radians(lat2)
         dphi = math.radians(lat2 - lat1)
         dlambda = math.radians(lon2 - lon1)
-        a = (
-            math.sin(dphi / 2) ** 2
-            + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
-        )
+        a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
         return R * 2 * math.asin(math.sqrt(a))
 
-    def extract_exif_coords(
-        self, exif_data: dict[str, Any]
-    ) -> Optional[tuple[float, float]]:
+    def extract_exif_coords(self, exif_data: dict[str, Any]) -> Optional[tuple[float, float]]:
         """Extract GPS coordinates from EXIF metadata dict.
 
         Expects keys like: GPS_Latitude, GPS_Longitude, GPSLatitude, GPSLongitude
@@ -130,13 +125,11 @@ class GeoOSINTEngine:
         # Try DMS string format: "51 deg 30' 26.00" N"
         for lat_key in ("GPS_Latitude", "GPSLatitude"):
             lat_str = exif_data.get(lat_key, "")
-            lon_str = exif_data.get(
-                lat_key.replace("Lat", "Lon").replace("lat", "lon"), ""
-            )
-            lat_f = self._parse_dms(str(lat_str))
-            lon_f = self._parse_dms(str(lon_str))
-            if lat_f is not None and lon_f is not None:
-                return (round(lat_f, 4), round(lon_f, 4))
+            lon_str = exif_data.get(lat_key.replace("Lat", "Lon").replace("lat", "lon"), "")
+            dms_lat = self._parse_dms(str(lat_str))
+            dms_lon = self._parse_dms(str(lon_str))
+            if dms_lat is not None and dms_lon is not None:
+                return (round(dms_lat, 4), round(dms_lon, 4))
 
         return None
 
@@ -199,9 +192,7 @@ class GeoOSINTEngine:
                 centroid = cluster[0]
                 if centroid.lat is None or centroid.lon is None:
                     continue
-                dist = self.haversine_km(
-                    event.lat, event.lon, centroid.lat, centroid.lon
-                )
+                dist = self.haversine_km(event.lat, event.lon, centroid.lat, centroid.lon)
                 if dist <= CLUSTER_RADIUS_KM:
                     cluster.append(event)
                     placed = True
@@ -218,25 +209,17 @@ class GeoOSINTEngine:
             centroid_lat = sum(lats) / len(lats)
             centroid_lon = sum(lons) / len(lons)
             max_dist = max(
-                self.haversine_km(centroid_lat, centroid_lon, e.lat, e.lon)
+                self.haversine_km(centroid_lat, centroid_lon, e.lat, e.lon)  # type: ignore[arg-type]
                 for e in cluster
                 if e.lat is not None
             )
             count = len(cluster)
-            label = (
-                "probable home/work"
-                if count >= 3
-                else "frequent location"
-                if count == 2
-                else "one-time"
-            )
+            label = "probable home/work" if count >= 3 else "frequent location" if count == 2 else "one-time"
             result.append(
                 GeoCluster(
                     centroid_lat=round(centroid_lat, 4),
                     centroid_lon=round(centroid_lon, 4),
-                    geohash=self.encode_geohash(
-                        centroid_lat, centroid_lon, precision=6
-                    ),
+                    geohash=self.encode_geohash(centroid_lat, centroid_lon, precision=6),
                     radius_km=round(max_dist, 1),
                     evidence_count=count,
                     label=label,

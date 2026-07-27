@@ -20,34 +20,24 @@ def format_pdf(results: list) -> bytes:
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter)
     styles = getSampleStyleSheet()
-    elements = []
+    elements: list = []
 
     elements.append(Paragraph("1ai-osint Scan Report", styles["Title"]))
     elements.append(Spacer(1, 12))
-    elements.append(
-        Paragraph(
-            f"Generated: {datetime.now(timezone.utc).isoformat()}Z", styles["Normal"]
-        )
-    )
+    elements.append(Paragraph(f"Generated: {datetime.now(timezone.utc).isoformat()}Z", styles["Normal"]))
     elements.append(Spacer(1, 24))
 
     for scan_result in results:
         elements.append(Paragraph(f"Module: {scan_result.module}", styles["Heading2"]))
         elements.append(Paragraph(f"Target: {scan_result.target}", styles["Normal"]))
         elements.append(Paragraph(f"Status: {scan_result.status}", styles["Normal"]))
-        elements.append(
-            Paragraph(f"Findings: {scan_result.finding_count}", styles["Normal"])
-        )
+        elements.append(Paragraph(f"Findings: {scan_result.finding_count}", styles["Normal"]))
         elements.append(Spacer(1, 12))
 
         if scan_result.findings:
             table_data = [["Severity", "Title", "Confidence"]]
             for f in scan_result.findings:
-                sev = (
-                    f.severity.value
-                    if hasattr(f.severity, "value")
-                    else str(f.severity)
-                )
+                sev = f.severity.value if hasattr(f.severity, "value") else str(f.severity)
                 table_data.append([sev, f.title[:60], f"{f.confidence:.0%}"])
 
             table = Table(table_data, colWidths=[80, 300, 70])

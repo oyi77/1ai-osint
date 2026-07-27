@@ -11,11 +11,8 @@ from typing import Any
 
 from src.core.models import ScanResult
 from src.modules.deep_scan.models_report import (
-    EvidenceItem,
     IntelReport,
-    RiskAssessment,
     RiskLevel,
-    TimelineEntry,
 )
 
 from .models import EntitySnapshot, Timeline, TimelineEvent
@@ -108,19 +105,23 @@ class TimelineBuilder:
 
         # Risk score
         if before.risk_score != after.risk_score:
-            changes.append({
-                "field": "risk_score",
-                "before": before.risk_score,
-                "after": after.risk_score,
-            })
+            changes.append(
+                {
+                    "field": "risk_score",
+                    "before": before.risk_score,
+                    "after": after.risk_score,
+                }
+            )
 
         # Event count
         if before.event_count != after.event_count:
-            changes.append({
-                "field": "event_count",
-                "before": before.event_count,
-                "after": after.event_count,
-            })
+            changes.append(
+                {
+                    "field": "event_count",
+                    "before": before.event_count,
+                    "after": after.event_count,
+                }
+            )
 
         # Attributes — added, removed, changed
         before_keys = set(before.attributes.keys())
@@ -131,37 +132,45 @@ class TimelineBuilder:
         common = before_keys & after_keys
 
         for key in sorted(added):
-            changes.append({
-                "field": f"attributes.{key}",
-                "before": None,
-                "after": after.attributes[key],
-            })
+            changes.append(
+                {
+                    "field": f"attributes.{key}",
+                    "before": None,
+                    "after": after.attributes[key],
+                }
+            )
 
         for key in sorted(removed):
-            changes.append({
-                "field": f"attributes.{key}",
-                "before": before.attributes[key],
-                "after": None,
-            })
+            changes.append(
+                {
+                    "field": f"attributes.{key}",
+                    "before": before.attributes[key],
+                    "after": None,
+                }
+            )
 
         for key in sorted(common):
             if before.attributes[key] != after.attributes[key]:
-                changes.append({
-                    "field": f"attributes.{key}",
-                    "before": before.attributes[key],
-                    "after": after.attributes[key],
-                })
+                changes.append(
+                    {
+                        "field": f"attributes.{key}",
+                        "before": before.attributes[key],
+                        "after": after.attributes[key],
+                    }
+                )
 
         # first_seen / last_seen
         for field in ("first_seen", "last_seen"):
             bv = getattr(before, field, None)
             av = getattr(after, field, None)
             if bv != av:
-                changes.append({
-                    "field": field,
-                    "before": bv,
-                    "after": av,
-                })
+                changes.append(
+                    {
+                        "field": field,
+                        "before": bv,
+                        "after": av,
+                    }
+                )
 
         return changes
 
@@ -178,89 +187,101 @@ class TimelineBuilder:
 
         # 1. Scan-started event
         started = _pick_timestamp(report.started_at)
-        events.append(TimelineEvent(
-            entity_id=entity_id,
-            event_type="scan_started",
-            timestamp=started,
-            context={
-                "report_id": report.report_id,
-                "target": report.target,
-                "modules_run": report.modules_run.copy(),
-            },
-            source="intel_report",
-        ))
+        events.append(
+            TimelineEvent(
+                entity_id=entity_id,
+                event_type="scan_started",
+                timestamp=started,
+                context={
+                    "report_id": report.report_id,
+                    "target": report.target,
+                    "modules_run": report.modules_run.copy(),
+                },
+                source="intel_report",
+            )
+        )
 
         # 2. Scan-completed event
         completed = _pick_timestamp(report.completed_at, report.started_at)
-        events.append(TimelineEvent(
-            entity_id=entity_id,
-            event_type="scan_completed",
-            timestamp=completed,
-            context={
-                "report_id": report.report_id,
-                "duration_sec": report.duration_sec,
-                "iterations": report.iterations,
-            },
-            source="intel_report",
-        ))
+        events.append(
+            TimelineEvent(
+                entity_id=entity_id,
+                event_type="scan_completed",
+                timestamp=completed,
+                context={
+                    "report_id": report.report_id,
+                    "duration_sec": report.duration_sec,
+                    "iterations": report.iterations,
+                },
+                source="intel_report",
+            )
+        )
 
         # 3. Evidence items → "evidence_found"
         for ev in report.evidence:
             ts = _pick_timestamp(ev.captured_at)
-            events.append(TimelineEvent(
-                entity_id=entity_id,
-                event_type="evidence_found",
-                timestamp=ts,
-                context={
-                    "evidence_id": ev.id,
-                    "identifier_type": ev.identifier_type,
-                    "identifier_value": ev.identifier_value,
-                    "source": ev.source,
-                    "confidence": ev.confidence,
-                },
-                source=ev.source or "intel_report",
-            ))
+            events.append(
+                TimelineEvent(
+                    entity_id=entity_id,
+                    event_type="evidence_found",
+                    timestamp=ts,
+                    context={
+                        "evidence_id": ev.id,
+                        "identifier_type": ev.identifier_type,
+                        "identifier_value": ev.identifier_value,
+                        "source": ev.source,
+                        "confidence": ev.confidence,
+                    },
+                    source=ev.source or "intel_report",
+                )
+            )
 
         # 4. Risk assessment → "risk_assessed"
         risk = report.risk
         ts_risk = _pick_timestamp(completed)
-        events.append(TimelineEvent(
-            entity_id=entity_id,
-            event_type="risk_assessed",
-            timestamp=ts_risk,
-            context={
-                "level": risk.level.value if isinstance(risk.level, RiskLevel) else str(risk.level),
-                "score": risk.score,
-                "factor_count": len(risk.factors),
-                "reasoning": risk.reasoning,
-            },
-            source="intel_report",
-        ))
+        events.append(
+            TimelineEvent(
+                entity_id=entity_id,
+                event_type="risk_assessed",
+                timestamp=ts_risk,
+                context={
+                    "level": risk.level.value if isinstance(risk.level, RiskLevel) else str(risk.level),
+                    "score": risk.score,
+                    "factor_count": len(risk.factors),
+                    "reasoning": risk.reasoning,
+                },
+                source="intel_report",
+            )
+        )
 
         # 5. Existing timeline entries from the report itself
         for entry in report.timeline:
             ts = _pick_timestamp(entry.timestamp)
-            events.append(TimelineEvent(
-                entity_id=entity_id,
-                event_type="timeline_entry",
-                timestamp=ts,
-                context={
-                    "event": entry.event,
-                    "detail": entry.detail,
-                    "confidence": entry.confidence,
-                },
-                source=entry.source or "intel_report",
-            ))
+            events.append(
+                TimelineEvent(
+                    entity_id=entity_id,
+                    event_type="timeline_entry",
+                    timestamp=ts,
+                    context={
+                        "event": entry.event,
+                        "detail": entry.detail,
+                        "confidence": entry.confidence,
+                    },
+                    source=entry.source or "intel_report",
+                )
+            )
 
         # 6. Module-run events
         for module_name in report.modules_run:
-            events.append(TimelineEvent(
-                entity_id=entity_id,
-                event_type="module_run",
-                timestamp=completed,
-                context={"module": module_name},
-                source=module_name,
-            ))
+            events.append(
+                TimelineEvent(
+                    entity_id=entity_id,
+                    event_type="module_run",
+                    timestamp=completed,
+                    context={"module": module_name},
+                    source=module_name,
+                )
+            )
 
         return events
 
@@ -275,44 +296,52 @@ class TimelineBuilder:
         completed = _pick_timestamp(result.completed_at, result.started_at)
 
         # Scan started
-        events.append(TimelineEvent(
-            entity_id=entity_id,
-            event_type="scan_started",
-            timestamp=started,
-            context={"module": result.module, "target": result.target, "scan_id": result.scan_id},
-            source=result.module,
-        ))
+        events.append(
+            TimelineEvent(
+                entity_id=entity_id,
+                event_type="scan_started",
+                timestamp=started,
+                context={"module": result.module, "target": result.target, "scan_id": result.scan_id},
+                source=result.module,
+            )
+        )
 
         # Scan completed
-        events.append(TimelineEvent(
-            entity_id=entity_id,
-            event_type="scan_completed",
-            timestamp=completed,
-            context={
-                "module": result.module,
-                "scan_id": result.scan_id,
-                "status": result.status,
-                "finding_count": result.finding_count,
-            },
-            source=result.module,
-        ))
+        events.append(
+            TimelineEvent(
+                entity_id=entity_id,
+                event_type="scan_completed",
+                timestamp=completed,
+                context={
+                    "module": result.module,
+                    "scan_id": result.scan_id,
+                    "status": result.status,
+                    "finding_count": result.finding_count,
+                },
+                source=result.module,
+            )
+        )
 
         # Findings
         for finding in result.findings:
             ts = _pick_timestamp(finding.timestamp)
-            events.append(TimelineEvent(
-                entity_id=entity_id,
-                event_type="finding",
-                timestamp=ts,
-                context={
-                    "finding_id": finding.id,
-                    "title": finding.title,
-                    "severity": finding.severity.value if hasattr(finding.severity, "value") else str(finding.severity),
-                    "module": finding.module,
-                    "confidence": finding.confidence,
-                },
-                source=finding.module or result.module,
-            ))
+            events.append(
+                TimelineEvent(
+                    entity_id=entity_id,
+                    event_type="finding",
+                    timestamp=ts,
+                    context={
+                        "finding_id": finding.id,
+                        "title": finding.title,
+                        "severity": finding.severity.value
+                        if hasattr(finding.severity, "value")
+                        else str(finding.severity),
+                        "module": finding.module,
+                        "confidence": finding.confidence,
+                    },
+                    source=finding.module or result.module,
+                )
+            )
 
         return events
 
@@ -351,14 +380,16 @@ class TimelineBuilder:
             if event.event_type == "risk_assessed":
                 cum_risk = event.context.get("score", cum_risk)
 
-            snapshots.append(EntitySnapshot(
-                entity_id=entity_id,
-                attributes=cum_attributes.copy(),
-                risk_score=round(cum_risk, 4),
-                first_seen=cum_first,
-                last_seen=cum_last,
-                event_count=i + 1,
-            ))
+            snapshots.append(
+                EntitySnapshot(
+                    entity_id=entity_id,
+                    attributes=cum_attributes.copy(),
+                    risk_score=round(cum_risk, 4),
+                    first_seen=cum_first,
+                    last_seen=cum_last,
+                    event_count=i + 1,
+                )
+            )
 
         return snapshots
 

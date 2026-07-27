@@ -1,14 +1,15 @@
 """Tests for the crypto key extractor."""
 
 from unittest.mock import patch
+
 from src.modules.crypto.leak_finder.extractor import (
-    ExtractedKey,
-    KeyType,
-    extract_keys,
-    _find_contextual_hex_keys,
+    _BASE58_SOLANA_PATTERN,
     _HEX_KEY_PATTERN,
     _WIF_PATTERN,
-    _BASE58_SOLANA_PATTERN,
+    ExtractedKey,
+    KeyType,
+    _find_contextual_hex_keys,
+    extract_keys,
 )
 
 
@@ -82,9 +83,7 @@ class TestMnemonicExtraction:
     @patch("src.modules.crypto.leak_finder.extractor._validate_mnemonic")
     @patch("src.modules.crypto.leak_finder.extractor._derive_mnemonic_addresses")
     def test_12_word_mnemonic_extracted(self, mock_derive, mock_validate, mock_load):
-        words = set(
-            "abandon ability able about above absent absorb abstract absurd abuse access accident".split()
-        )
+        words = set("abandon ability able about above absent absorb abstract absurd abuse access accident".split())
         mock_load.return_value = words
         mock_validate.return_value = True
         mock_derive.return_value = {"Ethereum": "0x123"}
@@ -116,10 +115,7 @@ class TestRegexPatterns:
         text = 'private_key="abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"'
         results = _find_contextual_hex_keys(text)
         assert len(results) >= 1
-        assert (
-            results[0][0]
-            == "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
-        )
+        assert results[0][0] == "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
 
 
 class TestExtractedKey:

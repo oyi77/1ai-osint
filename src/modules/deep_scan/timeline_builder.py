@@ -50,9 +50,7 @@ class TimelineBuilder:
     """Builds a unified chronological timeline from findings and breach records."""
 
     @staticmethod
-    def build(
-        findings: List[Finding], breach_records: List[BreachRecord]
-    ) -> List[TimelineEntry]:
+    def build(findings: List[Finding], breach_records: List[BreachRecord]) -> List[TimelineEntry]:
         """Aggregate, parse, and sort time-based events from findings and breach records."""
         entries: List[TimelineEntry] = []
         seen_events = set()
@@ -93,10 +91,7 @@ class TimelineBuilder:
                 detail = finding.description or finding.title
 
                 # If it's a crypto finding, we can extract transaction details
-                if (
-                    finding.module == "crypto_tracer"
-                    and "transactions" in finding.raw_data
-                ):
+                if finding.module == "crypto_tracer" and "transactions" in finding.raw_data:
                     for tx in finding.raw_data["transactions"]:
                         tx_dt = parse_datetime(tx.get("timestamp"))
                         if tx_dt:
@@ -131,5 +126,5 @@ class TimelineBuilder:
                     )
 
         # Sort chronologically (oldest to newest)
-        entries.sort(key=lambda x: x.timestamp)
+        entries.sort(key=lambda x: x.timestamp)  # type: ignore[arg-type,return-value]
         return entries

@@ -1,9 +1,9 @@
 """Tests for AI word frequency analyzer and smart mnemonic generator."""
 
-from src.modules.crypto.balance.ai_analyzer import WordFrequencyAnalyzer
-from src.modules.crypto.balance.smart_generator import SmartMnemonicGenerator
 from bip_utils import Bip39MnemonicValidator
 
+from src.modules.crypto.balance.ai_analyzer import WordFrequencyAnalyzer
+from src.modules.crypto.balance.smart_generator import SmartMnemonicGenerator
 
 VALID_MNEMONIC = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
 

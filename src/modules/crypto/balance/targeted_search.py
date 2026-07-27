@@ -126,7 +126,7 @@ class KnownMnemonicLookup:
             if isinstance(result, Exception):
                 errors.append(f"{addresses[i].chain}: {result}")
                 continue
-            valid_results.append(result)
+            valid_results.append(result)  # type: ignore[arg-type]
 
         apply_usd_prices(valid_results, prices)
 
@@ -177,9 +177,7 @@ class KnownMnemonicLookup:
             addresses_checked=len(addresses),
             chains_checked=[c.name for c in self.chains],
             errors=errors,
-            has_hits=any(
-                f.severity in (Severity.HIGH, Severity.CRITICAL) for f in findings
-            ),
+            has_hits=any(f.severity in (Severity.HIGH, Severity.CRITICAL) for f in findings),
         )
 
 
@@ -249,10 +247,7 @@ class AccountRangeScan:
             )
 
         # Check balances
-        balance_tasks = [
-            check_balance(addr.address, self.chain, addr.derivation_path)
-            for addr in addresses
-        ]
+        balance_tasks = [check_balance(addr.address, self.chain, addr.derivation_path) for addr in addresses]
         balance_results = await asyncio.gather(*balance_tasks, return_exceptions=True)
 
         # Fetch USD prices
@@ -264,7 +259,7 @@ class AccountRangeScan:
             if isinstance(result, Exception):
                 errors.append(f"Account {self.start + i}: {result}")
                 continue
-            valid_results.append(result)
+            valid_results.append(result)  # type: ignore[arg-type]
 
         apply_usd_prices(valid_results, prices)
 
@@ -317,9 +312,7 @@ class AccountRangeScan:
             addresses_checked=len(addresses),
             chains_checked=[self.chain.name],
             errors=errors,
-            has_hits=any(
-                f.severity in (Severity.HIGH, Severity.CRITICAL) for f in findings
-            ),
+            has_hits=any(f.severity in (Severity.HIGH, Severity.CRITICAL) for f in findings),
         )
 
 
@@ -368,9 +361,7 @@ class FilteredRandomScan:
         for i in range(iterations):
             # Generate a random 12-word mnemonic
             try:
-                mnemonic = Bip39MnemonicGenerator(
-                    Bip39Languages.ENGLISH
-                ).FromWordsNumber(12)
+                mnemonic = Bip39MnemonicGenerator(Bip39Languages.ENGLISH).FromWordsNumber(12)
             except Exception as e:
                 errors.append(f"Iteration {i}: mnemonic generation failed: {e}")
                 continue
@@ -384,9 +375,7 @@ class FilteredRandomScan:
 
                 # Filter by derivation paths if specified
                 if self.derivation_paths:
-                    addrs = [
-                        a for a in addrs if a.derivation_path in self.derivation_paths
-                    ]
+                    addrs = [a for a in addrs if a.derivation_path in self.derivation_paths]
 
                 addresses.extend(addrs)
             except Exception as e:
@@ -407,9 +396,7 @@ class FilteredRandomScan:
                 )
                 for addr in addresses
             ]
-            balance_results = await asyncio.gather(
-                *balance_tasks, return_exceptions=True
-            )
+            balance_results = await asyncio.gather(*balance_tasks, return_exceptions=True)
 
             # Fetch USD prices
             coin_ids = list({c.coin_id for c in self.chains})
@@ -420,7 +407,7 @@ class FilteredRandomScan:
             for j, result in enumerate(balance_results):
                 if isinstance(result, Exception):
                     continue
-                valid_results.append(result)
+                valid_results.append(result)  # type: ignore[arg-type]
 
             apply_usd_prices(valid_results, prices)
 

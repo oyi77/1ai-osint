@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 # Backward-compatible function (unchanged API)
 # ------------------------------------------------------------------
 
+
 def compute_intel_delta(previous: dict, current: dict) -> dict[str, Any]:
     """Return new evidence handles, emails, and breach count delta.
 
@@ -43,8 +44,7 @@ def compute_intel_delta(previous: dict, current: dict) -> dict[str, Any]:
             set(curr_brief.get("subject", {}).get("known_handles", []))
             - set(prev_brief.get("subject", {}).get("known_handles", []))
         ),
-        "breach_delta": len(curr_brief.get("breach_records", []))
-        - len(prev_brief.get("breach_records", [])),
+        "breach_delta": len(curr_brief.get("breach_records", [])) - len(prev_brief.get("breach_records", [])),
     }
 
 
@@ -75,6 +75,7 @@ def _default_severity(change_type: ChangeType) -> ChangeSeverity:
 # ------------------------------------------------------------------
 # DeltaAnalyzer
 # ------------------------------------------------------------------
+
 
 class DeltaAnalyzer:
     """Rich semantic delta analysis between two intel reports.
@@ -148,9 +149,7 @@ class DeltaAnalyzer:
             ai_narrative=narrative,
             impact_score=impact,
             event_count=len(events),
-            critical_count=sum(
-                1 for e in events if e.severity == ChangeSeverity.CRITICAL
-            ),
+            critical_count=sum(1 for e in events if e.severity == ChangeSeverity.CRITICAL),
             high_count=sum(1 for e in events if e.severity == ChangeSeverity.HIGH),
             medium_count=sum(1 for e in events if e.severity == ChangeSeverity.MEDIUM),
         )
@@ -170,11 +169,7 @@ class DeltaAnalyzer:
         curr_brief = current.get("briefing", {})
 
         curr_ev = current.get("evidence", [])
-        prev_ev_set = (
-            {e.get("identifier_value") for e in previous.get("evidence", [])}
-            if previous
-            else set()
-        )
+        prev_ev_set = {e.get("identifier_value") for e in previous.get("evidence", [])} if previous else set()
         new_ev = [e for e in curr_ev if e.get("identifier_value") not in prev_ev_set]
 
         return {
@@ -232,7 +227,7 @@ class DeltaAnalyzer:
         Falls back to a rule-based summary if AI is unavailable.
         """
         try:
-            from src.ai.orchestrator import AnalysisOrchestrator  # type: ignore[import-untyped]
+            from src.ai.orchestrator import AnalysisOrchestrator
             from src.core.config import Settings
 
             settings = Settings()
@@ -241,9 +236,7 @@ class DeltaAnalyzer:
 
             import asyncio
 
-            prompt = (
-                f"Delta analysis for '{events[0].target}' — {len(events)} change event(s):\n"
-            )
+            prompt = f"Delta analysis for '{events[0].target}' — {len(events)} change event(s):\n"
             for ev in events:
                 prompt += (
                     f"- [{ev.severity.value.upper()}] {ev.change_type.value}: "
@@ -281,6 +274,7 @@ class DeltaAnalyzer:
 # ------------------------------------------------------------------
 # Result container
 # ------------------------------------------------------------------
+
 
 class DeltaResult:
     """Structured output of a delta analysis."""
@@ -335,8 +329,5 @@ class DeltaResult:
             lines.append("")
         lines.append("## Timeline")
         for ev in self.timeline:
-            lines.append(
-                f"- **[{ev.severity.value.upper()}]** {ev.change_type.value}: "
-                f"{ev.description}"
-            )
+            lines.append(f"- **[{ev.severity.value.upper()}]** {ev.change_type.value}: " f"{ev.description}")
         return "\n".join(lines)

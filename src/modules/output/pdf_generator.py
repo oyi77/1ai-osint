@@ -80,7 +80,7 @@ class PDFGenerator:
         buffer = io.BytesIO()
         doc = SimpleDocTemplate(buffer, pagesize=A4)
         styles = getSampleStyleSheet()
-        story = []
+        story: list[Any] = []
 
         # Title
         title_style = ParagraphStyle(

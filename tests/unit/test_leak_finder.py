@@ -1,17 +1,17 @@
 """Tests for leak finder coordinator and source adapters."""
 
-import pytest
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
 from src.modules.crypto.leak_finder.extractor import ExtractedKey, KeyType
 from src.modules.sources.github_source import GitHubLeakSource, RawLeak
 
 
 class TestRawLeak:
     def test_creation(self):
-        leak = RawLeak(
-            text="test", source_name="github", source_url="https://example.com"
-        )
+        leak = RawLeak(text="test", source_name="github", source_url="https://example.com")
         assert leak.text == "test"
         assert leak.source_name == "github"
         assert isinstance(leak.timestamp, datetime)
@@ -44,9 +44,7 @@ class TestGitHubLeakSource:
         source = GitHubLeakSource(github_token="test")
         mock_search = MagicMock()
         mock_search.status_code = 200
-        mock_search.json.return_value = {
-            "items": [{"html_url": "https://github.com/user/repo/blob/main/.env"}]
-        }
+        mock_search.json.return_value = {"items": [{"html_url": "https://github.com/user/repo/blob/main/.env"}]}
         mock_search.raise_for_status = MagicMock()
         mock_raw = MagicMock()
         mock_raw.text = "PRIVATE_KEY=" + "ab" * 32
@@ -99,9 +97,7 @@ class TestTelegramSource:
     def test_extract_flood_wait(self):
         from src.modules.sources.telegram_source import TelegramSource
 
-        assert (
-            TelegramSource._extract_flood_wait("A wait of 30 seconds is required") == 30
-        )
+        assert TelegramSource._extract_flood_wait("A wait of 30 seconds is required") == 30
         assert TelegramSource._extract_flood_wait("unknown error") == 60
 
 
@@ -112,9 +108,7 @@ class TestLeakFinderCoordinator:
             key_raw="a" * 64,
             key_type=KeyType.HEX_PRIVATE_KEY,
             key_hex="a" * 64,
-            derived_addresses={
-                "Ethereum": "0x1234567890abcdef1234567890abcdef12345678"
-            },
+            derived_addresses={"Ethereum": "0x1234567890abcdef1234567890abcdef12345678"},
         )
 
     @pytest.mark.asyncio
@@ -122,12 +116,8 @@ class TestLeakFinderCoordinator:
         from src.modules.crypto.leak_finder.coordinator import LeakFinderCoordinator
 
         coordinator = LeakFinderCoordinator(sources=["github"])
-        with patch.object(
-            coordinator, "_fetch_all_sources", new_callable=AsyncMock, return_value=[]
-        ):
-            with patch.object(
-                coordinator, "_check_balances", new_callable=AsyncMock, return_value=[]
-            ):
+        with patch.object(coordinator, "_fetch_all_sources", new_callable=AsyncMock, return_value=[]):
+            with patch.object(coordinator, "_check_balances", new_callable=AsyncMock, return_value=[]):
                 result = await coordinator.run_once()
         assert result.raw_leaks_fetched == 0
         assert result.keys_extracted == 0
@@ -192,9 +182,7 @@ class TestLeakFinderCoordinator:
 
         coordinator = LeakFinderCoordinator(sources=["github"])
         mock_leaks = [RawLeak(text="found", source_name="github")]
-        with patch(
-            "src.modules.crypto.leak_finder.coordinator.extract_keys", return_value=[]
-        ):
+        with patch("src.modules.crypto.leak_finder.coordinator.extract_keys", return_value=[]):
             with patch.object(coordinator, "_create_source") as mock_create:
                 mock_source = AsyncMock()
                 mock_source.search_for_address = AsyncMock(return_value=mock_leaks)
@@ -207,13 +195,9 @@ class TestLeakFinderCoordinator:
         from src.modules.crypto.leak_finder.coordinator import LeakFinderCoordinator
 
         coordinator = LeakFinderCoordinator(sources=[])
-        with patch(
-            "src.modules.crypto.leak_finder.coordinator.ScannerCoordinator"
-        ) as MockCoord:
+        with patch("src.modules.crypto.leak_finder.coordinator.ScannerCoordinator") as MockCoord:
             MockCoord.return_value = AsyncMock()
-            with patch(
-                "src.modules.crypto.leak_finder.coordinator.HitLogger"
-            ) as MockLogger:
+            with patch("src.modules.crypto.leak_finder.coordinator.HitLogger") as MockLogger:
                 MockLogger.return_value = AsyncMock()
                 await coordinator.start()
                 assert coordinator._running is True
@@ -260,9 +244,7 @@ class TestLeakFinderCoordinator:
             mock_github.fetch_raw_leaks = mock_fetch_github
             mock_paste = AsyncMock()
             mock_paste.fetch_raw_leaks = mock_fetch_paste
-            mock_create.side_effect = lambda name: (
-                mock_github if name == "github" else mock_paste
-            )
+            mock_create.side_effect = lambda name: (mock_github if name == "github" else mock_paste)
             leaks = await coordinator._fetch_all_sources()
         assert len(leaks) == 2
 
@@ -273,9 +255,7 @@ class TestLeakFinderCoordinator:
         coordinator = LeakFinderCoordinator(sources=["github"])
         with patch.object(coordinator, "_create_source") as mock_create:
             mock_source = AsyncMock()
-            mock_source.fetch_raw_leaks = AsyncMock(
-                side_effect=RuntimeError("API down")
-            )
+            mock_source.fetch_raw_leaks = AsyncMock(side_effect=RuntimeError("API down"))
             mock_create.return_value = mock_source
             leaks = await coordinator._fetch_all_sources()
         assert leaks == []

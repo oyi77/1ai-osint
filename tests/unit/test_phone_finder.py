@@ -1,7 +1,8 @@
 """Tests for phone finder lookup module."""
 
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 
 from src.modules.phone_finder.lookup import PhoneFinderLookup
 
@@ -86,9 +87,7 @@ class TestPhoneFinderLookup:
         assert lookup.name == "phone_finder"
 
     def test_parse_carrier_result(self, lookup, phoneinfoga_result):
-        info = lookup._parse_result(
-            "+447911123456", "+447911123456", True, phoneinfoga_result
-        )
+        info = lookup._parse_result("+447911123456", "+447911123456", True, phoneinfoga_result)
         assert info.carrier == "Vodafone"
         assert info.country_code == "44"
         assert info.country_name == "United Kingdom"
@@ -102,9 +101,7 @@ class TestPhoneFinderLookup:
         assert info.is_voip is True
 
     def test_parse_error_result(self, lookup):
-        info = lookup._parse_result(
-            "+14155552671", "+14155552671", True, {"error": "failed"}
-        )
+        info = lookup._parse_result("+14155552671", "+14155552671", True, {"error": "failed"})
         assert info.carrier is None
         assert info.is_voip is None
 

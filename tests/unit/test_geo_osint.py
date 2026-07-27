@@ -1,9 +1,12 @@
 """Tests for Phase 5 Pillar 4: Geospatial OSINT Engine."""
 
 from __future__ import annotations
-import pytest
+
 from datetime import datetime, timezone
 from unittest.mock import MagicMock
+
+import pytest
+
 from src.modules.deep_scan.geo_osint import GeoOSINTEngine
 
 
@@ -50,9 +53,7 @@ def test_extract_exif_coords_missing(engine):
 
 
 def test_extract_exif_coords_invalid(engine):
-    coords = engine.extract_exif_coords(
-        {"GPSLatitude": "not_a_number", "GPSLongitude": "also_not"}
-    )
+    coords = engine.extract_exif_coords({"GPSLatitude": "not_a_number", "GPSLongitude": "also_not"})
     assert coords is None
 
 
@@ -92,9 +93,7 @@ def test_cluster_ip_locations_groups_nearby(engine):
 
 
 def test_cluster_ip_locations_labels(engine):
-    ip_geos = [
-        {"ip": f"1.1.1.{i}", "lat": 51.5 + i * 0.001, "lon": -0.1} for i in range(5)
-    ]
+    ip_geos = [{"ip": f"1.1.1.{i}", "lat": 51.5 + i * 0.001, "lon": -0.1} for i in range(5)]
     clusters = engine.cluster_ip_locations(ip_geos)
     assert clusters[0].label == "probable home/work"
 
@@ -105,9 +104,7 @@ def test_cluster_ip_locations_empty(engine):
 
 
 def test_cluster_ip_locations_invalid_coords(engine):
-    clusters = engine.cluster_ip_locations(
-        [{"ip": "1.2.3.4", "lat": None, "lon": None}]
-    )
+    clusters = engine.cluster_ip_locations([{"ip": "1.2.3.4", "lat": None, "lon": None}])
     assert clusters == []
 
 

@@ -8,7 +8,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
-from fastapi import FastAPI, HTTPException
+from fastapi import BackgroundTasks, FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 
@@ -87,9 +87,7 @@ async def _run_job(job_id: str, req: ScanRequest) -> None:
     _JOBS[job_id]["status"] = "running"
     try:
         prof = resolve_scan_profile(req.profile)
-        engine = DeepScanEngine(
-            profile_config=prof, modules=list(prof.modules), budget=req.budget
-        )
+        engine = DeepScanEngine(profile_config=prof, modules=list(prof.modules), budget=req.budget)
         result = await engine.scan(req.target)
         intel = generate_intel_report_with_ai(result, use_ai=True)
         html = export_report(intel, fmt="html")
@@ -147,9 +145,7 @@ class ReactJobResponse(BaseModel):
     target: str
 
 
-async def _run_deep_scan_job_react(
-    job_id: str, target: str, fast: bool, max_iterations: int
-):
+async def _run_deep_scan_job_react(job_id: str, target: str, fast: bool, max_iterations: int):
     from src.modules.deep_scan.engine import DeepScanEngine
 
     _JOBS[job_id]["status"] = "running"
@@ -164,9 +160,7 @@ async def _run_deep_scan_job_react(
 
 
 @app.post("/api/scan", response_model=ReactJobResponse)
-async def start_scan_react(
-    request: ReactScanRequest, background_tasks: __import__("fastapi").BackgroundTasks
-) -> ReactJobResponse:
+async def start_scan_react(request: ReactScanRequest, background_tasks: BackgroundTasks) -> ReactJobResponse:
     job_id = str(uuid.uuid4())
     _JOBS[job_id] = {
         "job_id": job_id,

@@ -10,10 +10,10 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
+from dataclasses import dataclass, field
 
 import httpx
 from pydantic import BaseModel
-from dataclasses import dataclass, field
 
 logger = logging.getLogger(__name__)
 
@@ -23,8 +23,6 @@ class SocialDorkResult(BaseModel):
     username: str = ""
     url: str = ""
     snippet: str = ""
-
-
 
 
 @dataclass
@@ -61,9 +59,7 @@ class SocialDorksIntel:
     """Set to a non-empty string when all search engines are blocked."""
 
     @staticmethod
-    def _parse_social_results(
-        text: str, platform: str, engine_label: str
-    ) -> list[SocialDorkResult]:
+    def _parse_social_results(text: str, platform: str, engine_label: str) -> list[SocialDorkResult]:
         """Extract social media handles from search result HTML."""
         results: list[SocialDorkResult] = []
         urls = re.findall(r'href="(https?://[^"]+)"', text)
@@ -75,11 +71,7 @@ class SocialDorksIntel:
             username = ""
             if platform == "instagram" and "instagram.com/" in url:
                 parts = url.split("instagram.com/")
-                if (
-                    len(parts) > 1
-                    and "p/" not in parts[1]
-                    and "explore/" not in parts[1]
-                ):
+                if len(parts) > 1 and "p/" not in parts[1] and "explore/" not in parts[1]:
                     username = parts[1].split("/")[0].split("?")[0]
             elif platform == "tiktok" and "tiktok.com/@" in url:
                 parts = url.split("tiktok.com/@")
@@ -89,14 +81,8 @@ class SocialDorksIntel:
                 parts = url.split("facebook.com/")
                 if len(parts) > 1 and "public/" not in parts[1]:
                     username = parts[1].split("/")[0].split("?")[0]
-            elif platform == "twitter" and (
-                "twitter.com/" in url or "x.com/" in url
-            ):
-                separator = (
-                    "twitter.com/"
-                    if "twitter.com/" in url
-                    else "x.com/"
-                )
+            elif platform == "twitter" and ("twitter.com/" in url or "x.com/" in url):
+                separator = "twitter.com/" if "twitter.com/" in url else "x.com/"
                 parts = url.split(separator)
                 if len(parts) > 1 and "search" not in parts[1]:
                     username = parts[1].split("/")[0].split("?")[0]
@@ -106,11 +92,7 @@ class SocialDorksIntel:
                 "signup",
                 "about",
             ]:
-                results.append(
-                    SocialDorkResult(
-                        platform=platform, username=username, url=url
-                    )
-                )
+                results.append(SocialDorkResult(platform=platform, username=username, url=url))
 
         return results
 
@@ -145,9 +127,7 @@ class SocialDorksIntel:
             ddg_ok = False
             for q, platform in queries:
                 try:
-                    resp = await client.post(
-                        self.ENDPOINTS[0], data={"q": q}
-                    )
+                    resp = await client.post(self.ENDPOINTS[0], data={"q": q})
                     if resp.status_code == 200:
                         ddg_ok = True
                         parsed = self._parse_social_results(
@@ -157,14 +137,10 @@ class SocialDorksIntel:
                         )
                         results.extend(parsed)
                     elif resp.status_code in (429, 403):
-                        blocked_reasons.append(
-                            f"DuckDuckGo returned HTTP {resp.status_code} for {platform}"
-                        )
+                        blocked_reasons.append(f"DuckDuckGo returned HTTP {resp.status_code} for {platform}")
                     await asyncio.sleep(1.0)
                 except Exception as e:
-                    blocked_reasons.append(
-                        f"DuckDuckGo failed for {platform}: {e}"
-                    )
+                    blocked_reasons.append(f"DuckDuckGo failed for {platform}: {e}")
 
             # Phase 2: Bing fallback when DDG produced nothing or failed
             if not ddg_ok or not results:
@@ -174,9 +150,7 @@ class SocialDorksIntel:
                         "; ".join(blocked_reasons),
                     )
                 else:
-                    logger.info(
-                        "DuckDuckGo returned no results, trying Bing fallback"
-                    )
+                    logger.info("DuckDuckGo returned no results, trying Bing fallback")
 
                 for q, platform in queries:
                     try:
@@ -193,24 +167,16 @@ class SocialDorksIntel:
                             )
                             results.extend(parsed)
                         elif resp.status_code in (429, 403):
-                            blocked_reasons.append(
-                                f"Bing returned HTTP {resp.status_code} for {platform}"
-                            )
+                            blocked_reasons.append(f"Bing returned HTTP {resp.status_code} for {platform}")
                         await asyncio.sleep(0.5)
                     except Exception as e:
-                        blocked_reasons.append(
-                            f"Bing failed for {platform}: {e}"
-                        )
+                        blocked_reasons.append(f"Bing failed for {platform}: {e}")
 
         # Set blocked message when all search engines failed
         if blocked_reasons and not results:
-            self._BLOCKED_MSG = (
-                "All search engines blocked: " + "; ".join(blocked_reasons)
-            )
+            self._BLOCKED_MSG = "All search engines blocked: " + "; ".join(blocked_reasons)
         elif blocked_reasons and results:
-            self._BLOCKED_MSG = (
-                "Partial search blockage: " + "; ".join(blocked_reasons)
-            )
+            self._BLOCKED_MSG = "Partial search blockage: " + "; ".join(blocked_reasons)
 
         # Deduplicate
         unique = []
@@ -222,7 +188,6 @@ class SocialDorksIntel:
 
         if not unique and self._BLOCKED_MSG:
             logger.warning("Social dork search: %s", self._BLOCKED_MSG)
-
 
         return SocialDorkSearchResult(
             results=unique,

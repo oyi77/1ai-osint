@@ -2,25 +2,24 @@
 
 import json
 import subprocess
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-from pathlib import Path
 
+from src.modules.crypto.privatekey.checker import (
+    _base58_decode,
+    validate_base58_key,
+    validate_hex_key,
+    validate_key,
+    validate_pem_key,
+    validate_wif,
+)
 from src.modules.crypto.privatekey.scanner import (
     PrivateKeyScanner,
     detect_key_format,
     scan_file,
 )
-from src.modules.crypto.privatekey.checker import (
-    validate_key,
-    validate_wif,
-    validate_hex_key,
-    validate_base58_key,
-    validate_pem_key,
-    _base58_decode,
-)
-
 
 # --- Scanner tests ---
 
@@ -47,9 +46,7 @@ class TestDetectKeyFormat:
 
     def test_detect_pem_key(self):
         pem = (
-            "-----BEGIN PRIVATE KEY-----\n"
-            "MIGEAgEAMBAGByqGSM49AgEGBSuBBAAKBG0wawIBAQQg\n"
-            "-----END PRIVATE KEY-----"
+            "-----BEGIN PRIVATE KEY-----\n" "MIGEAgEAMBAGByqGSM49AgEGBSuBBAAKBG0wawIBAQQg\n" "-----END PRIVATE KEY-----"
         )
         results = detect_key_format(pem)
         formats = [r["format"] for r in results]
@@ -94,9 +91,7 @@ def scanner():
 def sample_key_file(tmp_path):
     p = tmp_path / "leaked.key"
     p.write_text(
-        "-----BEGIN PRIVATE KEY-----\n"
-        "MIGEAgEAMBAGByqGSM49AgEGBSuBBAAKBG0wawIBAQQg\n"
-        "-----END PRIVATE KEY-----\n"
+        "-----BEGIN PRIVATE KEY-----\n" "MIGEAgEAMBAGByqGSM49AgEGBSuBBAAKBG0wawIBAQQg\n" "-----END PRIVATE KEY-----\n"
     )
     return tmp_path
 
@@ -269,9 +264,7 @@ class TestPrivateKeyScannerGithound:
             "-----END PRIVATE KEY-----\n"
         )
 
-        scanner = PrivateKeyScanner(
-            githound_path="nonexistent-githound", zkit_salt="test"
-        )
+        scanner = PrivateKeyScanner(githound_path="nonexistent-githound", zkit_salt="test")
 
         with patch("subprocess.run", side_effect=FileNotFoundError("not found")):
             result = await scanner.scan(str(repo_dir))
@@ -445,9 +438,7 @@ class TestValidateBase58Key:
 class TestValidatePemKey:
     def test_valid_pem(self):
         pem = (
-            "-----BEGIN PRIVATE KEY-----\n"
-            "MIGEAgEAMBAGByqGSM49AgEGBSuBBAAKBG0wawIBAQQg\n"
-            "-----END PRIVATE KEY-----"
+            "-----BEGIN PRIVATE KEY-----\n" "MIGEAgEAMBAGByqGSM49AgEGBSuBBAAKBG0wawIBAQQg\n" "-----END PRIVATE KEY-----"
         )
         result = validate_pem_key(pem)
         assert result.detected_format == "pem"
@@ -491,9 +482,7 @@ class TestValidateKeyAutoDetect:
 
     def test_detects_pem(self):
         pem = (
-            "-----BEGIN PRIVATE KEY-----\n"
-            "MIGEAgEAMBAGByqGSM49AgEGBSuBBAAKBG0wawIBAQQg\n"
-            "-----END PRIVATE KEY-----"
+            "-----BEGIN PRIVATE KEY-----\n" "MIGEAgEAMBAGByqGSM49AgEGBSuBBAAKBG0wawIBAQQg\n" "-----END PRIVATE KEY-----"
         )
         result = validate_key(pem)
         assert result.detected_format == "pem"

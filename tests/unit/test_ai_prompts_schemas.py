@@ -1,15 +1,16 @@
 """Tests for AI prompt templates and response schemas."""
 
 import pytest
+
 from src.ai.prompts.entity_extraction import ENTITY_EXTRACTION_PROMPT
 from src.ai.prompts.false_positive_filter import FALSE_POSITIVE_PROMPT
 from src.ai.schemas.responses import (
+    CorrelationResult,
+    EntityExtractionResult,
     EntityType,
     ExtractedEntity,
-    EntityExtractionResult,
-    FindingAssessment,
     FalsePositiveResult,
-    CorrelationResult,
+    FindingAssessment,
 )
 
 
@@ -53,9 +54,7 @@ class TestEntityType:
 
 class TestExtractedEntity:
     def test_create(self):
-        entity = ExtractedEntity(
-            entity_type=EntityType.EMAIL, value="test@example.com", confidence=0.9
-        )
+        entity = ExtractedEntity(entity_type=EntityType.EMAIL, value="test@example.com", confidence=0.9)
         assert entity.entity_type == EntityType.EMAIL
         assert entity.value == "test@example.com"
         assert entity.confidence == 0.9
@@ -135,8 +134,8 @@ class TestBaseOSINTTool:
         assert len(h1) == 64
 
     def test_to_zkit_node(self):
-        from src.modules.base.base import BaseOSINTTool
         from src.core.models import Finding
+        from src.modules.base.base import BaseOSINTTool
 
         class ConcreteTool(BaseOSINTTool):
             name = "test"
@@ -154,9 +153,7 @@ class TestBaseOSINTTool:
                 pass
 
         tool = ConcreteTool(zkit_salt="salt")
-        finding = Finding(
-            id="f1", module="test", title="Test", raw_data={"email": "a@b.com"}
-        )
+        finding = Finding(id="f1", module="test", title="Test", raw_data={"email": "a@b.com"})
         node = tool.to_zkit_node(finding, attribute_type="email")
         assert node.attribute_type == "email"
         assert len(node.zkit_hash) == 64

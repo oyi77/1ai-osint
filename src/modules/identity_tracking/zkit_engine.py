@@ -11,124 +11,29 @@ from identity_graph.py.
 from __future__ import annotations
 
 import secrets
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from enum import Enum
 from typing import Any, Optional
 
-from src.modules.identity_tracking.identity_graph import (
-    IdentityGraph,
+from src.modules.identity_tracking._graph_models import (
     NodeType,
 )
-
-# ---------------------------------------------------------------------------
-# Supported attribute types and normalization
-# ---------------------------------------------------------------------------
-
-ATTRIBUTE_TYPE_MAP: dict[str, NodeType] = {
-    "email": NodeType.EMAIL_HASH,
-    "username": NodeType.USERNAME_HASH,
-    "phone": NodeType.PHONE_HASH,
-    "domain": NodeType.DOMAIN_HASH,
-}
-
-# Known PII field names that must never appear in output
-_PII_FIELDS = frozenset(
-    {
-        "email",
-        "username",
-        "phone",
-        "domain",
-        "ip",
-        "ip_address",
-        "password",
-        "password_plain",
-        "password_hash",
-        "address",
-        "ssn",
-        "credit_card",
-        "name",
-        "full_name",
-        "first_name",
-        "last_name",
-    }
+from src.modules.identity_tracking._zkit_types import (
+    ATTRIBUTE_TYPE_MAP,
+    PII_FIELDS,
+    CorrelatedCluster,
+    CorrelationConfidence,
+    IngestedRecord,
+    ZKITOutput,
+    normalize_attribute,
 )
+from src.modules.identity_tracking.identity_graph import IdentityGraph
 
-
-def _normalize_attribute(attr_type: str, value: str) -> str:
-    """Normalize an attribute value before hashing.
-
-    Per spec section 7.1:
-    - email: lowercase
-    - username: as-is (platform normalization may apply later)
-    - phone: strip spaces/dashes (E.164 recommended)
-    - domain: lowercase, no protocol prefix
-    """
-    if attr_type == "email":
-        return value.strip().lower()
-    if attr_type == "domain":
-        v = value.strip().lower()
-        for prefix in ("https://", "http://", "www."):
-            if v.startswith(prefix):
-                v = v[len(prefix) :]
-        return v.rstrip("/")
-    if attr_type == "phone":
-        return (
-            value.strip()
-            .replace(" ", "")
-            .replace("-", "")
-            .replace("(", "")
-            .replace(")", "")
-        )
-    return value.strip()
-
-
-# ---------------------------------------------------------------------------
-# Pipeline data types
-# ---------------------------------------------------------------------------
-
-
-class CorrelationConfidence(str, Enum):
-    """Confidence tiers for identity correlations."""
-
-    HIGH = "high"  # score >= 0.75
-    MEDIUM = "medium"  # score >= 0.4
-    LOW = "low"  # score < 0.4
-
-
-@dataclass
-class IngestedRecord:
-    """A normalized record ready for hashing."""
-
-    attributes: dict[str, str]  # attr_type -> raw_value (transient, never persisted)
-    source: str = ""
-    metadata: dict[str, Any] = field(default_factory=dict)
-
-
-@dataclass
-class CorrelatedCluster:
-    """A cluster of identity hashes believed to belong to the same entity."""
-
-    cluster_id: str
-    hash_members: list[str]  # zkit hashes in this cluster
-    attribute_types: set[str]  # e.g. {"email_hash", "username_hash"}
-    score: float  # [0.0, 1.0]
-    confidence: CorrelationConfidence
-    edge_count: int
-    total_co_occurrences: int
-    sources: list[str]
-    metadata: dict[str, Any] = field(default_factory=dict)
-
-
-@dataclass
-class ZKITOutput:
-    """Final sanitized output — no raw PII."""
-
-    investigation_id: str
-    salt_fingerprint: str  # first 16 chars of salt SHA-256 (not the salt itself)
-    clusters: list[CorrelatedCluster]
-    graph_stats: dict[str, Any]
-    generated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+# Re-export types so existing imports (from zkit_engine import ...) don't break
+CorrelatedCluster = CorrelatedCluster
+CorrelationConfidence = CorrelationConfidence
+IngestedRecord = IngestedRecord
+ZKITOutput = ZKITOutput
+ATTRIBUTE_TYPE_MAP = ATTRIBUTE_TYPE_MAP
+_normalize_attribute = normalize_attribute  # noqa: SLF001
 
 
 # ---------------------------------------------------------------------------
@@ -153,9 +58,7 @@ class ZKITEngine:
             investigation_id: Optional label for this investigation.
         """
         if not salt:
-            raise ValueError(
-                "Salt must not be empty — generate with ZKITEngine.new_salt()"
-            )
+            raise ValueError("Salt must not be empty — generate with ZKITEngine.new_salt()")
         self._salt = salt
         self._investigation_id = investigation_id or secrets.token_hex(8)
         self._graph = IdentityGraph(salt=salt)
@@ -221,7 +124,7 @@ class ZKITEngine:
             for attr_type in ATTRIBUTE_TYPE_MAP:
                 raw = rec.get(attr_type)
                 if raw and isinstance(raw, str) and raw.strip():
-                    attrs[attr_type] = _normalize_attribute(attr_type, raw)
+                    attrs[attr_type] = normalize_attribute(attr_type, raw)
 
             if not attrs:
                 continue  # skip records with no recognizable attributes
@@ -231,9 +134,7 @@ class ZKITEngine:
                 source = ",".join(source)
 
             # Metadata: copy everything that is NOT a PII field or source
-            meta = {
-                k: v for k, v in rec.items() if k not in _PII_FIELDS and k != "source"
-            }
+            meta = {k: v for k, v in rec.items() if k not in PII_FIELDS and k != "source"}
 
             ingested.append(
                 IngestedRecord(
@@ -387,19 +288,11 @@ class ZKITEngine:
 
             # Gather edges within this component
             all_edges = g.get_all_edges()
-            component_edges = [
-                e
-                for e in all_edges
-                if e.source_id in component and e.target_id in component
-            ]
+            component_edges = [e for e in all_edges if e.source_id in component and e.target_id in component]
 
             edge_count = len(component_edges)
             total_co_occurrences = sum(e.co_occurrences for e in component_edges)
-            avg_edge_weight = (
-                sum(e.weight for e in component_edges) / edge_count
-                if edge_count > 0
-                else 0.0
-            )
+            avg_edge_weight = sum(e.weight for e in component_edges) / edge_count if edge_count > 0 else 0.0
 
             # Attribute type diversity
             attr_types: set[str] = set()
@@ -431,12 +324,7 @@ class ZKITEngine:
             source_diversity = min(n_sources / 5.0, 1.0)
 
             # Weighted combination
-            score = (
-                0.30 * edge_density
-                + 0.25 * co_occ_score
-                + 0.25 * type_diversity
-                + 0.20 * source_diversity
-            )
+            score = 0.30 * edge_density + 0.25 * co_occ_score + 0.25 * type_diversity + 0.20 * source_diversity
 
             # Bonus for having high average edge weight
             score = score * 0.8 + avg_edge_weight * 0.2
@@ -498,6 +386,8 @@ class ZKITEngine:
                 "node_count": self._graph.node_count,
                 "edge_count": self._graph.edge_count,
                 "cluster_count": len(clusters),
+                "investigation_id": self._investigation_id,
+                "salt_fingerprint": self.salt_fingerprint,
             },
         )
 
@@ -509,10 +399,8 @@ class ZKITEngine:
             ValueError: If a known PII field is found.
         """
         for key in data:
-            if key.lower() in _PII_FIELDS:
-                raise ValueError(
-                    f"Privacy violation: PII field '{key}' found in output metadata"
-                )
+            if key.lower() in PII_FIELDS:
+                raise ValueError(f"Privacy violation: PII field '{key}' found in output metadata")
 
     # ------------------------------------------------------------------
     # Full pipeline convenience

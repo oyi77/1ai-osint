@@ -6,9 +6,7 @@ from __future__ import annotations
 import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import MagicMock
 
 from src.modules.monitoring.alerter import (
     AlertDispatcher,
@@ -18,10 +16,10 @@ from src.modules.monitoring.alerter import (
 )
 from src.modules.monitoring.models import ChangeEvent, ChangeSeverity, ChangeType
 
-
 # ------------------------------------------------------------------
 # Helpers
 # ------------------------------------------------------------------
+
 
 def make_event(
     target: str = "tester",
@@ -47,6 +45,7 @@ def make_event(
 # ------------------------------------------------------------------
 # BaseAlerter — deduplication
 # ------------------------------------------------------------------
+
 
 class TestBaseAlerterDedup:
     def test_send_deduplicates_identical_events(self):
@@ -113,6 +112,7 @@ class TestBaseAlerterDedup:
 # BaseAlerter — formatting
 # ------------------------------------------------------------------
 
+
 class TestBaseAlerterFormat:
     def test_format_event_basic(self):
         event = make_event()
@@ -149,6 +149,7 @@ class TestBaseAlerterFormat:
 # ConsoleAlerter
 # ------------------------------------------------------------------
 
+
 class TestConsoleAlerter:
     def test_deliver_prints(self, capsys):
         alerter = ConsoleAlerter()
@@ -169,6 +170,7 @@ class TestConsoleAlerter:
 # FileAlerter
 # ------------------------------------------------------------------
 
+
 class TestFileAlerter:
     def test_deliver_writes_jsonl(self, tmp_path: Path):
         log_dir = tmp_path / "alerts"
@@ -186,7 +188,7 @@ class TestFileAlerter:
     def test_log_dir_created(self, tmp_path: Path):
         log_dir = tmp_path / "nonexistent" / "deep"
         assert not log_dir.exists()
-        alerter = FileAlerter(log_dir=log_dir)
+        FileAlerter(log_dir=log_dir)
         assert log_dir.exists()
 
     def test_current_log_uses_today_date(self, tmp_path: Path):
@@ -210,6 +212,7 @@ class TestFileAlerter:
 # ------------------------------------------------------------------
 # AlertDispatcher
 # ------------------------------------------------------------------
+
 
 class TestAlertDispatcher:
     def test_dispatch_fires_console(self, capsys):
@@ -247,6 +250,7 @@ class TestAlertDispatcher:
         dispatcher = AlertDispatcher()
         event = make_event()
         import logging
+
         caplog.set_level(logging.WARNING)
         dispatcher.dispatch([event], channels=["nonexistent"])
         assert "Unknown alert channel" in caplog.text
@@ -300,7 +304,9 @@ class TestAlertDispatcher:
 # Internal helper
 # ------------------------------------------------------------------
 
+
 class _TestAlerter(BaseAlerter):
     """Minimal alerter for testing base class behaviour."""
+
     def _deliver(self, event: ChangeEvent, formatted: str) -> None:
         pass

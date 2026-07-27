@@ -1,6 +1,6 @@
 """Tests for database module."""
 
-from src.core.models import ScanResult, Finding, Severity
+from src.core.models import Finding, ScanResult, Severity
 
 
 class TestDatabase:
@@ -26,12 +26,7 @@ class TestDatabase:
         assert retrieved.zkit_hash == sample_identity.zkit_hash
 
     def test_save_scan_with_findings(self, test_db):
-        findings = [
-            Finding(
-                id=f"f{i}", module="test", title=f"Finding {i}", severity=Severity.HIGH
-            )
-            for i in range(5)
-        ]
+        findings = [Finding(id=f"f{i}", module="test", title=f"Finding {i}", severity=Severity.HIGH) for i in range(5)]
         scan = ScanResult(
             scan_id="multi-find",
             module="test",

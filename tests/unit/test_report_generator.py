@@ -6,10 +6,9 @@ import pytest
 
 from src.core.models import Finding, ScanResult, Severity
 from src.modules.output.json_formatter import JSONFormatter
-from src.modules.output.sarif_formatter import SARIFFormatter
 from src.modules.output.pdf_generator import PDFGenerator
-from src.modules.output.report_generator import ReportGenerator, ReportFormat
-
+from src.modules.output.report_generator import ReportFormat, ReportGenerator
+from src.modules.output.sarif_formatter import SARIFFormatter
 
 # --- Fixtures ---
 
@@ -303,9 +302,7 @@ class TestReportGenerator:
         assert path.suffix == ".pdf"
 
     def test_save_custom_filename(self, report_generator, sample_results, tmp_path):
-        path = report_generator.save(
-            sample_results, tmp_path, ReportFormat.JSON, filename="custom.json"
-        )
+        path = report_generator.save(sample_results, tmp_path, ReportFormat.JSON, filename="custom.json")
         assert path.name == "custom.json"
 
     def test_save_creates_dir(self, report_generator, sample_results, tmp_path):

@@ -1,5 +1,7 @@
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
 from src.modules.free_intel.wayback_intel import WaybackIntel
 
 
@@ -24,10 +26,7 @@ async def test_find_snapshots_success():
 
         assert len(results) == 2
         assert results[0].timestamp == "20200101120000"
-        assert (
-            results[0].archive_url
-            == "https://web.archive.org/web/20200101120000/https://example.com"
-        )
+        assert results[0].archive_url == "https://web.archive.org/web/20200101120000/https://example.com"
 
 
 @pytest.mark.asyncio
@@ -66,10 +65,7 @@ async def test_get_earliest_snapshot_success():
         result = await intel.get_earliest_snapshot("https://example.com")
         assert result is not None
         assert result.timestamp == "20100101120000"
-        assert (
-            result.url
-            == "https://web.archive.org/web/20100101120000/https://example.com"
-        )
+        assert result.url == "https://web.archive.org/web/20100101120000/https://example.com"
 
 
 @pytest.mark.asyncio

@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from src.ai.analyzers.risk_scorer import RiskScore
 from src.ai.orchestrator import AnalysisOrchestrator, PipelineState
 from src.ai.schemas.responses import (
     CorrelationResult,
@@ -11,7 +12,6 @@ from src.ai.schemas.responses import (
     EntityType,
     ExtractedEntity,
 )
-from src.ai.analyzers.risk_scorer import RiskScore
 from src.core.models import Finding, ScanResult, Severity
 
 
@@ -85,15 +85,9 @@ class TestPipelineState:
 
 class TestAnalysisOrchestrator:
     @pytest.mark.asyncio
-    async def test_run_with_raw_data(
-        self, orchestrator, mock_extractor, mock_correlator, mock_scorer
-    ):
+    async def test_run_with_raw_data(self, orchestrator, mock_extractor, mock_correlator, mock_scorer):
         mock_extractor.extract.return_value = EntityExtractionResult(
-            entities=[
-                ExtractedEntity(
-                    entity_type=EntityType.EMAIL, value="a@b.com", confidence=0.9
-                )
-            ],
+            entities=[ExtractedEntity(entity_type=EntityType.EMAIL, value="a@b.com", confidence=0.9)],
             summary="Found 1 entity",
         )
         mock_correlator.correlate.return_value = CorrelationResult(
@@ -148,18 +142,10 @@ class TestAnalysisOrchestrator:
         mock_scorer.score.assert_called_once_with([sample_scan_result])
 
     @pytest.mark.asyncio
-    async def test_run_no_data(
-        self, orchestrator, mock_extractor, mock_correlator, mock_scorer
-    ):
-        mock_extractor.extract.return_value = EntityExtractionResult(
-            entities=[], summary="No data"
-        )
-        mock_correlator.correlate.return_value = CorrelationResult(
-            summary="No entities"
-        )
-        mock_scorer.score.return_value = RiskScore(
-            overall_score=0.0, risk_level="minimal"
-        )
+    async def test_run_no_data(self, orchestrator, mock_extractor, mock_correlator, mock_scorer):
+        mock_extractor.extract.return_value = EntityExtractionResult(entities=[], summary="No data")
+        mock_correlator.correlate.return_value = CorrelationResult(summary="No entities")
+        mock_scorer.score.return_value = RiskScore(overall_score=0.0, risk_level="minimal")
 
         result = await orchestrator.run()
 
@@ -172,11 +158,7 @@ class TestAnalysisOrchestrator:
 
     def test_extract_stage_with_raw_data(self, orchestrator, mock_extractor):
         mock_extractor.extract.return_value = EntityExtractionResult(
-            entities=[
-                ExtractedEntity(
-                    entity_type=EntityType.EMAIL, value="x@y.com", confidence=0.5
-                )
-            ],
+            entities=[ExtractedEntity(entity_type=EntityType.EMAIL, value="x@y.com", confidence=0.5)],
             summary="Found",
         )
         state = {"raw_data": "Email: x@y.com", "scan_results": []}
@@ -194,31 +176,21 @@ class TestAnalysisOrchestrator:
         mock_correlator.correlate.return_value = CorrelationResult(summary="test")
         state = {
             "extraction_result": EntityExtractionResult(
-                entities=[
-                    ExtractedEntity(
-                        entity_type=EntityType.EMAIL, value="a@b.com", confidence=0.5
-                    )
-                ]
+                entities=[ExtractedEntity(entity_type=EntityType.EMAIL, value="a@b.com", confidence=0.5)]
             )
         }
         result = orchestrator._correlate(state)
         assert result["correlation_result"].summary == "test"
 
     def test_score_stage(self, orchestrator, mock_scorer, sample_scan_result):
-        mock_scorer.score.return_value = RiskScore(
-            overall_score=60.0, risk_level="high"
-        )
+        mock_scorer.score.return_value = RiskScore(overall_score=60.0, risk_level="high")
         state = {"scan_results": [sample_scan_result]}
         result = orchestrator._score(state)
         assert result["risk_score"].risk_level == "high"
 
     def test_report_stage(self, orchestrator):
         extraction = EntityExtractionResult(
-            entities=[
-                ExtractedEntity(
-                    entity_type=EntityType.EMAIL, value="a@b.com", confidence=0.9
-                )
-            ],
+            entities=[ExtractedEntity(entity_type=EntityType.EMAIL, value="a@b.com", confidence=0.9)],
             summary="Found 1",
         )
         correlation = CorrelationResult(

@@ -33,7 +33,7 @@ class DataLeaksAggregator(BaseOSINTTool):
 
     def _get_providers(self) -> dict[str, Any]:
         """Get available leak check providers."""
-        available = {}
+        available: dict[str, Any] = {}
         try:
             from src.vendor.chiasmodon.hibp import HIBPTool
 
@@ -72,9 +72,7 @@ class DataLeaksAggregator(BaseOSINTTool):
             pass
 
         if self._requested_providers:
-            return {
-                k: v for k, v in available.items() if k in self._requested_providers
-            }
+            return {k: v for k, v in available.items() if k in self._requested_providers}
         return available
 
     async def search(self, query: str, **kwargs) -> ScanResult:
@@ -166,8 +164,8 @@ class DataLeaksAggregator(BaseOSINTTool):
         else:
             return {"error": "Unsupported data type"}
 
-        source_counts = {}
-        severity_counts = {}
+        source_counts: dict[str, int] = {}
+        severity_counts: dict[str, int] = {}
         domains: dict[str, int] = {}
 
         for r in records:
@@ -199,11 +197,9 @@ class DataLeaksAggregator(BaseOSINTTool):
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, provider.search, query)
 
-    def _parse_provider_results(
-        self, provider_name: str, result: Any
-    ) -> list[BreachRecord]:
+    def _parse_provider_results(self, provider_name: str, result: Any) -> list[BreachRecord]:
         """Parse a provider's raw result into BreachRecords."""
-        records = []
+        records: list[BreachRecord] = []
 
         if isinstance(result, dict):
             if result.get("status") == "error":
@@ -244,9 +240,7 @@ class DataLeaksAggregator(BaseOSINTTool):
                 deduped.append(r)
         return deduped
 
-    def _filter_false_positives(
-        self, records: list[BreachRecord]
-    ) -> list[BreachRecord]:
+    def _filter_false_positives(self, records: list[BreachRecord]) -> list[BreachRecord]:
         """Remove known false positives."""
         fp_set = {(fp.get("email"), fp.get("username")) for fp in self._false_positives}
         return [r for r in records if (r.email, r.username) not in fp_set]

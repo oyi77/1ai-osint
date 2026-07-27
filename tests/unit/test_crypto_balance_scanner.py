@@ -7,16 +7,15 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from src.modules.crypto.balance.api_rotation import (
+    _REENABLE_AFTER_SECONDS,
     EndpointHealth,
     EndpointRotator,
-    _REENABLE_AFTER_SECONDS,
 )
-from src.modules.crypto.balance.checker import BalanceResult
 from src.modules.crypto.balance.chains import ETHEREUM
+from src.modules.crypto.balance.checker import BalanceResult
 from src.modules.crypto.balance.deriver import DerivedAddress
 from src.modules.crypto.balance.hit_logger import HitLogger
 from src.modules.crypto.balance.scanner_engine import RandomScanner, ScannerStats
-
 
 # --- API Rotation Tests ---
 
@@ -122,7 +121,6 @@ class TestWalletHit:
     """Test the kwargs-based log_hit API (no WalletHit dataclass needed)."""
 
     def test_log_hit_stores_fields(self, tmp_path):
-
         async def _run():
             db_path = str(tmp_path / "test_fields.db")
             hit_logger = HitLogger(db_path=db_path)
@@ -145,7 +143,6 @@ class TestWalletHit:
         asyncio.run(_run())
 
     def test_log_hit_with_optional_fields(self, tmp_path):
-
         async def _run():
             db_path = str(tmp_path / "test_opt.db")
             hit_logger = HitLogger(db_path=db_path)
@@ -230,9 +227,7 @@ class TestHitLogger:
 
         # Log BATCH_SIZE hits — should auto-flush
         for i in range(_BATCH_SIZE):
-            await hit_logger.log_hit(
-                address=f"0x{i}", chain="Ethereum", balance=float(i), usd_value=float(i)
-            )
+            await hit_logger.log_hit(address=f"0x{i}", chain="Ethereum", balance=float(i), usd_value=float(i))
 
         # Buffer should be empty after auto-flush
         assert len(hit_logger._buffer) == 0
@@ -266,9 +261,7 @@ class TestHitLogger:
         await hit_logger.close()
 
     @patch("src.modules.crypto.balance.hit_logger.httpx.AsyncClient")
-    async def test_telegram_alert_sent_for_nonzero_balance(
-        self, mock_client_cls, tmp_path
-    ):
+    async def test_telegram_alert_sent_for_nonzero_balance(self, mock_client_cls, tmp_path):
         mock_http = AsyncMock()
         mock_resp = MagicMock()
         mock_resp.raise_for_status = MagicMock()
@@ -284,9 +277,7 @@ class TestHitLogger:
         )
         await hit_logger.start()
 
-        await hit_logger.log_hit(
-            address="0xabc", chain="Ethereum", balance=1.0, usd_value=2000.0
-        )
+        await hit_logger.log_hit(address="0xabc", chain="Ethereum", balance=1.0, usd_value=2000.0)
         await hit_logger.flush()
 
         mock_http.post.assert_called_once()
@@ -310,9 +301,7 @@ class TestHitLogger:
         )
         await hit_logger.start()
 
-        await hit_logger.log_hit(
-            address="0xabc", chain="Ethereum", balance=0.0, usd_value=0.0
-        )
+        await hit_logger.log_hit(address="0xabc", chain="Ethereum", balance=0.0, usd_value=0.0)
         await hit_logger.flush()
 
         # No alert for zero balance
@@ -326,9 +315,7 @@ class TestHitLogger:
         hit_logger = HitLogger(db_path=db_path)
         await hit_logger.start()
 
-        await hit_logger.log_hit(
-            address="0xabc", chain="Ethereum", balance=1.0, usd_value=2000.0
-        )
+        await hit_logger.log_hit(address="0xabc", chain="Ethereum", balance=1.0, usd_value=2000.0)
         await hit_logger.flush()  # Should not raise
 
         await hit_logger.close()
@@ -402,9 +389,7 @@ class TestRandomScanner:
             )
         ]
         with (
-            patch.object(
-                scanner, "_check_balances", new_callable=AsyncMock
-            ) as mock_check,
+            patch.object(scanner, "_check_balances", new_callable=AsyncMock) as mock_check,
             patch(
                 "src.modules.crypto.balance.deriver.derive_from_mnemonic",
                 return_value=mock_addrs,
@@ -437,9 +422,7 @@ class TestRandomScanner:
             )
         ]
         with (
-            patch.object(
-                scanner, "_check_balances", new_callable=AsyncMock
-            ) as mock_check,
+            patch.object(scanner, "_check_balances", new_callable=AsyncMock) as mock_check,
             patch(
                 "src.modules.crypto.balance.deriver.derive_from_mnemonic",
                 return_value=mock_addrs,
@@ -472,9 +455,7 @@ class TestRandomScanner:
             )
         ]
         with (
-            patch.object(
-                scanner, "_check_balances", new_callable=AsyncMock
-            ) as mock_check,
+            patch.object(scanner, "_check_balances", new_callable=AsyncMock) as mock_check,
             patch(
                 "src.modules.crypto.balance.deriver.derive_from_mnemonic",
                 return_value=mock_addrs,
