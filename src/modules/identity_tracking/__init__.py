@@ -16,6 +16,11 @@ from src.modules.identity_tracking.identity_graph import (
     IdentityGraph,
     NodeType,
 )
+from src.modules.identity_tracking.neo4j_export import (
+    Neo4jClient,
+    export_neo4j_json,
+    load_neo4j_json,
+)
 from src.modules.identity_tracking.zkit_engine import (
     CorrelatedCluster,
     CorrelationConfidence,
@@ -38,4 +43,7 @@ __all__ = [
     "CorrelationResult",
     "ResolvedEntity",
     "CorrelationSource",
+    "Neo4jClient",
+    "export_neo4j_json",
+    "load_neo4j_json",
 ]

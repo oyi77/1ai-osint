@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from src.modules.deep_scan.threat_model import (
     PredictiveThreatModeler,
     ThreatArchetype,
@@ -136,7 +136,11 @@ async def test_llm_enhanced_handles_exception():
     report = _make_report(risk_score=0.5)
     trajectory = modeler.predict_trajectory(report)
     with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
-        with patch("httpx.AsyncClient", side_effect=Exception("API down")):
+        with patch(
+            "src.ai.omniroute_client.OmniRouteClient.async_chat",
+            new_callable=AsyncMock,
+            side_effect=Exception("API down"),
+        ):
             result = await modeler.llm_enhanced_prediction(report, trajectory)
     # Should return original trajectory unchanged
     assert isinstance(result, ThreatTrajectory)

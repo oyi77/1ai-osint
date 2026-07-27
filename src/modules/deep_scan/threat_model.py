@@ -253,42 +253,30 @@ class PredictiveThreatModeler:
         report: Any,
         trajectory: ThreatTrajectory,
     ) -> ThreatTrajectory:
-        """Enhance trajectory with LLM reasoning if API key is available."""
-        api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get(
-            "OMNIROUTE_API_KEY"
+        """Enhance trajectory with LLM reasoning via OmniRouteClient."""
+        from src.ai.omniroute_client import OmniRouteClient
+
+        client = OmniRouteClient()
+        prompt = (
+            f"Threat archetype: {trajectory.most_likely_archetype.value}\n"
+            f"Score: {trajectory.archetype_scores}\n"
+            f"Risk indicators: {trajectory.high_risk_indicators}\n\n"
+            "Provide 2-3 specific predicted next actions for this threat actor, "
+            "and a one-sentence reasoning. Return JSON: {next_actions: [...], reasoning: '...'}"
         )
-        if not api_key:
-            return trajectory
 
         try:
             import json
 
-            import httpx
-
-            base_url = os.environ.get("OMNIROUTE_BASE_URL", "https://api.openai.com/v1")
-            model = os.environ.get("OMNIROUTE_MODEL", "gpt-4o-mini")
-            prompt = (
-                f"Threat archetype: {trajectory.most_likely_archetype.value}\n"
-                f"Score: {trajectory.archetype_scores}\n"
-                f"Risk indicators: {trajectory.high_risk_indicators}\n\n"
-                "Provide 2-3 specific predicted next actions for this threat actor, "
-                "and a one-sentence reasoning. Return JSON: {next_actions: [...], reasoning: '...'}"
+            data = await client.async_chat(
+                messages=[{"role": "user", "content": prompt}],
+                response_format={"type": "json_object"},
             )
-            async with httpx.AsyncClient(timeout=20.0) as client:
-                resp = await client.post(
-                    f"{base_url}/chat/completions",
-                    headers={"Authorization": f"Bearer {api_key}"},
-                    json={
-                        "model": model,
-                        "messages": [{"role": "user", "content": prompt}],
-                        "response_format": {"type": "json_object"},
-                    },
-                )
-                data = json.loads(resp.json()["choices"][0]["message"]["content"])
-            trajectory.predicted_next_actions = data.get(
+            parsed = json.loads(data)
+            trajectory.predicted_next_actions = parsed.get(
                 "next_actions", trajectory.predicted_next_actions
             )
-            trajectory.reasoning = data.get("reasoning", trajectory.reasoning)
+            trajectory.reasoning = parsed.get("reasoning", trajectory.reasoning)
             trajectory.analytical_method = "llm"
         except Exception as exc:
             logger.warning("LLM threat enhancement failed: %s", exc)

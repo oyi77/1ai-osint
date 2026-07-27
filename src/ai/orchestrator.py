@@ -1,15 +1,32 @@
-"""LangGraph state machine orchestrating the AI analysis pipeline."""
+"""LangGraph state machine orchestrating the AI analysis pipeline.
+
+Pipeline stages:
+1. ingest      - Collect and normalize raw data / scan results
+2. extract     - LLM-based entity extraction
+3. correlate   - Cross-module entity linking
+4. profile     - (optional) Behavioral profiling
+5. anomaly     - (optional) Anomaly detection
+6. score       - Aggregate risk scoring
+7. report      - Generate final report
+"""
 
 import logging
 from typing import Any, Optional
 
 from langgraph.graph import END, StateGraph
 
+from src.ai.analyzers.anomaly_detector import AnomalyDetector
+from src.ai.analyzers.behavioral_profiler import BehavioralProfiler
 from src.ai.analyzers.correlation_engine import CorrelationEngine
 from src.ai.analyzers.entity_extractor import EntityExtractor
 from src.ai.analyzers.risk_scorer import RiskScore, RiskScorer
 from src.ai.omniroute_client import OmniRouteClient
-from src.ai.schemas.responses import CorrelationResult, EntityExtractionResult
+from src.ai.schemas.responses import (
+    AnomalyDetectionResult,
+    BehavioralAnalysisResult,
+    CorrelationResult,
+    EntityExtractionResult,
+)
 from src.core.models import ScanResult
 
 logger = logging.getLogger(__name__)
@@ -35,6 +52,14 @@ class PipelineState(dict):
         return self.get("correlation_result")
 
     @property
+    def behavioral_result(self) -> Optional[BehavioralAnalysisResult]:
+        return self.get("behavioral_result")
+
+    @property
+    def anomaly_result(self) -> Optional[AnomalyDetectionResult]:
+        return self.get("anomaly_result")
+
+    @property
     def risk_score(self) -> Optional[RiskScore]:
         return self.get("risk_score")
 
@@ -55,8 +80,15 @@ class AnalysisOrchestrator:
     1. ingest    - Collect and normalize raw data / scan results
     2. extract   - LLM-based entity extraction
     3. correlate - Cross-module entity linking
-    4. score     - Aggregate risk scoring
-    5. report    - Generate final report
+    4. profile   - (optional) Behavioral profiling
+    5. anomaly   - (optional) Anomaly detection
+    6. score     - Aggregate risk scoring
+    7. report    - Generate final report
+
+    The 'profile' and 'anomaly' stages are optional and gated by
+    enable_behavioral_profiling and enable_anomaly_detection flags.
+    The core pipeline (ingest → extract → correlate → score → report)
+    remains intact and runs identically regardless of these flags.
     """
 
     def __init__(
@@ -65,11 +97,19 @@ class AnalysisOrchestrator:
         extractor: Optional[EntityExtractor] = None,
         correlator: Optional[CorrelationEngine] = None,
         scorer: Optional[RiskScorer] = None,
+        profiler: Optional[BehavioralProfiler] = None,
+        anomaly_detector: Optional[AnomalyDetector] = None,
+        enable_behavioral_profiling: bool = False,
+        enable_anomaly_detection: bool = False,
     ):
         self._client = client or OmniRouteClient()
         self._extractor = extractor or EntityExtractor(self._client)
         self._correlator = correlator or CorrelationEngine(self._client)
         self._scorer = scorer or RiskScorer()
+        self._profiler = profiler or BehavioralProfiler(self._client)
+        self._anomaly_detector = anomaly_detector or AnomalyDetector(self._client)
+        self._enable_behavioral = enable_behavioral_profiling
+        self._enable_anomaly = enable_anomaly_detection
         self._graph = self._build_graph()
 
     def _build_graph(self) -> StateGraph:
@@ -79,15 +119,60 @@ class AnalysisOrchestrator:
         graph.add_node("ingest", self._ingest)
         graph.add_node("extract", self._extract)
         graph.add_node("correlate", self._correlate)
-        graph.add_node("score", self._score)
-        graph.add_node("report", self._report)
 
-        graph.set_entry_point("ingest")
-        graph.add_edge("ingest", "extract")
-        graph.add_edge("extract", "correlate")
-        graph.add_edge("correlate", "score")
-        graph.add_edge("score", "report")
-        graph.add_edge("report", END)
+        # Core pipeline always goes: ingest → extract → correlate → score → report
+        if self._enable_behavioral and self._enable_anomaly:
+            # Extended: ingest → extract → correlate → profile → anomaly → score → report
+            graph.add_node("profile", self._profile)
+            graph.add_node("anomaly", self._anomaly)
+            graph.add_node("score", self._score)
+            graph.add_node("report", self._report)
+
+            graph.set_entry_point("ingest")
+            graph.add_edge("ingest", "extract")
+            graph.add_edge("extract", "correlate")
+            graph.add_edge("correlate", "profile")
+            graph.add_edge("profile", "anomaly")
+            graph.add_edge("anomaly", "score")
+            graph.add_edge("score", "report")
+            graph.add_edge("report", END)
+        elif self._enable_behavioral:
+            # ingest → extract → correlate → profile → score → report
+            graph.add_node("profile", self._profile)
+            graph.add_node("score", self._score)
+            graph.add_node("report", self._report)
+
+            graph.set_entry_point("ingest")
+            graph.add_edge("ingest", "extract")
+            graph.add_edge("extract", "correlate")
+            graph.add_edge("correlate", "profile")
+            graph.add_edge("profile", "score")
+            graph.add_edge("score", "report")
+            graph.add_edge("report", END)
+        elif self._enable_anomaly:
+            # ingest → extract → correlate → anomaly → score → report
+            graph.add_node("anomaly", self._anomaly)
+            graph.add_node("score", self._score)
+            graph.add_node("report", self._report)
+
+            graph.set_entry_point("ingest")
+            graph.add_edge("ingest", "extract")
+            graph.add_edge("extract", "correlate")
+            graph.add_edge("correlate", "anomaly")
+            graph.add_edge("anomaly", "score")
+            graph.add_edge("score", "report")
+            graph.add_edge("report", END)
+        else:
+            # Original pipeline: ingest → extract → correlate → score → report
+            graph.add_node("score", self._score)
+            graph.add_node("report", self._report)
+
+            graph.set_entry_point("ingest")
+            graph.add_edge("ingest", "extract")
+            graph.add_edge("extract", "correlate")
+            graph.add_edge("correlate", "score")
+            graph.add_edge("score", "report")
+            graph.add_edge("report", END)
 
         return graph.compile()
 
@@ -158,6 +243,59 @@ class AnalysisOrchestrator:
         state["correlation_result"] = correlation_result
         return state
 
+    def _profile(self, state: dict) -> dict:
+        """Profile stage: behavioral profiling (optional)."""
+        logger.info("Pipeline: profile stage")
+        extraction_result = state.get("extraction_result")
+
+        if extraction_result and extraction_result.entities:
+            # Build entity data from extraction results for profiling
+            entity_data = []
+            for entity in extraction_result.entities:
+                entity_data.append({
+                    "text": f"{entity.value} {entity.context}",
+                    "source": entity.entity_type.value,
+                })
+
+            result = self._profiler.analyze_entity(
+                entity_data, entity_key="default"
+            )
+        else:
+            result = BehavioralAnalysisResult(summary="No entities to profile")
+
+        state["behavioral_result"] = result
+        return state
+
+    def _anomaly(self, state: dict) -> dict:
+        """Anomaly stage: anomaly detection (optional)."""
+        logger.info("Pipeline: anomaly stage")
+        behavioral_result = state.get("behavioral_result")
+        scan_results = state.get("scan_results", [])
+
+        # Build entity data from scan results
+        entity_data = []
+        for sr in scan_results:
+            for f in sr.findings:
+                entity_data.append({
+                    "text": f"{f.title} {f.description}",
+                    "source": f.module,
+                    "timestamp": f.timestamp.isoformat() if hasattr(f.timestamp, "isoformat") else str(f.timestamp),
+                })
+
+        baseline = None
+        if behavioral_result:
+            baseline = behavioral_result.profiles.get("default")
+
+        result = self._anomaly_detector.detect(
+            entity_data,
+            baseline=baseline,
+            entity_key="default",
+            use_llm=False,  # Keep deterministic by default for speed
+        )
+
+        state["anomaly_result"] = result
+        return state
+
     def _score(self, state: dict) -> dict:
         """Score stage: aggregate risk scoring."""
         logger.info("Pipeline: score stage")
@@ -181,10 +319,14 @@ class AnalysisOrchestrator:
         extraction = state.get("extraction_result")
         correlation = state.get("correlation_result")
         risk_score = state.get("risk_score")
+        behavioral = state.get("behavioral_result")
+        anomaly = state.get("anomaly_result")
 
         report: dict[str, Any] = {
             "entities": [],
             "correlation": {},
+            "behavioral": {},
+            "anomaly": {},
             "risk": {},
             "summary": "",
         }
@@ -200,6 +342,18 @@ class AnalysisOrchestrator:
                 "summary": correlation.summary,
             }
 
+        if behavioral:
+            report["behavioral"] = {
+                key: profile.model_dump()
+                for key, profile in behavioral.profiles.items()
+            }
+
+        if anomaly:
+            report["anomaly"] = {
+                key: report_item.model_dump()
+                for key, report_item in anomaly.reports.items()
+            }
+
         if risk_score:
             report["risk"] = risk_score.to_dict()
 
@@ -211,6 +365,14 @@ class AnalysisOrchestrator:
             lines.append(
                 f"Found {len(correlation.correlated_groups)} correlated groups"
             )
+        if behavioral and behavioral.profiles:
+            lines.append(f"Profiled {len(behavioral.profiles)} entities")
+        if anomaly:
+            for key, r in anomaly.reports.items():
+                if r.detected_anomalies:
+                    lines.append(
+                        f"Detected {len(r.detected_anomalies)} anomalies for {key}"
+                    )
         if risk_score:
             lines.append(
                 f"Risk level: {risk_score.risk_level} ({risk_score.overall_score:.1f}/100)"

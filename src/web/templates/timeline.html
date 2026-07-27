@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block head_extra %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.6/vis-network.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.6/dist/vis-network.min.css" />
+{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>{% if entity_id %}Timeline: {{ entity_id }}{% else %}Global Timeline{% endif %}</h1>
+    <p class="subtitle">{{ events|length }} event(s)</p>
+</div>
+
+{% if entity_id and graph_data %}
+<div class="card">
+    <div class="card-header">
+        <h2>Entity Graph</h2>
+        <a href="/api/timeline/{{ entity_id }}.json" class="json-link">View JSON</a>
+    </div>
+    <div class="card-body">
+        <div id="timeline-graph" style="height: 450px; border: 1px solid #2a2a2a; border-radius: 6px;"></div>
+        <script>
+            try {
+                const graphData = {{ graph_data|tojson }};
+                if (graphData.nodes && graphData.nodes.length > 0) {
+                    const container = document.getElementById('timeline-graph');
+                    const options = {
+                        nodes: {
+                            shape: 'dot',
+                            font: { color: '#e0e0e0', size: 12 },
+                            borderWidth: 2,
+                            color: { border: '#4a9eff', background: '#1a3a5c' }
+                        },
+                        edges: {
+                            width: 1,
+                            color: { color: 'rgba(74, 158, 255, 0.4)' },
+                            font: { color: '#888', size: 10 },
+                            arrows: { to: { enabled: true, scaleFactor: 0.5 } }
+                        },
+                        groups: {
+                            entity: { color: { background: '#4a9eff', border: '#80bfff' }, shape: 'star', size: 25 },
+                            scan: { color: { background: '#2ecc71', border: '#5deaa8' }, shape: 'dot', size: 15 },
+                            finding: { color: { background: '#e74c3c', border: '#ff6b6b' }, shape: 'dot', size: 12 },
+                            source: { color: { background: '#f39c12', border: '#f1c40f' }, shape: 'square', size: 18 },
+                            event: { color: { background: '#9b59b6', border: '#c084fc' }, shape: 'dot', size: 10 }
+                        },
+                        physics: {
+                            solver: 'forceAtlas2Based',
+                            forceAtlas2Based: { gravitationalConstant: -40, springLength: 200 }
+                        },
+                        interaction: { hover: true, tooltipDelay: 200 }
+                    };
+                    new vis.Network(container, graphData, options);
+                } else {
+                    document.getElementById('timeline-graph').innerHTML =
+                        '<p class="empty-state">Not enough data for graph visualization.</p>';
+                }
+            } catch(e) {
+                document.getElementById('timeline-graph').innerHTML =
+                    '<p class="empty-state">Graph error: ' + e.message + '</p>';
+            }
+        </script>
+    </div>
+</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-header">
+        <h2>Event Log</h2>
+    </div>
+    <div class="card-body">
+        {% if events %}
+        <div class="timeline-container">
+            {% set current_date = namespace(val='') %}
+            {% for event in events %}
+            {% set event_date = (event.timestamp|string)[:10] if event.timestamp else '' %}
+            {% if event_date and event_date != current_date.val %}
+            {% set current_date = namespace(val=event_date) %}
+            <div class="timeline-date-header">{{ event_date }}</div>
+            {% endif %}
+            <div class="timeline-item severity-{{ event.context.severity if event.context and event.context.severity else 'info' }}">
+                <div class="timeline-marker"></div>
+                <div class="timeline-content">
+                    <div class="timeline-header">
+                        <span class="timeline-type">{{ event.event_type|upper }}</span>
+                        <span class="timeline-source">{{ event.source }}</span>
+                        <span class="timeline-ts">{{ (event.timestamp|string)[:19] if event.timestamp else '' }}</span>
+                    </div>
+                    <div class="timeline-title">{{ event.title or event.event_type }} {% if event.entity_id and event.entity_id != entity_id %}<a href="/timeline/{{ event.entity_id }}" class="entity-link">&#8594; {{ event.entity_id|truncate(24, True) }}</a>{% endif %}</div>
+                    {% if event.context %}
+                    <div class="timeline-meta">
+                        {% if event.context.severity %}
+                        <span class="severity-{{ event.context.severity }}">{{ event.context.severity|upper }}</span>
+                        {% endif %}
+                        {% if event.context.finding_count %}
+                        | {{ event.context.finding_count }} finding(s)
+                        {% endif %}
+                        {% if event.context.confidence %}
+                        | Conf: {{ (event.context.confidence * 100)|round }}%
+                        {% endif %}
+                        {% if event.context.status %}
+                        | Status: {{ event.context.status }}
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="empty-state">No events recorded yet.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1ai-osint — {{ page_title }}</title>
+    <link rel="stylesheet" href="/static/style.css">
+    {% block head_extra %}{% endblock %}
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">
+            <a href="/" class="nav-logo">
+                <span class="logo-icon">&#9670;</span>
+                <span class="logo-text">1ai-osint</span>
+            </a>
+            <span class="version-badge">v0.1.0</span>
+        </div>
+        <div class="nav-links">
+            <a href="/" class="nav-link {% if page_title == 'Dashboard' %}active{% endif %}">
+                <span class="nav-icon">&#9632;</span> Dashboard
+            </a>
+            <a href="/entities" class="nav-link {% if page_title and 'Entities' in page_title or 'Entity' in page_title %}active{% endif %}">
+                <span class="nav-icon">&#9679;</span> Entities
+            </a>
+            <a href="/reports" class="nav-link {% if page_title and 'Reports' in page_title or 'Report' in page_title %}active{% endif %}">
+                <span class="nav-icon">&#9776;</span> Reports
+            </a>
+            <a href="/timeline" class="nav-link {% if page_title and 'Timeline' in page_title %}active{% endif %}">
+                <span class="nav-icon">&#8986;</span> Timeline
+            </a>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <span>1ai-osint Web UI</span>
+        <span class="footer-sep">|</span>
+        <span>AI-Powered OSINT &amp; ZKIT Research Platform</span>
+    </footer>
+</body>
+</html>

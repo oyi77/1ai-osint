@@ -48,7 +48,7 @@ class TestEntityType:
         assert EntityType.DOMAIN == "domain"
         assert EntityType.IP == "ip"
         assert EntityType.HASH == "hash"
-        assert len(EntityType) == 13
+        assert len(EntityType) == 14
 
 
 class TestExtractedEntity:

@@ -1,19 +1,37 @@
+"""Profile correlation using vision + text analysis via OmniRoute.
+
+Rewritten to use OmniRouteClient instead of hardcoded OpenAI endpoint.
+Keeps Jaccard similarity fallback and image URL passing for multimodal models.
+"""
+
 import json
 import logging
-import os
-from typing import Any, Dict
+from typing import Any, Optional
 
-import httpx
+from src.ai.omniroute_client import OmniRouteClient
 
 logger = logging.getLogger(__name__)
 
+_PROFILE_CORRELATION_SYSTEM_PROMPT = (
+    "You are an OSINT profile correlation specialist. "
+    "Analyze these two profiles and determine the likelihood they belong to the same person. "
+    'Return only valid JSON in the format {"confidence": 0.0-1.0, "reasoning": "..."}.'
+)
+
 
 class VisionCorrelator:
-    def __init__(self):
-        self.openai_api_key = os.getenv("OPENAI_API_KEY")
-        self.omniroute_api_key = os.getenv("OMNIROUTE_API_KEY")
+    """Correlate profiles using text analysis and optional image comparison.
 
-    def _calculate_jaccard_similarity(self, text1: str, text2: str) -> float:
+    Uses OmniRouteClient for LLM calls with automatic retry + fallback.
+    Falls back to Jaccard similarity when LLM is unavailable.
+    """
+
+    def __init__(self, client: Optional[OmniRouteClient] = None):
+        self._client = client or OmniRouteClient()
+
+    @staticmethod
+    def _calculate_jaccard_similarity(text1: str, text2: str) -> float:
+        """Calculate Jaccard similarity between two text strings."""
         if not text1 and not text2:
             return 0.0
         set1 = set(text1.lower().split())
@@ -25,75 +43,59 @@ class VisionCorrelator:
         return len(intersection) / len(union)
 
     async def correlate_profiles(
-        self, profile_a: Dict[str, Any], profile_b: Dict[str, Any]
+        self,
+        profile_a: dict[str, Any],
+        profile_b: dict[str, Any],
     ) -> float:
-        api_key = self.openai_api_key or self.omniroute_api_key
+        """Correlate two profiles, returning a confidence score 0.0-1.0.
 
+        Uses OmniRouteClient async multimodal for LLM analysis, with
+        deterministic fallback (Jaccard similarity + name matching).
+
+        Args:
+            profile_a: First profile dict with 'text_content' and optional
+                       'profile_picture_url'.
+            profile_b: Second profile dict with 'text_content' and optional
+                       'profile_picture_url'.
+        Returns:
+            Float confidence score between 0.0 and 1.0.
+        """
         text_a = profile_a.get("text_content", "")
-        url_a = profile_a.get("profile_picture_url")
-
         text_b = profile_b.get("text_content", "")
+        url_a = profile_a.get("profile_picture_url")
         url_b = profile_b.get("profile_picture_url")
 
-        if api_key:
-            try:
-                return await self._correlate_with_llm(
-                    api_key, text_a, url_a, text_b, url_b
-                )
-            except Exception as e:
-                logger.warning(
-                    f"LLM correlation failed: {e}. Falling back to deterministic."
-                )
+        # Try LLM-based correlation
+        try:
+            image_urls: list[str] = []
+            if url_a:
+                image_urls.append(url_a)
+            if url_b:
+                image_urls.append(url_b)
+
+            content_text = (
+                "Please analyze these two profiles and determine if "
+                "they belong to the same person.\n"
+                f"Profile A Text: {text_a}\n"
+                f"Profile B Text: {text_b}"
+            )
+
+            raw_response = await self._client.async_chat_multimodal(
+                text_content=content_text,
+                system_prompt=_PROFILE_CORRELATION_SYSTEM_PROMPT,
+                image_urls=image_urls or None,
+            )
+
+            result = json.loads(raw_response)
+            return float(result.get("confidence", 0.0))
+        except Exception as e:
+            logger.warning("LLM profile correlation failed: %s. Falling back.", e)
 
         # Deterministic fallback
         target_name = text_a.lower().replace("full name:", "").strip()
         target_words = [w for w in target_name.split() if len(w) > 2]
         if target_words and all(w in text_b.lower() for w in target_words):
             return 0.7
+
         similarity = self._calculate_jaccard_similarity(text_a, text_b)
         return 0.6 if similarity > 0.3 else 0.2
-
-    async def _correlate_with_llm(
-        self, api_key: str, text_a: str, url_a: str, text_b: str, url_b: str
-    ) -> float:
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        }
-
-        api_url = "https://api.openai.com/v1/chat/completions"
-
-        content = [
-            {
-                "type": "text",
-                "text": (
-                    "Please analyze these two profiles and determine if they belong to the same person. "
-                    'Return only JSON in the format {"confidence": 0.0-1.0, "reasoning": "..."}.\n'
-                    f"Profile A Text: {text_a}\n"
-                    f"Profile B Text: {text_b}"
-                ),
-            }
-        ]
-
-        if url_a:
-            content.append({"type": "image_url", "image_url": {"url": url_a}})
-
-        if url_b:
-            content.append({"type": "image_url", "image_url": {"url": url_b}})
-
-        payload = {
-            "model": "gpt-4o-mini",
-            "messages": [{"role": "user", "content": content}],
-            "response_format": {"type": "json_object"},
-        }
-
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                api_url, headers=headers, json=payload, timeout=30.0
-            )
-            response.raise_for_status()
-
-            data = response.json()
-            result_text = data["choices"][0]["message"]["content"]
-            result_json = json.loads(result_text)
-            return float(result_json.get("confidence", 0.0))

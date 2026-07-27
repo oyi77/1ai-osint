@@ -46,19 +46,32 @@ async def test_cloak_scraper_get_page_cdp(mock_env):
 
 
 @pytest.mark.asyncio
-async def test_cloak_scraper_fails_without_cdp(monkeypatch):
+async def test_cloak_scraper_local_fallback(monkeypatch):
+    """When CloakBrowser CDP is unavailable, falls back to local Playwright."""
     monkeypatch.delenv("CLOAKBROWSER_CDP_WS", raising=False)
     monkeypatch.delenv("CLOAKBROWSER_API_URL", raising=False)
 
     scraper = CloakScraper()
 
-    with patch("src.core.cloak_client.async_playwright") as mock_playwright:
-        mock_pw_context = AsyncMock()
-        mock_playwright.return_value.__aenter__.return_value = mock_pw_context
+    mock_browser = AsyncMock()
+    mock_browser.is_connected.return_value = False
+    mock_context = AsyncMock()
+    mock_page = AsyncMock()
+    mock_browser.new_context.return_value = mock_context
+    mock_context.new_page.return_value = mock_page
 
-        with pytest.raises(
-            RuntimeError,
-            match="CloakBrowser CDP endpoint not configured",
-        ):
-            async with scraper.get_page():
-                pass
+    # _ensure_local_browser calls: await async_playwright().start()
+    # which returns a Playwright object with .chromium
+    mock_pw_instance = AsyncMock()
+    mock_pw_instance.chromium.launch.return_value = mock_browser
+
+    with patch("src.core.cloak_client.async_playwright") as mock_playwright:
+        # async_playwright() returns an instance; .start() returns the pw object
+        mock_playwright.return_value.start = AsyncMock(return_value=mock_pw_instance)
+
+        async with scraper.get_page() as page:
+            assert page is mock_page
+
+        mock_pw_instance.chromium.launch.assert_called_once()
+        mock_page.close.assert_called_once()
+        mock_context.close.assert_called_once()

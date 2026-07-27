@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <h1>Reports</h1>
+    <p class="subtitle">All scan reports and generated output</p>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2>All Reports ({{ reports|length }})</h2>
+    </div>
+    <div class="card-body">
+        {% if reports %}
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Report ID</th>
+                    <th>Target</th>
+                    <th>Module(s)</th>
+                    <th>Status</th>
+                    <th class="num">Findings</th>
+                    <th>Duration</th>
+                    <th>Completed</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for report in reports %}
+                <tr>
+                    <td>
+                        <a href="/reports/{{ report.scan_id or report.filename }}" class="entity-link">
+                            {{ (report.scan_id or report.filename)|truncate(24, True) }}
+                        </a>
+                    </td>
+                    <td>{{ report.target or '-' }}</td>
+                    <td>
+                        {% if report.modules_run %}
+                            {% for m in report.modules_run %}
+                            <span class="module-badge">{{ m }}</span>
+                            {% endfor %}
+                        {% else %}
+                            <span class="module-badge">{{ report.module or '-' }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="status-badge status-{{ report.status }}">{{ report.status }}</span>
+                    </td>
+                    <td class="num">{{ report.finding_count }}</td>
+                    <td>{{ '%.1fs'|format(report.duration_sec) if report.duration_sec else '-' }}</td>
+                    <td class="timestamp">{{ report.completed_at|truncate(19, True, '') if report.completed_at else '' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty-state">No reports found. Run a scan to generate reports.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

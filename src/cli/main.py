@@ -16,6 +16,22 @@ from src.core.models import ScanResult
 from src.modules.output.pdf_export import format_pdf as _format_pdf
 from src.modules.output.sarif import format_sarif as _format_sarif
 
+# ---------------------------------------------------------------------------
+# Plugin system — auto-discover and register plugins on import
+# ---------------------------------------------------------------------------
+_plugin_registry: "PluginRegistry | None" = None  # noqa: F821 — forward ref
+
+
+def _init_plugins() -> "PluginRegistry":  # noqa: F821
+    """Lazy-init the global plugin registry and discover plugins."""
+    from src.plugin import PluginRegistry
+
+    global _plugin_registry
+    if _plugin_registry is None:
+        _plugin_registry = PluginRegistry()
+        _plugin_registry.discover()
+    return _plugin_registry
+
 app = typer.Typer(
     help="1ai-osint -- AI-Powered OSINT & ZKIT Research Platform",
     add_completion=False,
@@ -1158,6 +1174,51 @@ def zkit_deep_scan(
         with open(outfile, "w") as f:
             f.write(html)
         console.print(f"HTML report saved to: [bold]{outfile}[/bold]")
+
+
+@app.command()
+def plugins() -> None:
+    """List all registered plugins."""
+    from src.plugin import HookDispatcher
+
+    registry = _init_plugins()
+    all_plugins = registry.list()
+
+    if not all_plugins:
+        typer.echo("No plugins registered.")
+        return
+
+    typer.echo("Registered plugins:")
+    for p in all_plugins:
+        hooks_str = ", ".join(p.hooks) if p.hooks else "(none)"
+        typer.echo(f"  {p.name} v{p.version}")
+        if p.description:
+            typer.echo(f"    {p.description}")
+        typer.echo(f"    hooks: [{hooks_str}]")
+    typer.echo(f"\nTotal: {len(all_plugins)} plugin(s)")
+
+
+@app.command()
+def web(
+    port: int = typer.Option(
+        8080, "--port", "-p", help="Port to bind the web server to"
+    ),
+    host: str = typer.Option(
+        "0.0.0.0", "--host", "-H", help="Host address to bind to"
+    ),
+) -> None:
+    """Start the 1ai-osint Web UI dashboard server.
+
+    Launches a FastAPI web application with a dashboard, entity browser,
+    report viewer, and timeline visualization.
+    """
+    import uvicorn
+
+    from src.web.app import create_app
+
+    typer.echo(f"Starting 1ai-osint Web UI on {host}:{port}...")
+    app = create_app()
+    uvicorn.run(app, host=host, port=port)
 
 
 if __name__ == "__main__":

@@ -192,18 +192,12 @@ class AdversarialAnalyst:
         )
 
     async def _llm_analysis(self, report: Any, evidence_summary: str) -> CIAAnalysis:
-        """LLM-enhanced analysis via OpenAI or Omniroute API."""
+        """LLM-enhanced analysis via OmniRouteClient."""
         import json
-        import os
 
-        import httpx
+        from src.ai.omniroute_client import OmniRouteClient
 
-        api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get(
-            "OMNIROUTE_API_KEY", ""
-        )
-        base_url = os.environ.get("OMNIROUTE_BASE_URL", "https://api.openai.com/v1")
-        model = os.environ.get("OMNIROUTE_MODEL", "gpt-4o-mini")
-
+        client = OmniRouteClient()
         system = (
             "You are a senior intelligence analyst trained in CIA analytical tradecraft. "
             "You produce rigorous, evidence-cited intelligence assessments using structured analytical techniques. "
@@ -221,25 +215,14 @@ Return JSON with keys:
 - calibrated_confidences: dict with keys identity_confirmed, adversarial_hypothesis, data_currency (floats 0-1)
 - bluf_plus: one-sentence executive summary"""
 
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            resp = await client.post(
-                f"{base_url}/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {api_key}",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "model": model,
-                    "messages": [
-                        {"role": "system", "content": system},
-                        {"role": "user", "content": user_msg},
-                    ],
-                    "response_format": {"type": "json_object"},
-                },
-            )
-            resp.raise_for_status()
-            data = resp.json()["choices"][0]["message"]["content"]
-            parsed = json.loads(data)
+        data = await client.async_chat(
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user_msg},
+            ],
+            response_format={"type": "json_object"},
+        )
+        parsed = json.loads(data)
 
         return CIAAnalysis(
             red_team_narrative=parsed.get("red_team_narrative", ""),

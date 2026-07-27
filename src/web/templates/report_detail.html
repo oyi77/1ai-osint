@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <h1>Report Detail</h1>
+    <p class="subtitle">{{ report.scan_id or report.filename }}</p>
+</div>
+
+<div class="report-meta">
+    <div class="report-stat">
+        <span class="report-stat-value">{{ report.target or '-' }}</span>
+        <span class="report-stat-label">Target</span>
+    </div>
+    <div class="report-stat">
+        <span class="report-stat-value severity-badge severity-{{ report.risk.level if report.risk else 'info' }}">
+            {{ report.risk.level|upper if report.risk and report.risk.level else 'N/A' }}
+        </span>
+        <span class="report-stat-label">Risk Level</span>
+    </div>
+    <div class="report-stat">
+        <span class="report-stat-value">{{ report.finding_count }}</span>
+        <span class="report-stat-label">Findings</span>
+    </div>
+    <div class="report-stat">
+        <span class="report-stat-value">{{ '%.1fs'|format(report.duration_sec) if report.duration_sec else '-' }}</span>
+        <span class="report-stat-label">Duration</span>
+    </div>
+</div>
+
+{% if report.severity_counts %}
+<div class="card">
+    <div class="card-header">
+        <h2>Severity Breakdown</h2>
+    </div>
+    <div class="card-body">
+        <div class="risk-bars">
+            {% set sev_order = ['critical', 'high', 'medium', 'low', 'info'] %}
+            {% for sev in sev_order %}
+                {% if sev in report.severity_counts %}
+                <div class="risk-row">
+                    <span class="risk-label severity-{{ sev }}">{{ sev|upper }}</span>
+                    <div class="risk-bar-track">
+                        <div class="risk-bar-fill severity-{{ sev }}-bg"
+                             style="width: {{ (report.severity_counts[sev] / report.finding_count * 100)|round }}%">
+                        </div>
+                    </div>
+                    <span class="risk-count">{{ report.severity_counts[sev] }}</span>
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if report.summary %}
+<div class="card">
+    <div class="card-header">
+        <h2>Summary</h2>
+    </div>
+    <div class="card-body">
+        <p>{{ report.summary }}</p>
+    </div>
+</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-header">
+        <h2>Findings ({{ findings|length }})</h2>
+    </div>
+    <div class="card-body">
+        {% if findings %}
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>Severity</th>
+                    <th>Module</th>
+                    <th>Confidence</th>
+                    <th>Tags</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for finding in findings %}
+                <tr>
+                    <td class="mono">{{ finding.id|truncate(16, True) }}</td>
+                    <td>{{ finding.title }}</td>
+                    <td>
+                        <span class="severity-badge severity-{{ finding.severity }}">
+                            {{ finding.severity|upper }}
+                        </span>
+                    </td>
+                    <td><span class="module-badge">{{ finding.module }}</span></td>
+                    <td>{{ (finding.confidence * 100)|round }}%</td>
+                    <td>
+                        {% for tag in (finding.tags or []) %}
+                        <span class="tag">{{ tag }}</span>
+                        {% endfor %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty-state">No findings in this report.</p>
+        {% endif %}
+    </div>
+</div>
+
+{% if report.full_data and report.full_data.get('warnings') %}
+<div class="card">
+    <div class="card-header">
+        <h2>Warnings</h2>
+    </div>
+    <div class="card-body">
+        <ul class="warnings-list">
+            {% for warning in report.full_data.warnings %}
+            <li>{{ warning }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-header">
+        <h2>Source File</h2>
+    </div>
+    <div class="card-body">
+        <p class="file-path">{{ report.file }}</p>
+    </div>
+</div>
+{% endblock %}

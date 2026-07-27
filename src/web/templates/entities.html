@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <h1>Entities</h1>
+    <p class="subtitle">Identities, targets, and artifacts discovered during scans</p>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2>All Entities ({{ entities|length }})</h2>
+    </div>
+    <div class="card-body">
+        {% if entities %}
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Entity ID</th>
+                    <th>Source</th>
+                    <th class="num">Findings</th>
+                    <th>Risk</th>
+                    <th>Scans</th>
+                    <th>First Seen</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entity in entities %}
+                <tr>
+                    <td>
+                        <a href="/entities/{{ entity.id }}" class="entity-link">{{ entity.id|truncate(40, True) }}</a>
+                    </td>
+                    <td><span class="module-badge">{{ entity.source }}</span></td>
+                    <td class="num">{{ entity.finding_count }}</td>
+                    <td>
+                        <span class="severity-badge severity-{{ entity.risk_level }}">
+                            {{ entity.risk_level|upper if entity.risk_level else 'N/A' }}
+                        </span>
+                    </td>
+                    <td class="num">{{ entity.scan_ids|length }}</td>
+                    <td class="timestamp">{{ entity.first_seen|truncate(19, True, '') if entity.first_seen else '-' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty-state">No entities found yet. Run a scan to discover entities.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

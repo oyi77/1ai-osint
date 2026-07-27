@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <h1>Dashboard</h1>
+    <p class="subtitle">Scan summary and recent activity</p>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-value">{{ stats.total_scans }}</div>
+        <div class="stat-label">Total Scans</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ stats.total_findings }}</div>
+        <div class="stat-label">Findings</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ stats.total_entities }}</div>
+        <div class="stat-label">Entities Found</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ stats.modules_run|length }}</div>
+        <div class="stat-label">Modules Used</div>
+    </div>
+</div>
+
+<div class="content-grid">
+    <div class="card">
+        <div class="card-header">
+            <h2>Risk Distribution</h2>
+        </div>
+        <div class="card-body">
+            {% if stats.risk_distribution %}
+            <div class="risk-bars">
+                {% set levels = ['critical', 'high', 'medium', 'low', 'info', 'unknown'] %}
+                {% for level in levels %}
+                    {% if level in stats.risk_distribution %}
+                    <div class="risk-row">
+                        <span class="risk-label severity-{{ level }}">{{ level|upper }}</span>
+                        <div class="risk-bar-track">
+                            <div class="risk-bar-fill severity-{{ level }}-bg"
+                                 style="width: {{ (stats.risk_distribution[level] / stats.risk_distribution.values()|sum * 100)|round }}%">
+                            </div>
+                        </div>
+                        <span class="risk-count">{{ stats.risk_distribution[level] }}</span>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="empty-state">No risk data available yet. Run a scan to see distribution.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h2>Active Modules</h2>
+        </div>
+        <div class="card-body">
+            {% if stats.modules_run %}
+            <table class="module-table">
+                <thead>
+                    <tr>
+                        <th>Module</th>
+                        <th class="num">Runs</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for name, count in stats.modules_run %}
+                    <tr>
+                        <td><span class="module-badge">{{ name }}</span></td>
+                        <td class="num">{{ count }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="empty-state">No modules have been run yet.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2>Recent Scans</h2>
+    </div>
+    <div class="card-body">
+        {% if recent_scans %}
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Target</th>
+                    <th>Module</th>
+                    <th>Status</th>
+                    <th class="num">Findings</th>
+                    <th>Time</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for scan in recent_scans %}
+                <tr>
+                    <td>
+                        <a href="/entities/{{ scan.target }}" class="entity-link">{{ scan.target or 'N/A' }}</a>
+                    </td>
+                    <td><span class="module-badge">{{ scan.module or (scan.modules_run|join(', ') if scan.modules_run else '-') }}</span></td>
+                    <td>
+                        {% set status = scan.status or 'ok' %}
+                        <span class="status-badge status-{{ status }}">{{ status }}</span>
+                    </td>
+                    <td class="num">{{ scan.findings|length if scan.findings else 0 }}</td>
+                    <td class="timestamp">{{ scan.started_at|truncate(19, True, '') if scan.started_at else '' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty-state">No scan data found. Run <code>1ai-osint scan &lt;target&gt;</code> to get started.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

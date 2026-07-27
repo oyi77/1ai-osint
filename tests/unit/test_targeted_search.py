@@ -83,7 +83,6 @@ class TestTargetedScanToScanResult:
 # --- KnownMnemonicLookup Tests ---
 
 
-@pytest.mark.asyncio
 class TestKnownMnemonicLookup:
     def test_invalid_mnemonic_raises(self):
         with pytest.raises(ValueError, match="Invalid"):
@@ -216,7 +215,6 @@ class TestKnownMnemonicLookup:
 # --- AccountRangeScan Tests ---
 
 
-@pytest.mark.asyncio
 class TestAccountRangeScan:
     def test_invalid_mnemonic_raises(self):
         with pytest.raises(ValueError, match="Invalid"):
@@ -298,7 +296,6 @@ class TestAccountRangeScan:
 # --- FilteredRandomScan Tests ---
 
 
-@pytest.mark.asyncio
 class TestFilteredRandomScan:
     def test_init_defaults(self):
         scanner = FilteredRandomScan()
