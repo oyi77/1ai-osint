@@ -6,7 +6,6 @@ import asyncio
 import logging
 import os
 import time
-from typing import Optional
 
 import httpx
 
@@ -22,7 +21,7 @@ class VirusTotalSource:
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         request_delay: float = 15.0,
         timeout: float = 30.0,
     ):
@@ -44,9 +43,7 @@ class VirusTotalSource:
             "bitcoin private key",
         ]
         headers = {"x-apikey": self.api_key}
-        async with httpx.AsyncClient(
-            timeout=self.timeout, follow_redirects=True
-        ) as client:
+        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
             for query in queries:
                 try:
                     await self._rate_limit()
@@ -79,9 +76,7 @@ class VirusTotalSource:
 
         leaks: list[RawLeak] = []
         headers = {"x-apikey": self.api_key}
-        async with httpx.AsyncClient(
-            timeout=self.timeout, follow_redirects=True
-        ) as client:
+        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
             try:
                 await self._rate_limit()
                 resp = await client.get(

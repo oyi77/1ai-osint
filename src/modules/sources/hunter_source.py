@@ -6,7 +6,6 @@ import asyncio
 import logging
 import os
 import time
-from typing import Optional
 
 import httpx
 
@@ -22,7 +21,7 @@ class HunterSource:
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         request_delay: float = 2.0,
         timeout: float = 30.0,
     ):
@@ -42,9 +41,7 @@ class HunterSource:
             return []
 
         leaks: list[RawLeak] = []
-        async with httpx.AsyncClient(
-            timeout=self.timeout, follow_redirects=True
-        ) as client:
+        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
             try:
                 await self._rate_limit()
                 resp = await client.get(
@@ -59,13 +56,10 @@ class HunterSource:
                     data = resp.json().get("data", {})
                     emails = data.get("emails", [])
                     if emails:
-                        email_list = [
-                            e.get("value", "") for e in emails if e.get("value")
-                        ]
+                        email_list = [e.get("value", "") for e in emails if e.get("value")]
                         leaks.append(
                             RawLeak(
-                                text=f"Emails found for {address}:\n"
-                                + "\n".join(email_list),
+                                text=f"Emails found for {address}:\n" + "\n".join(email_list),
                                 source_name="hunter",
                                 source_url=f"https://hunter.io/search/{address}",
                             )

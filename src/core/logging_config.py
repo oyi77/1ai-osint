@@ -19,9 +19,7 @@ class JSONFormatter(logging.Formatter):
             "message": record.getMessage(),
         }
         # Attach any extra fields the caller passed via logging.info("msg", extra={...})
-        reserved = logging.LogRecord(
-            "", 0, "", 0, "", (), None
-        ).__dict__.keys()
+        reserved = logging.LogRecord("", 0, "", 0, "", (), None).__dict__.keys()
         for key, value in record.__dict__.items():
             if key not in reserved and key not in ("message", "msg", "args"):
                 payload[key] = value
@@ -43,6 +41,7 @@ def setup_logging(level: str = "INFO", json_format: bool = False) -> None:
     json_format : bool
         Use ``JSONFormatter`` when *True*, human-readable text when *False*.
         Overridden by the ``LOG_FORMAT`` env-var when set (``json`` → True).
+
     """
     env_level = os.environ.get("LOG_LEVEL")
     if env_level:

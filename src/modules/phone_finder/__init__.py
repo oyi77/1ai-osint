@@ -1,6 +1,6 @@
 """Phone Finder module: Phone number OSINT (PhoneInfoga)."""
 
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 
@@ -20,8 +20,8 @@ class PhoneFinderTool(BaseOSINTTool):
 
     def __init__(
         self,
-        phoneinfoga_url: Optional[str] = None,
-        zkit_salt: Optional[str] = None,
+        phoneinfoga_url: str | None = None,
+        zkit_salt: str | None = None,
     ):
         super().__init__(zkit_salt=zkit_salt)
         self.phoneinfoga_url = phoneinfoga_url or "http://localhost:3000"
@@ -46,9 +46,7 @@ class PhoneFinderTool(BaseOSINTTool):
         # Try PhoneInfoga API
         try:
             async with httpx.AsyncClient(timeout=30) as client:
-                resp = await client.get(
-                    f"{self.phoneinfoga_url}/api/v1/numbers/{phone}"
-                )
+                resp = await client.get(f"{self.phoneinfoga_url}/api/v1/numbers/{phone}")
                 if resp.status_code == 200:
                     data = resp.json()
                     number_info = data.get("number", data)

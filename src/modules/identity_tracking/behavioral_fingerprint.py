@@ -13,7 +13,6 @@ import hashlib
 import re
 import statistics
 from collections import Counter
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -100,7 +99,7 @@ class BehavioralFingerprint(BaseModel):
     punct_rate: float = 0.0  # punctuation per 100 chars
     capitals_rate: float = 0.0  # uppercase letters per 100 chars
     posting_hours: list[int] = Field(default_factory=lambda: [0] * 24)  # hour histogram
-    estimated_timezone_offset: Optional[int] = None  # hours from UTC
+    estimated_timezone_offset: int | None = None  # hours from UTC
     stylometric_hash: str = ""  # privacy-preserving fingerprint
     text_sample_count: int = 0
 
@@ -108,9 +107,7 @@ class BehavioralFingerprint(BaseModel):
 class LinguisticFingerprintAnalyzer:
     """Compute and compare behavioral fingerprints."""
 
-    def analyze_texts(
-        self, texts: list[str], subject_id: str = ""
-    ) -> BehavioralFingerprint:
+    def analyze_texts(self, texts: list[str], subject_id: str = "") -> BehavioralFingerprint:
         """Analyze a list of text samples and produce a BehavioralFingerprint."""
         if not texts:
             return BehavioralFingerprint(subject_id=subject_id)
@@ -142,15 +139,10 @@ class LinguisticFingerprintAnalyzer:
         # Function word frequencies
         func_word_counts = Counter(w for w in lower_words if w in _FUNCTION_WORDS)
         total_words = max(len(lower_words), 1)
-        function_word_freq = {
-            w: func_word_counts.get(w, 0) / total_words
-            for w in list(_FUNCTION_WORDS)[:20]
-        }
+        function_word_freq = {w: func_word_counts.get(w, 0) / total_words for w in list(_FUNCTION_WORDS)[:20]}
 
         # Average word length
-        avg_word_length = (
-            statistics.mean([len(w) for w in all_words]) if all_words else 0.0
-        )
+        avg_word_length = statistics.mean([len(w) for w in all_words]) if all_words else 0.0
 
         # Punctuation and caps rates
         punct_rate = (total_punct / max(total_chars, 1)) * 100
@@ -169,9 +161,7 @@ class LinguisticFingerprintAnalyzer:
             subject_id=subject_id,
             avg_sentence_length=round(avg_sentence_length, 2),
             type_token_ratio=round(type_token_ratio, 3),
-            function_word_freq={
-                k: round(v, 4) for k, v in list(function_word_freq.items())[:15]
-            },
+            function_word_freq={k: round(v, 4) for k, v in list(function_word_freq.items())[:15]},
             avg_word_length=round(avg_word_length, 2),
             punct_rate=round(punct_rate, 2),
             capitals_rate=round(capitals_rate, 2),
@@ -179,9 +169,7 @@ class LinguisticFingerprintAnalyzer:
             text_sample_count=len(texts),
         )
 
-    def analyze_with_timestamps(
-        self, posts: list[dict], subject_id: str = ""
-    ) -> BehavioralFingerprint:
+    def analyze_with_timestamps(self, posts: list[dict], subject_id: str = "") -> BehavioralFingerprint:
         """Analyze posts with timestamp metadata for temporal patterns.
 
         Each post dict should have: text (str), hour (int 0-23, optional).
@@ -190,11 +178,7 @@ class LinguisticFingerprintAnalyzer:
         fp = self.analyze_texts(texts, subject_id=subject_id)
 
         # Posting hour histogram
-        hours = [
-            p["hour"]
-            for p in posts
-            if isinstance(p.get("hour"), int) and 0 <= p["hour"] <= 23
-        ]
+        hours = [p["hour"] for p in posts if isinstance(p.get("hour"), int) and 0 <= p["hour"] <= 23]
         if hours:
             histogram = [0] * 24
             for h in hours:
@@ -205,7 +189,7 @@ class LinguisticFingerprintAnalyzer:
         return fp
 
     @staticmethod
-    def _estimate_timezone(hour_histogram: list[int]) -> Optional[int]:
+    def _estimate_timezone(hour_histogram: list[int]) -> int | None:
         """Estimate UTC timezone offset from posting hour histogram.
 
         Assumes people post most between 8am-11pm local time.
@@ -220,9 +204,7 @@ class LinguisticFingerprintAnalyzer:
             offset -= 24
         return int(offset)
 
-    def compare_fingerprints(
-        self, a: BehavioralFingerprint, b: BehavioralFingerprint
-    ) -> float:
+    def compare_fingerprints(self, a: BehavioralFingerprint, b: BehavioralFingerprint) -> float:
         """Compute similarity score between two fingerprints. Returns [0.0, 1.0]."""
         if not a or not b:
             return 0.0
@@ -240,22 +222,12 @@ class LinguisticFingerprintAnalyzer:
         # Function word vector similarity (cosine-like)
         common_keys = set(a.function_word_freq) & set(b.function_word_freq)
         if common_keys:
-            diffs = [
-                abs(a.function_word_freq[k] - b.function_word_freq[k])
-                for k in common_keys
-            ]
+            diffs = [abs(a.function_word_freq[k] - b.function_word_freq[k]) for k in common_keys]
             fw_sim = 1.0 - min(statistics.mean(diffs) * 20, 1.0)
         else:
             fw_sim = 0.5
 
-        score = (
-            0.20 * sent_sim
-            + 0.20 * ttr_sim
-            + 0.15 * word_sim
-            + 0.15 * punct_sim
-            + 0.10 * caps_sim
-            + 0.20 * fw_sim
-        )
+        score = 0.20 * sent_sim + 0.20 * ttr_sim + 0.15 * word_sim + 0.15 * punct_sim + 0.10 * caps_sim + 0.20 * fw_sim
         return round(min(max(score, 0.0), 1.0), 3)
 
     def cross_platform_correlation(
@@ -268,11 +240,10 @@ class LinguisticFingerprintAnalyzer:
         Args:
             profiles: dict mapping platform_name -> list of text samples
             threshold: minimum similarity score to flag as potential match
+
         """
         platforms = list(profiles.keys())
-        fingerprints = {
-            p: self.analyze_texts(texts, subject_id=p) for p, texts in profiles.items()
-        }
+        fingerprints = {p: self.analyze_texts(texts, subject_id=p) for p, texts in profiles.items()}
 
         matches = []
         for i, pa in enumerate(platforms):

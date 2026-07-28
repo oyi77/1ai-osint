@@ -3,18 +3,18 @@
 Provides Shannon entropy calculation, common-word dictionary checks,
 and a 0-100 strength score for mnemonic passphrases.
 """
+
 from __future__ import annotations
 
 import math
 from collections import Counter
 from pathlib import Path
-from typing import Optional
 
 from src.modules.crypto.passphrase.generator import validate_mnemonic
 
 # Default path to the BIP-39 English wordlist bundled with bip-utils.
 # Falls back to a minimal built-in set if file not found.
-_BIP39_WORDLIST_PATH: Optional[Path] = None
+_BIP39_WORDLIST_PATH: Path | None = None
 
 # Minimal fallback common weak passwords / phrases for dictionary check.
 _COMMON_WORDS: set[str] = {
@@ -96,14 +96,14 @@ class PassphraseStrength:
 
 
 def shannon_entropy(text: str) -> float:
-    """
-    Calculate Shannon entropy of a string in bits per character.
+    """Calculate Shannon entropy of a string in bits per character.
 
     Args:
         text: Input string.
 
     Returns:
         Shannon entropy in bits.
+
     """
     if not text:
         return 0.0
@@ -114,11 +114,11 @@ def shannon_entropy(text: str) -> float:
 
 
 def charset_entropy(text: str) -> float:
-    """
-    Estimate entropy based on the size of the character set used.
+    """Estimate entropy based on the size of the character set used.
 
     Returns:
         Entropy in bits (log2(charset_size) * length).
+
     """
     if not text:
         return 0.0
@@ -130,9 +130,7 @@ def charset_entropy(text: str) -> float:
         charset_size += 26
     if any(c.isdigit() for c in text):
         charset_size += 10
-    special = set(text) - set(
-        "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 "
-    )
+    special = set(text) - set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ")
     charset_size += len(special) if special else 0
 
     if charset_size == 0:
@@ -142,25 +140,25 @@ def charset_entropy(text: str) -> float:
 
 
 def dictionary_check(passphrase: str) -> list[str]:
-    """
-    Check if the passphrase contains common weak words.
+    """Check if the passphrase contains common weak words.
 
     Args:
         passphrase: The passphrase string (space-separated words or raw text).
 
     Returns:
         List of matched common words (lowercased).
+
     """
     words = passphrase.lower().replace("-", " ").replace("_", " ").split()
     return [w for w in words if w in _COMMON_WORDS]
 
 
 def load_bip39_wordlist(language: str = "english") -> set[str]:
-    """
-    Load the BIP-39 wordlist for a given language by extracting from the generator.
+    """Load the BIP-39 wordlist for a given language by extracting from the generator.
 
     Returns:
         Set of all valid BIP-39 words for the language.
+
     """
     try:
         from bip_utils import Bip39WordsFileFinder
@@ -180,7 +178,7 @@ def load_bip39_wordlist(language: str = "english") -> set[str]:
         lang = lang_map.get(language.lower(), "english")
         finder = Bip39WordsFileFinder(lang)
         wordlist_file = finder.GetFilePath()
-        with open(wordlist_file, "r", encoding="utf-8") as f:
+        with open(wordlist_file, encoding="utf-8") as f:
             return {line.strip() for line in f if line.strip()}
     except Exception:
         return set()
@@ -191,8 +189,7 @@ def check_passphrase_strength(
     language: str = "english",
     check_dictionary: bool = True,
 ) -> PassphraseStrength:
-    """
-    Perform a full strength analysis on a passphrase.
+    """Perform a full strength analysis on a passphrase.
 
     Scoring criteria (0-100):
       - Shannon entropy contribution (0-30 pts)
@@ -208,6 +205,7 @@ def check_passphrase_strength(
 
     Returns:
         PassphraseStrength object with full analysis.
+
     """
     words = passphrase.strip().split()
     word_count = len(words)

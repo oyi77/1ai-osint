@@ -24,6 +24,7 @@ def export_report(report: IntelReport, fmt: str = "html") -> str | bytes:
 
     Returns:
         Serialized string (or bytes for pdf) in the requested format.
+
     """
     if fmt == "pdf":
         return export_pdf(report)
@@ -34,7 +35,5 @@ def export_report(report: IntelReport, fmt: str = "html") -> str | bytes:
     }
     exporter = exporters.get(fmt)
     if not exporter:
-        raise ValueError(
-            f"Unknown export format: {fmt}. Supported: {', '.join(exporters)}"
-        )
+        raise ValueError(f"Unknown export format: {fmt}. Supported: {', '.join(exporters)}")
     return exporter(report)

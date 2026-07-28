@@ -2,7 +2,7 @@
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
 from src.core.models import Finding, ScanResult, Severity
 
@@ -42,7 +42,7 @@ class RiskBreakdown:
     category: str
     score: float
     finding_count: int
-    top_severity: Optional[str] = None
+    top_severity: str | None = None
     details: list[str] = field(default_factory=list)
 
 
@@ -87,20 +87,21 @@ class RiskScorer:
 
     def __init__(
         self,
-        module_weights: Optional[dict[str, float]] = None,
-        severity_weights: Optional[dict[str, float]] = None,
+        module_weights: dict[str, float] | None = None,
+        severity_weights: dict[str, float] | None = None,
     ):
         self._module_weights = module_weights or dict(_DEFAULT_MODULE_WEIGHTS)
         self._severity_weights = severity_weights or dict(_SEVERITY_WEIGHTS)
 
     def score(self, scan_results: list[ScanResult]) -> RiskScore:
-        """
-        Compute aggregate risk score from multiple ScanResults.
+        """Compute aggregate risk score from multiple ScanResults.
 
         Args:
             scan_results: List of ScanResult objects from various modules.
+
         Returns:
             RiskScore with overall score and per-category breakdowns.
+
         """
         if not scan_results:
             return RiskScore(
@@ -119,24 +120,16 @@ class RiskScorer:
         # Compute per-category breakdowns
         breakdowns: list[RiskBreakdown] = []
         for category, category_modules in _RISK_CATEGORIES.items():
-            category_findings = [
-                f for f in all_findings if f.module in category_modules
-            ]
+            category_findings = [f for f in all_findings if f.module in category_modules]
             if category_findings:
                 breakdowns.append(self._score_category(category, category_findings))
 
         # Compute overall score as weighted average of category scores
         if breakdowns:
-            total_weight = sum(
-                self._module_weight(b.category) * b.finding_count for b in breakdowns
-            )
+            total_weight = sum(self._module_weight(b.category) * b.finding_count for b in breakdowns)
             if total_weight > 0:
                 overall = (
-                    sum(
-                        b.score * self._module_weight(b.category) * b.finding_count
-                        for b in breakdowns
-                    )
-                    / total_weight
+                    sum(b.score * self._module_weight(b.category) * b.finding_count for b in breakdowns) / total_weight
                 )
             else:
                 overall = 0.0
@@ -174,7 +167,7 @@ class RiskScorer:
         weighted_sum = 0.0
         weight_total = 0.0
         top_severity_val = 0.0
-        top_severity_name: Optional[str] = None
+        top_severity_name: str | None = None
         details: list[str] = []
 
         for f in findings:
@@ -184,9 +177,7 @@ class RiskScorer:
             weighted_sum += combined
             weight_total += 1.0
 
-            sev_val = {"critical": 4, "high": 3, "medium": 2, "low": 1, "info": 0}.get(
-                f.severity.value, 0
-            )
+            sev_val = {"critical": 4, "high": 3, "medium": 2, "low": 1, "info": 0}.get(f.severity.value, 0)
             if sev_val > top_severity_val:
                 top_severity_val = sev_val
                 top_severity_name = f.severity.value
@@ -239,8 +230,6 @@ class RiskScorer:
         if breakdowns:
             lines.append("Category breakdown:")
             for b in sorted(breakdowns, key=lambda x: -x.score):
-                lines.append(
-                    f"  - {b.category}: {b.score:.1f}/100 ({b.finding_count} findings)"
-                )
+                lines.append(f"  - {b.category}: {b.score:.1f}/100 ({b.finding_count} findings)")
 
         return "\n".join(lines)

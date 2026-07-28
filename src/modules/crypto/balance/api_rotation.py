@@ -9,7 +9,6 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +81,7 @@ class EndpointHealth:
     success_count: int = 0
     failure_count: int = 0
     consecutive_failures: int = 0
-    disabled_at: Optional[float] = None
+    disabled_at: float | None = None
     # Rate limiter: max requests per second
     max_rps: float = 5.0
     _last_request_time: float = 0.0
@@ -235,7 +234,7 @@ class EndpointRotator:
                 health.consecutive_failures,
             )
 
-    def get_health(self, url: str) -> Optional[EndpointHealth]:
+    def get_health(self, url: str) -> EndpointHealth | None:
         """Return health info for a specific endpoint."""
         return self._endpoints.get(url)
 
@@ -255,5 +254,6 @@ def create_rotators() -> dict[str, EndpointRotator]:
 
     Returns:
         Dict mapping CoinGecko coin_id to its EndpointRotator.
+
     """
     return {chain: EndpointRotator(urls) for chain, urls in ENDPOINT_REGISTRY.items()}

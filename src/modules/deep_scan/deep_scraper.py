@@ -17,7 +17,7 @@ import logging
 import random
 import time
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 
@@ -40,7 +40,7 @@ class DeepScraperResult:
     text_content: str = ""
     metadata: dict[str, Any] = field(default_factory=dict)
     status: str = "ok"  # ok, error, skipped
-    error: Optional[str] = None
+    error: str | None = None
     elapsed_ms: float = 0.0
 
 
@@ -108,41 +108,36 @@ class DeepScraperEngine:
         request_delay_range: tuple[float, float] = (0.5, 2.0),
         max_depth: int = 2,
         cache_ttl: int = 3600,
-        cache_dir: Optional[str] = None,
-        rate_limiter: Optional[RateLimiter] = None,
-        cache: Optional[Cache] = None,
+        cache_dir: str | None = None,
+        rate_limiter: RateLimiter | None = None,
+        cache: Cache | None = None,
     ) -> None:
-        """
+        """Args:
+        max_retries: Number of retries on failure (default 3).
+        request_delay_range: (min, max) seconds to randomly delay
+            between requests.
+        max_depth: Maximum depth for recursive scraping
+            (default 2, 1 = no recursion).
+        cache_ttl: Cache TTL in seconds (default 3600).
+        cache_dir: Optional custom cache directory path.
+        rate_limiter: Shared or standalone RateLimiter instance.
+        cache: Shared or standalone Cache instance.
 
-        Args:
-            max_retries: Number of retries on failure (default 3).
-            request_delay_range: (min, max) seconds to randomly delay
-                between requests.
-            max_depth: Maximum depth for recursive scraping
-                (default 2, 1 = no recursion).
-            cache_ttl: Cache TTL in seconds (default 3600).
-            cache_dir: Optional custom cache directory path.
-            rate_limiter: Shared or standalone RateLimiter instance.
-            cache: Shared or standalone Cache instance.
         """
         self.max_retries = max_retries
         self.delay_range = request_delay_range
         self.max_depth = max_depth
-        self._rate_limiter = rate_limiter or RateLimiter(
-            requests_per_minute=30, burst=5
-        )
+        self._rate_limiter = rate_limiter or RateLimiter(requests_per_minute=30, burst=5)
         if cache is not None:
             self._cache = cache
         else:
             self._cache = Cache(
-                cache_dir=cache_dir
-                if cache_dir is None
-                else __import__("pathlib").Path(cache_dir),
+                cache_dir=cache_dir if cache_dir is None else __import__("pathlib").Path(cache_dir),
                 default_ttl=cache_ttl,
             )
 
         # Semi-persistent HTTP client for connection reuse
-        self._client: Optional[httpx.AsyncClient] = None
+        self._client: httpx.AsyncClient | None = None
 
     # ------------------------------------------------------------------
     # HTTP helpers
@@ -204,24 +199,20 @@ class DeepScraperEngine:
         # -- Title --
         import re
 
-        m = re.search(
-            r'<title[^>]*>\s*(.*?)\s*</title>', html, re.IGNORECASE | re.DOTALL
-        )
+        m = re.search(r"<title[^>]*>\s*(.*?)\s*</title>", html, re.IGNORECASE | re.DOTALL)
         if m:
             result["title"] = self._clean_text(m.group(1))
 
         # -- Meta tags --
         for tag in ("description", "keywords", "author"):
             m = re.search(
-                rf'<meta[^>]+(?:name|property)=["\']{tag}["\'][^>]*'
-                rf'content=["\'](.*?)["\'][^>]*/?>',
+                rf'<meta[^>]+(?:name|property)=["\']{tag}["\'][^>]*' rf'content=["\'](.*?)["\'][^>]*/?>',
                 html,
                 re.IGNORECASE,
             )
             if not m:
                 m = re.search(
-                    rf'<meta[^>]+content=["\'](.*?)["\'][^>]*'
-                    rf'(?:name|property)=["\']{tag}["\'][^>]*/?>',
+                    rf'<meta[^>]+content=["\'](.*?)["\'][^>]*' rf'(?:name|property)=["\']{tag}["\'][^>]*/?>',
                     html,
                     re.IGNORECASE,
                 )
@@ -231,8 +222,7 @@ class DeepScraperEngine:
         # -- Open Graph tags --
         for og_prop in ("title", "description", "image", "url", "site_name"):
             m = re.search(
-                rf'<meta[^>]+property=["\']og:{og_prop}["\'][^>]*'
-                rf'content=["\'](.*?)["\'][^>]*/?>',
+                rf'<meta[^>]+property=["\']og:{og_prop}["\'][^>]*' rf'content=["\'](.*?)["\'][^>]*/?>',
                 html,
                 re.IGNORECASE,
             )
@@ -271,17 +261,13 @@ class DeepScraperEngine:
         # -- Article text (extract <p>, <h1>-<h6>, <li> text) --
         text_parts: list[str] = []
         for tag in ("h1", "h2", "h3", "h4", "h5", "h6", "p", "li", "blockquote"):
-            for match in re.finditer(
-                rf'<{tag}[^>]*>(.*?)</{tag}>', html, re.IGNORECASE | re.DOTALL
-            ):
+            for match in re.finditer(rf"<{tag}[^>]*>(.*?)</{tag}>", html, re.IGNORECASE | re.DOTALL):
                 text = self._strip_tags(match.group(1))
                 if text:
                     text_parts.append(text)
 
         # -- Also grab body text outside those tags --
-        body_match = re.search(
-            r'<body[^>]*>(.*?)</body>', html, re.IGNORECASE | re.DOTALL
-        )
+        body_match = re.search(r"<body[^>]*>(.*?)</body>", html, re.IGNORECASE | re.DOTALL)
         if body_match:
             body_text = self._strip_tags(body_match.group(1))
             # Only use if structured extraction was weak
@@ -318,7 +304,7 @@ class DeepScraperEngine:
         self,
         url: str,
         depth: int = 0,
-        _visited: Optional[set[str]] = None,
+        _visited: set[str] | None = None,
     ) -> DeepScraperResult:
         """Scrape a URL with full retry, caching, and rate-limiting.
 
@@ -329,6 +315,7 @@ class DeepScraperEngine:
 
         Returns:
             A DeepScraperResult with extracted content.
+
         """
         start = time.perf_counter()
 
@@ -336,14 +323,12 @@ class DeepScraperEngine:
             _visited = set()
 
         if url in _visited:
-            return DeepScraperResult(
-                url=url, status="skipped", error="Already visited"
-            )
+            return DeepScraperResult(url=url, status="skipped", error="Already visited")
         _visited.add(url)
 
         # --- Check cache ---
         cache_key = f"scrape:{url}"
-        cached: Optional[dict[str, Any]] = self._cache.get(cache_key)
+        cached: dict[str, Any] | None = self._cache.get(cache_key)
         if cached is not None:
             elapsed = (time.perf_counter() - start) * 1000
             return DeepScraperResult(
@@ -364,7 +349,7 @@ class DeepScraperEngine:
             logger.debug("Rate-limited %s for %.2fs", domain, wait)
 
         # --- Retry loop ---
-        last_error: Optional[str] = None
+        last_error: str | None = None
         for attempt in range(1, self.max_retries + 1):
             try:
                 client = await self._get_client()
@@ -394,14 +379,10 @@ class DeepScraperEngine:
                     extracted["metadata"]["content_type"] = "json"
                 elif ctype == "pdf":
                     extracted["metadata"]["content_type"] = "pdf"
-                    extracted["text_content"] = (
-                        f"[PDF document: {len(response.content)} bytes]"
-                    )
+                    extracted["text_content"] = f"[PDF document: {len(response.content)} bytes]"
                 elif ctype == "image":
                     extracted["metadata"]["content_type"] = "image"
-                    extracted["text_content"] = (
-                        f"[Image: {len(response.content)} bytes, {content_type}]"
-                    )
+                    extracted["text_content"] = f"[Image: {len(response.content)} bytes, {content_type}]"
                 else:
                     extracted["text_content"] = response.text[:5000]
                     extracted["metadata"]["content_type"] = ctype
@@ -537,6 +518,7 @@ class DeepScraperEngine:
         Returns:
             A dict with keys ``url``, ``title``, ``text_content``,
             ``profile_picture_url`` (empty string if not found).
+
         """
         result = await self.scrape(url)
 

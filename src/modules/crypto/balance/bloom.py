@@ -26,6 +26,7 @@ class BloomFilter:
         Args:
             expected_items: Expected number of items to store.
             fp_rate: Desired false positive rate (0.0 to 1.0).
+
         """
         self._expected = expected_items
         self._fp_rate = fp_rate
@@ -82,9 +83,7 @@ class BloomFilter:
         """Estimated current false positive rate."""
         if self._count == 0:
             return 0.0
-        return (
-            1 - math.exp(-self._hash_count * self._count / self._size)
-        ) ** self._hash_count
+        return (1 - math.exp(-self._hash_count * self._count / self._size)) ** self._hash_count
 
     def clear(self) -> None:
         """Reset the filter."""

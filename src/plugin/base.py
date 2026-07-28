@@ -37,6 +37,7 @@ class BasePlugin(ABC):
         Args:
             target: The scan target (URL, email, path, …).
             module: Name of the module performing the scan.
+
         """
         pass
 
@@ -45,6 +46,7 @@ class BasePlugin(ABC):
 
         Args:
             result: The ``ScanResult`` (or equivalent) produced by the scan.
+
         """
         pass
 
@@ -58,6 +60,7 @@ class BasePlugin(ABC):
 
         Returns:
             The (potentially modified) report.
+
         """
         return report
 
@@ -67,6 +70,7 @@ class BasePlugin(ABC):
         Args:
             error:   The exception that was raised.
             context: Arbitrary key-value context (module name, target, …).
+
         """
         pass
 

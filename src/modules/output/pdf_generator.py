@@ -18,7 +18,7 @@ class PDFGenerator:
         self._salt = salt
 
     def _hash_value(self, value: str) -> str:
-        preimage = f"{self._salt}:{value}".encode("utf-8")
+        preimage = f"{self._salt}:{value}".encode()
         return hashlib.sha256(preimage).hexdigest()
 
     def _severity_counts(self, results: list[ScanResult]) -> dict[str, int]:
@@ -62,8 +62,10 @@ class PDFGenerator:
 
         Args:
             results: List of ScanResult objects to include in the report.
+
         Returns:
             PDF file content as bytes.
+
         """
         from reportlab.lib import colors
         from reportlab.lib.pagesizes import A4

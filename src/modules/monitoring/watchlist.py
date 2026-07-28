@@ -6,7 +6,7 @@ import json
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from src.core.config import Settings
 from src.modules.monitoring.models import WatchlistTarget
@@ -22,9 +22,7 @@ class WatchlistManager:
     """
 
     def __init__(self, storage_dir: Path | None = None):
-        root = storage_dir or (
-            Settings().project_root / "investigations" / "watchlist"
-        )
+        root = storage_dir or (Settings().project_root / "investigations" / "watchlist")
         self._storage_dir = Path(root)
         self._storage_dir.mkdir(parents=True, exist_ok=True)
         self._index_path = self._storage_dir / "index.json"
@@ -41,21 +39,15 @@ class WatchlistManager:
         if self._index_path.exists():
             try:
                 raw = json.loads(self._index_path.read_text(encoding="utf-8"))
-                self._targets = {
-                    k: WatchlistTarget(**v) for k, v in raw.items()
-                }
+                self._targets = {k: WatchlistTarget(**v) for k, v in raw.items()}
             except (json.JSONDecodeError, KeyError, TypeError) as exc:
                 logger.warning("Corrupt watchlist index — starting fresh: %s", exc)
                 self._targets = {}
         self._loaded = True
 
     def _save(self) -> None:
-        raw = {
-            k: v.model_dump(mode="json") for k, v in self._targets.items()
-        }
-        self._index_path.write_text(
-            json.dumps(raw, indent=2, default=str), encoding="utf-8"
-        )
+        raw = {k: v.model_dump(mode="json") for k, v in self._targets.items()}
+        self._index_path.write_text(json.dumps(raw, indent=2, default=str), encoding="utf-8")
 
     def _normalise_target(self, target: str) -> str:
         """Lower-case and strip for consistent keying."""
@@ -127,7 +119,7 @@ class WatchlistManager:
             targets = [t for t in targets if tag in t.tags]
         return sorted(targets, key=lambda t: t.target.lower())
 
-    def get_target(self, target: str) -> Optional[WatchlistTarget]:
+    def get_target(self, target: str) -> WatchlistTarget | None:
         """Get a single target by identifier."""
         self._load()
         key = self._normalise_target(target)

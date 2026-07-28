@@ -3,7 +3,7 @@
 import asyncio
 import logging
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any
 
 from src.core.models import Finding, ScanResult, Severity
 from src.modules.base.base import BaseOSINTTool
@@ -34,7 +34,7 @@ __all__ = [
 ]
 
 
-def _chain_for_address_type(input_type: str, chains: list[ChainConfig]) -> Optional[ChainConfig]:
+def _chain_for_address_type(input_type: str, chains: list[ChainConfig]) -> ChainConfig | None:
     """Determine chain from address type."""
     mapping = {
         "btc_address": "Bitcoin",
@@ -47,7 +47,7 @@ def _chain_for_address_type(input_type: str, chains: list[ChainConfig]) -> Optio
     return None
 
 
-def _chain_by_name(name: str, chains: list[ChainConfig]) -> Optional[ChainConfig]:
+def _chain_by_name(name: str, chains: list[ChainConfig]) -> ChainConfig | None:
     """Find chain config by name."""
     return next((c for c in chains if c.name == name), None)
 
@@ -65,9 +65,9 @@ class CryptoBalanceTool(BaseOSINTTool):
 
     def __init__(
         self,
-        chains: Optional[list[ChainConfig]] = None,
+        chains: list[ChainConfig] | None = None,
         account_count: int = 1,
-        zkit_salt: Optional[str] = None,
+        zkit_salt: str | None = None,
     ):
         super().__init__(zkit_salt=zkit_salt)
         self.chains = chains or list(ALL_CHAINS)
@@ -94,6 +94,7 @@ class CryptoBalanceTool(BaseOSINTTool):
 
         Returns:
             ScanResult with one Finding per address/chain combination.
+
         """
         scan_id = self._make_scan_id()
         started_at = datetime.now(timezone.utc)
@@ -575,7 +576,7 @@ class CryptoBalanceTool(BaseOSINTTool):
         )
         await hit_logger.start()
 
-        channels = kwargs.get("channels", None)
+        channels = kwargs.get("channels")
         auto_discover = kwargs.get("auto_discover", True)
 
         findings = await run_telegram_leak_scan(

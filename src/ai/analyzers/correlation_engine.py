@@ -2,7 +2,6 @@
 
 import json
 import logging
-from typing import Optional
 
 from src.ai.omniroute_client import OmniRouteClient
 from src.ai.schemas.responses import (
@@ -54,17 +53,18 @@ Respond in JSON format:
 class CorrelationEngine:
     """Link and correlate entities across multiple OSINT modules."""
 
-    def __init__(self, client: Optional[OmniRouteClient] = None):
+    def __init__(self, client: OmniRouteClient | None = None):
         self._client = client or OmniRouteClient()
 
     def correlate(self, extraction_result: EntityExtractionResult) -> CorrelationResult:
-        """
-        Correlate entities from an extraction result.
+        """Correlate entities from an extraction result.
 
         Args:
             extraction_result: Result from EntityExtractor.
+
         Returns:
             CorrelationResult with grouped entities and relationships.
+
         """
         if not extraction_result.entities:
             return CorrelationResult(summary="No entities to correlate")
@@ -72,16 +72,15 @@ class CorrelationEngine:
         entities_text = self._format_entities(extraction_result.entities)
         return self._call_llm(entities_text)
 
-    def correlate_cross_module(
-        self, module_results: dict[str, EntityExtractionResult]
-    ) -> CorrelationResult:
-        """
-        Correlate entities across multiple module extraction results.
+    def correlate_cross_module(self, module_results: dict[str, EntityExtractionResult]) -> CorrelationResult:
+        """Correlate entities across multiple module extraction results.
 
         Args:
             module_results: Dict mapping module name to its EntityExtractionResult.
+
         Returns:
             Aggregated CorrelationResult.
+
         """
         all_entities: list[ExtractedEntity] = []
         for module_name, result in module_results.items():
@@ -94,16 +93,15 @@ class CorrelationEngine:
         entities_text = self._format_entities(all_entities)
         return self._call_llm(entities_text)
 
-    def find_shared_attributes(
-        self, entities: list[ExtractedEntity]
-    ) -> dict[str, list[ExtractedEntity]]:
-        """
-        Group entities by shared attribute values (deterministic, no LLM).
+    def find_shared_attributes(self, entities: list[ExtractedEntity]) -> dict[str, list[ExtractedEntity]]:
+        """Group entities by shared attribute values (deterministic, no LLM).
 
         Args:
             entities: List of extracted entities.
+
         Returns:
             Dict mapping normalized values to entities sharing that value.
+
         """
         value_map: dict[str, list[ExtractedEntity]] = {}
         for entity in entities:

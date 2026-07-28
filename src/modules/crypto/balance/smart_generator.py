@@ -16,7 +16,6 @@ import json
 import logging
 import os
 import random
-from typing import Optional
 
 from bip_utils import Bip39Languages, Bip39MnemonicValidator
 
@@ -301,6 +300,7 @@ class SmartMnemonicGenerator:
 
         Returns:
             A space-separated BIP-39 mnemonic string.
+
         """
         # 30% chance: mutate a hit pattern if available
         if self._hit_patterns and random.random() < 0.3:
@@ -340,7 +340,7 @@ class SmartMnemonicGenerator:
         # words has word_count-1 elements; _fix_checksum needs them all as prefix
         return self._fix_checksum(words + ["placeholder"], word_count) or ""
 
-    def _mutate_hit_pattern(self, word_count: int) -> Optional[str]:
+    def _mutate_hit_pattern(self, word_count: int) -> str | None:
         """Mutate a known funded mnemonic by changing 1-3 words."""
         pattern = random.choice(self._hit_patterns)
         if len(pattern) != word_count:
@@ -363,7 +363,7 @@ class SmartMnemonicGenerator:
         # Fix checksum on last word
         return self._fix_checksum(mutated, word_count)
 
-    def _fix_checksum(self, words: list[str], word_count: int) -> Optional[str]:
+    def _fix_checksum(self, words: list[str], word_count: int) -> str | None:
         """Try to fix the checksum for a mnemonic by changing the last word."""
         entropy_prefix = 0
         for word in words[:-1]:
@@ -403,5 +403,6 @@ class SmartMnemonicGenerator:
 
         Returns:
             List of space-separated mnemonic strings.
+
         """
         return [self.generate(word_count) for _ in range(count)]

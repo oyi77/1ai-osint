@@ -14,7 +14,6 @@ import asyncio
 import hashlib
 import logging
 import sqlite3
-from typing import Optional
 
 import httpx
 
@@ -59,7 +58,7 @@ class ScannerCoordinator:
     def __init__(
         self,
         api_concurrency: int = 50,
-        chains: Optional[list[ChainConfig]] = None,
+        chains: list[ChainConfig] | None = None,
         db_path: str = "wallet_hits.db",
     ):
         self._api_semaphore = asyncio.Semaphore(api_concurrency)
@@ -68,9 +67,9 @@ class ScannerCoordinator:
         self._seen_mnemonics: set[str] = set()
         self._seen_keys: set[str] = set()
         self._seen_addresses: set[str] = set()
-        self._client: Optional[httpx.AsyncClient] = None
+        self._client: httpx.AsyncClient | None = None
         self._db_path = db_path
-        self._db: Optional[sqlite3.Connection] = None
+        self._db: sqlite3.Connection | None = None
 
         for chain in self._chains:
             endpoints = ENDPOINT_REGISTRY.get(chain.coin_id, [])
@@ -87,9 +86,7 @@ class ScannerCoordinator:
             self._db = sqlite3.connect(self._db_path)
             self._db.execute(_DEDUP_TABLE_SQL)
             self._db.commit()
-            rows = self._db.execute(
-                "SELECT mnemonic_hash FROM scanned_mnemonics"
-            ).fetchall()
+            rows = self._db.execute("SELECT mnemonic_hash FROM scanned_mnemonics").fetchall()
             self._seen_mnemonics = {r[0] for r in rows}
             logger.info(
                 "ScannerCoordinator started: loaded %d scanned mnemonics from persistent dedup",
@@ -122,6 +119,7 @@ class ScannerCoordinator:
 
         Returns:
             BalanceResult with balance information.
+
         """
         import copy
 
@@ -138,9 +136,7 @@ class ScannerCoordinator:
 
         async with self._api_semaphore:
             try:
-                result = await check_balance(
-                    address, rotated_cfg, derivation_path, client=self._client
-                )
+                result = await check_balance(address, rotated_cfg, derivation_path, client=self._client)
                 if result.error:
                     if rotator:
                         rotator.report_failure(used_url)
@@ -151,9 +147,7 @@ class ScannerCoordinator:
             except Exception as e:
                 if rotator:
                     rotator.report_failure(used_url)
-                logger.debug(
-                    "Balance check error for %s on %s: %s", address[:10], chain.name, e
-                )
+                logger.debug("Balance check error for %s on %s: %s", address[:10], chain.name, e)
                 return BalanceResult(
                     address=address,
                     chain=chain.name,
@@ -182,6 +176,7 @@ class ScannerCoordinator:
         Args:
             mnemonic: The mnemonic phrase.
             source: Which tier scanned it ("random", "leak", "smart").
+
         """
         h = self.hash_mnemonic(mnemonic)
         self._seen_mnemonics.add(h)
@@ -205,9 +200,7 @@ class ScannerCoordinator:
         h = self.hash_key(key)
         return h in self._seen_keys
 
-    def mark_key_seen(
-        self, key: str, key_type: str = "unknown", source: str = "unknown"
-    ) -> None:
+    def mark_key_seen(self, key: str, key_type: str = "unknown", source: str = "unknown") -> None:
         """Mark a private key as processed (in-memory + persistent SQLite)."""
         h = self.hash_key(key)
         self._seen_keys.add(h)
@@ -237,6 +230,7 @@ class ScannerCoordinator:
 
         Returns:
             List of addresses not yet seen.
+
         """
         new = []
         for addr in addresses:

@@ -6,7 +6,7 @@ import asyncio
 import logging
 import os
 import re
-from typing import Any, Optional
+from typing import Any
 
 from src.modules.sources.base import RawLeak
 
@@ -20,8 +20,8 @@ _KEY_HINTS_RE = re.compile(
 class TelegramSource:
     def __init__(
         self,
-        api_id: Optional[int] = None,
-        api_hash: Optional[str] = None,
+        api_id: int | None = None,
+        api_hash: str | None = None,
         session_name: str = "leak_finder",
         max_messages_per_channel: int = 100,
         timeout: float = 30.0,
@@ -32,7 +32,7 @@ class TelegramSource:
         self.max_messages_per_channel = max_messages_per_channel
         self.timeout = timeout
 
-    async def fetch_raw_leaks(self, keywords: Optional[list[str]] = None, max_channels: int = 50) -> list[RawLeak]:
+    async def fetch_raw_leaks(self, keywords: list[str] | None = None, max_channels: int = 50) -> list[RawLeak]:
         try:
             from telethon import TelegramClient
         except ImportError:

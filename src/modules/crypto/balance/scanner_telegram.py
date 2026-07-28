@@ -7,7 +7,6 @@ with channel discovery, see leak_scanner_telegram.py.
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 import httpx
 
@@ -32,9 +31,9 @@ class TelegramLeakScanner:
 
     def __init__(
         self,
-        bot_token: Optional[str] = None,
-        channel_ids: Optional[list[str]] = None,
-        hit_logger: Optional[HitLogger] = None,
+        bot_token: str | None = None,
+        channel_ids: list[str] | None = None,
+        hit_logger: HitLogger | None = None,
     ):
         self.bot_token = bot_token or ""
         self.channel_ids = channel_ids or []
@@ -52,6 +51,7 @@ class TelegramLeakScanner:
 
         Returns:
             List of LeakFinding objects with candidates.
+
         """
         if not self.bot_token:
             logger.info("Telegram bot token not configured — skipping Telegram scan")
@@ -117,9 +117,7 @@ class TelegramLeakScanner:
             resp.raise_for_status()
             data = resp.json()
             if not data.get("ok"):
-                logger.warning(
-                    "Telegram API error: %s", data.get("description", "unknown")
-                )
+                logger.warning("Telegram API error: %s", data.get("description", "unknown"))
                 return []
 
             updates = data.get("result", [])

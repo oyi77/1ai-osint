@@ -10,7 +10,6 @@ from __future__ import annotations
 import asyncio
 import logging
 from dataclasses import dataclass, field
-from typing import Optional
 
 import dns.resolver
 import httpx
@@ -27,7 +26,7 @@ class SourceStatus:
     name: str
     reachable: bool
     detail: str = ""
-    status_code: Optional[int] = None
+    status_code: int | None = None
 
     is_blocked: bool = False
     blocked_reason: str = ""
@@ -41,9 +40,7 @@ class SourceStatusReport:
 
     @property
     def all_reachable(self) -> bool:
-        return all(
-            s.reachable for s in self.sources.values() if s.name != "pdikti"
-        )
+        return all(s.reachable for s in self.sources.values() if s.name != "pdikti")
 
     @property
     def blocked_count(self) -> int:
@@ -85,9 +82,7 @@ async def _check_http_source(
                 reachable=True,
                 status_code=code,
                 is_blocked=True,
-                blocked_reason=(
-                    "HTTP 999 rate limit (LinkedIn blocks automated access)"
-                ),
+                blocked_reason=("HTTP 999 rate limit (LinkedIn blocks automated access)"),
             )
 
         if code in (429, 403):
@@ -131,9 +126,7 @@ async def _check_dns_source(name: str, domain: str) -> SourceStatus:
     """Check if a domain resolves (for geo-blocked/DNS-blocked sources)."""
     try:
         answers = await asyncio.wait_for(
-            asyncio.get_event_loop().run_in_executor(
-                None, lambda: dns.resolver.resolve(domain, "A")
-            ),
+            asyncio.get_event_loop().run_in_executor(None, lambda: dns.resolver.resolve(domain, "A")),
             timeout=_PROBE_TIMEOUT,
         )
         return SourceStatus(
@@ -146,9 +139,7 @@ async def _check_dns_source(name: str, domain: str) -> SourceStatus:
             name=name,
             reachable=False,
             is_blocked=True,
-            blocked_reason=(
-                "DNS NXDOMAIN (domain does not resolve, likely geo-blocked)"
-            ),
+            blocked_reason=("DNS NXDOMAIN (domain does not resolve, likely geo-blocked)"),
         )
     except dns.resolver.NoNameservers:
         return SourceStatus(
@@ -172,7 +163,7 @@ async def _check_dns_source(name: str, domain: str) -> SourceStatus:
 
 
 async def check_sources(
-    sources: Optional[list[str]] = None,
+    sources: list[str] | None = None,
 ) -> SourceStatusReport:
     """Check reachability of configured external sources.
 
@@ -181,6 +172,7 @@ async def check_sources(
 
     Returns:
         SourceStatusReport with per-source status.
+
     """
     all_sources = {
         "duckduckgo": ("http", "https://duckduckgo.com/"),
@@ -225,7 +217,7 @@ async def check_sources(
 
 
 def check_sources_sync(
-    sources: Optional[list[str]] = None,
+    sources: list[str] | None = None,
 ) -> SourceStatusReport:
     """Synchronous wrapper around check_sources() for use in doctor.py.
 

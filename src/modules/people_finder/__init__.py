@@ -1,7 +1,7 @@
 """People Finder module: Social media username search (Sherlock/Maigret/WhatsMyName)."""
 
 import shutil
-from typing import Any, Optional
+from typing import Any
 
 from src.core.models import ScanResult
 from src.modules.base.base import BaseOSINTTool
@@ -21,7 +21,7 @@ class PeopleFinderTool(BaseOSINTTool):
         self,
         sherlock_path: str = "sherlock",
         maigret_path: str = "maigret",
-        zkit_salt: Optional[str] = None,
+        zkit_salt: str | None = None,
     ):
         super().__init__(zkit_salt=zkit_salt)
         self.sherlock_path = sherlock_path
@@ -60,7 +60,7 @@ class PeopleFinderTool(BaseOSINTTool):
         """Improve profile matching heuristics."""
         pass
 
-    def _pick_tool(self) -> Optional[str]:
+    def _pick_tool(self) -> str | None:
         """Pick the first available tool."""
         if shutil.which(self.sherlock_path):
             return self.sherlock_path

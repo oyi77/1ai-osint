@@ -16,7 +16,6 @@ import hashlib
 import logging
 import socket
 import ssl
-from typing import Optional
 
 import httpx
 from pydantic import BaseModel, Field
@@ -32,13 +31,13 @@ class InfraFingerprint(BaseModel):
 
     domain: str
     resolved_ips: list[str] = Field(default_factory=list)
-    tls_cert_sha256: Optional[str] = None
+    tls_cert_sha256: str | None = None
     tls_cert_sans: list[str] = Field(default_factory=list)
     tls_cert_issuer: str = ""
     tls_cert_subject: str = ""
-    asn: Optional[str] = None
-    hosting_provider: Optional[str] = None
-    favicon_hash: Optional[int] = None  # mmh3-style: Murmur3-like hash
+    asn: str | None = None
+    hosting_provider: str | None = None
+    favicon_hash: int | None = None  # mmh3-style: Murmur3-like hash
     registrar: str = ""
     nameservers: list[str] = Field(default_factory=list)
     related_domains: list[str] = Field(default_factory=list)
@@ -67,7 +66,7 @@ class InfraFingerprintEngine:
             return []
 
     @staticmethod
-    def _get_tls_cert(domain: str, port: int = 443) -> Optional[dict]:
+    def _get_tls_cert(domain: str, port: int = 443) -> dict | None:
         """Fetch TLS certificate details for a domain."""
         try:
             ctx = ssl.create_default_context()
@@ -107,7 +106,7 @@ class InfraFingerprintEngine:
         digest = hashlib.md5(data).digest()
         return int.from_bytes(digest[:4], "big", signed=True)
 
-    async def _fetch_favicon_hash(self, domain: str) -> Optional[int]:
+    async def _fetch_favicon_hash(self, domain: str) -> int | None:
         """Fetch and hash the favicon.ico for a domain."""
         for scheme in ("https", "http"):
             url = f"{scheme}://{domain}/favicon.ico"

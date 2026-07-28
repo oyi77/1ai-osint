@@ -20,12 +20,10 @@ class JSONFormatter:
 
     def _hash_value(self, value: str) -> str:
         """Hash a value with the configured salt using SHA-256."""
-        preimage = f"{self._salt}:{value}".encode("utf-8")
+        preimage = f"{self._salt}:{value}".encode()
         return hashlib.sha256(preimage).hexdigest()
 
-    def _hash_dict_values(
-        self, data: dict[str, Any], keys_to_hash: set[str]
-    ) -> dict[str, Any]:
+    def _hash_dict_values(self, data: dict[str, Any], keys_to_hash: set[str]) -> dict[str, Any]:
         """Hash specific keys in a dict, leaving others intact."""
         hashed = {}
         for k, v in data.items():
@@ -66,9 +64,7 @@ class JSONFormatter:
                 {
                     "source": br.source,
                     "email_hash": self._hash_value(br.email) if br.email else None,
-                    "username_hash": self._hash_value(br.username)
-                    if br.username
-                    else None,
+                    "username_hash": self._hash_value(br.username) if br.username else None,
                     "domain_hash": self._hash_value(br.domain) if br.domain else None,
                     "severity": br.severity.value,
                     "description": br.description,
@@ -87,9 +83,7 @@ class JSONFormatter:
             ],
             "metadata": result.metadata,
             "started_at": result.started_at.isoformat(),
-            "completed_at": result.completed_at.isoformat()
-            if result.completed_at
-            else None,
+            "completed_at": result.completed_at.isoformat() if result.completed_at else None,
             "error": result.error,
         }
 
@@ -98,8 +92,10 @@ class JSONFormatter:
 
         Args:
             results: List of ScanResult objects to format.
+
         Returns:
             JSON string with all PII fields hashed.
+
         """
         report = {
             "report_type": "1ai-osint-json",

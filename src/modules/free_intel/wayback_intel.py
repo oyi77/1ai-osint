@@ -1,7 +1,6 @@
 """Wayback Machine Intelligence — find historical profile data."""
 
 import logging
-from typing import Optional
 
 import httpx
 from pydantic import BaseModel
@@ -50,7 +49,7 @@ class WaybackIntel:
             logger.debug("Wayback lookup failed for %s: %s", url, e)
         return []
 
-    async def get_earliest_snapshot(self, url: str) -> Optional[WaybackSnapshot]:
+    async def get_earliest_snapshot(self, url: str) -> WaybackSnapshot | None:
         """Get the earliest available snapshot."""
         try:
             async with httpx.AsyncClient(timeout=15.0) as client:

@@ -12,7 +12,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from src.core.models import Finding, ScanResult
 
@@ -59,15 +59,15 @@ class DeepScanResult:
 
     target: str
     started_at: datetime
-    completed_at: Optional[datetime] = None
+    completed_at: datetime | None = None
     identifiers: list[Identifier] = field(default_factory=list)
     findings: list[Finding] = field(default_factory=list)
     scan_results: list[ScanResult] = field(default_factory=list)
     iterations: int = 0
     max_iterations: int = 10
     errors: list[str] = field(default_factory=list)
-    zkit_result: Optional[Any] = None  # CorrelationResult from identity_tracking
-    dossier: Optional[Any] = None  # TargetDossier from Phase 7
+    zkit_result: Any | None = None  # CorrelationResult from identity_tracking
+    dossier: Any | None = None  # TargetDossier from Phase 7
 
     @property
     def duration_sec(self) -> float:
@@ -90,9 +90,7 @@ class DeepScanResult:
         return [i.value for i in self.identifiers if i.id_type == IdentifierType.EMAIL]
 
     def get_usernames(self) -> list[str]:
-        return [
-            i.value for i in self.identifiers if i.id_type == IdentifierType.USERNAME
-        ]
+        return [i.value for i in self.identifiers if i.id_type == IdentifierType.USERNAME]
 
     def get_phones(self) -> list[str]:
         return [i.value for i in self.identifiers if i.id_type == IdentifierType.PHONE]
@@ -101,20 +99,14 @@ class DeepScanResult:
         return [i.value for i in self.identifiers if i.id_type == IdentifierType.DOMAIN]
 
     def get_crypto_addresses(self) -> list[str]:
-        return [
-            i.value
-            for i in self.identifiers
-            if i.id_type == IdentifierType.CRYPTO_ADDRESS
-        ]
+        return [i.value for i in self.identifiers if i.id_type == IdentifierType.CRYPTO_ADDRESS]
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "target": self.target,
             "finding_count": self.finding_count,
             "started_at": self.started_at.isoformat(),
-            "completed_at": self.completed_at.isoformat()
-            if self.completed_at
-            else None,
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
             "duration_sec": self.duration_sec,
             "iterations": self.iterations,
             "identifiers": [

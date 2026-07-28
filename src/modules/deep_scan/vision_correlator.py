@@ -6,7 +6,7 @@ Keeps Jaccard similarity fallback and image URL passing for multimodal models.
 
 import json
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from src.ai.omniroute_client import OmniRouteClient
 
@@ -26,7 +26,7 @@ class VisionCorrelator:
     Falls back to Jaccard similarity when LLM is unavailable.
     """
 
-    def __init__(self, client: Optional[OmniRouteClient] = None):
+    def __init__(self, client: OmniRouteClient | None = None):
         self._client = client or OmniRouteClient()
 
     @staticmethod
@@ -57,8 +57,10 @@ class VisionCorrelator:
                        'profile_picture_url'.
             profile_b: Second profile dict with 'text_content' and optional
                        'profile_picture_url'.
+
         Returns:
             Float confidence score between 0.0 and 1.0.
+
         """
         text_a = profile_a.get("text_content", "")
         text_b = profile_b.get("text_content", "")

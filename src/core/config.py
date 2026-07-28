@@ -1,7 +1,6 @@
 """Centralized configuration via Pydantic Settings."""
 
 from pathlib import Path
-from typing import Optional
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -44,11 +43,11 @@ class Settings(BaseSettings):
     zkit_salt: str = ""
 
     # Telegram alerts
-    telegram_bot_token: Optional[str] = None
-    telegram_chat_id: Optional[str] = None
+    telegram_bot_token: str | None = None
+    telegram_chat_id: str | None = None
 
     # Webhook alerts
-    webhook_url: Optional[str] = None
+    webhook_url: str | None = None
 
     # Scanner settings
     scanner_workers: int = 20
@@ -76,10 +75,7 @@ class Settings(BaseSettings):
     @property
     def effective_openai_base_url(self) -> str:
         """Return OmniRoute base URL if configured, else direct OpenAI."""
-        if (
-            self.omniroute_api_key
-            or self.omniroute_base_url != "http://localhost:3000/v1"
-        ):
+        if self.omniroute_api_key or self.omniroute_base_url != "http://localhost:3000/v1":
             return self.omniroute_base_url
         return self.openai_base_url
 

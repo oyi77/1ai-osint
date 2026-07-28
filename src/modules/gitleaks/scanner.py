@@ -4,7 +4,7 @@ import json
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from src.core.models import Finding, ScanResult, Severity
 from src.modules.base.base import BaseOSINTTool
@@ -38,26 +38,26 @@ class GitleaksModule(BaseOSINTTool):
     def __init__(
         self,
         gitleaks_path: str = "gitleaks",
-        zkit_salt: Optional[str] = None,
+        zkit_salt: str | None = None,
     ):
         super().__init__(zkit_salt=zkit_salt)
         self.gitleaks_path = gitleaks_path
 
     async def search(self, query: str, **kwargs) -> ScanResult:
-        """
-        Scan a git repo path for secrets.
+        """Scan a git repo path for secrets.
 
         Args:
             query: Path to git repository
+
         """
         return await self.scan(query, **kwargs)
 
     async def scan(self, target: str, **kwargs) -> ScanResult:
-        """
-        Run gitleaks scan on a git repository.
+        """Run gitleaks scan on a git repository.
 
         Args:
             target: Path to git repository directory
+
         """
         scan_id = self._make_scan_id()
         started_at = datetime.now(timezone.utc)

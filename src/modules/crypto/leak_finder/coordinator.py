@@ -10,7 +10,6 @@ import os
 import pathlib
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Optional
 
 from src.modules.crypto.balance.chains import (
     ALL_CHAINS,
@@ -43,7 +42,7 @@ class LeakFinderResult:
     sweep_results: list[SweepResult] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
     started_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    completed_at: Optional[datetime] = None
+    completed_at: datetime | None = None
 
     @property
     def elapsed_seconds(self) -> float:
@@ -79,11 +78,11 @@ ALL_SOURCES = list(_SOURCE_MAP.keys())
 class LeakFinderCoordinator:
     def __init__(
         self,
-        sources: Optional[list[str]] = None,
-        chains: Optional[list[ChainConfig]] = None,
-        hit_logger: Optional[HitLogger] = None,
-        sweeper: Optional[Sweeper] = None,
-        github_token: Optional[str] = None,
+        sources: list[str] | None = None,
+        chains: list[ChainConfig] | None = None,
+        hit_logger: HitLogger | None = None,
+        sweeper: Sweeper | None = None,
+        github_token: str | None = None,
         db_path: str = "wallet_hits.db",
         api_concurrency: int = 50,
     ):
@@ -100,7 +99,7 @@ class LeakFinderCoordinator:
         self._seen_keys_bf = BloomFilter(expected_items=100_000, fp_rate=0.001)
         self._seen_addresses: set[str] = set()
         self._seen_addresses_bf = BloomFilter(expected_items=500_000, fp_rate=0.001)
-        self._coordinator: Optional[ScannerCoordinator] = None
+        self._coordinator: ScannerCoordinator | None = None
         self._running = False
 
     async def start(self) -> None:

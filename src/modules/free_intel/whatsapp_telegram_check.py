@@ -1,7 +1,6 @@
 """WhatsApp and Telegram presence verification."""
 
 import logging
-from typing import Optional
 
 import httpx
 from pydantic import BaseModel
@@ -11,15 +10,15 @@ logger = logging.getLogger(__name__)
 
 class MessagingPresence(BaseModel):
     phone_number: str = ""
-    whatsapp_registered: Optional[bool] = None  # None = unknown
+    whatsapp_registered: bool | None = None  # None = unknown
     telegram_username: str = ""
-    telegram_exists: Optional[bool] = None
+    telegram_exists: bool | None = None
 
 
 class MessagingIntel:
     """Check phone/username presence on WhatsApp and Telegram."""
 
-    async def check_whatsapp(self, phone: str) -> Optional[bool]:
+    async def check_whatsapp(self, phone: str) -> bool | None:
         """Check if a phone number is registered on WhatsApp.
         Uses wa.me redirect behavior.
         """
@@ -28,9 +27,7 @@ class MessagingIntel:
         if p.startswith("0"):
             p = "62" + p[1:]  # Indonesian number
         try:
-            async with httpx.AsyncClient(
-                timeout=10.0, follow_redirects=False
-            ) as client:
+            async with httpx.AsyncClient(timeout=10.0, follow_redirects=False) as client:
                 resp = await client.get(f"https://wa.me/{p}")
                 # wa.me returns 200 with a page if the number is valid on WhatsApp
                 # and 404 or redirect to error if not
@@ -45,7 +42,7 @@ class MessagingIntel:
             logger.debug("WhatsApp check failed for %s: %s", phone, e)
         return None
 
-    async def check_telegram(self, username: str) -> Optional[bool]:
+    async def check_telegram(self, username: str) -> bool | None:
         """Check if a username exists on Telegram."""
         # Clean username
         username = username.lstrip("@")

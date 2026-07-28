@@ -6,7 +6,6 @@ import asyncio
 import logging
 import random as _random
 import time
-from typing import Optional
 
 import httpx
 
@@ -86,7 +85,7 @@ class GitHubLeakSource:
 
     def __init__(
         self,
-        github_token: Optional[str] = None,
+        github_token: str | None = None,
         rate_limit: int = 0,
         timeout: float = 30.0,
     ):
@@ -95,9 +94,7 @@ class GitHubLeakSource:
         self.timeout = timeout
         self._request_times: list[float] = []
 
-    async def fetch_raw_leaks(
-        self, queries: Optional[list[str]] = None, max_per_query: int = 30
-    ) -> list[RawLeak]:
+    async def fetch_raw_leaks(self, queries: list[str] | None = None, max_per_query: int = 30) -> list[RawLeak]:
         # Rotate queries: pick a random subset each run to cover more ground over time
         if queries is None:
             queries = _random.sample(_QUERIES, min(7, len(_QUERIES)))
@@ -127,11 +124,7 @@ class GitHubLeakSource:
                         html_url = item.get("html_url", "")
                         text = await self._fetch_raw_file(client, html_url, headers)
                         if text:
-                            leaks.append(
-                                RawLeak(
-                                    text=text, source_name="github", source_url=html_url
-                                )
-                            )
+                            leaks.append(RawLeak(text=text, source_name="github", source_url=html_url))
                 except Exception as exc:
                     logger.error("GitHub search error: %s", exc)
 
@@ -144,9 +137,7 @@ class GitHubLeakSource:
 
         return leaks
 
-    async def _fetch_recent_gists(
-        self, client: httpx.AsyncClient, headers: dict[str, str]
-    ) -> list[RawLeak]:
+    async def _fetch_recent_gists(self, client: httpx.AsyncClient, headers: dict[str, str]) -> list[RawLeak]:
         """Fetch recent public gists and scan for keys/mnemonics."""
         leaks: list[RawLeak] = []
         await self._rate_limit()
@@ -187,14 +178,10 @@ class GitHubLeakSource:
             h["Authorization"] = f"token {self.github_token}"
         return h
 
-    async def _fetch_raw_file(
-        self, client: httpx.AsyncClient, html_url: str, headers: dict[str, str]
-    ) -> Optional[str]:
+    async def _fetch_raw_file(self, client: httpx.AsyncClient, html_url: str, headers: dict[str, str]) -> str | None:
         await self._rate_limit()
         try:
-            raw_url = html_url.replace(
-                "github.com", "raw.githubusercontent.com"
-            ).replace("/blob/", "/")
+            raw_url = html_url.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/")
             resp = await client.get(raw_url, headers=headers)
             resp.raise_for_status()
             return resp.text

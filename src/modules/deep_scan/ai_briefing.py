@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 # Backward-compatible function (unchanged API)
 # ------------------------------------------------------------------
 
+
 def enhance_briefing_with_ai(report: Any, scan_result: Any) -> Any:
     """Augment key_judgments using AI when Omniroute/OpenAI is configured.
 
@@ -90,6 +91,7 @@ def source_credibility(source_name: str) -> float:
 # AIBriefingEnhancer
 # ------------------------------------------------------------------
 
+
 class AIBriefingEnhancer:
     """Enrich an operational briefing with AI analysis, evidence-cited.
 
@@ -134,6 +136,7 @@ class AIBriefingEnhancer:
         -------
         IntelReport
             The same report object, enriched in-place.
+
         """
         # 1) AI enrichment (evidence-cited)
         self._ai_enrich(report, scan_result)
@@ -212,12 +215,8 @@ class AIBriefingEnhancer:
                 self._credibility_cache[src] = source_credibility(src)
 
         if self._credibility_cache:
-            summary = "; ".join(
-                f"{k}: {v:.0%}" for k, v in sorted(self._credibility_cache.items())
-            )
-            report.briefing.key_judgments.append(
-                f"[Source Credibility] {summary}"
-            )
+            summary = "; ".join(f"{k}: {v:.0%}" for k, v in sorted(self._credibility_cache.items()))
+            report.briefing.key_judgments.append(f"[Source Credibility] {summary}")
 
     # ------------------------------------------------------------------
     # gap analysis
@@ -228,9 +227,7 @@ class AIBriefingEnhancer:
         gaps: list[str] = []
 
         # Existing gaps from the briefing builder
-        existing = set(
-            getattr(report.briefing, "intelligence_gaps", None) or []
-        )
+        existing = set(getattr(report.briefing, "intelligence_gaps", None) or [])
         gaps.extend(existing)
 
         # Check coverage from scan_result modules
@@ -285,14 +282,8 @@ class AIBriefingEnhancer:
             confs = [c for _, c in sources]
             spread = max(confs) - min(confs)
             if spread > 0.5:
-                src_list = ", ".join(
-                    f"{s} ({c:.0%})" for s, c in sorted(sources, key=lambda x: -x[1])
-                )
-                conflicts.append(
-                    f"Contradictory confidence for '{entity}': {src_list}"
-                )
+                src_list = ", ".join(f"{s} ({c:.0%})" for s, c in sorted(sources, key=lambda x: -x[1]))
+                conflicts.append(f"Contradictory confidence for '{entity}': {src_list}")
 
         if conflicts:
-            report.briefing.key_judgments.append(
-                f"[Conflict Detection] {'; '.join(conflicts[:5])}"
-            )
+            report.briefing.key_judgments.append(f"[Conflict Detection] {'; '.join(conflicts[:5])}")

@@ -139,6 +139,7 @@ def export_neo4j_json(graph: Any) -> dict[str, Any]:
     Returns:
         A dict with ``nodes`` and ``relationships`` keys suitable for
         Neo4j ``apoc.import.json`` or the ``bolt`` import API.
+
     """
     return {
         "nodes": collect_nodes(graph),
@@ -163,6 +164,7 @@ def load_neo4j_json(graph: Any, filepath: str | Path) -> int:
     Raises:
         FileNotFoundError: If the file does not exist.
         ValueError: If the JSON structure is invalid.
+
     """
     path = Path(filepath)
     if not path.exists():

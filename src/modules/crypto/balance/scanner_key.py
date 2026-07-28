@@ -6,7 +6,6 @@ import asyncio
 import logging
 import os
 import re
-from typing import Optional
 
 import httpx
 
@@ -44,8 +43,8 @@ class KeyLeakScanner:
 
     def __init__(
         self,
-        github_token: Optional[str] = None,
-        hit_logger: Optional[HitLogger] = None,
+        github_token: str | None = None,
+        hit_logger: HitLogger | None = None,
     ):
         self.github_token = github_token or os.environ.get("GITHUB_TOKEN", "")
         self.hit_logger = hit_logger
@@ -59,6 +58,7 @@ class KeyLeakScanner:
 
         Returns:
             List of LeakFinding objects with private key candidates.
+
         """
         findings = []
         headers = {"Accept": "application/vnd.github.v3+json"}
@@ -83,9 +83,7 @@ class KeyLeakScanner:
 
                     for item in data.get("items", []):
                         file_url = item.get("html_url", "")
-                        finding = await self._fetch_and_scan_key(
-                            client, file_url, headers
-                        )
+                        finding = await self._fetch_and_scan_key(client, file_url, headers)
                         if finding:
                             findings.append(finding)
                 except httpx.HTTPStatusError as e:
@@ -103,6 +101,7 @@ class KeyLeakScanner:
 
         Returns:
             List of LeakFinding objects with private key candidates.
+
         """
         findings = []
         async with httpx.AsyncClient(timeout=30) as client:
@@ -117,13 +116,12 @@ class KeyLeakScanner:
                     logger.error("Paste key scan error (%s): %s", source, e)
         return findings
 
-    async def scan(
-        self, max_results: int = 100, max_pastes: int = 50
-    ) -> list[LeakFinding]:
+    async def scan(self, max_results: int = 100, max_pastes: int = 50) -> list[LeakFinding]:
         """Run full key leak scan across GitHub and paste sites.
 
         Returns:
             Combined list of LeakFinding objects from all sources.
+
         """
         github_findings = await self.scan_github(max_results)
         paste_findings = await self.scan_pastes(max_pastes)
@@ -134,13 +132,11 @@ class KeyLeakScanner:
         client: httpx.AsyncClient,
         file_url: str,
         headers: dict,
-    ) -> Optional[LeakFinding]:
+    ) -> LeakFinding | None:
         """Fetch a GitHub file and scan for private keys."""
         await self._rate_limit()
         try:
-            raw_url = file_url.replace(
-                "github.com", "raw.githubusercontent.com"
-            ).replace("/blob/", "/")
+            raw_url = file_url.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/")
             resp = await client.get(raw_url, headers=headers)
             resp.raise_for_status()
             text = resp.text
@@ -162,9 +158,7 @@ class KeyLeakScanner:
             logger.debug("Failed to fetch %s: %s", file_url, e)
         return None
 
-    async def _scan_paste_key(
-        self, client: httpx.AsyncClient, paste_url: str
-    ) -> Optional[LeakFinding]:
+    async def _scan_paste_key(self, client: httpx.AsyncClient, paste_url: str) -> LeakFinding | None:
         """Fetch a paste and scan for private keys."""
         try:
             raw_url = paste_url.replace("pastebin.com/", "pastebin.com/raw/")
@@ -189,9 +183,7 @@ class KeyLeakScanner:
             logger.debug("Failed to scan paste %s: %s", paste_url, e)
         return None
 
-    async def _get_paste_urls(
-        self, client: httpx.AsyncClient, archive_url: str, limit: int
-    ) -> list[str]:
+    async def _get_paste_urls(self, client: httpx.AsyncClient, archive_url: str, limit: int) -> list[str]:
         """Extract paste URLs from an archive page."""
         try:
             resp = await client.get(archive_url)

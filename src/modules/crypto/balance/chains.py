@@ -2,7 +2,6 @@
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional
 
 
 class ChainType(str, Enum):
@@ -30,14 +29,12 @@ class ChainConfig:
     symbol: str
     chain_type: ChainType
     coin_id: str  # CoinGecko API ID
-    rpc_url: Optional[str] = None  # For EVM/Solana
-    api_url: Optional[str] = None  # For BTC (blockstream.info)
+    rpc_url: str | None = None  # For EVM/Solana
+    api_url: str | None = None  # For BTC (blockstream.info)
     decimals: int = 18
     bip44_coin_type: int = 60  # BIP-44 coin type
     derivation_paths: list[str] = field(default_factory=lambda: ["m/44'/60'/0'/0/0"])
-    tokens: list[TokenContract] = field(
-        default_factory=list
-    )  # Top ERC-20 tokens to check
+    tokens: list[TokenContract] = field(default_factory=list)  # Top ERC-20 tokens to check
 
 
 # --- Chain Definitions ---
@@ -222,6 +219,6 @@ CHAIN_MAP: dict[str, ChainConfig] = {c.name.lower(): c for c in ALL_CHAINS}
 CHAIN_MAP.update({c.symbol.lower(): c for c in ALL_CHAINS})
 
 
-def chain_by_name(name: str) -> Optional[ChainConfig]:
+def chain_by_name(name: str) -> ChainConfig | None:
     """Look up a chain by name or symbol (case-insensitive)."""
     return CHAIN_MAP.get(name.lower())

@@ -41,6 +41,7 @@ class HookDispatcher:
             List of return values (one per matching plugin, in plugin
             registration order).  Exceptions are logged and **not**
             included in the returned list.
+
         """
         plugins = self._registry.get_hooks(hook_name)
         if not plugins:

@@ -14,7 +14,6 @@ import os
 import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Optional
 
 from src.modules.crypto.balance.chains import ALL_CHAINS, ChainConfig
 from src.modules.crypto.balance.hit_logger import HitLogger
@@ -31,7 +30,7 @@ def _load_seen_mnemonics() -> None:
     global _SEEN_MNEMONICS
     try:
         if os.path.exists(_SEEN_MNEMONICS_FILE):
-            with open(_SEEN_MNEMONICS_FILE, "r") as f:
+            with open(_SEEN_MNEMONICS_FILE) as f:
                 _SEEN_MNEMONICS = set(json.load(f))
     except Exception as e:
         logger.debug("Failed to load seen mnemonics: %s", e)
@@ -62,7 +61,7 @@ def _mark_mnemonic_seen(mnemonic: str) -> None:
 
 # BIP-39 English wordlist (2048 words) — used for pattern matching
 # Loaded lazily to avoid import overhead
-_BIP39_WORDS: Optional[set[str]] = None
+_BIP39_WORDS: set[str] | None = None
 
 
 def _load_bip39_words() -> set[str]:
@@ -79,7 +78,7 @@ def _load_bip39_words() -> set[str]:
         "bip39_english.txt",
     )
     if os.path.exists(wordlist_path):
-        with open(wordlist_path, "r") as f:
+        with open(wordlist_path) as f:
             _BIP39_WORDS = {w.strip() for w in f if w.strip()}
     else:
         # Fallback: minimal set for pattern detection
@@ -199,6 +198,7 @@ class MnemonicPatternDetector:
 
         Returns:
             List of mnemonic candidate strings.
+
         """
         patterns = cls._ensure_patterns()
         candidates = []
@@ -213,19 +213,19 @@ class MnemonicPatternDetector:
         return candidates
 
 
-def _find_chain(name: str, chains: list[ChainConfig]) -> Optional[ChainConfig]:
+def _find_chain(name: str, chains: list[ChainConfig]) -> ChainConfig | None:
     """Find a chain by name in a list."""
     return next((c for c in chains if c.name == name), None)
 
 
 async def verify_and_alert(
     mnemonic_candidate: str,
-    chains: Optional[list[ChainConfig]] = None,
-    hit_logger: Optional[HitLogger] = None,
+    chains: list[ChainConfig] | None = None,
+    hit_logger: HitLogger | None = None,
     count: int = 1,
     source: str = "manual",
-    log_source: Optional[str] = None,
-) -> Optional[LeakFinding]:
+    log_source: str | None = None,
+) -> LeakFinding | None:
     """Standalone verify-and-alert function for any mnemonic candidate.
 
     Validates BIP-39, derives addresses, checks balances across chains,
@@ -241,6 +241,7 @@ async def verify_and_alert(
 
     Returns:
         LeakFinding if valid, None if not a valid mnemonic.
+
     """
     from src.modules.crypto.balance.checker import check_balance
     from src.modules.crypto.balance.deriver import (
@@ -352,11 +353,11 @@ async def verify_and_alert(
 
 async def verify_and_alert_key(
     key_candidate: str,
-    chains: Optional[list[ChainConfig]] = None,
-    hit_logger: Optional[HitLogger] = None,
+    chains: list[ChainConfig] | None = None,
+    hit_logger: HitLogger | None = None,
     source: str = "manual",
-    log_source: Optional[str] = None,
-) -> Optional[LeakFinding]:
+    log_source: str | None = None,
+) -> LeakFinding | None:
     """Verify a leaked private key, derive address, check balance, and alert.
 
     Takes a raw key string (hex or base58), derives the corresponding
@@ -371,6 +372,7 @@ async def verify_and_alert_key(
 
     Returns:
         LeakFinding if the key is valid, None otherwise.
+
     """
     from src.modules.crypto.balance.checker import check_balance
     from src.modules.crypto.balance.deriver import derive_from_privatekey

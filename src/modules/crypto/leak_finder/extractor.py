@@ -6,7 +6,6 @@ import logging
 import re
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional
 
 from src.modules.crypto.balance.deriver import _base58_decode
 
@@ -24,7 +23,7 @@ class KeyType(str, Enum):
 class ExtractedKey:
     key_raw: str
     key_type: KeyType
-    key_hex: Optional[str] = None
+    key_hex: str | None = None
     derived_addresses: dict[str, str] = field(default_factory=dict)
 
 
@@ -55,7 +54,7 @@ _ENV_KEY_RE = re.compile(
     re.IGNORECASE | re.MULTILINE,
 )
 _MNEMONIC_WORD_RE = re.compile(r"[a-z]{3,8}")
-_BIP39_WORDS: Optional[set[str]] = None
+_BIP39_WORDS: set[str] | None = None
 
 
 def _load_bip39_words() -> set[str]:
@@ -71,7 +70,7 @@ def _load_bip39_words() -> set[str]:
     return _BIP39_WORDS
 
 
-def _derive_evm_address(hex_key: str) -> Optional[str]:
+def _derive_evm_address(hex_key: str) -> str | None:
     try:
         from eth_account import Account
 
@@ -80,7 +79,7 @@ def _derive_evm_address(hex_key: str) -> Optional[str]:
         return None
 
 
-def _derive_solana_address(hex_key: str) -> Optional[str]:
+def _derive_solana_address(hex_key: str) -> str | None:
     try:
         from solders.keypair import Keypair
 
@@ -89,7 +88,7 @@ def _derive_solana_address(hex_key: str) -> Optional[str]:
         return None
 
 
-def _derive_solana_address_from_base58(b58_key: str) -> Optional[str]:
+def _derive_solana_address_from_base58(b58_key: str) -> str | None:
     try:
         from solders.keypair import Keypair
 
@@ -105,7 +104,7 @@ def _derive_solana_address_from_base58(b58_key: str) -> Optional[str]:
         return None
 
 
-def _derive_btc_address_wif(wif: str) -> Optional[str]:
+def _derive_btc_address_wif(wif: str) -> str | None:
     try:
         from bip_utils import P2PKHAddrEncoder, WifDecoder
 

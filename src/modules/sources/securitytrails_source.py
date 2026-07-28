@@ -6,7 +6,6 @@ import asyncio
 import logging
 import os
 import time
-from typing import Optional
 
 import httpx
 
@@ -22,7 +21,7 @@ class SecurityTrailsSource:
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         request_delay: float = 2.0,
         timeout: float = 30.0,
     ):
@@ -43,9 +42,7 @@ class SecurityTrailsSource:
 
         leaks: list[RawLeak] = []
         headers = {"apikey": self.api_key}
-        async with httpx.AsyncClient(
-            timeout=self.timeout, follow_redirects=True
-        ) as client:
+        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
             # Get subdomains
             try:
                 await self._rate_limit()
@@ -59,8 +56,7 @@ class SecurityTrailsSource:
                     if subdomains:
                         leaks.append(
                             RawLeak(
-                                text=f"Subdomains of {address}:\n"
-                                + "\n".join(f"{s}.{address}" for s in subdomains),
+                                text=f"Subdomains of {address}:\n" + "\n".join(f"{s}.{address}" for s in subdomains),
                                 source_name="securitytrails",
                                 source_url=f"https://securitytrails.com/domain/{address}",
                             )

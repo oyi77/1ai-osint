@@ -2,7 +2,6 @@
 
 import hashlib
 import logging
-from typing import Optional
 
 import httpx
 from pydantic import BaseModel, Field
@@ -21,7 +20,7 @@ class GravatarProfile(BaseModel):
 
 
 class GravatarIntel:
-    async def lookup(self, email: str) -> Optional[GravatarProfile]:
+    async def lookup(self, email: str) -> GravatarProfile | None:
         """Look up a Gravatar profile by email address."""
         email_hash = hashlib.md5(email.strip().lower().encode()).hexdigest()
         url = f"https://en.gravatar.com/{email_hash}.json"
@@ -33,9 +32,7 @@ class GravatarIntel:
                     entry = data.get("entry", [{}])[0]
                     return GravatarProfile(
                         email_hash=email_hash,
-                        display_name=entry.get("displayName")
-                        or entry.get("preferredUsername")
-                        or "",
+                        display_name=entry.get("displayName") or entry.get("preferredUsername") or "",
                         profile_url=entry.get("profileUrl") or "",
                         photo_url=entry.get("thumbnailUrl") or "",
                         about_me=entry.get("aboutMe") or "",

@@ -102,16 +102,16 @@ class ZKITFormatter:
     )
 
     def __init__(self, salt: str = "") -> None:
-        """
-        Args:
-            salt: ZKIT salt for hashing identifiers.
+        """Args:
+        salt: ZKIT salt for hashing identifiers.
+
         """
         self._salt = salt
         self._audit = RedactionAudit()
 
     def _hash_value(self, value: str) -> str:
         """Hash a value with the configured salt using SHA-256."""
-        preimage = f"{self._salt}:{value}".encode("utf-8")
+        preimage = f"{self._salt}:{value}".encode()
         return hashlib.sha256(preimage).hexdigest()
 
     def _hash_dict_values(
@@ -134,6 +134,7 @@ class ZKITFormatter:
 
         Returns:
             RedactionAudit with all recorded redaction events.
+
         """
         return self._audit
 
@@ -156,6 +157,7 @@ class ZKITFormatter:
 
         Returns:
             JSON string with all PII hashed.
+
         """
         self.reset_audit()
 
@@ -191,6 +193,7 @@ class ZKITFormatter:
 
         Returns:
             JSON string with scans and correlation data.
+
         """
         self.reset_audit()
 
@@ -220,15 +223,11 @@ class ZKITFormatter:
             "findings": [self._format_finding(f, source) for f in result.findings],
             "finding_count": result.finding_count,
             "critical_count": result.critical_count,
-            "breach_records": [
-                self._format_breach(br, source) for br in result.breach_records
-            ],
+            "breach_records": [self._format_breach(br, source) for br in result.breach_records],
             "identities": [self._format_identity(ident) for ident in result.identities],
             "metadata": result.metadata,
             "started_at": result.started_at.isoformat(),
-            "completed_at": result.completed_at.isoformat()
-            if result.completed_at
-            else None,
+            "completed_at": result.completed_at.isoformat() if result.completed_at else None,
             "error": result.error,
         }
 
@@ -311,6 +310,7 @@ class ZKITFormatter:
 
         Returns:
             List of PII field names found (empty = clean).
+
         """
         violations: list[str] = []
         try:
@@ -329,15 +329,11 @@ class ZKITFormatter:
                 # Check if a PII field name appears as a key with a non-hash value
                 if key in self._PII_KEYS and isinstance(value, str):
                     # A hash is 64 hex chars; anything shorter is suspicious
-                    if len(value) != 64 or not all(
-                        c in "0123456789abcdef" for c in value
-                    ):
+                    if len(value) != 64 or not all(c in "0123456789abcdef" for c in value):
                         violations.append(current_path)
                 # Check for hash-prefixed fields (email_hash etc.) with non-hash values
                 if key.endswith("_hash") and isinstance(value, str):
-                    if len(value) != 64 or not all(
-                        c in "0123456789abcdef" for c in value
-                    ):
+                    if len(value) != 64 or not all(c in "0123456789abcdef" for c in value):
                         violations.append(current_path)
                 self._scan_for_pii(value, violations, current_path)
         elif isinstance(data, list):

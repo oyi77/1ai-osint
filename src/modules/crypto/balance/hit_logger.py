@@ -15,7 +15,7 @@ import hashlib
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any
 
 import aiosqlite
 import httpx
@@ -84,19 +84,19 @@ class HitLogger:
     def __init__(
         self,
         db_path: str = "wallet_hits.db",
-        telegram_token: Optional[str] = None,
-        telegram_chat_id: Optional[str] = None,
-        webhook_url: Optional[str] = None,
+        telegram_token: str | None = None,
+        telegram_chat_id: str | None = None,
+        webhook_url: str | None = None,
     ) -> None:
         self._db_path = db_path
         self._telegram_token = telegram_token
         self._telegram_chat_id = telegram_chat_id
         self._webhook_url = webhook_url
-        self._db: Optional[aiosqlite.Connection] = None
-        self._http: Optional[httpx.AsyncClient] = None
+        self._db: aiosqlite.Connection | None = None
+        self._http: httpx.AsyncClient | None = None
         self._buffer: list[dict[str, Any]] = []
         self._lock = asyncio.Lock()
-        self._flush_task: Optional[asyncio.Task] = None
+        self._flush_task: asyncio.Task | None = None
         self._closed = False
 
     async def start(self) -> None:

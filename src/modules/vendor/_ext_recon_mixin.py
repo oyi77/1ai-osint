@@ -9,7 +9,6 @@ import json
 import logging
 import uuid
 from datetime import datetime, timezone
-from typing import List
 
 from src.core.models import Finding
 
@@ -26,7 +25,7 @@ class ExternalToolReconMixin:
         """Run an external command — provided by ExternalToolCoordinator."""
         raise NotImplementedError  # pragma: no cover
 
-    async def _run_bbot(self, target: str) -> List[Finding]:
+    async def _run_bbot(self, target: str) -> list[Finding]:
         """Execute Bbot."""
         findings = []
         cmd = ["bbot", "-t", target, "-f", "json"]
@@ -62,7 +61,7 @@ class ExternalToolReconMixin:
             logger.debug("Bbot failed: %s", e)
         return findings
 
-    async def _run_spiderfoot(self, target: str) -> List[Finding]:
+    async def _run_spiderfoot(self, target: str) -> list[Finding]:
         """Execute Spiderfoot CLI."""
         findings = []
         cmd = ["spiderfoot", "-s", target, "-q"]
@@ -92,7 +91,7 @@ class ExternalToolReconMixin:
             logger.debug("Spiderfoot failed: %s", e)
         return findings
 
-    async def _run_chiasmodon(self, target: str) -> List[Finding]:
+    async def _run_chiasmodon(self, target: str) -> list[Finding]:
         """Execute Chiasmodon CLI."""
         findings = []
         cmd = ["chiasmodon", "--target", target, "--json"]

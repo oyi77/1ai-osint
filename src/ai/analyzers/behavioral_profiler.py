@@ -8,7 +8,7 @@ import json
 import logging
 from collections import Counter
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from src.ai.omniroute_client import OmniRouteClient
 from src.ai.schemas.responses import (
@@ -28,7 +28,7 @@ class BehavioralProfiler:
     construct a behavioral profile for monitored entities.
     """
 
-    def __init__(self, client: Optional[OmniRouteClient] = None):
+    def __init__(self, client: OmniRouteClient | None = None):
         self._client = client or OmniRouteClient()
 
     # ------------------------------------------------------------------ #
@@ -45,8 +45,10 @@ class BehavioralProfiler:
         Args:
             entity_data: List of dicts with 'text', 'source', 'timestamp' keys.
             entity_key: Identifier for this entity in the result.
+
         Returns:
             BehavioralAnalysisResult with the profile.
+
         """
         if not entity_data:
             return BehavioralAnalysisResult(
@@ -81,8 +83,10 @@ class BehavioralProfiler:
         Args:
             text: Text content to analyze.
             entity_key: Identifier for this entity.
+
         Returns:
             BehavioralAnalysisResult.
+
         """
         if not text or not text.strip():
             return BehavioralAnalysisResult(
@@ -116,7 +120,9 @@ class BehavioralProfiler:
         return self._parse_llm_response(raw_response, entity_key)
 
     def _parse_llm_response(
-        self, raw_response: str, entity_key: str,
+        self,
+        raw_response: str,
+        entity_key: str,
     ) -> BehavioralAnalysisResult:
         """Parse LLM JSON response into BehavioralAnalysisResult."""
         try:
@@ -164,9 +170,7 @@ class BehavioralProfiler:
     @staticmethod
     def _deterministic_profile(entity_data: list[dict[str, Any]]) -> BehavioralProfile:
         """Build a profile using deterministic heuristics."""
-        all_text = " ".join(
-            str(d.get("text", "")) for d in entity_data if d.get("text")
-        )
+        all_text = " ".join(str(d.get("text", "")) for d in entity_data if d.get("text"))
         language_style = BehavioralProfiler._analyze_language_style(all_text)
         activity_times = BehavioralProfiler._analyze_activity_times(entity_data)
         platforms = BehavioralProfiler._analyze_platforms(entity_data)
@@ -204,13 +208,30 @@ class BehavioralProfiler:
 
         # Formality: check for formal indicators
         formal_indicators = [
-            "regarding", "furthermore", "nevertheless", "however",
-            "therefore", "consequently", "accordingly", "hence",
-            "thus", "moreover", "subsequently", "pursuant",
+            "regarding",
+            "furthermore",
+            "nevertheless",
+            "however",
+            "therefore",
+            "consequently",
+            "accordingly",
+            "hence",
+            "thus",
+            "moreover",
+            "subsequently",
+            "pursuant",
         ]
         informal_indicators = [
-            "yeah", "gonna", "wanna", "gotta", "nah",
-            "dunno", "lol", "lmao", "tbh", "idk",
+            "yeah",
+            "gonna",
+            "wanna",
+            "gotta",
+            "nah",
+            "dunno",
+            "lol",
+            "lmao",
+            "tbh",
+            "idk",
         ]
         formal_count = sum(1 for w in words if w.lower().rstrip(".,!?") in formal_indicators)
         informal_count = sum(1 for w in words if w.lower().rstrip(".,!?") in informal_indicators)
@@ -226,25 +247,39 @@ class BehavioralProfiler:
         # Common phrases: repeating n-grams of length 2-3
         phrases: list[str] = []
         if word_count >= 4:
-            bigrams = [" ".join(words[i:i+2]) for i in range(word_count - 1)]
+            bigrams = [" ".join(words[i : i + 2]) for i in range(word_count - 1)]
             phrase_counts = Counter(bigrams)
             phrases = [p for p, c in phrase_counts.most_common(5) if c > 1]
 
         # Sentiment: simple keyword-based
         positive_words = {
-            "good", "great", "excellent", "amazing", "love", "happy",
-            "wonderful", "best", "beautiful", "fantastic", "awesome",
+            "good",
+            "great",
+            "excellent",
+            "amazing",
+            "love",
+            "happy",
+            "wonderful",
+            "best",
+            "beautiful",
+            "fantastic",
+            "awesome",
         }
         negative_words = {
-            "bad", "terrible", "awful", "hate", "worst", "horrible",
-            "ugly", "sad", "angry", "poor", "disgusting",
+            "bad",
+            "terrible",
+            "awful",
+            "hate",
+            "worst",
+            "horrible",
+            "ugly",
+            "sad",
+            "angry",
+            "poor",
+            "disgusting",
         }
-        pos_count = sum(
-            1 for w in words if w.lower().rstrip(".,!?") in positive_words
-        )
-        neg_count = sum(
-            1 for w in words if w.lower().rstrip(".,!?") in negative_words
-        )
+        pos_count = sum(1 for w in words if w.lower().rstrip(".,!?") in positive_words)
+        neg_count = sum(1 for w in words if w.lower().rstrip(".,!?") in negative_words)
         total_sentiment = pos_count + neg_count
         sentiment = 0.5
         if total_sentiment > 0:
@@ -311,7 +346,4 @@ class BehavioralProfiler:
         if total == 0:
             return {}
 
-        return {
-            platform: round(count / total, 2)
-            for platform, count in platform_scores.most_common()
-        }
+        return {platform: round(count / total, 2) for platform, count in platform_scores.most_common()}

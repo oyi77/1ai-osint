@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 import logging
 import uuid
-from typing import Any, Optional
+from typing import Any
 
 from src.core.models import Finding, ScanResult, Severity
 
@@ -60,9 +60,7 @@ _STRUCTURED_SOURCES = {
 }
 
 
-async def run_source_scan(
-    source_name: str, target: str, source_instance: Any
-) -> Optional[ScanResult]:
+async def run_source_scan(source_name: str, target: str, source_instance: Any) -> ScanResult | None:
     """Run a single breach/leak source scan and return a structured ScanResult.
 
     Args:
@@ -72,6 +70,7 @@ async def run_source_scan(
 
     Returns:
         ScanResult with structured findings, or None on failure.
+
     """
     scan_id = f"source-{source_name}-{uuid.uuid4().hex[:8]}"
     findings: list[Finding] = []

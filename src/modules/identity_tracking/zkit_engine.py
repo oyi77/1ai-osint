@@ -11,7 +11,7 @@ from identity_graph.py.
 from __future__ import annotations
 
 import secrets
-from typing import Any, Optional
+from typing import Any
 
 from src.modules.identity_tracking._graph_models import (
     NodeType,
@@ -42,8 +42,7 @@ _normalize_attribute = normalize_attribute  # noqa: SLF001
 
 
 class ZKITEngine:
-    """
-    ZKIT Protocol engine implementing the full pipeline:
+    """ZKIT Protocol engine implementing the full pipeline:
         ingest -> hash -> graph -> correlate -> score -> output
 
     Per-investigation salt is required. Generate with ``new_salt()`` or
@@ -51,11 +50,11 @@ class ZKITEngine:
     """
 
     def __init__(self, salt: str, *, investigation_id: str = "") -> None:
-        """
-        Args:
-            salt: Per-investigation cryptographic salt (>= 256 bits recommended).
-                  Must not be empty for production use.
-            investigation_id: Optional label for this investigation.
+        """Args:
+        salt: Per-investigation cryptographic salt (>= 256 bits recommended).
+              Must not be empty for production use.
+        investigation_id: Optional label for this investigation.
+
         """
         if not salt:
             raise ValueError("Salt must not be empty — generate with ZKITEngine.new_salt()")
@@ -73,6 +72,7 @@ class ZKITEngine:
 
         Returns:
             64-character hex string (32 bytes = 256 bits).
+
         """
         return secrets.token_hex(32)
 
@@ -117,6 +117,7 @@ class ZKITEngine:
 
         Returns:
             List of IngestedRecord with normalized attributes.
+
         """
         ingested: list[IngestedRecord] = []
         for rec in records:
@@ -159,6 +160,7 @@ class ZKITEngine:
         Returns:
             List of dicts mapping attr_type -> zkit_hash. Source preserved
             under '_source' key for downstream use.
+
         """
         hashed: list[dict[str, str]] = []
         for rec in records:
@@ -189,6 +191,7 @@ class ZKITEngine:
 
         Returns:
             The populated IdentityGraph (same instance as self._graph).
+
         """
         for entry in hashed_records:
             source = entry.get("_source", "")
@@ -217,7 +220,7 @@ class ZKITEngine:
     # Pipeline stage 4: CORRELATE
     # ------------------------------------------------------------------
 
-    def correlate(self, graph: Optional[IdentityGraph] = None) -> list[set[str]]:
+    def correlate(self, graph: IdentityGraph | None = None) -> list[set[str]]:
         """Find connected components in the identity graph.
 
         Each connected component represents a set of hashed attributes
@@ -228,6 +231,7 @@ class ZKITEngine:
 
         Returns:
             List of sets, each containing node_ids in one component.
+
         """
         g = graph or self._graph
         visited: set[str] = set()
@@ -260,7 +264,7 @@ class ZKITEngine:
     def score_components(
         self,
         components: list[set[str]],
-        graph: Optional[IdentityGraph] = None,
+        graph: IdentityGraph | None = None,
     ) -> list[CorrelatedCluster]:
         """Compute correlation confidence scores for each component.
 
@@ -278,6 +282,7 @@ class ZKITEngine:
 
         Returns:
             List of CorrelatedCluster with computed scores.
+
         """
         g = graph or self._graph
         clusters: list[CorrelatedCluster] = []
@@ -373,6 +378,7 @@ class ZKITEngine:
 
         Returns:
             ZKITOutput with sanitized data.
+
         """
         # Validate no PII leaked into cluster metadata
         for cluster in clusters:
@@ -397,6 +403,7 @@ class ZKITEngine:
 
         Raises:
             ValueError: If a known PII field is found.
+
         """
         for key in data:
             if key.lower() in PII_FIELDS:
@@ -420,6 +427,7 @@ class ZKITEngine:
 
         Returns:
             Sanitized ZKITOutput with scored correlation clusters.
+
         """
         ingested = self.ingest(records, default_source=default_source)
         hashed = self.hash_records(ingested)

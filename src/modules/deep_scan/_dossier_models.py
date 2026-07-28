@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -20,7 +19,7 @@ class PhoneDossierIntel(BaseModel):
     number: str = ""
     operator: str = ""
     source: str = ""
-    whatsapp_registered: Optional[bool] = None
+    whatsapp_registered: bool | None = None
     confidence: float = 0.0
 
 

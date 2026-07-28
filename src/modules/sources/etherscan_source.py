@@ -6,7 +6,6 @@ import asyncio
 import logging
 import os
 import time
-from typing import Optional
 
 import httpx
 
@@ -22,7 +21,7 @@ class EtherscanSource:
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         request_delay: float = 0.25,
         timeout: float = 15.0,
     ):
@@ -42,9 +41,7 @@ class EtherscanSource:
             return []
 
         leaks: list[RawLeak] = []
-        async with httpx.AsyncClient(
-            timeout=self.timeout, follow_redirects=True
-        ) as client:
+        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
             # Get normal transactions
             try:
                 await self._rate_limit()

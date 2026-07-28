@@ -12,7 +12,6 @@ import asyncio
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Optional
 
 from src.core.models import Finding, ScanResult, Severity
 from src.modules.crypto.balance.chains import ALL_CHAINS, ChainConfig
@@ -59,7 +58,7 @@ class KnownMnemonicLookup:
     def __init__(
         self,
         mnemonic: str,
-        chains: Optional[list[ChainConfig]] = None,
+        chains: list[ChainConfig] | None = None,
         account_range: tuple[int, int] = (0, 1),
     ):
         self.mnemonic = mnemonic.strip()
@@ -73,6 +72,7 @@ class KnownMnemonicLookup:
 
         Returns:
             TargetedScanResult with findings for each address with balance > 0.
+
         """
         if not is_valid_mnemonic(self.mnemonic):
             return TargetedScanResult(
@@ -214,6 +214,7 @@ class AccountRangeScan:
 
         Returns:
             TargetedScanResult with findings for accounts with balance > 0.
+
         """
         if not is_valid_mnemonic(self.mnemonic):
             return TargetedScanResult(
@@ -330,9 +331,9 @@ class FilteredRandomScan:
 
     def __init__(
         self,
-        chains: Optional[list[ChainConfig]] = None,
+        chains: list[ChainConfig] | None = None,
         min_balance: float = 0.0,
-        derivation_paths: Optional[list[str]] = None,
+        derivation_paths: list[str] | None = None,
     ):
         self.chains = chains or list(ALL_CHAINS)
         self.min_balance = min_balance
@@ -351,6 +352,7 @@ class FilteredRandomScan:
 
         Returns:
             TargetedScanResult with findings meeting the min_balance threshold.
+
         """
         from bip_utils import Bip39Languages, Bip39MnemonicGenerator
 
@@ -493,6 +495,6 @@ def targeted_scan_to_scanresult(
     )
 
 
-def chain_by_name(name: str, chains: list[ChainConfig]) -> Optional[ChainConfig]:
+def chain_by_name(name: str, chains: list[ChainConfig]) -> ChainConfig | None:
     """Find a chain by name in a list."""
     return next((c for c in chains if c.name == name), None)

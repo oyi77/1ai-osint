@@ -6,7 +6,6 @@ import asyncio
 import logging
 import os
 import time
-from typing import Optional
 
 import httpx
 
@@ -22,7 +21,7 @@ class CensysSource:
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         request_delay: float = 2.0,
         timeout: float = 30.0,
     ):
@@ -49,9 +48,7 @@ class CensysSource:
         else:
             auth = (self.api_key, "")
 
-        async with httpx.AsyncClient(
-            timeout=self.timeout, follow_redirects=True
-        ) as client:
+        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
             # Search hosts
             try:
                 await self._rate_limit()

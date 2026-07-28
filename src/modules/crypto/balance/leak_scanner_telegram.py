@@ -21,7 +21,7 @@ import logging
 import os
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any
 
 from src.modules.crypto.balance._leak_shared import (
     LeakFinding,
@@ -59,7 +59,7 @@ class TelegramMessage:
     message_id: int
     text: str
     date: datetime
-    sender_id: Optional[int] = None
+    sender_id: int | None = None
 
 
 class TelethonLeakScanner:
@@ -71,8 +71,8 @@ class TelethonLeakScanner:
 
     def __init__(
         self,
-        api_id: Optional[int] = None,
-        api_hash: Optional[str] = None,
+        api_id: int | None = None,
+        api_hash: str | None = None,
         session_path: str = ".omc/telegram",
         hit_logger=None,
     ):
@@ -80,7 +80,7 @@ class TelethonLeakScanner:
         self.api_hash = api_hash or os.environ.get("TELEGRAM_API_HASH", "")
         self.session_path = session_path
         self.hit_logger = hit_logger
-        self._client: Optional[Any] = None
+        self._client: Any | None = None
         self._connected = False
 
     async def connect(self) -> bool:
@@ -112,7 +112,7 @@ class TelethonLeakScanner:
             logger.error("Telegram connection failed: %s", e)
             return False
 
-    async def interactive_auth(self, phone: Optional[str] = None) -> None:
+    async def interactive_auth(self, phone: str | None = None) -> None:
         """Interactive auth flow for initial setup. Run once manually."""
         try:
             from telethon import TelegramClient
@@ -143,6 +143,7 @@ class TelethonLeakScanner:
 
         Returns:
             List of LeakFinding with detected keys/mnemonics
+
         """
         if not self._connected:
             if not await self.connect():
@@ -217,7 +218,7 @@ class TelethonLeakScanner:
                 )
             )
 
-    async def discover_channels(self, keywords: Optional[list[str]] = None, max_channels: int = 20) -> list[str]:
+    async def discover_channels(self, keywords: list[str] | None = None, max_channels: int = 20) -> list[str]:
         """Auto-discover Telegram channels matching crypto leak keywords.
 
         Args:
@@ -226,6 +227,7 @@ class TelethonLeakScanner:
 
         Returns:
             List of channel usernames
+
         """
         if not self._connected:
             if not await self.connect():
@@ -295,7 +297,7 @@ class TelethonLeakScanner:
 
 
 async def run_telegram_leak_scan(
-    channels: Optional[list[str]] = None,
+    channels: list[str] | None = None,
     auto_discover: bool = True,
     hit_logger=None,
 ) -> list[LeakFinding]:
@@ -310,6 +312,7 @@ async def run_telegram_leak_scan(
         channels: Specific channels to scan (without @)
         auto_discover: Whether to auto-discover new channels
         hit_logger: Optional hit logger
+
     """
     scanner = TelethonLeakScanner(hit_logger=hit_logger)
 

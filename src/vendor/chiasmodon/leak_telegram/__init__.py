@@ -27,6 +27,7 @@ class TelegramLeakTool(OSINTTool):
 
         Returns:
             Dict with scan results including findings count.
+
         """
         try:
             from src.modules.crypto.balance.leak_scanner import TelegramLeakScanner
@@ -53,28 +54,16 @@ class TelegramLeakTool(OSINTTool):
                 import concurrent.futures
 
                 with concurrent.futures.ThreadPoolExecutor() as pool:
-                    findings = pool.submit(
-                        asyncio.run, scanner.scan(max_messages=max_messages)
-                    ).result(timeout=120)
+                    findings = pool.submit(asyncio.run, scanner.scan(max_messages=max_messages)).result(timeout=120)
             else:
-                findings = loop.run_until_complete(
-                    scanner.scan(max_messages=max_messages)
-                )
+                findings = loop.run_until_complete(scanner.scan(max_messages=max_messages))
 
             return {
                 "status": "ok",
                 "tool": self.name,
                 "findings_count": len(findings),
-                "mnemonics": [
-                    f.mnemonic_candidate
-                    for f in findings
-                    if f.source_type == "mnemonic"
-                ],
-                "private_keys": [
-                    f.mnemonic_candidate[:16] + "..."
-                    for f in findings
-                    if f.source_type == "private_key"
-                ],
+                "mnemonics": [f.mnemonic_candidate for f in findings if f.source_type == "mnemonic"],
+                "private_keys": [f.mnemonic_candidate[:16] + "..." for f in findings if f.source_type == "private_key"],
             }
         except ImportError:
             return {

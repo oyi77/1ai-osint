@@ -18,7 +18,6 @@ from __future__ import annotations
 import asyncio
 import logging
 from dataclasses import dataclass, field
-from typing import Optional
 
 import httpx
 
@@ -209,7 +208,7 @@ def _compute_overall_confidence(
 
 async def verify_handle(
     handle: str,
-    platforms: Optional[list[str]] = None,
+    platforms: list[str] | None = None,
 ) -> HandleVerification:
     """Verify whether a handle actually exists across key platforms.
 
@@ -219,6 +218,7 @@ async def verify_handle(
 
     Returns:
         HandleVerification with per-platform results and overall_confidence.
+
     """
     if platforms is None:
         platforms = _PROBE_ORDER
@@ -251,24 +251,16 @@ async def verify_handle(
                 if r.exists:
                     result.found_count += 1
 
-        result.queried_count = len([
-            r for r in raw_results if isinstance(r, HandlePlatformResult)
-        ])
-        result.errors = [
-            r.detail
-            for r in raw_results
-            if isinstance(r, HandlePlatformResult) and r.status == "error"
-        ]
+        result.queried_count = len([r for r in raw_results if isinstance(r, HandlePlatformResult)])
+        result.errors = [r.detail for r in raw_results if isinstance(r, HandlePlatformResult) and r.status == "error"]
 
-    result.overall_confidence = _compute_overall_confidence(
-        result.platforms, result.queried_count
-    )
+    result.overall_confidence = _compute_overall_confidence(result.platforms, result.queried_count)
     return result
 
 
 async def batch_verify_handles(
     handles: list[str],
-    platforms: Optional[list[str]] = None,
+    platforms: list[str] | None = None,
     max_concurrency: int = 5,
 ) -> dict[str, HandleVerification]:
     """Verify multiple handles in parallel.
@@ -280,6 +272,7 @@ async def batch_verify_handles(
 
     Returns:
         Dict mapping handle -> HandleVerification.
+
     """
     results: dict[str, HandleVerification] = {}
     sem = asyncio.Semaphore(max_concurrency)

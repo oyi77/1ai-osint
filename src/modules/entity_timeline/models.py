@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections import Counter
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -31,18 +31,14 @@ class EntitySnapshot(BaseModel):
         description="Aggregated attributes known about the entity",
     )
     risk_score: float = Field(default=0.0, ge=0.0, le=1.0)
-    first_seen: Optional[datetime] = None
-    last_seen: Optional[datetime] = None
+    first_seen: datetime | None = None
+    last_seen: datetime | None = None
     event_count: int = Field(default=0, ge=0)
 
     @property
     def is_empty(self) -> bool:
         """Return True if this snapshot carries no meaningful data."""
-        return (
-            not self.attributes
-            and self.risk_score == 0.0
-            and self.event_count == 0
-        )
+        return not self.attributes and self.risk_score == 0.0 and self.event_count == 0
 
 
 class Timeline(BaseModel):
@@ -66,7 +62,7 @@ class Timeline(BaseModel):
         return Counter(e.event_type for e in self.events)
 
     @property
-    def date_range(self) -> tuple[Optional[datetime], Optional[datetime]]:
+    def date_range(self) -> tuple[datetime | None, datetime | None]:
         """Return (earliest, latest) timestamps across all events."""
         if not self.events:
             return None, None

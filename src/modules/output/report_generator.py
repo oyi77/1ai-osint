@@ -2,7 +2,6 @@
 
 from enum import Enum
 from pathlib import Path
-from typing import Optional
 
 from src.core.models import ScanResult
 from src.modules.output.json_formatter import JSONFormatter
@@ -27,9 +26,9 @@ class ReportGenerator:
     """
 
     def __init__(self, salt: str = ""):
-        """
-        Args:
-            salt: ZKIT salt for hashing identifiers in output.
+        """Args:
+        salt: ZKIT salt for hashing identifiers in output.
+
         """
         self._salt = salt
         self._json = JSONFormatter(salt=salt)
@@ -46,8 +45,10 @@ class ReportGenerator:
         Args:
             results: ScanResult objects to include in the report.
             fmt: Output format (json, sarif, pdf).
+
         Returns:
             Report content as bytes.
+
         """
         if fmt == ReportFormat.JSON:
             return self._json.format(results).encode("utf-8")
@@ -63,8 +64,10 @@ class ReportGenerator:
 
         Args:
             results: ScanResult objects to include.
+
         Returns:
             Dict mapping format to report bytes.
+
         """
         return {fmt: self.generate(results, fmt) for fmt in ReportFormat}
 
@@ -73,7 +76,7 @@ class ReportGenerator:
         results: list[ScanResult],
         output_dir: str | Path,
         fmt: ReportFormat = ReportFormat.JSON,
-        filename: Optional[str] = None,
+        filename: str | None = None,
     ) -> Path:
         """Generate and save a report to disk.
 
@@ -82,8 +85,10 @@ class ReportGenerator:
             output_dir: Directory to write the report file.
             fmt: Output format.
             filename: Optional filename. Defaults to 'report.<ext>'.
+
         Returns:
             Path to the written file.
+
         """
         output_path = Path(output_dir)
         output_path.mkdir(parents=True, exist_ok=True)

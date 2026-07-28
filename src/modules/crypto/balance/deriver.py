@@ -8,7 +8,6 @@ from __future__ import annotations
 import logging
 import re
 from dataclasses import dataclass
-from typing import Optional
 
 from bip_utils import (
     Bip39MnemonicValidator,
@@ -72,7 +71,7 @@ class DerivedAddress:
     chain: str  # e.g. "Ethereum", "Bitcoin"
     symbol: str  # e.g. "ETH", "BTC"
     derivation_path: str  # e.g. "m/44'/60'/0'/0/0"
-    private_key_hex: Optional[str] = None  # Only if derived from mnemonic
+    private_key_hex: str | None = None  # Only if derived from mnemonic
 
 
 # --- Chain ID to Bip44Coins mapping ---
@@ -127,9 +126,7 @@ def detect_input_type(target: str) -> str:
 
     # Solana private key: base58, 87-88 chars (encodes 64 bytes)
     # Must NOT start with 1,3,5 (BTC WIF prefix) or start with 0x
-    if re.match(r"^[1-9A-HJ-NP-Za-km-z]{87,88}$", target) and not target.startswith(
-        ("1", "3", "5")
-    ):
+    if re.match(r"^[1-9A-HJ-NP-Za-km-z]{87,88}$", target) and not target.startswith(("1", "3", "5")):
         return "private_key"
 
     # SOL address: base58, 32-44 chars (checked LAST — overlaps with other base58 formats)
@@ -141,7 +138,7 @@ def detect_input_type(target: str) -> str:
 
 def derive_from_mnemonic(
     mnemonic: str,
-    chains: Optional[list[ChainConfig]] = None,
+    chains: list[ChainConfig] | None = None,
     account: int = 0,
     count: int = 1,
 ) -> list[DerivedAddress]:
@@ -155,6 +152,7 @@ def derive_from_mnemonic(
 
     Returns:
         List of DerivedAddress objects.
+
     """
     if not is_valid_mnemonic(mnemonic):
         raise ValueError("Invalid BIP-39 mnemonic")
@@ -220,8 +218,8 @@ def derive_from_mnemonic(
 
 def derive_from_mnemonic_provider(
     mnemonic: str,
-    provider: "ProviderProfile",
-    chains: Optional[list[ChainConfig]] = None,
+    provider: ProviderProfile,
+    chains: list[ChainConfig] | None = None,
 ) -> list[DerivedAddress]:
     """Derive addresses using a provider-specific profile.
 
@@ -236,8 +234,8 @@ def derive_from_mnemonic_provider(
 
     Returns:
         List of DerivedAddress objects.
-    """
 
+    """
     if not is_valid_mnemonic(mnemonic):
         raise ValueError("Invalid BIP-39 mnemonic")
 
@@ -267,13 +265,7 @@ def derive_from_mnemonic_provider(
                         ctx = Bip86.FromSeed(seed_bytes, coin_enum)
                     else:
                         ctx = Bip44.FromSeed(seed_bytes, coin_enum)
-                    node = (
-                        ctx.Purpose()
-                        .Coin()
-                        .Account(0)
-                        .Change(Bip44Changes.CHAIN_EXT)
-                        .AddressIndex(addr_idx)
-                    )
+                    node = ctx.Purpose().Coin().Account(0).Change(Bip44Changes.CHAIN_EXT).AddressIndex(addr_idx)
                     address = node.PublicKey().ToAddress()
                     privkey = node.PrivateKey().Raw().ToHex()
                     results.append(
@@ -303,13 +295,7 @@ def derive_from_mnemonic_provider(
                         ctx = Bip86.FromSeed(seed_bytes, Bip44Coins.BITCOIN)
                     else:
                         ctx = Bip44.FromSeed(seed_bytes, Bip44Coins.BITCOIN)
-                    node = (
-                        ctx.Purpose()
-                        .Coin()
-                        .Account(0)
-                        .Change(Bip44Changes.CHAIN_EXT)
-                        .AddressIndex(addr_idx)
-                    )
+                    node = ctx.Purpose().Coin().Account(0).Change(Bip44Changes.CHAIN_EXT).AddressIndex(addr_idx)
                     address = node.PublicKey().ToAddress()
                     privkey = node.PrivateKey().Raw().ToHex()
                     results.append(
@@ -331,13 +317,7 @@ def derive_from_mnemonic_provider(
             for addr_idx in range(min(provider.address_count, 3)):
                 try:
                     ctx = Bip44.FromSeed(seed_bytes, Bip44Coins.SOLANA)
-                    node = (
-                        ctx.Purpose()
-                        .Coin()
-                        .Account(0)
-                        .Change(Bip44Changes.CHAIN_EXT)
-                        .AddressIndex(addr_idx)
-                    )
+                    node = ctx.Purpose().Coin().Account(0).Change(Bip44Changes.CHAIN_EXT).AddressIndex(addr_idx)
                     address = node.PublicKey().ToAddress()
                     privkey = node.PrivateKey().Raw().ToHex()
                     results.append(
@@ -357,7 +337,7 @@ def derive_from_mnemonic_provider(
 
 def derive_from_privatekey(
     key_hex: str,
-    chain: Optional[ChainConfig] = None,
+    chain: ChainConfig | None = None,
 ) -> DerivedAddress:
     """Derive address from a raw private key.
 
@@ -369,6 +349,7 @@ def derive_from_privatekey(
 
     Returns:
         DerivedAddress for the key.
+
     """
     clean_key = key_hex.strip().removeprefix("0x")
 
@@ -410,9 +391,7 @@ def derive_from_privatekey(
         except Exception:
             logger.debug("Failed to decode base58 key", exc_info=True)
 
-    raise ValueError(
-        "Invalid private key format (expected 64 hex chars or 88 base58 chars)"
-    )
+    raise ValueError("Invalid private key format (expected 64 hex chars or 88 base58 chars)")
 
 
 def _get_purpose_from_path(path: str) -> int:
@@ -423,6 +402,7 @@ def _get_purpose_from_path(path: str) -> int:
 
     Returns:
         Purpose number (44, 49, 84, or 86). Defaults to 44 if unrecognized.
+
     """
     try:
         parts = path.replace("m/", "").split("/")
@@ -440,7 +420,7 @@ def derive_with_raw_path(
     chain_symbol: str,
     coin_enum,
     address_idx: int = 0,
-) -> Optional[DerivedAddress]:
+) -> DerivedAddress | None:
     """Derive a single address using raw BIP-32 path derivation.
 
     This bypasses the BIP-44 library's path restriction and allows
@@ -456,6 +436,7 @@ def derive_with_raw_path(
 
     Returns:
         DerivedAddress or None on failure.
+
     """
     try:
         from bip_utils import Bip32Secp256k1

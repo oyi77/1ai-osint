@@ -13,7 +13,8 @@ graph representations.
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 from src.modules.identity_tracking._neo4j_helpers import (
     NEO4J_PASSWORD,
@@ -84,17 +85,16 @@ class Neo4jClient:
         user: str = "",
         password: str = "",
     ) -> None:
-        """
+        """Args:
+        uri: Bolt URI (defaults to ``NEO4J_URI`` env var).
+        user: Neo4j username (defaults to ``NEO4J_USER`` env var).
+        password: Neo4j password (defaults to ``NEO4J_PASSWORD`` env var).
 
-        Args:
-            uri: Bolt URI (defaults to ``NEO4J_URI`` env var).
-            user: Neo4j username (defaults to ``NEO4J_USER`` env var).
-            password: Neo4j password (defaults to ``NEO4J_PASSWORD`` env var).
         """
         self._uri = uri or NEO4J_URI
         self._user = user or NEO4J_USER
         self._password = password or NEO4J_PASSWORD
-        self._driver: Optional[AsyncDriver] = None
+        self._driver: AsyncDriver | None = None
         self._connected = False
 
     # ------------------------------------------------------------------
@@ -121,6 +121,7 @@ class Neo4jClient:
         Raises:
             neo4j.exceptions.ServiceUnavailable: If the server is unreachable.
             neo4j.exceptions.AuthError: If credentials are invalid.
+
         """
         uri = uri or self._uri
         user = user or self._user
@@ -174,6 +175,7 @@ class Neo4jClient:
 
         Raises:
             RuntimeError: If not connected.
+
         """
         if not self._driver:
             raise RuntimeError("Neo4jClient not connected. Call connect() first.")
@@ -186,8 +188,8 @@ class Neo4jClient:
     async def create_node(
         self,
         label: str,
-        properties: Optional[dict[str, Any]] = None,
-    ) -> Optional[str]:
+        properties: dict[str, Any] | None = None,
+    ) -> str | None:
         """Create a node with the given label and properties.
 
         Args:
@@ -197,6 +199,7 @@ class Neo4jClient:
         Returns:
             The internal node id (string) on success, or ``None`` if the
             neo4j driver is unavailable (stub mode).
+
         """
         if not NEO4J_AVAILABLE or not self._driver:
             logger.debug("Neo4jClient stub: would create node %s(%s)", label, properties)
@@ -216,8 +219,8 @@ class Neo4jClient:
         from_node_id: str,
         to_node_id: str,
         rel_type: str,
-        properties: Optional[dict[str, Any]] = None,
-    ) -> Optional[str]:
+        properties: dict[str, Any] | None = None,
+    ) -> str | None:
         """Create a relationship between two existing nodes.
 
         Args:
@@ -231,6 +234,7 @@ class Neo4jClient:
 
         The method looks up nodes by ``elementId(n)`` for internal IDs
         or by ``n.id = $id`` for ZKIT hashed identifiers.
+
         """
         if not NEO4J_AVAILABLE or not self._driver:
             logger.debug(
@@ -262,7 +266,7 @@ class Neo4jClient:
     async def run_query(
         self,
         cypher: str,
-        parameters: Optional[dict[str, Any]] = None,
+        parameters: dict[str, Any] | None = None,
     ) -> list[dict[str, Any]]:
         """Execute an arbitrary Cypher query.
 
@@ -275,6 +279,7 @@ class Neo4jClient:
 
         Raises:
             RuntimeError: If not connected.
+
         """
         if not NEO4J_AVAILABLE or not self._driver:
             logger.debug("Neo4jClient stub: would run query: %s", cypher[:120])
@@ -291,9 +296,9 @@ class Neo4jClient:
 
     async def bulk_import(
         self,
-        nodes: Optional[Sequence[dict[str, Any]]] = None,
-        relationships: Optional[Sequence[dict[str, Any]]] = None,
-        graph: Optional[Any] = None,
+        nodes: Sequence[dict[str, Any]] | None = None,
+        relationships: Sequence[dict[str, Any]] | None = None,
+        graph: Any | None = None,
     ) -> dict[str, int]:
         """Batch-import nodes and relationships into Neo4j.
 
@@ -309,6 +314,7 @@ class Neo4jClient:
 
         Returns:
             A dict with ``nodes_created`` and ``rels_created`` counts.
+
         """
         # Resolve input
         if graph is not None:

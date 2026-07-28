@@ -13,8 +13,9 @@ from __future__ import annotations
 
 import logging
 import os
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import Any, AsyncGenerator, Optional
+from typing import Any
 
 import httpx
 from playwright.async_api import Browser, Page, async_playwright
@@ -92,24 +93,23 @@ class CloakScraper:
         cloak_ws: str = "",
         cloak_api: str = "",
         headless: bool = True,
-        viewport: Optional[dict[str, int]] = None,
+        viewport: dict[str, int] | None = None,
         locale: str = "",
         timezone_id: str = "",
     ) -> None:
-        """
+        """Args:
+        cloak_ws: CloakBrowser CDP WebSocket URL. Falls back to
+            ``CLOAKBROWSER_CDP_WS`` env var.
+        cloak_api: CloakBrowser REST API URL. Falls back to
+            ``CLOAKBROWSER_API_URL`` env var.
+        headless: Run local browser in headless mode (default True).
+            Ignored when connecting to CloakBrowser CDP.
+        viewport: Custom viewport dict ``{width, height}``.
+            Default ``{1920, 1080}``.
+        locale: Browser locale (e.g. ``"en-US"``). Default ``"en-US"``.
+        timezone_id: Browser timezone ID (e.g. ``"America/New_York"``).
+            Default ``"America/New_York"``.
 
-        Args:
-            cloak_ws: CloakBrowser CDP WebSocket URL. Falls back to
-                ``CLOAKBROWSER_CDP_WS`` env var.
-            cloak_api: CloakBrowser REST API URL. Falls back to
-                ``CLOAKBROWSER_API_URL`` env var.
-            headless: Run local browser in headless mode (default True).
-                Ignored when connecting to CloakBrowser CDP.
-            viewport: Custom viewport dict ``{width, height}``.
-                Default ``{1920, 1080}``.
-            locale: Browser locale (e.g. ``"en-US"``). Default ``"en-US"``.
-            timezone_id: Browser timezone ID (e.g. ``"America/New_York"``).
-                Default ``"America/New_York"``.
         """
         self.cloak_ws = cloak_ws or os.environ.get("CLOAKBROWSER_CDP_WS", "")
         self.cloak_api = cloak_api or os.environ.get("CLOAKBROWSER_API_URL", "")
@@ -119,8 +119,8 @@ class CloakScraper:
         self._timezone_id = timezone_id or DEFAULT_TIMEZONE
 
         # Pooled resources (local mode)
-        self._playwright: Optional[Any] = None
-        self._browser: Optional[Browser] = None
+        self._playwright: Any | None = None
+        self._browser: Browser | None = None
 
     # ------------------------------------------------------------------
     # CloakBrowser CDP resolution
@@ -131,6 +131,7 @@ class CloakScraper:
 
         Returns:
             The WebSocket URL string, or empty string if unavailable.
+
         """
         if self.cloak_ws:
             return self.cloak_ws
@@ -162,6 +163,7 @@ class CloakScraper:
             A dict with ``status`` (``"ok"`` or ``"unavailable"``),
             ``mode`` (``"cloak"``, ``"local"``, or ``"none"``),
             and optional ``error``.
+
         """
         # Check CloakBrowser CDP
         ws_url = await self._get_cloak_websocket()
@@ -192,6 +194,7 @@ class CloakScraper:
 
         Args:
             page: The Playwright Page to patch.
+
         """
         # Inject stealth JS
         await page.add_init_script(STEALTH_JS)
@@ -214,6 +217,7 @@ class CloakScraper:
         Returns:
             A dict of keyword arguments for
             ``browser.new_context()`` or ``playwright.chromium.launch_persistent_context()``.
+
         """
         return {
             "viewport": self._viewport,
@@ -237,6 +241,7 @@ class CloakScraper:
 
         Returns:
             A connected Browser instance.
+
         """
         if self._browser and self._browser.is_connected():
             return self._browser
@@ -289,6 +294,7 @@ class CloakScraper:
         Raises:
             RuntimeError: If both CloakBrowser and local Playwright
                 are unavailable.
+
         """
         ws_url = await self._get_cloak_websocket()
 

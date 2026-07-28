@@ -4,7 +4,6 @@ import json
 import sqlite3
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 from src.core.models import Finding, Identity, ScanResult
 
@@ -14,9 +13,9 @@ _DEFAULT_DB_PATH = Path("1ai-osint.db")
 class Database:
     """Thin SQLite wrapper for persisting OSINT data."""
 
-    def __init__(self, db_path: Optional[Path] = None):
+    def __init__(self, db_path: Path | None = None):
         self.db_path = db_path or _DEFAULT_DB_PATH
-        self._conn: Optional[sqlite3.Connection] = None
+        self._conn: sqlite3.Connection | None = None
 
     def _connect(self) -> sqlite3.Connection:
         if self._conn is None:
@@ -149,18 +148,14 @@ class Database:
             )
         conn.commit()
 
-    def get_scan(self, scan_id: str) -> Optional[ScanResult]:
+    def get_scan(self, scan_id: str) -> ScanResult | None:
         """Retrieve a scan by ID."""
         conn = self._connect()
-        row = conn.execute(
-            "SELECT * FROM scans WHERE scan_id = ?", (scan_id,)
-        ).fetchone()
+        row = conn.execute("SELECT * FROM scans WHERE scan_id = ?", (scan_id,)).fetchone()
         if not row:
             return None
 
-        findings_rows = conn.execute(
-            "SELECT * FROM findings WHERE scan_id = ?", (scan_id,)
-        ).fetchall()
+        findings_rows = conn.execute("SELECT * FROM findings WHERE scan_id = ?", (scan_id,)).fetchall()
         findings = [
             Finding(
                 id=r["id"],
@@ -184,9 +179,7 @@ class Database:
             findings=findings,
             metadata=json.loads(row["metadata"]),
             started_at=datetime.fromisoformat(row["started_at"]),
-            completed_at=datetime.fromisoformat(row["completed_at"])
-            if row["completed_at"]
-            else None,
+            completed_at=datetime.fromisoformat(row["completed_at"]) if row["completed_at"] else None,
             error=row["error"],
         )
 
@@ -208,12 +201,10 @@ class Database:
         )
         conn.commit()
 
-    def get_identity(self, zkit_hash: str) -> Optional[Identity]:
+    def get_identity(self, zkit_hash: str) -> Identity | None:
         """Retrieve an identity by ZKIT hash."""
         conn = self._connect()
-        row = conn.execute(
-            "SELECT * FROM identities WHERE zkit_hash = ?", (zkit_hash,)
-        ).fetchone()
+        row = conn.execute("SELECT * FROM identities WHERE zkit_hash = ?", (zkit_hash,)).fetchone()
         if not row:
             return None
         return Identity(

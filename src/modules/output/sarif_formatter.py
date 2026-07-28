@@ -37,7 +37,7 @@ class SARIFFormatter:
         self._salt = salt
 
     def _hash_value(self, value: str) -> str:
-        preimage = f"{self._salt}:{value}".encode("utf-8")
+        preimage = f"{self._salt}:{value}".encode()
         return hashlib.sha256(preimage).hexdigest()
 
     def _severity_to_level(self, severity: Severity) -> str:
@@ -113,8 +113,10 @@ class SARIFFormatter:
 
         Args:
             results: List of ScanResult objects.
+
         Returns:
             SARIF 2.1.0 compliant JSON string.
+
         """
         import json
 

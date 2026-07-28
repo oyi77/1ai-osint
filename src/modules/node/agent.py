@@ -8,7 +8,7 @@ import logging
 import socket
 import subprocess
 import time
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 
@@ -42,7 +42,7 @@ class NodeAgent:
         self.heartbeat_interval = heartbeat_interval
         self._start_time = time.monotonic()
         self._scan_count = 0
-        self._scanner_process: Optional[asyncio.subprocess.Process] = None
+        self._scanner_process: asyncio.subprocess.Process | None = None
         self._running = False
         self._seen_keys: set[str] = set()
 
@@ -92,8 +92,7 @@ class NodeAgent:
             ip=self._get_ip(),
             version=self._get_version(),
             role=self.role,
-            scanner_running=self._scanner_process is not None
-            and self._scanner_process.returncode is None,
+            scanner_running=self._scanner_process is not None and self._scanner_process.returncode is None,
             scan_count=self._scan_count,
             uptime_sec=time.monotonic() - self._start_time,
             memory_mb=mem.used / (1024 * 1024),
@@ -107,9 +106,7 @@ class NodeAgent:
             )
         )
 
-    async def handle_command(
-        self, command: CommandType, payload: dict[str, Any]
-    ) -> dict[str, Any]:
+    async def handle_command(self, command: CommandType, payload: dict[str, Any]) -> dict[str, Any]:
         """Execute a command from master."""
         logger.info("Node '%s' executing command: %s", self.node_id, command.value)
 
@@ -183,9 +180,7 @@ class NodeAgent:
             output = stdout.decode().strip()
 
             # Restart scanner if it was running
-            was_running = (
-                self._scanner_process and self._scanner_process.returncode is None
-            )
+            was_running = self._scanner_process and self._scanner_process.returncode is None
             if was_running:
                 await self._cmd_stop_scanner()
                 await self._cmd_start_scanner({})
@@ -242,9 +237,7 @@ class NodeAgent:
                     bloom = data.get("bloom", "")
                     if bloom:
                         self._seen_keys = set(bloom.split("|"))
-                        logger.info(
-                            "Synced %d seen keys from master", len(self._seen_keys)
-                        )
+                        logger.info("Synced %d seen keys from master", len(self._seen_keys))
         except Exception as exc:
             logger.debug("Failed to sync seen keys: %s", exc)
         return self._seen_keys
@@ -262,9 +255,7 @@ class NodeAgent:
                 )
                 if resp.status_code == 200:
                     recorded = resp.json().get("recorded", 0)
-                    logger.info(
-                        "Reported %d keys to master (%d new)", len(keys), recorded
-                    )
+                    logger.info("Reported %d keys to master (%d new)", len(keys), recorded)
                     return recorded
         except Exception as exc:
             logger.debug("Failed to report keys: %s", exc)
@@ -345,8 +336,7 @@ class NodeAgent:
             ip=self._get_ip(),
             version=self._get_version(),
             role=self.role,
-            scanner_running=self._scanner_process is not None
-            and self._scanner_process.returncode is None,
+            scanner_running=self._scanner_process is not None and self._scanner_process.returncode is None,
             scan_count=self._scan_count,
             uptime_sec=time.monotonic() - self._start_time,
             memory_mb=mem.used / (1024 * 1024),

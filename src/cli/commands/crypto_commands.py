@@ -46,6 +46,7 @@ def leak_finder(
 
         # Only scan GitHub and pastes
         1ai-osint leak-finder --sources github,paste
+
     """
     from src.modules.crypto.leak_finder.coordinator import (
         ALL_SOURCES,

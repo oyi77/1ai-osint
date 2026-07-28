@@ -6,7 +6,6 @@ import asyncio
 import logging
 import os
 import time
-from typing import Optional
 
 import httpx
 
@@ -22,7 +21,7 @@ class HIBPSource:
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         request_delay: float = 2.0,
         timeout: float = 30.0,
     ):
@@ -46,9 +45,7 @@ class HIBPSource:
 
         leaks: list[RawLeak] = []
         headers = {"hibp-api-key": self.api_key}
-        async with httpx.AsyncClient(
-            timeout=self.timeout, follow_redirects=True
-        ) as client:
+        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
             try:
                 await self._rate_limit()
                 resp = await client.get(
@@ -62,9 +59,7 @@ class HIBPSource:
                         structured: dict[str, object] = {
                             "breach_name": str(breach.get("Name", "")),
                             "breach_date": str(breach.get("BreachDate", "")),
-                            "data_classes": data_classes
-                            if isinstance(data_classes, list)
-                            else [],
+                            "data_classes": data_classes if isinstance(data_classes, list) else [],
                         }
                         for k in ("Description", "Domain"):
                             if breach.get(k):

@@ -2,7 +2,7 @@
 
 import asyncio
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any
 
 from src.core.models import BreachRecord, Finding, ScanResult, Severity
 from src.modules.base.base import BaseOSINTTool
@@ -10,8 +10,7 @@ from src.modules.data_leaks.breach_checker import BreachChecker
 
 
 class DataLeaksAggregator(BaseOSINTTool):
-    """
-    Aggregates breach/leak data from multiple sources.
+    """Aggregates breach/leak data from multiple sources.
 
     Sources include vendored chiasmodon providers (HIBP, LeakCheck, Scylla, etc.)
     and the BreachChecker for severity scoring.
@@ -23,8 +22,8 @@ class DataLeaksAggregator(BaseOSINTTool):
 
     def __init__(
         self,
-        zkit_salt: Optional[str] = None,
-        providers: Optional[list[str]] = None,
+        zkit_salt: str | None = None,
+        providers: list[str] | None = None,
     ):
         super().__init__(zkit_salt=zkit_salt)
         self._requested_providers = providers
@@ -76,11 +75,11 @@ class DataLeaksAggregator(BaseOSINTTool):
         return available
 
     async def search(self, query: str, **kwargs) -> ScanResult:
-        """
-        Search for breaches/leaks across all providers.
+        """Search for breaches/leaks across all providers.
 
         Args:
             query: Email, username, or domain to search
+
         """
         scan_id = self._make_scan_id()
         started_at = datetime.now(timezone.utc)

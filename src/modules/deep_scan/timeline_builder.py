@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
-from typing import Any, List, Optional
+from typing import Any
 
 from src.core.models import BreachRecord, Finding
 from src.modules.deep_scan.models_report import TimelineEntry
@@ -12,7 +12,7 @@ from src.modules.deep_scan.models_report import TimelineEntry
 logger = logging.getLogger(__name__)
 
 
-def parse_datetime(dt_val: Any) -> Optional[datetime]:
+def parse_datetime(dt_val: Any) -> datetime | None:
     """Helper to parse raw date values into timezone-aware UTC datetime."""
     if not dt_val:
         return None
@@ -50,9 +50,9 @@ class TimelineBuilder:
     """Builds a unified chronological timeline from findings and breach records."""
 
     @staticmethod
-    def build(findings: List[Finding], breach_records: List[BreachRecord]) -> List[TimelineEntry]:
+    def build(findings: list[Finding], breach_records: list[BreachRecord]) -> list[TimelineEntry]:
         """Aggregate, parse, and sort time-based events from findings and breach records."""
-        entries: List[TimelineEntry] = []
+        entries: list[TimelineEntry] = []
         seen_events = set()
 
         # 1. Process breach records

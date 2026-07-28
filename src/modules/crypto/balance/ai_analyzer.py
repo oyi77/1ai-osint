@@ -13,7 +13,6 @@ from __future__ import annotations
 import hashlib
 import logging
 import sqlite3
-from typing import Optional
 
 from bip_utils import Bip39Languages, Bip39MnemonicEncoder, Bip39MnemonicValidator
 
@@ -50,7 +49,7 @@ class WordFrequencyAnalyzer:
         self._wordlist = _get_bip39_wordlist()
         self._word_index: dict[str, int] = {w: i for i, w in enumerate(self._wordlist)}
         # weights[i] = weight for self._wordlist[i], default uniform 1.0
-        self._weights: dict[str, float] = {w: 1.0 for w in self._wordlist}
+        self._weights: dict[str, float] = dict.fromkeys(self._wordlist, 1.0)
         self._validator = Bip39MnemonicValidator(Bip39Languages.ENGLISH)
 
     # ------------------------------------------------------------------
@@ -65,8 +64,9 @@ class WordFrequencyAnalyzer:
 
         Returns:
             Dict mapping each BIP-39 word to its normalized weight in [0, 1].
+
         """
-        counts: dict[str, int] = {w: 0 for w in self._wordlist}
+        counts: dict[str, int] = dict.fromkeys(self._wordlist, 0)
         valid_count = 0
 
         for mnemonic in mnemonics:
@@ -99,7 +99,7 @@ class WordFrequencyAnalyzer:
     # SQLite persistence
     # ------------------------------------------------------------------
 
-    def save_to_db(self, db_path: Optional[str] = None) -> None:
+    def save_to_db(self, db_path: str | None = None) -> None:
         """Persist current weights to the ``word_frequencies`` SQLite table."""
         path = db_path or self._db_path
         conn = sqlite3.connect(path)
@@ -116,15 +116,14 @@ class WordFrequencyAnalyzer:
         )
         conn.commit()
         conn.close()
-        logger.info(
-            "Saved %d word weights to %s:%s", len(self._weights), path, _TABLE_NAME
-        )
+        logger.info("Saved %d word weights to %s:%s", len(self._weights), path, _TABLE_NAME)
 
-    def load_from_db(self, db_path: Optional[str] = None) -> bool:
+    def load_from_db(self, db_path: str | None = None) -> bool:
         """Load weights from the ``word_frequencies`` SQLite table.
 
         Returns:
             True if weights were loaded, False if table was missing or empty.
+
         """
         path = db_path or self._db_path
         try:
@@ -140,9 +139,7 @@ class WordFrequencyAnalyzer:
                 if word in self._weights:
                     self._weights[word] = weight
 
-            logger.info(
-                "Loaded %d word weights from %s:%s", len(rows), path, _TABLE_NAME
-            )
+            logger.info("Loaded %d word weights from %s:%s", len(rows), path, _TABLE_NAME)
             return True
         except sqlite3.OperationalError:
             logger.debug("Table %s not found in %s", _TABLE_NAME, path)
@@ -157,6 +154,7 @@ class WordFrequencyAnalyzer:
 
         Returns:
             List of (word, weight) tuples sorted by word (same order as BIP-39 spec).
+
         """
         return [(w, self._weights[w]) for w in self._wordlist]
 
@@ -175,6 +173,7 @@ class WordFrequencyAnalyzer:
 
         Returns:
             Fraction in [0, 1] of generated mnemonics that are BIP-39 valid.
+
         """
         import random
 
@@ -193,9 +192,7 @@ class WordFrequencyAnalyzer:
             # entropy_bits now has 121 bits (11 words * 11 bits)
 
             mnemonic = None
-            for candidate in random.sample(
-                self._wordlist, min(256, len(self._wordlist))
-            ):
+            for candidate in random.sample(self._wordlist, min(256, len(self._wordlist))):
                 cand_idx = self._word_index[candidate]
                 # Full 132-bit value: 121 bits from first 11 + 11 bits from 12th
                 full_value = (entropy_bits << 11) | cand_idx
@@ -216,7 +213,5 @@ class WordFrequencyAnalyzer:
                 valid += 1
 
         rate = valid / n if n > 0 else 0.0
-        logger.info(
-            "Biased generation validation: %d/%d valid (%.2f%%)", valid, n, rate * 100
-        )
+        logger.info("Biased generation validation: %d/%d valid (%.2f%%)", valid, n, rate * 100)
         return rate

@@ -10,7 +10,6 @@ import asyncio
 import json
 import logging
 import shutil
-from typing import Optional
 
 from src.modules.sources.base import RawLeak
 
@@ -34,7 +33,7 @@ class TwitterSource:
     def __init__(self, max_per_query: int = 20, timeout: float = 60.0):
         self.max_per_query = max_per_query
         self.timeout = timeout
-        self._cli_path: Optional[str] = shutil.which("twitter")
+        self._cli_path: str | None = shutil.which("twitter")
 
     async def fetch_raw_leaks(self) -> list[RawLeak]:
         if not self._cli_path:

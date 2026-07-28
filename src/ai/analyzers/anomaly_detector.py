@@ -7,7 +7,7 @@ Flags unusual behavior in monitored entities using statistical methods
 import logging
 import math
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from src.ai.analyzers._anomaly_utils import build_summary, parse_llm_anomalies
 from src.ai.omniroute_client import OmniRouteClient
@@ -28,7 +28,7 @@ class AnomalyDetector:
     Optional LLM enrichment provides deeper semantic analysis.
     """
 
-    def __init__(self, client: Optional[OmniRouteClient] = None):
+    def __init__(self, client: OmniRouteClient | None = None):
         self._client = client
 
     # ------------------------------------------------------------------ #
@@ -38,7 +38,7 @@ class AnomalyDetector:
     def detect(
         self,
         entity_data: list[dict[str, Any]],
-        baseline: Optional[BehavioralProfile] = None,
+        baseline: BehavioralProfile | None = None,
         entity_key: str = "default",
         use_llm: bool = False,
     ) -> AnomalyDetectionResult:
@@ -49,8 +49,10 @@ class AnomalyDetector:
             baseline: Optional BehavioralProfile to compare against.
             entity_key: Entity identifier for the report.
             use_llm: Whether to enrich detection with LLM analysis.
+
         Returns:
             AnomalyDetectionResult with detected anomalies.
+
         """
         if not entity_data:
             return AnomalyDetectionResult(
@@ -115,8 +117,10 @@ class AnomalyDetector:
         Args:
             values: Historical values (baseline population).
             new_value: New observation to test.
+
         Returns:
             Absolute z-score. Values > 2.0 are anomalous, > 3.0 highly anomalous.
+
         """
         if not values:
             return 0.0
@@ -139,7 +143,7 @@ class AnomalyDetector:
     @staticmethod
     def _detect_timing_anomalies(
         entity_data: list[dict[str, Any]],
-        baseline: Optional[BehavioralProfile],
+        baseline: BehavioralProfile | None,
     ) -> list[DetectedAnomaly]:
         """Detect anomalies in posting/activity timing."""
         anomalies: list[DetectedAnomaly] = []
@@ -195,7 +199,7 @@ class AnomalyDetector:
     @staticmethod
     def _detect_statistical_anomalies(
         entity_data: list[dict[str, Any]],
-        baseline: Optional[BehavioralProfile],
+        baseline: BehavioralProfile | None,
     ) -> list[DetectedAnomaly]:
         """Detect anomalies using statistical methods."""
         anomalies: list[DetectedAnomaly] = []
@@ -274,7 +278,7 @@ class AnomalyDetector:
     @staticmethod
     def _detect_platform_anomalies(
         entity_data: list[dict[str, Any]],
-        baseline: Optional[BehavioralProfile],
+        baseline: BehavioralProfile | None,
     ) -> list[DetectedAnomaly]:
         """Detect new/unusual platform appearances."""
         anomalies: list[DetectedAnomaly] = []
@@ -311,7 +315,7 @@ class AnomalyDetector:
     def _llm_enrichment(
         self,
         entity_data: list[dict[str, Any]],
-        baseline: Optional[BehavioralProfile],
+        baseline: BehavioralProfile | None,
     ) -> list[DetectedAnomaly]:
         """Use LLM to detect semantic anomalies."""
         if not self._client:

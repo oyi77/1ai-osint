@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -74,9 +74,9 @@ class EvidenceItem(BaseModel):
     identifier_type: str = ""
     source: str = ""
     source_reliability: str = "F"
-    url: Optional[str] = None
-    http_status: Optional[int] = None
-    snippet: Optional[str] = None
+    url: str | None = None
+    http_status: int | None = None
+    snippet: str | None = None
     raw_data: dict[str, Any] = Field(default_factory=dict)
     confidence: float = 0.0
     notes: str = ""
@@ -97,12 +97,7 @@ class ConfidenceBreakdown(BaseModel):
     @property
     def total(self) -> float:
         """Weighted formula: 0.40·existence + 0.20·uniqueness + 0.25·cross_module + 0.15·temporal."""
-        raw = (
-            0.40 * self.existence
-            + 0.20 * self.uniqueness
-            + 0.25 * self.cross_module
-            + 0.15 * self.temporal
-        )
+        raw = 0.40 * self.existence + 0.20 * self.uniqueness + 0.25 * self.cross_module + 0.15 * self.temporal
         return round(raw, 3)
 
     @property
@@ -156,7 +151,7 @@ class RiskAssessment(BaseModel):
 class TimelineEntry(BaseModel):
     """When a piece of evidence was captured."""
 
-    timestamp: Optional[datetime] = None
+    timestamp: datetime | None = None
     source: str = ""
     event: str = ""
     detail: str = ""
@@ -269,16 +264,14 @@ class IntelReport(BaseModel):
 
     report_id: str = ""
     target: str = ""
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
     duration_sec: float = 0.0
     iterations: int = 0
     modules_run: list[str] = Field(default_factory=list)
 
     evidence: list[EvidenceItem] = Field(default_factory=list)
-    confidence_by_identifier: dict[str, ConfidenceBreakdown] = Field(
-        default_factory=dict
-    )
+    confidence_by_identifier: dict[str, ConfidenceBreakdown] = Field(default_factory=dict)
     risk: RiskAssessment = Field(default_factory=RiskAssessment)
     timeline: list[TimelineEntry] = Field(default_factory=list)
     identity_graph: IdentityGraph = Field(default_factory=IdentityGraph)
@@ -290,11 +283,9 @@ class IntelReport(BaseModel):
     source_blocks: list[SourceIntelBlock] = Field(default_factory=list)
     briefing: OperationalBriefing = Field(default_factory=OperationalBriefing)
     # Phase 5: CIA-level analytical layers (all Optional — gracefully absent if not run)
-    cia_analysis: Optional[Any] = None  # CIAAnalysis from ai_analyst
-    behavioral_fingerprint: Optional[Any] = None  # BehavioralFingerprint
+    cia_analysis: Any | None = None  # CIAAnalysis from ai_analyst
+    behavioral_fingerprint: Any | None = None  # BehavioralFingerprint
     geo_clusters: list[Any] = Field(default_factory=list)  # list[GeoCluster]
-    infra_fingerprints: list[Any] = Field(
-        default_factory=list
-    )  # list[InfraFingerprint]
-    threat_trajectory: Optional[Any] = None  # ThreatTrajectory
-    counterintel: Optional[Any] = None  # CounterIntelAssessment
+    infra_fingerprints: list[Any] = Field(default_factory=list)  # list[InfraFingerprint]
+    threat_trajectory: Any | None = None  # ThreatTrajectory
+    counterintel: Any | None = None  # CounterIntelAssessment

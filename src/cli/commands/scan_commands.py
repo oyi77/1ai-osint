@@ -54,7 +54,6 @@ def scan(
     For crypto_balance module with 'random' target, generates random mnemonics.
     For crypto_balance with a mnemonic target, derives and checks balances.
     """
-
     from src.core.config import settings
 
     effective_salt = zkit_salt or settings.zkit_salt

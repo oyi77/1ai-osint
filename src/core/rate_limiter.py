@@ -4,7 +4,6 @@ import asyncio
 import json
 import time
 from pathlib import Path
-from typing import Optional
 
 
 class RateLimiter:
@@ -12,15 +11,15 @@ class RateLimiter:
 
     def __init__(
         self,
-        state_file: Optional[Path] = None,
+        state_file: Path | None = None,
         requests_per_minute: int = 60,
         burst: int = 10,
     ):
-        """
-        Args:
-            state_file: Path to persist rate limiter state.
-            requests_per_minute: Sustained rate limit.
-            burst: Maximum burst size above sustained rate.
+        """Args:
+        state_file: Path to persist rate limiter state.
+        requests_per_minute: Sustained rate limit.
+        burst: Maximum burst size above sustained rate.
+
         """
         self.state_file = state_file or Path(".osint_rate_limit.json")
         self.rate = requests_per_minute / 60.0  # tokens per second
@@ -73,14 +72,15 @@ class RateLimiter:
         bucket["last_refill"] = now
 
     def acquire(self, key: str = "default", tokens: int = 1) -> float:
-        """
-        Attempt to acquire tokens. Returns wait time in seconds (0 if immediately available).
+        """Attempt to acquire tokens. Returns wait time in seconds (0 if immediately available).
 
         Args:
             key: Rate limit key (e.g., API name).
             tokens: Number of tokens to acquire.
+
         Returns:
             Seconds to wait before request can proceed (0 = go now).
+
         """
         bucket = self._get_bucket(key)
         self._refill(bucket)
@@ -97,14 +97,15 @@ class RateLimiter:
         return wait_time
 
     async def acquire_async(self, key: str = "default", tokens: int = 1) -> float:
-        """
-        Async version of acquire. Non-blocking sleep when tokens unavailable.
+        """Async version of acquire. Non-blocking sleep when tokens unavailable.
 
         Args:
             key: Rate limit key (e.g., API name).
             tokens: Number of tokens to acquire.
+
         Returns:
             Seconds actually waited (0 = went immediately).
+
         """
         bucket = self._get_bucket(key)
         self._refill(bucket)
@@ -131,7 +132,7 @@ class RateLimiter:
         if wait_time > 0:
             time.sleep(wait_time)
 
-    def reset(self, key: Optional[str] = None) -> None:
+    def reset(self, key: str | None = None) -> None:
         """Reset rate limiter state for a key or all keys."""
         if key:
             self._state.pop(key, None)

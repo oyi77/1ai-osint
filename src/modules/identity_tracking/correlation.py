@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from src.core.models import ScanResult
 from src.modules.identity_tracking.identity_graph import (
@@ -76,11 +76,11 @@ class CrossModuleCorrelator:
         investigation_id: str = "",
         min_confidence: float = 0.1,
     ) -> None:
-        """
-        Args:
-            salt: Per-investigation cryptographic salt (must be non-empty).
-            investigation_id: Optional investigation label.
-            min_confidence: Minimum confidence threshold for resolved entities.
+        """Args:
+        salt: Per-investigation cryptographic salt (must be non-empty).
+        investigation_id: Optional investigation label.
+        min_confidence: Minimum confidence threshold for resolved entities.
+
         """
         if not salt:
             raise ValueError("Salt must not be empty")
@@ -121,6 +121,7 @@ class CrossModuleCorrelator:
 
         Returns:
             Number of identity records ingested.
+
         """
         total_ingested = 0
 
@@ -158,6 +159,7 @@ class CrossModuleCorrelator:
 
         Returns:
             Number of records ingested.
+
         """
         ingested = self._engine.ingest(records, default_source=source)
         hashed = self._engine.hash_records(ingested)
@@ -218,7 +220,7 @@ class CrossModuleCorrelator:
     def _extract_from_raw_data(
         raw_data: dict[str, Any],
         source: str,
-    ) -> Optional[dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """Extract identity attributes from a finding's raw_data."""
         record: dict[str, Any] = {"source": source}
         has_attr = False
@@ -241,6 +243,7 @@ class CrossModuleCorrelator:
 
         Returns:
             CorrelationResult with resolved entities and stats.
+
         """
         components = self._engine.correlate()
         clusters = self._engine.score_components(components)
@@ -335,7 +338,7 @@ class CrossModuleCorrelator:
     # Query helpers
     # ------------------------------------------------------------------
 
-    def find_entity_by_hash(self, zkit_hash: str) -> Optional[ResolvedEntity]:
+    def find_entity_by_hash(self, zkit_hash: str) -> ResolvedEntity | None:
         """Find the resolved entity containing a given hash.
 
         Args:
@@ -343,6 +346,7 @@ class CrossModuleCorrelator:
 
         Returns:
             ResolvedEntity if found, None otherwise.
+
         """
         result = self.correlate()
         for entity in result.resolved_entities:
@@ -365,6 +369,7 @@ class CrossModuleCorrelator:
 
         Returns:
             Dict with 'node', 'neighbors', and 'edges'.
+
         """
         return self._graph.query_neighbors(zkit_hash, max_depth, min_weight)
 
@@ -376,5 +381,6 @@ class CrossModuleCorrelator:
 
         Returns:
             Number of new entities added.
+
         """
         return self._graph.merge_subgraphs(other)

@@ -3,7 +3,7 @@
 import asyncio
 import re
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -18,34 +18,19 @@ class PhoneInfo(BaseModel):
     """Structured phone number intelligence."""
 
     phone_number: str = Field(..., description="Original phone number")
-    e164_format: Optional[str] = Field(
-        default=None, description="E.164 formatted number"
-    )
-    is_valid_e164: bool = Field(
-        default=False, description="Whether the number is valid E.164"
-    )
-    country_code: Optional[str] = Field(
-        default=None, description="Country calling code"
-    )
-    country_name: Optional[str] = Field(default=None, description="Country name")
-    carrier: Optional[str] = Field(
-        default=None, description="Telecommunications carrier"
-    )
-    line_type: Optional[str] = Field(
-        default=None, description="Line type (mobile, landline, voip, etc.)"
-    )
-    location: Optional[str] = Field(
-        default=None, description="Geographic location/region"
-    )
-    is_voip: Optional[bool] = Field(
-        default=None, description="Whether the number is a VoIP number"
-    )
+    e164_format: str | None = Field(default=None, description="E.164 formatted number")
+    is_valid_e164: bool = Field(default=False, description="Whether the number is valid E.164")
+    country_code: str | None = Field(default=None, description="Country calling code")
+    country_name: str | None = Field(default=None, description="Country name")
+    carrier: str | None = Field(default=None, description="Telecommunications carrier")
+    line_type: str | None = Field(default=None, description="Line type (mobile, landline, voip, etc.)")
+    location: str | None = Field(default=None, description="Geographic location/region")
+    is_voip: bool | None = Field(default=None, description="Whether the number is a VoIP number")
     raw_data: dict[str, Any] = Field(default_factory=dict)
 
 
 class PhoneFinderLookup(BaseOSINTTool):
-    """
-    Phone number OSINT lookup.
+    """Phone number OSINT lookup.
 
     Wraps chiasmodon's PhoneInfoga provider to perform carrier detection,
     location lookup, VoIP status check, and E.164 validation.
@@ -55,19 +40,19 @@ class PhoneFinderLookup(BaseOSINTTool):
     description = "Phone number intelligence and carrier/VoIP detection"
     version = "0.1.0"
 
-    def __init__(self, zkit_salt: Optional[str] = None):
+    def __init__(self, zkit_salt: str | None = None):
         super().__init__(zkit_salt=zkit_salt)
 
     @staticmethod
-    def validate_e164(phone: str) -> tuple[bool, Optional[str]]:
-        """
-        Validate and normalize a phone number to E.164 format.
+    def validate_e164(phone: str) -> tuple[bool, str | None]:
+        """Validate and normalize a phone number to E.164 format.
 
         Args:
             phone: Raw phone number string
 
         Returns:
             Tuple of (is_valid, e164_formatted_or_none)
+
         """
         from src.utils.phone_normalize import normalize_phone_e164
 
@@ -89,11 +74,11 @@ class PhoneFinderLookup(BaseOSINTTool):
             return None
 
     async def search(self, query: str, **kwargs) -> ScanResult:
-        """
-        Look up a phone number for carrier, location, and VoIP info.
+        """Look up a phone number for carrier, location, and VoIP info.
 
         Args:
             query: Phone number to look up (E.164 or raw format)
+
         """
         scan_id = self._make_scan_id()
         started_at = datetime.now(timezone.utc)
@@ -120,9 +105,7 @@ class PhoneFinderLookup(BaseOSINTTool):
         lookup_number = e164 if e164 else query
         try:
             loop = asyncio.get_event_loop()
-            raw_result = await loop.run_in_executor(
-                None, provider.search, lookup_number
-            )
+            raw_result = await loop.run_in_executor(None, provider.search, lookup_number)
         except Exception as exc:
             errors["phoneinfoga"] = str(exc)
             raw_result = {"error": str(exc)}
@@ -225,7 +208,7 @@ class PhoneFinderLookup(BaseOSINTTool):
     def _parse_result(
         self,
         original_number: str,
-        e164: Optional[str],
+        e164: str | None,
         is_valid: bool,
         raw_result: Any,
     ) -> PhoneInfo:
@@ -240,39 +223,23 @@ class PhoneFinderLookup(BaseOSINTTool):
             return info
 
         # Extract carrier info from common PhoneInfoga result fields
-        info.carrier = (
-            raw_result.get("carrier")
-            or raw_result.get("Carrier")
-            or raw_result.get("carrier_name")
-        )
+        info.carrier = raw_result.get("carrier") or raw_result.get("Carrier") or raw_result.get("carrier_name")
 
         info.country_code = (
-            raw_result.get("country_code")
-            or raw_result.get("CountryCode")
-            or raw_result.get("country", {}).get("code")
+            raw_result.get("country_code") or raw_result.get("CountryCode") or raw_result.get("country", {}).get("code")
             if isinstance(raw_result.get("country"), dict)
             else raw_result.get("country_code")
         )
 
         info.country_name = (
-            raw_result.get("country_name")
-            or raw_result.get("CountryName")
-            or raw_result.get("country", {}).get("name")
+            raw_result.get("country_name") or raw_result.get("CountryName") or raw_result.get("country", {}).get("name")
             if isinstance(raw_result.get("country"), dict)
             else raw_result.get("country_name")
         )
 
-        info.line_type = (
-            raw_result.get("line_type")
-            or raw_result.get("LineType")
-            or raw_result.get("number_type")
-        )
+        info.line_type = raw_result.get("line_type") or raw_result.get("LineType") or raw_result.get("number_type")
 
-        info.location = (
-            raw_result.get("location")
-            or raw_result.get("Location")
-            or raw_result.get("geolocation")
-        )
+        info.location = raw_result.get("location") or raw_result.get("Location") or raw_result.get("geolocation")
 
         # Determine VoIP status
         voip_indicators = ["voip", "virtual", "sip", "internet"]

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Optional
 
 import httpx
 
@@ -27,7 +26,7 @@ class PasteSiteScanner:
         "https://paste.ee/archive",
     ]
 
-    def __init__(self, hit_logger: Optional[HitLogger] = None):
+    def __init__(self, hit_logger: HitLogger | None = None):
         self.hit_logger = hit_logger
 
     async def scan(self, max_pastes: int = 50) -> list[LeakFinding]:
@@ -38,6 +37,7 @@ class PasteSiteScanner:
 
         Returns:
             List of LeakFinding objects with candidates.
+
         """
         findings = []
 
@@ -54,9 +54,7 @@ class PasteSiteScanner:
 
         return findings
 
-    async def _get_paste_urls(
-        self, client: httpx.AsyncClient, archive_url: str, limit: int
-    ) -> list[str]:
+    async def _get_paste_urls(self, client: httpx.AsyncClient, archive_url: str, limit: int) -> list[str]:
         """Extract paste URLs from an archive page."""
         try:
             resp = await client.get(archive_url)
@@ -67,9 +65,7 @@ class PasteSiteScanner:
         except Exception:
             return []
 
-    async def _scan_paste(
-        self, client: httpx.AsyncClient, paste_url: str
-    ) -> Optional[LeakFinding]:
+    async def _scan_paste(self, client: httpx.AsyncClient, paste_url: str) -> LeakFinding | None:
         """Fetch a paste and scan for mnemonics and private keys."""
         try:
             # Pastebin raw URL
@@ -110,9 +106,9 @@ class PasteSiteScanner:
     async def verify_and_alert(
         self,
         mnemonic_candidate: str,
-        chains: Optional[list[ChainConfig]] = None,
+        chains: list[ChainConfig] | None = None,
         count: int = 6,
-    ) -> Optional[LeakFinding]:
+    ) -> LeakFinding | None:
         """Validate and check a paste-sourced mnemonic candidate.
 
         Delegates to the standalone verify_and_alert function.
@@ -121,6 +117,7 @@ class PasteSiteScanner:
             mnemonic_candidate: Potential mnemonic phrase to verify.
             chains: Chains to check. Defaults to all.
             count: Number of address indices to derive per chain (default 6 for leak-sourced).
+
         """
         return await verify_and_alert(
             mnemonic_candidate,

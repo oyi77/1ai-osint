@@ -7,7 +7,6 @@ import logging
 import os
 import re
 from datetime import datetime, timezone
-from typing import Optional, Set
 
 # Regexes for entity extraction
 EMAIL_REGEX = re.compile(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+")
@@ -22,7 +21,7 @@ class ActiveMonitorDaemon:
 
     def __init__(
         self,
-        watchlist_hashes: Optional[Set[str]] = None,
+        watchlist_hashes: set[str] | None = None,
         db_path: str = "state/monitor.db",
         zkit_salt: str = "default-salt",
     ):
@@ -43,7 +42,7 @@ class ActiveMonitorDaemon:
         """Helper to generate ZKIT salted SHA-256 hash of an attribute."""
         import hashlib
 
-        preimage = f"{self.zkit_salt}:{val.strip().lower()}".encode("utf-8")
+        preimage = f"{self.zkit_salt}:{val.strip().lower()}".encode()
         return hashlib.sha256(preimage).hexdigest()
 
     async def start(self) -> None:

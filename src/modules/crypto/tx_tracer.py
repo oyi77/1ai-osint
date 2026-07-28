@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import os
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import httpx
 
@@ -40,7 +40,7 @@ class BlockchainTxTracer(BaseOSINTTool):
     description = "Traces flow-of-funds across blockchains and attributes risk scores"
     version = "0.1.0"
 
-    def __init__(self, zkit_salt: Optional[str] = None):
+    def __init__(self, zkit_salt: str | None = None):
         super().__init__(zkit_salt=zkit_salt)
         self.etherscan_key = os.getenv("ETHERSCAN_API_KEY", "")
         self.blockchair_key = os.getenv("BLOCKCHAIR_API_KEY", "")
@@ -89,16 +89,8 @@ class BlockchainTxTracer(BaseOSINTTool):
             from_addr = tx.get("from", "").lower()
             to_addr = tx.get("to", "").lower()
 
-            tx["from_entity"] = (
-                KNOWN_MIXERS.get(from_addr)
-                or KNOWN_EXCHANGES.get(from_addr)
-                or "Unknown Wallet"
-            )
-            tx["to_entity"] = (
-                KNOWN_MIXERS.get(to_addr)
-                or KNOWN_EXCHANGES.get(to_addr)
-                or "Unknown Wallet"
-            )
+            tx["from_entity"] = KNOWN_MIXERS.get(from_addr) or KNOWN_EXCHANGES.get(from_addr) or "Unknown Wallet"
+            tx["to_entity"] = KNOWN_MIXERS.get(to_addr) or KNOWN_EXCHANGES.get(to_addr) or "Unknown Wallet"
 
             if from_addr in KNOWN_MIXERS or to_addr in KNOWN_MIXERS:
                 mix_count += 1
@@ -112,9 +104,7 @@ class BlockchainTxTracer(BaseOSINTTool):
 
         if mix_count > 0:
             risk_score = min(1.0, 0.7 + (mix_count * 0.1))
-            reasoning = (
-                f"Direct interaction with mixer entities detected ({mix_count} times)."
-            )
+            reasoning = f"Direct interaction with mixer entities detected ({mix_count} times)."
             severity = Severity.CRITICAL
         elif exchange_count > 0:
             risk_score = 0.3
@@ -181,7 +171,7 @@ class BlockchainTxTracer(BaseOSINTTool):
         """No-op learning."""
         pass
 
-    async def _trace_evm(self, address: str) -> List[Dict[str, Any]]:
+    async def _trace_evm(self, address: str) -> list[dict[str, Any]]:
         """Query Etherscan or fall back to mock data."""
         if not self.etherscan_key:
             # Return realistic mock transactions for demonstration & unit testing
@@ -239,7 +229,7 @@ class BlockchainTxTracer(BaseOSINTTool):
 
         return []
 
-    async def _trace_btc(self, address: str) -> List[Dict[str, Any]]:
+    async def _trace_btc(self, address: str) -> list[dict[str, Any]]:
         """Query Blockchair or return mock data."""
         # Simple mock data for BTC
         return [
@@ -259,7 +249,7 @@ class BlockchainTxTracer(BaseOSINTTool):
             },
         ]
 
-    async def _trace_solana(self, address: str) -> List[Dict[str, Any]]:
+    async def _trace_solana(self, address: str) -> list[dict[str, Any]]:
         """Query Solana public API or return mock data."""
         return [
             {

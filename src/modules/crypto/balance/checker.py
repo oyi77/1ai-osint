@@ -12,7 +12,6 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass
-from typing import Optional
 
 import httpx
 
@@ -45,14 +44,14 @@ class BalanceResult:
     usd_price: float  # Current USD price per token
     usd_value: float  # Total USD value
     derivation_path: str  # How this address was derived
-    error: Optional[str] = None
+    error: str | None = None
 
 
 async def check_btc_balance(
     address: str,
     api_url: str = "https://mempool.space/api",
     derivation_path: str = "",
-    client: Optional[httpx.AsyncClient] = None,
+    client: httpx.AsyncClient | None = None,
 ) -> BalanceResult:
     """Check BTC balance via multiple free API formats.
 
@@ -132,7 +131,7 @@ async def check_evm_balance(
     address: str,
     chain: ChainConfig,
     derivation_path: str = "",
-    client: Optional[httpx.AsyncClient] = None,
+    client: httpx.AsyncClient | None = None,
 ) -> BalanceResult:
     """Check balance on an EVM-compatible chain (ETH, BSC, Polygon) via JSON-RPC."""
     if not chain.rpc_url:
@@ -207,7 +206,7 @@ def encode_balance_of(address: str) -> str:
 async def check_evm_token_balances(
     address: str,
     chain: ChainConfig,
-    client: Optional[httpx.AsyncClient] = None,
+    client: httpx.AsyncClient | None = None,
 ) -> list[dict]:
     """Check ERC-20 token balances for a single address on an EVM chain.
 
@@ -277,7 +276,7 @@ async def check_sol_balance(
     address: str,
     rpc_url: str = "https://api.mainnet-beta.solana.com",
     derivation_path: str = "",
-    client: Optional[httpx.AsyncClient] = None,
+    client: httpx.AsyncClient | None = None,
 ) -> BalanceResult:
     """Check SOL balance via Solana JSON-RPC."""
     try:
@@ -334,7 +333,7 @@ async def check_balance(
     address: str,
     chain: ChainConfig,
     derivation_path: str = "",
-    client: Optional[httpx.AsyncClient] = None,
+    client: httpx.AsyncClient | None = None,
 ) -> BalanceResult:
     """Route balance check to the appropriate chain-specific function."""
     if chain.chain_type == ChainType.BITCOIN:
@@ -359,7 +358,7 @@ async def check_balance(
 
 async def get_usd_prices(
     coin_ids: list[str],
-    client: Optional[httpx.AsyncClient] = None,
+    client: httpx.AsyncClient | None = None,
 ) -> dict[str, float]:
     """Fetch current USD prices from CoinGecko with 60-second TTL caching.
 
@@ -369,6 +368,7 @@ async def get_usd_prices(
 
     Returns:
         Dict mapping coin_id to USD price.
+
     """
     if not coin_ids:
         return {}

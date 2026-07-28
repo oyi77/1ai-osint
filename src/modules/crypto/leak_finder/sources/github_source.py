@@ -1,4 +1,5 @@
 """GitHub source adapter for leak finding."""
+
 from __future__ import annotations
 
 import asyncio
@@ -6,11 +7,11 @@ import logging
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Optional
 
 import httpx
 
 logger = logging.getLogger(__name__)
+
 
 @dataclass
 class RawLeak:
@@ -19,17 +20,26 @@ class RawLeak:
     source_url: str = ""
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
-_QUERIES = ['"PRIVATE_KEY" "0x" hex', '"PRIVATE_KEY=" filetype:env', '"SECRET_KEY=" filetype:env', 'filename:wallet.txt "seed"', 'mnemonic "seed phrase"']
+
+_QUERIES = [
+    '"PRIVATE_KEY" "0x" hex',
+    '"PRIVATE_KEY=" filetype:env',
+    '"SECRET_KEY=" filetype:env',
+    'filename:wallet.txt "seed"',
+    'mnemonic "seed phrase"',
+]
+
 
 class GitHubLeakSource:
     SEARCH_URL = "https://api.github.com/search/code"
-    def __init__(self, github_token: Optional[str] = None, rate_limit: int = 0, timeout: float = 30.0):
+
+    def __init__(self, github_token: str | None = None, rate_limit: int = 0, timeout: float = 30.0):
         self.github_token = github_token or ""
         self.rate_limit = rate_limit or (30 if self.github_token else 10)
         self.timeout = timeout
         self._request_times: list[float] = []
 
-    async def fetch_raw_leaks(self, queries: Optional[list[str]] = None, max_per_query: int = 30) -> list[RawLeak]:
+    async def fetch_raw_leaks(self, queries: list[str] | None = None, max_per_query: int = 30) -> list[RawLeak]:
         queries = queries or _QUERIES
         leaks: list[RawLeak] = []
         headers = self._make_headers()
@@ -37,7 +47,9 @@ class GitHubLeakSource:
             for query in queries:
                 await self._rate_limit()
                 try:
-                    resp = await client.get(self.SEARCH_URL, params={"q": query, "per_page": min(max_per_query, 30)}, headers=headers)
+                    resp = await client.get(
+                        self.SEARCH_URL, params={"q": query, "per_page": min(max_per_query, 30)}, headers=headers
+                    )
                     if resp.status_code == 403:
                         await asyncio.sleep(60)
                         continue
@@ -60,7 +72,7 @@ class GitHubLeakSource:
             h["Authorization"] = f"token {self.github_token}"
         return h
 
-    async def _fetch_raw_file(self, client: httpx.AsyncClient, html_url: str, headers: dict[str, str]) -> Optional[str]:
+    async def _fetch_raw_file(self, client: httpx.AsyncClient, html_url: str, headers: dict[str, str]) -> str | None:
         await self._rate_limit()
         try:
             raw_url = html_url.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/")

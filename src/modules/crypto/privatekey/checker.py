@@ -6,7 +6,7 @@ Validates detected private key strings against known formats
 
 import base64
 import re
-from typing import Any, Optional
+from typing import Any
 
 # WIF prefixes: K/L (compressed) or 5 (uncompressed) for mainnet
 _WIF_PATTERN = re.compile(r"^([5KL][1-9A-HJ-NP-Za-km-z]{50,51})$")
@@ -32,7 +32,7 @@ class KeyValidationResult:
     def __init__(
         self,
         raw: str,
-        detected_format: Optional[str],
+        detected_format: str | None,
         is_valid_format: bool,
         details: dict[str, Any],
     ):
@@ -49,15 +49,11 @@ class KeyValidationResult:
         }
 
     def __repr__(self) -> str:
-        return (
-            f"<KeyValidationResult(format='{self.detected_format}', "
-            f"valid={self.is_valid_format})>"
-        )
+        return f"<KeyValidationResult(format='{self.detected_format}', " f"valid={self.is_valid_format})>"
 
 
 def validate_wif(key: str) -> KeyValidationResult:
-    """
-    Validate a WIF (Wallet Import Format) private key.
+    """Validate a WIF (Wallet Import Format) private key.
 
     WIF keys:
     - Start with '5' (uncompressed) or 'K'/'L' (compressed)
@@ -69,6 +65,7 @@ def validate_wif(key: str) -> KeyValidationResult:
 
     Returns:
         KeyValidationResult with validation details.
+
     """
     key = key.strip()
     match = _WIF_PATTERN.match(key)
@@ -115,14 +112,14 @@ def validate_wif(key: str) -> KeyValidationResult:
 
 
 def validate_hex_key(key: str) -> KeyValidationResult:
-    """
-    Validate a hex-encoded private key (32 bytes = 64 hex chars).
+    """Validate a hex-encoded private key (32 bytes = 64 hex chars).
 
     Args:
         key: Hex string (optionally prefixed with 0x).
 
     Returns:
         KeyValidationResult with validation details.
+
     """
     key = key.strip()
     is_prefixed = key.startswith("0x")
@@ -143,9 +140,7 @@ def validate_hex_key(key: str) -> KeyValidationResult:
         # Check valid range for secp256k1 (must be < curve order)
         try:
             key_int = int(hex_part, 16)
-            secp256k1_order = (
-                0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
-            )
+            secp256k1_order = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
             details["in_valid_range"] = 0 < key_int < secp256k1_order
         except ValueError:
             details["in_valid_range"] = False
@@ -159,14 +154,14 @@ def validate_hex_key(key: str) -> KeyValidationResult:
 
 
 def validate_base58_key(key: str) -> KeyValidationResult:
-    """
-    Validate a Base58-encoded key string.
+    """Validate a Base58-encoded key string.
 
     Args:
         key: Base58 string.
 
     Returns:
         KeyValidationResult with validation details.
+
     """
     key = key.strip()
     is_valid = bool(_BASE58_PATTERN.match(key))
@@ -192,14 +187,14 @@ def validate_base58_key(key: str) -> KeyValidationResult:
 
 
 def validate_pem_key(pem_text: str) -> KeyValidationResult:
-    """
-    Validate a PEM-encoded private key.
+    """Validate a PEM-encoded private key.
 
     Args:
         pem_text: Full PEM block string.
 
     Returns:
         KeyValidationResult with validation details.
+
     """
     pem_text = pem_text.strip()
     is_encrypted = bool(_PEM_ENC_PATTERN.search(pem_text))
@@ -242,8 +237,7 @@ def validate_pem_key(pem_text: str) -> KeyValidationResult:
 
 
 def validate_key(raw: str) -> KeyValidationResult:
-    """
-    Auto-detect and validate a private key string.
+    """Auto-detect and validate a private key string.
 
     Tries formats in order: PEM, WIF, hex (0x-prefixed), hex, Base58.
 
@@ -253,6 +247,7 @@ def validate_key(raw: str) -> KeyValidationResult:
     Returns:
         KeyValidationResult for the first matching format, or
         a result with detected_format=None if no format matched.
+
     """
     raw = raw.strip()
 

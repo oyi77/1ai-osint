@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
-from typing import Optional
 
 import httpx
 
@@ -32,8 +31,8 @@ class GitHubLeakScanner:
 
     def __init__(
         self,
-        github_token: Optional[str] = None,
-        hit_logger: Optional[HitLogger] = None,
+        github_token: str | None = None,
+        hit_logger: HitLogger | None = None,
     ):
         self.github_token = github_token or os.environ.get("GITHUB_TOKEN", "")
         self.hit_logger = hit_logger
@@ -47,6 +46,7 @@ class GitHubLeakScanner:
 
         Returns:
             List of LeakFinding objects with candidates.
+
         """
         findings = []
         queries = [
@@ -103,15 +103,13 @@ class GitHubLeakScanner:
         client: httpx.AsyncClient,
         file_url: str,
         headers: dict,
-    ) -> Optional[LeakFinding]:
+    ) -> LeakFinding | None:
         """Fetch a GitHub file and scan for mnemonics and private keys."""
         await self._rate_limit()
 
         try:
             # Convert HTML URL to raw content URL
-            raw_url = file_url.replace(
-                "github.com", "raw.githubusercontent.com"
-            ).replace("/blob/", "/")
+            raw_url = file_url.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/")
             resp = await client.get(raw_url, headers=headers)
             resp.raise_for_status()
             text = resp.text
@@ -164,9 +162,9 @@ class GitHubLeakScanner:
     async def verify_and_alert(
         self,
         mnemonic_candidate: str,
-        chains: Optional[list[ChainConfig]] = None,
+        chains: list[ChainConfig] | None = None,
         count: int = 6,
-    ) -> Optional[LeakFinding]:
+    ) -> LeakFinding | None:
         """Validate and check a GitHub-sourced mnemonic candidate.
 
         Delegates to the standalone verify_and_alert function.
@@ -175,6 +173,7 @@ class GitHubLeakScanner:
             mnemonic_candidate: Potential mnemonic phrase to verify.
             chains: Chains to check. Defaults to all.
             count: Number of address indices to derive per chain (default 6 for leak-sourced).
+
         """
         return await verify_and_alert(
             mnemonic_candidate,

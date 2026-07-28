@@ -1,5 +1,5 @@
 import os
-from typing import Any, Dict
+from typing import Any
 
 import requests
 
@@ -13,7 +13,7 @@ class HIBPTool(OSINTTool):
     API_URL = "https://haveibeenpwned.com/api/v3/breachedaccount/{}"
     API_KEY = os.environ.get("HIBP_API_KEY")
 
-    def search(self, query: str, **kwargs) -> Dict[str, Any]:
+    def search(self, query: str, **kwargs) -> dict[str, Any]:
         headers = {"hibp-api-key": self.API_KEY or "", "user-agent": "1ai-osint"}
         try:
             resp = requests.get(
@@ -28,14 +28,14 @@ class HIBPTool(OSINTTool):
         except Exception as e:
             return {"status": "error", "tool": self.name, "error": str(e)}
 
-    def scan(self, query: str, **kwargs) -> Dict[str, Any]:
+    def scan(self, query: str, **kwargs) -> dict[str, Any]:
         return {
             "status": "error",
             "tool": self.name,
             "error": "Scan not supported for HIBP",
         }
 
-    def analyze(self, data: Any, **kwargs) -> Dict[str, Any]:
+    def analyze(self, data: Any, **kwargs) -> dict[str, Any]:
         return {"note": "No advanced analysis implemented for HIBP"}
 
     def learn(self, feedback: Any, **kwargs) -> None:

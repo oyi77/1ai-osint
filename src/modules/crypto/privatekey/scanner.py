@@ -9,7 +9,7 @@ import re
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from src.core.models import Finding, ScanResult, Severity
 from src.modules.base.base import BaseOSINTTool
@@ -41,14 +41,14 @@ _SEVERITY_MAP: dict[str, Severity] = {
 
 
 def detect_key_format(text: str) -> list[dict[str, Any]]:
-    """
-    Scan raw text for private key patterns.
+    """Scan raw text for private key patterns.
 
     Args:
         text: Raw text content to scan.
 
     Returns:
         List of dicts with keys: format, match, position, severity.
+
     """
     results = []
     for fmt, pattern in _PATTERNS.items():
@@ -69,14 +69,14 @@ def detect_key_format(text: str) -> list[dict[str, Any]]:
 
 
 def scan_file(file_path: Path) -> list[dict[str, Any]]:
-    """
-    Scan a single file for private key patterns.
+    """Scan a single file for private key patterns.
 
     Args:
         file_path: Path to the file to scan.
 
     Returns:
         List of detection results.
+
     """
     try:
         content = file_path.read_text(encoding="utf-8", errors="ignore")
@@ -98,29 +98,29 @@ class PrivateKeyScanner(BaseOSINTTool):
     def __init__(
         self,
         githound_path: str = "githound",
-        zkit_salt: Optional[str] = None,
+        zkit_salt: str | None = None,
     ):
         super().__init__(zkit_salt=zkit_salt)
         self.githound_path = githound_path
 
     async def search(self, query: str, **kwargs) -> ScanResult:
-        """
-        Search a repository path for private keys using GitHound.
+        """Search a repository path for private keys using GitHound.
 
         Args:
             query: Path to git repository.
+
         """
         return await self.scan(query, **kwargs)
 
     async def scan(self, target: str, **kwargs) -> ScanResult:
-        """
-        Scan a repository or directory for private keys.
+        """Scan a repository or directory for private keys.
 
         Uses GitHound subprocess for git repos, falls back to
         regex scanning for plain directories.
 
         Args:
             target: Path to repository or directory.
+
         """
         scan_id = self._make_scan_id()
         started_at = datetime.now(timezone.utc)
@@ -158,9 +158,7 @@ class PrivateKeyScanner(BaseOSINTTool):
             completed_at=datetime.now(timezone.utc),
         )
 
-    async def _scan_with_githound(
-        self, repo_path: Path, scan_id: str, **kwargs
-    ) -> list[Finding]:
+    async def _scan_with_githound(self, repo_path: Path, scan_id: str, **kwargs) -> list[Finding]:
         """Run GitHound subprocess to detect keys in git history."""
         findings = []
         try:
@@ -228,10 +226,7 @@ class PrivateKeyScanner(BaseOSINTTool):
                 continue
             if file_path.suffix.lower() not in _SCAN_EXTENSIONS:
                 continue
-            if any(
-                part.startswith(".") and part not in {".env"}
-                for part in file_path.relative_to(target_path).parts
-            ):
+            if any(part.startswith(".") and part not in {".env"} for part in file_path.relative_to(target_path).parts):
                 # Skip hidden dirs except .env files
                 if file_path.suffix != ".env":
                     continue
@@ -258,7 +253,7 @@ class PrivateKeyScanner(BaseOSINTTool):
 
         return findings
 
-    def _raw_to_finding(self, raw: dict, scan_id: str) -> Optional[Finding]:
+    def _raw_to_finding(self, raw: dict, scan_id: str) -> Finding | None:
         """Convert a GitHound JSON result to a Finding."""
         rule_id = raw.get("rule_id", raw.get("rule-id", "private-key"))
         severity = _SEVERITY_MAP.get(rule_id, Severity.HIGH)

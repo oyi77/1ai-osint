@@ -5,7 +5,7 @@ Supports both sync and async calling patterns, plus multimodal content.
 
 import logging
 import time
-from typing import Any, Optional
+from typing import Any
 
 from openai import APIConnectionError, APITimeoutError, AsyncOpenAI, OpenAI, RateLimitError
 
@@ -27,8 +27,8 @@ class OmniRouteClient:
 
     def __init__(
         self,
-        base_url: Optional[str] = None,
-        api_key: Optional[str] = None,
+        base_url: str | None = None,
+        api_key: str | None = None,
         model: str = _DEFAULT_MODEL,
         max_retries: int = _MAX_RETRIES,
     ):
@@ -45,8 +45,8 @@ class OmniRouteClient:
         self._async_primary = AsyncOpenAI(base_url=base, api_key=key)
 
         # Fallback: direct OpenAI (only if OmniRoute differs and direct key exists)
-        self._fallback_client: Optional[OpenAI] = None
-        self._async_fallback: Optional[AsyncOpenAI] = None
+        self._fallback_client: OpenAI | None = None
+        self._async_fallback: AsyncOpenAI | None = None
         if settings.openai_api_key and settings.openai_base_url != settings.omniroute_base_url:
             self._fallback_client = OpenAI(
                 base_url=settings.openai_base_url,
@@ -69,7 +69,7 @@ class OmniRouteClient:
     ) -> str:
         """Send a chat completion request with exponential backoff retry."""
         delay = _RETRY_DELAY
-        last_error: Optional[Exception] = None
+        last_error: Exception | None = None
 
         for attempt in range(1, self.max_retries + 1):
             try:
@@ -105,7 +105,7 @@ class OmniRouteClient:
     ) -> str:
         """Send an async chat completion request with exponential backoff retry."""
         delay = _RETRY_DELAY
-        last_error: Optional[Exception] = None
+        last_error: Exception | None = None
 
         for attempt in range(1, self.max_retries + 1):
             try:
@@ -136,18 +136,19 @@ class OmniRouteClient:
     def chat(
         self,
         messages: list[dict[str, Any]],
-        model: Optional[str] = None,
+        model: str | None = None,
         **kwargs: Any,
     ) -> str:
-        """
-        Send a chat completion request (sync). Falls back to direct OpenAI if OmniRoute fails.
+        """Send a chat completion request (sync). Falls back to direct OpenAI if OmniRoute fails.
 
         Args:
             messages: Chat messages in OpenAI format.
             model: Model override (defaults to self.model).
             **kwargs: Additional parameters passed to completions.create().
+
         Returns:
             Assistant response text.
+
         """
         call_kwargs = dict(kwargs)
         if model:
@@ -193,18 +194,19 @@ class OmniRouteClient:
     async def async_chat(
         self,
         messages: list[dict[str, Any]],
-        model: Optional[str] = None,
+        model: str | None = None,
         **kwargs: Any,
     ) -> str:
-        """
-        Send a chat completion request (async). Falls back to direct OpenAI if OmniRoute fails.
+        """Send a chat completion request (async). Falls back to direct OpenAI if OmniRoute fails.
 
         Args:
             messages: Chat messages in OpenAI format.
             model: Model override (defaults to self.model).
             **kwargs: Additional parameters passed to completions.create().
+
         Returns:
             Assistant response text.
+
         """
         call_kwargs = dict(kwargs)
         if model:
@@ -247,12 +249,11 @@ class OmniRouteClient:
         self,
         text_content: str,
         system_prompt: str = "",
-        image_urls: Optional[list[str]] = None,
-        model: Optional[str] = None,
+        image_urls: list[str] | None = None,
+        model: str | None = None,
         **kwargs: Any,
     ) -> str:
-        """
-        Send a multimodal chat request (text + optional images). Sync.
+        """Send a multimodal chat request (text + optional images). Sync.
 
         Args:
             text_content: The user text message.
@@ -260,8 +261,10 @@ class OmniRouteClient:
             image_urls: Optional list of image URLs to include.
             model: Model override.
             **kwargs: Additional chat parameters.
+
         Returns:
             Assistant response text.
+
         """
         content: list[dict[str, Any]] = [{"type": "text", "text": text_content}]
         if image_urls:
@@ -278,12 +281,11 @@ class OmniRouteClient:
         self,
         text_content: str,
         system_prompt: str = "",
-        image_urls: Optional[list[str]] = None,
-        model: Optional[str] = None,
+        image_urls: list[str] | None = None,
+        model: str | None = None,
         **kwargs: Any,
     ) -> str:
-        """
-        Send a multimodal chat request (text + optional images). Async.
+        """Send a multimodal chat request (text + optional images). Async.
 
         Args:
             text_content: The user text message.
@@ -291,8 +293,10 @@ class OmniRouteClient:
             image_urls: Optional list of image URLs to include.
             model: Model override.
             **kwargs: Additional chat parameters.
+
         Returns:
             Assistant response text.
+
         """
         content: list[dict[str, Any]] = [{"type": "text", "text": text_content}]
         if image_urls:

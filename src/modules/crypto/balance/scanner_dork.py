@@ -5,7 +5,6 @@ from __future__ import annotations
 import logging
 import os
 import re
-from typing import Optional
 
 import httpx
 
@@ -45,8 +44,8 @@ class DorkScanner:
 
     def __init__(
         self,
-        hit_logger: Optional[HitLogger] = None,
-        github_token: Optional[str] = None,
+        hit_logger: HitLogger | None = None,
+        github_token: str | None = None,
     ):
         self.hit_logger = hit_logger
         self.github_token = github_token or os.environ.get("GITHUB_TOKEN", "")
@@ -59,6 +58,7 @@ class DorkScanner:
 
         Returns:
             List of LeakFinding objects with candidates.
+
         """
         findings = []
 
@@ -75,9 +75,7 @@ class DorkScanner:
 
         return findings
 
-    async def _search_bing(
-        self, client: httpx.AsyncClient, query: str, limit: int
-    ) -> list[str]:
+    async def _search_bing(self, client: httpx.AsyncClient, query: str, limit: int) -> list[str]:
         """Search Bing and return result URLs."""
         try:
             resp = await client.get(
@@ -92,28 +90,17 @@ class DorkScanner:
                 resp.text,
             )
             # Filter out Bing's own URLs
-            urls = [
-                u
-                for u in urls
-                if not any(
-                    domain in u
-                    for domain in ["bing.com", "microsoft.com", "go.microsoft"]
-                )
-            ]
+            urls = [u for u in urls if not any(domain in u for domain in ["bing.com", "microsoft.com", "go.microsoft"])]
             return urls[:limit]
         except Exception as e:
             logger.debug("Bing search error for '%s': %s", query, e)
             return []
 
-    async def _fetch_and_scan(
-        self, client: httpx.AsyncClient, url: str
-    ) -> Optional[LeakFinding]:
+    async def _fetch_and_scan(self, client: httpx.AsyncClient, url: str) -> LeakFinding | None:
         """Fetch a URL and scan for mnemonic patterns."""
         try:
             # Skip binary files
-            if any(
-                url.endswith(ext) for ext in (".png", ".jpg", ".gif", ".zip", ".pdf")
-            ):
+            if any(url.endswith(ext) for ext in (".png", ".jpg", ".gif", ".zip", ".pdf")):
                 return None
 
             resp = await client.get(url, follow_redirects=True)
@@ -152,9 +139,9 @@ class DorkScanner:
     async def verify_and_alert(
         self,
         mnemonic_candidate: str,
-        chains: Optional[list[ChainConfig]] = None,
+        chains: list[ChainConfig] | None = None,
         count: int = 6,
-    ) -> Optional[LeakFinding]:
+    ) -> LeakFinding | None:
         """Validate and check a dork-sourced mnemonic candidate.
 
         Delegates to the standalone verify_and_alert function.
@@ -163,6 +150,7 @@ class DorkScanner:
             mnemonic_candidate: Potential mnemonic phrase to verify.
             chains: Chains to check. Defaults to all.
             count: Number of address indices to derive per chain (default 6 for leak-sourced).
+
         """
         return await verify_and_alert(
             mnemonic_candidate,

@@ -9,8 +9,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Awaitable
 from datetime import datetime, timezone
-from typing import Any, Awaitable, Optional
+from typing import Any
 
 from src.core.models import ScanResult
 from src.modules.deep_scan import (
@@ -62,7 +63,7 @@ class DeepScanEngine:
         max_iterations: int = 10,
         max_identifiers: int = 500,
         timeout_per_module: float = 60.0,
-        modules: Optional[list[str]] = None,
+        modules: list[str] | None = None,
         *,
         fast: bool = False,
         max_concurrency: int = 24,
@@ -309,7 +310,7 @@ class DeepScanEngine:
         )
         return result
 
-    def _run_zkit_correlation(self, result: DeepScanResult) -> Optional[Any]:
+    def _run_zkit_correlation(self, result: DeepScanResult) -> Any | None:
         """Run ZKIT identity correlation on all collected scan results."""
         if not result.scan_results:
             return None
@@ -550,7 +551,7 @@ class DeepScanEngine:
         return set(ranked[: self.max_targets_per_iteration])
 
     @staticmethod
-    def _detect_identifier(value: str, source: str) -> Optional[Identifier]:
+    def _detect_identifier(value: str, source: str) -> Identifier | None:
         """Auto-detect the type of an identifier."""
         import re
 

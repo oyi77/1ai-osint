@@ -12,7 +12,7 @@ import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from src.core.models import Finding, ScanResult, Severity
 
@@ -32,7 +32,7 @@ class ReportSection:
 
     title: str
     items: list[str | dict[str, Any]]
-    severity: Optional[str] = None
+    severity: str | None = None
     icon: str = ""
 
 
@@ -121,9 +121,7 @@ class ReportEngine:
                 text = str(raw)
 
                 # Emails
-                for m in re.finditer(
-                    r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", text
-                ):
+                for m in re.finditer(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", text):
                     all_emails.add(m.group())
 
                 # Usernames
@@ -135,9 +133,7 @@ class ReportEngine:
                     all_phones.add(m.group())
 
                 # Domains
-                for m in re.finditer(
-                    r"(?:https?://)?([a-zA-Z0-9][-a-zA-Z0-9]*\.)+[a-zA-Z]{2,}", text
-                ):
+                for m in re.finditer(r"(?:https?://)?([a-zA-Z0-9][-a-zA-Z0-9]*\.)+[a-zA-Z]{2,}", text):
                     all_domains.add(m.group())
 
                 # IPs
@@ -177,9 +173,7 @@ class ReportEngine:
         report.metadata = {
             "scan_count": len(results),
             "total_findings": len(all_findings),
-            "critical_findings": sum(
-                1 for f in all_findings if f.severity == Severity.CRITICAL
-            ),
+            "critical_findings": sum(1 for f in all_findings if f.severity == Severity.CRITICAL),
             "sources_used": list({sr.module for sr in results}),
         }
 
@@ -198,8 +192,4 @@ class ReportEngine:
 
     def extract_identifiers_for_scan(self, report: ReportData) -> list[dict[str, str]]:
         """Extract identifiers from a report that can be used as scan inputs."""
-        return [
-            {"value": ident["value"], "type": ident["type"]}
-            for ident in report.identifiers
-            if ident.get("value")
-        ]
+        return [{"value": ident["value"], "type": ident["type"]} for ident in report.identifiers if ident.get("value")]

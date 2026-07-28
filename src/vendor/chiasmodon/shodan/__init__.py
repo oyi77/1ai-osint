@@ -1,5 +1,5 @@
 import os
-from typing import Any, Dict
+from typing import Any
 
 import requests
 
@@ -13,7 +13,7 @@ class ShodanTool(OSINTTool):
     API_URL = "https://api.shodan.io/shodan/host/{}"
     API_KEY = os.environ.get("SHODAN_API_KEY")
 
-    def search(self, query: str, **kwargs) -> Dict[str, Any]:
+    def search(self, query: str, **kwargs) -> dict[str, Any]:
         params = {"key": self.API_KEY}
         try:
             resp = requests.get(self.API_URL.format(query), params=params)
@@ -24,14 +24,14 @@ class ShodanTool(OSINTTool):
         except Exception as e:
             return {"status": "error", "tool": self.name, "error": str(e)}
 
-    def scan(self, query: str, **kwargs) -> Dict[str, Any]:
+    def scan(self, query: str, **kwargs) -> dict[str, Any]:
         return {
             "status": "error",
             "tool": self.name,
             "error": "Scan not supported for Shodan",
         }
 
-    def analyze(self, data: Any, **kwargs) -> Dict[str, Any]:
+    def analyze(self, data: Any, **kwargs) -> dict[str, Any]:
         return {"note": "No advanced analysis for Shodan"}
 
     def learn(self, feedback: Any, **kwargs) -> None:

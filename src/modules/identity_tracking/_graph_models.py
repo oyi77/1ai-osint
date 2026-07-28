@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -31,7 +31,7 @@ class GraphNode(BaseModel):
     sources: list[str] = Field(default_factory=list)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
-    def touch(self, source: Optional[str] = None) -> None:
+    def touch(self, source: str | None = None) -> None:
         """Update last_seen timestamp and optionally add a source."""
         self.last_seen = datetime.now(timezone.utc)
         if source and source not in self.sources:
@@ -50,7 +50,7 @@ class GraphEdge(BaseModel):
     sources: list[str] = Field(default_factory=list)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
-    def touch(self, source: Optional[str] = None, weight_increment: float = 0.0) -> None:
+    def touch(self, source: str | None = None, weight_increment: float = 0.0) -> None:
         """Update co-occurrence count, weight, and timestamp."""
         self.last_seen = datetime.now(timezone.utc)
         self.co_occurrences += 1

@@ -4,7 +4,7 @@ import hashlib
 import uuid
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -15,13 +15,9 @@ class ZKITNode(BaseModel):
     """A node in the ZKIT identity graph."""
 
     zkit_hash: str = Field(..., description="Salted SHA-256 hash of the attribute")
-    attribute_type: str = Field(
-        ..., description="Type of attribute (email, username, etc.)"
-    )
-    salt_fingerprint: str = Field(
-        default="", description="Truncated SHA-256 of salt (never the raw salt)"
-    )
-    correlation_id: Optional[str] = None
+    attribute_type: str = Field(..., description="Type of attribute (email, username, etc.)")
+    salt_fingerprint: str = Field(default="", description="Truncated SHA-256 of salt (never the raw salt)")
+    correlation_id: str | None = None
     first_seen: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     last_seen: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     sources: list[str] = Field(default_factory=list)
@@ -29,8 +25,7 @@ class ZKITNode(BaseModel):
 
 
 class BaseOSINTTool(ABC):
-    """
-    Abstract base class for all 1ai-osint OSINT modules.
+    """Abstract base class for all 1ai-osint OSINT modules.
 
     Provides:
     - Async search/scan/analyze/learn interface
@@ -43,66 +38,65 @@ class BaseOSINTTool(ABC):
     description: str = ""
     version: str = "0.1.0"
 
-    def __init__(self, zkit_salt: Optional[str] = None):
-        """
-        Args:
-            zkit_salt: Salt for ZKIT identity hashing. If not provided,
-                       hashes will use a random salt (non-reproducible).
+    def __init__(self, zkit_salt: str | None = None):
+        """Args:
+        zkit_salt: Salt for ZKIT identity hashing. If not provided,
+                   hashes will use a random salt (non-reproducible).
+
         """
         self._zkit_salt = zkit_salt or ""
 
     @abstractmethod
     async def search(self, query: str, **kwargs) -> ScanResult:
-        """
-        Perform a search query.
+        """Perform a search query.
 
         Args:
             query: The search query (email, username, domain, etc.)
             **kwargs: Module-specific options
         Returns:
             ScanResult with findings
+
         """
         ...
 
     @abstractmethod
     async def scan(self, target: str, **kwargs) -> ScanResult:
-        """
-        Perform a deeper scan operation.
+        """Perform a deeper scan operation.
 
         Args:
             target: The scan target (URL, path, repo, etc.)
             **kwargs: Module-specific options
         Returns:
             ScanResult with findings
+
         """
         ...
 
     @abstractmethod
     async def analyze(self, data: Any, **kwargs) -> dict[str, Any]:
-        """
-        Analyze OSINT data for patterns and insights.
+        """Analyze OSINT data for patterns and insights.
 
         Args:
             data: Raw or structured OSINT data
             **kwargs: Analysis options
         Returns:
             Analysis results dict
+
         """
         ...
 
     @abstractmethod
     async def learn(self, feedback: dict[str, Any], **kwargs) -> None:
-        """
-        Update internal models based on feedback.
+        """Update internal models based on feedback.
 
         Args:
             feedback: Feedback data (false positives, corrections, etc.)
+
         """
         ...
 
-    def hash_identity(self, attribute: str, salt: Optional[str] = None) -> str:
-        """
-        Generate a ZKIT privacy-preserving hash for an identity attribute.
+    def hash_identity(self, attribute: str, salt: str | None = None) -> str:
+        """Generate a ZKIT privacy-preserving hash for an identity attribute.
 
         Uses SHA-256 with a per-investigation salt to prevent rainbow table attacks.
         The raw attribute value is NEVER stored - only the hash.
@@ -110,22 +104,23 @@ class BaseOSINTTool(ABC):
         Args:
             attribute: The raw attribute value (email, phone, etc.)
             salt: Optional override salt. Defaults to instance salt.
+
         Returns:
             Hex-encoded SHA-256 hash string
+
         """
         effective_salt = salt if salt is not None else self._zkit_salt
         # Format: salt + ":" + attribute -> SHA-256
-        preimage = f"{effective_salt}:{attribute}".encode("utf-8")
+        preimage = f"{effective_salt}:{attribute}".encode()
         return hashlib.sha256(preimage).hexdigest()
 
     def to_zkit_node(
         self,
         result: Finding,
         attribute_type: str = "unknown",
-        salt: Optional[str] = None,
+        salt: str | None = None,
     ) -> ZKITNode:
-        """
-        Convert a Finding into a ZKITNode for identity graph insertion.
+        """Convert a Finding into a ZKITNode for identity graph insertion.
 
         The finding's raw_data is inspected for common identity fields,
         and each is hashed using ZKIT protocol.
@@ -136,6 +131,7 @@ class BaseOSINTTool(ABC):
             salt: Optional override salt
         Returns:
             ZKITNode with hashed identity
+
         """
         # Extract a representative value from the finding
         raw = result.raw_data
@@ -150,9 +146,7 @@ class BaseOSINTTool(ABC):
 
         zkit_hash = self.hash_identity(value or result.id, salt)
 
-        salt_fingerprint = hashlib.sha256(
-            (salt if salt is not None else self._zkit_salt).encode()
-        ).hexdigest()[:16]
+        salt_fingerprint = hashlib.sha256((salt if salt is not None else self._zkit_salt).encode()).hexdigest()[:16]
 
         return ZKITNode(
             zkit_hash=zkit_hash,

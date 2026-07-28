@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import builtins
 import importlib
 import importlib.metadata
 import logging
 import pkgutil
-from typing import Any, List
+from typing import Any
 
 from src.plugin.base import BasePlugin
 
@@ -42,6 +43,7 @@ class PluginRegistry:
         Raises:
             ValueError: If a plugin with the same ``name`` is already
                         registered.
+
         """
         if plugin.name in self._plugins:
             raise ValueError(
@@ -72,6 +74,7 @@ class PluginRegistry:
 
         Returns:
             List of newly discovered and registered plugin instances.
+
         """
         discovered: list[BasePlugin] = []
 
@@ -92,16 +95,17 @@ class PluginRegistry:
 
         Raises:
             KeyError: If no plugin with *name* is registered.
+
         """
         if name not in self._plugins:
             raise KeyError(f"Plugin {name!r} not found. " f"Registered: {list(self._plugins.keys())}")
         return self._plugins[name]
 
-    def list(self) -> List[BasePlugin]:
+    def list(self) -> builtins.list[BasePlugin]:
         """Return all registered plugin instances."""
         return list(self._plugins.values())
 
-    def get_hooks(self, hook_name: str) -> List[BasePlugin]:
+    def get_hooks(self, hook_name: str) -> builtins.list[BasePlugin]:
         """Return plugins that implement a specific hook.
 
         Args:
@@ -109,6 +113,7 @@ class PluginRegistry:
 
         Returns:
             Plugins whose ``hooks`` list includes *hook_name*.
+
         """
         return [p for p in self._plugins.values() if hook_name in p.hooks]
 
@@ -116,7 +121,7 @@ class PluginRegistry:
     # Internal helpers
     # ------------------------------------------------------------------
 
-    def _discover_from_package(self, plugins_pkg: str) -> List[BasePlugin]:
+    def _discover_from_package(self, plugins_pkg: str) -> builtins.list[BasePlugin]:
         """Scan a package directory for ``plugin`` attributes."""
         discovered: list[BasePlugin] = []
 
@@ -153,7 +158,7 @@ class PluginRegistry:
 
         return discovered
 
-    def _discover_from_entry_points(self) -> List[BasePlugin]:
+    def _discover_from_entry_points(self) -> builtins.list[BasePlugin]:
         """Discover plugins via ``1ai_osint.plugins`` entry points."""
         discovered: list[BasePlugin] = []
 

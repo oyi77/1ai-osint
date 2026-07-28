@@ -6,7 +6,6 @@ import asyncio
 import logging
 import os
 import time
-from typing import Optional
 
 import httpx
 
@@ -22,7 +21,7 @@ class DehashedSource:
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         request_delay: float = 2.0,
         timeout: float = 30.0,
     ):
@@ -49,9 +48,7 @@ class DehashedSource:
         else:
             auth = (self.api_key, "")
 
-        async with httpx.AsyncClient(
-            timeout=self.timeout, follow_redirects=True
-        ) as client:
+        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
             try:
                 await self._rate_limit()
                 resp = await client.get(
@@ -82,11 +79,7 @@ class DehashedSource:
                                     key = (
                                         "password_hash"
                                         if field == "hashed_password"
-                                        else (
-                                            "breach_name"
-                                            if field == "database_name"
-                                            else field
-                                        )
+                                        else ("breach_name" if field == "database_name" else field)
                                     )
                                     structured[key] = str(val)
                         leaks.append(

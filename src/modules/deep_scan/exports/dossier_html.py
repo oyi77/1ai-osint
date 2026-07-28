@@ -7,7 +7,6 @@ from src.modules.deep_scan._dossier_models import TargetDossier
 
 def export_dossier_html(dossier: TargetDossier) -> str:
     """Generate a beautiful HTML intelligence dossier."""
-
     # Safely convert to dict for template rendering
     try:
         data = dossier.model_dump()

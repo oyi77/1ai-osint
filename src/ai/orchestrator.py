@@ -12,7 +12,7 @@ Pipeline stages:
 # mypy: disable-error-code="type-var"
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from langgraph.graph import END, StateGraph
 from langgraph.graph.state import CompiledStateGraph
@@ -51,23 +51,23 @@ class PipelineState(dict):
         return self.get("scan_results", [])
 
     @property
-    def extraction_result(self) -> Optional[EntityExtractionResult]:
+    def extraction_result(self) -> EntityExtractionResult | None:
         return self.get("extraction_result")
 
     @property
-    def correlation_result(self) -> Optional[CorrelationResult]:
+    def correlation_result(self) -> CorrelationResult | None:
         return self.get("correlation_result")
 
     @property
-    def behavioral_result(self) -> Optional[BehavioralAnalysisResult]:
+    def behavioral_result(self) -> BehavioralAnalysisResult | None:
         return self.get("behavioral_result")
 
     @property
-    def anomaly_result(self) -> Optional[AnomalyDetectionResult]:
+    def anomaly_result(self) -> AnomalyDetectionResult | None:
         return self.get("anomaly_result")
 
     @property
-    def risk_score(self) -> Optional[RiskScore]:
+    def risk_score(self) -> RiskScore | None:
         return self.get("risk_score")
 
     @property
@@ -75,13 +75,12 @@ class PipelineState(dict):
         return self.get("report", {})
 
     @property
-    def error(self) -> Optional[str]:
+    def error(self) -> str | None:
         return self.get("error")
 
 
 class AnalysisOrchestrator:
-    """
-    LangGraph state machine for AI-powered OSINT analysis.
+    """LangGraph state machine for AI-powered OSINT analysis.
 
     Pipeline stages:
     1. ingest    - Collect and normalize raw data / scan results
@@ -100,12 +99,12 @@ class AnalysisOrchestrator:
 
     def __init__(
         self,
-        client: Optional[OmniRouteClient] = None,
-        extractor: Optional[EntityExtractor] = None,
-        correlator: Optional[CorrelationEngine] = None,
-        scorer: Optional[RiskScorer] = None,
-        profiler: Optional[BehavioralProfiler] = None,
-        anomaly_detector: Optional[AnomalyDetector] = None,
+        client: OmniRouteClient | None = None,
+        extractor: EntityExtractor | None = None,
+        correlator: CorrelationEngine | None = None,
+        scorer: RiskScorer | None = None,
+        profiler: BehavioralProfiler | None = None,
+        anomaly_detector: AnomalyDetector | None = None,
         enable_behavioral_profiling: bool = False,
         enable_anomaly_detection: bool = False,
     ):
@@ -193,16 +192,17 @@ class AnalysisOrchestrator:
     async def run(
         self,
         raw_data: str = "",
-        scan_results: Optional[list[ScanResult]] = None,
+        scan_results: list[ScanResult] | None = None,
     ) -> dict[str, Any]:
-        """
-        Run the full analysis pipeline.
+        """Run the full analysis pipeline.
 
         Args:
             raw_data: Raw OSINT text for entity extraction.
             scan_results: Pre-computed ScanResults for risk scoring.
+
         Returns:
             Final report dict with extraction, correlation, and risk data.
+
         """
         initial_state: dict[str, Any] = {
             "raw_data": raw_data,

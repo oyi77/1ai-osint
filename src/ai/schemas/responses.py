@@ -1,7 +1,6 @@
 """Pydantic models for structured AI responses."""
 
 from enum import Enum
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -60,7 +59,7 @@ class FindingAssessment(BaseModel):
     is_false_positive: bool = False
     confidence: float = Field(default=0.5, ge=0.0, le=1.0)
     reasoning: str = ""
-    adjusted_severity: Optional[str] = None
+    adjusted_severity: str | None = None
 
 
 class FalsePositiveResult(BaseModel):
@@ -89,16 +88,22 @@ class LanguageStyle(BaseModel):
     """Language style characteristics for behavioral profiling."""
 
     formality_level: float = Field(
-        default=0.5, ge=0.0, le=1.0,
+        default=0.5,
+        ge=0.0,
+        le=1.0,
         description="0=very informal, 1=very formal",
     )
     common_phrases: list[str] = Field(default_factory=list)
     writing_complexity: float = Field(
-        default=0.5, ge=0.0, le=1.0,
+        default=0.5,
+        ge=0.0,
+        le=1.0,
         description="0=simple, 1=very complex",
     )
     sentiment_tendency: float = Field(
-        default=0.5, ge=0.0, le=1.0,
+        default=0.5,
+        ge=0.0,
+        le=1.0,
         description="0=very negative, 0.5=neutral, 1=very positive",
     )
 
@@ -114,7 +119,7 @@ class ActivityTimes(BaseModel):
         default_factory=list,
         description="Days of week when entity is most active",
     )
-    typical_frequency: Optional[str] = Field(
+    typical_frequency: str | None = Field(
         default=None,
         description="daily, weekly, sporadic",
     )
@@ -160,9 +165,9 @@ class DetectedAnomaly(BaseModel):
         default="",
         description="Which dimension is anomalous (timing, language, platform)",
     )
-    baseline_value: Optional[str] = None
-    observed_value: Optional[str] = None
-    z_score: Optional[float] = None
+    baseline_value: str | None = None
+    observed_value: str | None = None
+    z_score: float | None = None
 
 
 class AnomalyReport(BaseModel):

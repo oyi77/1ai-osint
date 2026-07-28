@@ -2,7 +2,7 @@
 
 import json
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from src.ai.omniroute_client import OmniRouteClient
 from src.ai.schemas.responses import EntityExtractionResult, EntityType, ExtractedEntity
@@ -13,17 +13,18 @@ logger = logging.getLogger(__name__)
 class EntityExtractor:
     """Extract entities from raw OSINT text using LLM-based analysis."""
 
-    def __init__(self, client: Optional[OmniRouteClient] = None):
+    def __init__(self, client: OmniRouteClient | None = None):
         self._client = client or OmniRouteClient()
 
     def extract(self, text: str) -> EntityExtractionResult:
-        """
-        Extract entities from raw OSINT text.
+        """Extract entities from raw OSINT text.
 
         Args:
             text: Raw text to extract entities from.
+
         Returns:
             EntityExtractionResult with extracted entities.
+
         """
         if not text or not text.strip():
             return EntityExtractionResult(entities=[], summary="Empty input")
@@ -39,16 +40,15 @@ class EntityExtractor:
                 raw_response="",
             )
 
-    def extract_from_findings(
-        self, findings: list[dict[str, Any]]
-    ) -> EntityExtractionResult:
-        """
-        Extract entities from a list of finding dicts (batch mode).
+    def extract_from_findings(self, findings: list[dict[str, Any]]) -> EntityExtractionResult:
+        """Extract entities from a list of finding dicts (batch mode).
 
         Args:
             findings: List of finding dictionaries with 'title', 'description', 'raw_data'.
+
         Returns:
             Aggregated EntityExtractionResult.
+
         """
         all_entities: list[ExtractedEntity] = []
         summaries: list[str] = []

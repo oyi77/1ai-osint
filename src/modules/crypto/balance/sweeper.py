@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Optional
 
 import httpx
 
@@ -49,14 +48,14 @@ class SweepResult:
     dest_address: str
     amount: float
     amount_raw: int
-    tx_hash: Optional[str] = None
-    error: Optional[str] = None
+    tx_hash: str | None = None
+    error: str | None = None
 
 
 class Sweeper:
     """Auto-sweeper for transferring found balances to configured wallets."""
 
-    def __init__(self, client: Optional[httpx.AsyncClient] = None):
+    def __init__(self, client: httpx.AsyncClient | None = None):
         self._client = client
         self._created_client = False
 
@@ -71,7 +70,7 @@ class Sweeper:
             await self._client.aclose()
             self._client = None
 
-    def get_destination(self, chain_name: str) -> Optional[str]:
+    def get_destination(self, chain_name: str) -> str | None:
         """Get the destination wallet address for a chain."""
         return DESTINATION_WALLETS.get(chain_name.lower())
 
@@ -92,6 +91,7 @@ class Sweeper:
 
         Returns:
             SweepResult with transaction details.
+
         """
         dest = self.get_destination(chain.name)
         if not dest:

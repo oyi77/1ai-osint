@@ -13,7 +13,6 @@ import os
 import tempfile
 import uuid
 from datetime import datetime, timezone
-from typing import List
 
 from src.core.models import Finding
 
@@ -27,7 +26,7 @@ class ExternalToolUsernameMixin:
         """Run an external command — provided by ExternalToolCoordinator."""
         raise NotImplementedError  # pragma: no cover
 
-    async def _run_sherlock(self, username: str) -> List[Finding]:
+    async def _run_sherlock(self, username: str) -> list[Finding]:
         """Execute Sherlock and parse CSV output."""
         import shutil
         import subprocess
@@ -62,7 +61,7 @@ class ExternalToolUsernameMixin:
                 await asyncio.to_thread(run_cmd)
 
                 if os.path.exists(csv_path):
-                    with open(csv_path, "r", encoding="utf-8") as f:
+                    with open(csv_path, encoding="utf-8") as f:
                         reader = csv.DictReader(f)
                         for row in reader:
                             site_name = row.get("name") or row.get("site_name") or "Unknown"
@@ -95,7 +94,7 @@ class ExternalToolUsernameMixin:
 
         return findings
 
-    async def _run_maigret(self, username: str) -> List[Finding]:
+    async def _run_maigret(self, username: str) -> list[Finding]:
         """Execute Maigret and parse JSON output."""
         findings = []
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -113,7 +112,7 @@ class ExternalToolUsernameMixin:
 
                 for f in os.listdir(tmpdir):
                     if f.endswith(".json"):
-                        with open(os.path.join(tmpdir, f), "r", encoding="utf-8") as jf:
+                        with open(os.path.join(tmpdir, f), encoding="utf-8") as jf:
                             data = json.load(jf)
                             user_data = data.get(username, {})
                             for site, info in user_data.items():
@@ -141,7 +140,7 @@ class ExternalToolUsernameMixin:
 
         return findings
 
-    async def _run_socialanalyzer(self, username: str) -> List[Finding]:
+    async def _run_socialanalyzer(self, username: str) -> list[Finding]:
         """Execute Social-Analyzer and parse output."""
         findings = []
         cmd = ["social-analyzer", "--username", username, "--output", "json"]
@@ -175,7 +174,7 @@ class ExternalToolUsernameMixin:
             logger.debug("Social-Analyzer failed: %s", e)
         return findings
 
-    async def _run_ghunt(self, target: str) -> List[Finding]:
+    async def _run_ghunt(self, target: str) -> list[Finding]:
         """Execute GHUNT for target (email/username)."""
         findings = []
         cmd = ["ghunt", "email", target, "--json"] if "@" in target else ["ghunt", "gaia", target, "--json"]
@@ -209,7 +208,7 @@ class ExternalToolUsernameMixin:
             logger.debug("GHUNT failed: %s", e)
         return findings
 
-    async def _run_leakosint(self, target: str) -> List[Finding]:
+    async def _run_leakosint(self, target: str) -> list[Finding]:
         """Execute LeakOSINT."""
         findings = []
         cmd = ["leakosint", target, "--json"]

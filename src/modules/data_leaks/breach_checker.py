@@ -39,8 +39,7 @@ class BreachChecker:
     """Scores breach severity based on data classes and breach metadata."""
 
     def score_severity(self, record: BreachRecord) -> Severity:
-        """
-        Calculate severity for a breach record.
+        """Calculate severity for a breach record.
 
         Scoring factors:
         - Data class sensitivity (passwords, financial > email, username)

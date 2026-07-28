@@ -18,7 +18,7 @@ class TheHarvesterSource:
         self.timeout = timeout
 
     async def fetch_raw_leaks(self) -> list[RawLeak]:
-        """theHarvester requires a domain target — no bulk fetch."""
+        """TheHarvester requires a domain target — no bulk fetch."""
         return []
 
     async def search_for_address(self, address: str) -> list[RawLeak]:

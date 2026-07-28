@@ -18,7 +18,7 @@ class HttpxSource:
         self.timeout = timeout
 
     async def fetch_raw_leaks(self) -> list[RawLeak]:
-        """httpx requires a target — no bulk fetch."""
+        """Httpx requires a target — no bulk fetch."""
         return []
 
     async def search_for_address(self, address: str) -> list[RawLeak]:

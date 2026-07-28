@@ -14,7 +14,6 @@ import random
 import signal
 import time
 from dataclasses import dataclass, field
-from typing import Optional
 
 import httpx
 from bip_utils import Bip39MnemonicGenerator, Bip39WordsNum
@@ -71,8 +70,8 @@ class RandomScanner:
         self,
         workers: int = 5,
         api_concurrency: int = 50,
-        chains: Optional[list[ChainConfig]] = None,
-        hit_logger: Optional[HitLogger] = None,
+        chains: list[ChainConfig] | None = None,
+        hit_logger: HitLogger | None = None,
     ):
         self.workers = workers
         self.chains = chains or list(ALL_CHAINS)
@@ -85,8 +84,8 @@ class RandomScanner:
         self._chain_min_interval: dict[str, float] = {}  # Set in run() after chains are known
         self._shutdown = False
         self._stats = ScannerStats()
-        self._client: Optional[httpx.AsyncClient] = None  # shared HTTP client
-        self._sweeper: Optional[Sweeper] = None  # shared sweeper instance
+        self._client: httpx.AsyncClient | None = None  # shared HTTP client
+        self._sweeper: Sweeper | None = None  # shared sweeper instance
         # Deduplication: bloom filter for bounded memory (~1.8MB for 1M items at 0.1% FP)
         from src.modules.crypto.balance.bloom import BloomFilter
 
@@ -171,8 +170,8 @@ class RandomScanner:
 
     async def run(
         self,
-        duration_sec: Optional[float] = None,
-        max_mnemonics: Optional[int] = None,
+        duration_sec: float | None = None,
+        max_mnemonics: int | None = None,
     ) -> ScannerStats:
         """Main scanner loop. Runs workers concurrently.
 
@@ -182,6 +181,7 @@ class RandomScanner:
 
         Returns:
             Final ScannerStats.
+
         """
         # Load persistent cumulative stats from SQLite
         self._stats = ScannerStats()
@@ -405,7 +405,7 @@ class RandomScanner:
         EVM chains (ETH/BSC/Polygon): JSON-RPC batch (N addresses in 1 HTTP request).
         BTC/SOL: individual calls with per-chain delay.
         """
-        results: list[Optional[object]] = [None] * len(addresses)
+        results: list[object | None] = [None] * len(addresses)
 
         # Group addresses by chain
         by_chain: dict[str, list[tuple[int, DerivedAddress]]] = {}
@@ -436,8 +436,8 @@ class RandomScanner:
     async def _check_chain_balances(
         self,
         chain_name: str,
-        idx_addrs: list[tuple[int, "DerivedAddress"]],
-        chain_cfg: "ChainConfig",
+        idx_addrs: list[tuple[int, DerivedAddress]],
+        chain_cfg: ChainConfig,
         results: list,
     ) -> list:
         """Check balances for one chain — batched for EVM/SOL, individual for BTC."""
@@ -629,6 +629,6 @@ class RandomScanner:
         self._shutdown = True
 
 
-def _find_chain(name: str, chains: list[ChainConfig]) -> Optional[ChainConfig]:
+def _find_chain(name: str, chains: list[ChainConfig]) -> ChainConfig | None:
     """Find a chain by name in a list."""
     return next((c for c in chains if c.name == name), None)

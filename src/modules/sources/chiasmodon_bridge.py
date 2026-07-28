@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from src.modules.sources.base import RawLeak
 
@@ -37,9 +37,7 @@ class ChiasmodonBridge:
         self._source_name = source_name
         self._tool = tool_instance
 
-    async def fetch_raw_leaks(
-        self, query: str = "private key mnemonic"
-    ) -> list[RawLeak]:
+    async def fetch_raw_leaks(self, query: str = "private key mnemonic") -> list[RawLeak]:
         """Run the chiasmodon tool's search() and convert results to RawLeak."""
         leaks: list[RawLeak] = []
         try:
@@ -67,7 +65,7 @@ class ChiasmodonBridge:
         return await self.fetch_raw_leaks(query=address)
 
 
-def _load_chiasmodon_tool(source_name: str) -> Optional[object]:
+def _load_chiasmodon_tool(source_name: str) -> object | None:
     """Lazy-load a chiasmodon tool by name."""
     spec = _CHIASMODON_SOURCES.get(source_name)
     if not spec:

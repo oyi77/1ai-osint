@@ -5,7 +5,7 @@ but a comprehensive background file answering specific questions about the targe
 """
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from src.modules.deep_scan._dossier_models import (
     EmailIntel,
@@ -25,14 +25,14 @@ class DossierCompiler:
         self,
         target: str,
         *,
-        github_profiles: Optional[list[Any]] = None,
-        gravatar_profiles: Optional[list[Any]] = None,
-        dork_results: Optional[list[Any]] = None,
-        messaging_results: Optional[list[Any]] = None,
-        bts_results: Optional[list[Any]] = None,
-        hibp_results: Optional[list[Any]] = None,
-        wayback_results: Optional[list[Any]] = None,
-        social_findings: Optional[list[Any]] = None,
+        github_profiles: list[Any] | None = None,
+        gravatar_profiles: list[Any] | None = None,
+        dork_results: list[Any] | None = None,
+        messaging_results: list[Any] | None = None,
+        bts_results: list[Any] | None = None,
+        hibp_results: list[Any] | None = None,
+        wayback_results: list[Any] | None = None,
+        social_findings: list[Any] | None = None,
         deep_scan_result: Any = None,
     ) -> TargetDossier:
         """Compile all intelligence into a dossier."""

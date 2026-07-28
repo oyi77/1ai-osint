@@ -117,6 +117,7 @@ class DeltaAnalyzer:
         Returns
         -------
         DeltaResult
+
         """
         from src.modules.monitoring.change_detector import ChangeDetector
 

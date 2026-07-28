@@ -3,7 +3,7 @@
 import asyncio
 import shutil
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -16,7 +16,7 @@ class Profile(BaseModel):
 
     platform: str = Field(..., description="Platform/site name")
     username: str = Field(..., description="Username on the platform")
-    url: Optional[str] = Field(default=None, description="Profile URL")
+    url: str | None = Field(default=None, description="Profile URL")
     status: str = Field(default="found", description="found, possibly, error")
     source_providers: list[str] = Field(default_factory=list, description="Providers that found this profile")
     confidence: float = Field(default=0.5, ge=0.0, le=1.0, description="Confidence score")
@@ -28,8 +28,7 @@ _CONFIDENCE_THRESHOLD = 0.3
 
 
 class PeopleFinderSearch(BaseOSINTTool):
-    """
-    Search for user profiles across social media platforms.
+    """Search for user profiles across social media platforms.
 
     Wraps chiasmodon's Sherlock, Maigret, and WhatsMyName providers
     to perform parallel username searches with profile deduplication
@@ -42,8 +41,8 @@ class PeopleFinderSearch(BaseOSINTTool):
 
     def __init__(
         self,
-        zkit_salt: Optional[str] = None,
-        providers: Optional[list[str]] = None,
+        zkit_salt: str | None = None,
+        providers: list[str] | None = None,
     ):
         super().__init__(zkit_salt=zkit_salt)
         self._requested_providers = providers
@@ -80,14 +79,14 @@ class PeopleFinderSearch(BaseOSINTTool):
         return available
 
     async def search(self, query: str, **kwargs) -> ScanResult:
-        """
-        Search for a username across social media platforms.
+        """Search for a username across social media platforms.
 
         Runs Sherlock, Maigret, and WhatsMyName in parallel,
         deduplicates results, and scores confidence.
 
         Args:
             query: Username to search for
+
         """
         from src.modules.deep_scan.name_pivots import primary_username_for_name
 
@@ -204,8 +203,7 @@ class PeopleFinderSearch(BaseOSINTTool):
         return await loop.run_in_executor(None, provider.search, query)
 
     def _parse_provider_results(self, provider_name: str, result: Any) -> list[dict[str, Any]]:
-        """
-        Parse a provider's raw result into normalized profile dicts.
+        """Parse a provider's raw result into normalized profile dicts.
 
         Each provider returns different formats:
         - Sherlock: {"site": {"url": ..., "status": ..., ...}}
@@ -267,8 +265,7 @@ class PeopleFinderSearch(BaseOSINTTool):
         return profiles
 
     def _deduplicate_profiles(self, raw_profiles: list[dict[str, Any]]) -> list[Profile]:
-        """
-        Deduplicate profiles across providers by platform key.
+        """Deduplicate profiles across providers by platform key.
 
         When multiple providers find the same profile, merge them
         and track which providers contributed.
@@ -316,8 +313,7 @@ class PeopleFinderSearch(BaseOSINTTool):
 
     @staticmethod
     def _score_confidence(source_providers: list[str], total_available: int) -> float:
-        """
-        Score confidence based on how many providers found the profile.
+        """Score confidence based on how many providers found the profile.
 
         - 1 provider: 0.5 base
         - 2 providers: 0.75

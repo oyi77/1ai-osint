@@ -21,9 +21,7 @@ class VulnScannerTool(BaseOSINTTool):
     """Scan infrastructure for vulnerabilities using scan4all."""
 
     name = "vuln_scanner"
-    description = (
-        "Infrastructure vulnerability assessment (CVEs, fingerprints, port scanning)"
-    )
+    description = "Infrastructure vulnerability assessment (CVEs, fingerprints, port scanning)"
 
     def __init__(self, binary_path: str = "scan4all"):
         self.binary_path = binary_path
@@ -44,8 +42,7 @@ class VulnScannerTool(BaseOSINTTool):
                 logger.warning("scan4all binary returned non-zero exit code")
         except FileNotFoundError:
             logger.warning(
-                "scan4all binary not found at '%s'. "
-                "Install with: go install github.com/GhostTroops/scan4all@latest",
+                "scan4all binary not found at '%s'. " "Install with: go install github.com/GhostTroops/scan4all@latest",
                 self.binary_path,
             )
         except (subprocess.TimeoutExpired, OSError) as exc:
@@ -63,6 +60,7 @@ class VulnScannerTool(BaseOSINTTool):
             **kwargs: Additional options:
                 mode: Scan mode — 'quick', 'full', or 'fingerprint'.
                 timeout: Per-host timeout in seconds.
+
         """
         mode = kwargs.get("mode", "quick")
         timeout = kwargs.get("timeout", 300)
@@ -88,9 +86,7 @@ class VulnScannerTool(BaseOSINTTool):
         """Learn from scan results (not implemented)."""
         raise NotImplementedError("VulnScannerTool does not support learning")
 
-    def _run_scan(
-        self, target: str, mode: str = "quick", timeout: int = 300
-    ) -> list[Finding]:
+    def _run_scan(self, target: str, mode: str = "quick", timeout: int = 300) -> list[Finding]:
         """Execute scan4all and parse results.
 
         Args:
@@ -100,11 +96,10 @@ class VulnScannerTool(BaseOSINTTool):
 
         Returns:
             List of Finding objects for discovered vulnerabilities.
+
         """
         if mode not in SUPPORTED_MODES:
-            raise ValueError(
-                f"Unsupported mode: {mode!r}. Choose from {SUPPORTED_MODES}"
-            )
+            raise ValueError(f"Unsupported mode: {mode!r}. Choose from {SUPPORTED_MODES}")
 
         cmd = self._build_command(target, mode)
         logger.info("Running: %s", " ".join(cmd))
@@ -137,6 +132,7 @@ class VulnScannerTool(BaseOSINTTool):
 
         Returns:
             Command as a list of strings.
+
         """
         cmd = [self.binary_path, "-t", target]
 
@@ -160,6 +156,7 @@ class VulnScannerTool(BaseOSINTTool):
 
         Returns:
             List of Finding objects.
+
         """
         findings: list[Finding] = []
         now = datetime.now(timezone.utc)

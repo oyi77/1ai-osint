@@ -60,6 +60,7 @@ class ChangeDetector:
         -------
         list[ChangeEvent]
             Zero or more detected change events.
+
         """
         events: list[ChangeEvent] = []
         subject = current.get("briefing", {}).get("subject", {})
@@ -77,24 +78,16 @@ class ChangeDetector:
         label = target or curr_subject.get("primary_name", "unknown")
 
         # Entity set changes
-        events.extend(self._compare_set_changes(
-            prev_subject, curr_subject, label
-        ))
+        events.extend(self._compare_set_changes(prev_subject, curr_subject, label))
 
         # Breach changes
-        events.extend(self._compare_breach_changes(
-            prev_brief, curr_brief, label
-        ))
+        events.extend(self._compare_breach_changes(prev_brief, curr_brief, label))
 
         # Risk score changes
-        events.extend(self._compare_risk_changes(
-            prev_brief, curr_brief, label
-        ))
+        events.extend(self._compare_risk_changes(prev_brief, curr_brief, label))
 
         # Field-level attribute changes
-        events.extend(self._compare_attributes(
-            prev_subject, curr_subject, label
-        ))
+        events.extend(self._compare_attributes(prev_subject, curr_subject, label))
 
         return events
 
@@ -102,57 +95,65 @@ class ChangeDetector:
     # first-scan helper
     # ------------------------------------------------------------------
 
-    def _first_scan_events(
-        self, current: dict[str, Any], label: str
-    ) -> list[ChangeEvent]:
+    def _first_scan_events(self, current: dict[str, Any], label: str) -> list[ChangeEvent]:
         events: list[ChangeEvent] = []
         subject = current.get("briefing", {}).get("subject", {})
 
         for email in subject.get("emails", []):
-            events.append(self._make_event(
-                target=label,
-                change_type=ChangeType.NEW_EMAIL,
-                new_value=email,
-                source_module="monitoring",
-                severity=ChangeSeverity.MEDIUM,
-                description=f"Email discovered: {email}",
-            ))
+            events.append(
+                self._make_event(
+                    target=label,
+                    change_type=ChangeType.NEW_EMAIL,
+                    new_value=email,
+                    source_module="monitoring",
+                    severity=ChangeSeverity.MEDIUM,
+                    description=f"Email discovered: {email}",
+                )
+            )
         for handle in subject.get("known_handles", []):
-            events.append(self._make_event(
-                target=label,
-                change_type=ChangeType.NEW_HANDLE,
-                new_value=handle,
-                source_module="monitoring",
-                severity=ChangeSeverity.LOW,
-                description=f"Handle discovered: {handle}",
-            ))
+            events.append(
+                self._make_event(
+                    target=label,
+                    change_type=ChangeType.NEW_HANDLE,
+                    new_value=handle,
+                    source_module="monitoring",
+                    severity=ChangeSeverity.LOW,
+                    description=f"Handle discovered: {handle}",
+                )
+            )
         for domain in subject.get("domains", []):
-            events.append(self._make_event(
-                target=label,
-                change_type=ChangeType.NEW_DOMAIN,
-                new_value=domain,
-                source_module="monitoring",
-                severity=ChangeSeverity.LOW,
-                description=f"Domain discovered: {domain}",
-            ))
+            events.append(
+                self._make_event(
+                    target=label,
+                    change_type=ChangeType.NEW_DOMAIN,
+                    new_value=domain,
+                    source_module="monitoring",
+                    severity=ChangeSeverity.LOW,
+                    description=f"Domain discovered: {domain}",
+                )
+            )
         for phone in subject.get("phones", []):
-            events.append(self._make_event(
-                target=label,
-                change_type=ChangeType.NEW_PHONE,
-                new_value=phone,
-                source_module="monitoring",
-                severity=ChangeSeverity.MEDIUM,
-                description=f"Phone discovered: {phone}",
-            ))
+            events.append(
+                self._make_event(
+                    target=label,
+                    change_type=ChangeType.NEW_PHONE,
+                    new_value=phone,
+                    source_module="monitoring",
+                    severity=ChangeSeverity.MEDIUM,
+                    description=f"Phone discovered: {phone}",
+                )
+            )
         for addr in subject.get("crypto_addresses", []):
-            events.append(self._make_event(
-                target=label,
-                change_type=ChangeType.NEW_CRYPTO_ADDRESS,
-                new_value=addr,
-                source_module="monitoring",
-                severity=ChangeSeverity.LOW,
-                description=f"Crypto address discovered: {addr[:16]}...",
-            ))
+            events.append(
+                self._make_event(
+                    target=label,
+                    change_type=ChangeType.NEW_CRYPTO_ADDRESS,
+                    new_value=addr,
+                    source_module="monitoring",
+                    severity=ChangeSeverity.LOW,
+                    description=f"Crypto address discovered: {addr[:16]}...",
+                )
+            )
         return events
 
     # ------------------------------------------------------------------
@@ -182,23 +183,27 @@ class ChangeDetector:
 
             for item in sorted(added):
                 sev = self._compute_severity(item, ctype, default_sev)
-                events.append(self._make_event(
-                    target=label,
-                    change_type=ctype,
-                    new_value=item,
-                    source_module="monitoring",
-                    severity=sev,
-                    description=f"{label_prefix} added: {item}",
-                ))
+                events.append(
+                    self._make_event(
+                        target=label,
+                        change_type=ctype,
+                        new_value=item,
+                        source_module="monitoring",
+                        severity=sev,
+                        description=f"{label_prefix} added: {item}",
+                    )
+                )
             for item in sorted(removed):
-                events.append(self._make_event(
-                    target=label,
-                    change_type=ChangeType.SOURCE_DISAPPEARED,
-                    old_value=item,
-                    source_module="monitoring",
-                    severity=ChangeSeverity.INFO,
-                    description=f"{label_prefix} disappeared: {item}",
-                ))
+                events.append(
+                    self._make_event(
+                        target=label,
+                        change_type=ChangeType.SOURCE_DISAPPEARED,
+                        old_value=item,
+                        source_module="monitoring",
+                        severity=ChangeSeverity.INFO,
+                        description=f"{label_prefix} disappeared: {item}",
+                    )
+                )
 
         return events
 
@@ -223,27 +228,31 @@ class ChangeDetector:
 
         added = curr_names - prev_names
         for name in sorted(added):
-            events.append(self._make_event(
-                target=label,
-                change_type=ChangeType.NEW_BREACH,
-                new_value=name,
-                source_module="monitoring",
-                severity=ChangeSeverity.HIGH,
-                description=f"New breach record: {name}",
-            ))
+            events.append(
+                self._make_event(
+                    target=label,
+                    change_type=ChangeType.NEW_BREACH,
+                    new_value=name,
+                    source_module="monitoring",
+                    severity=ChangeSeverity.HIGH,
+                    description=f"New breach record: {name}",
+                )
+            )
 
         # Breach count delta
         delta = len(curr_breaches) - len(prev_breaches)
         if delta != 0:
-            events.append(self._make_event(
-                target=label,
-                change_type=ChangeType.FIELD_CHANGE,
-                old_value=str(len(prev_breaches)),
-                new_value=str(len(curr_breaches)),
-                source_module="monitoring",
-                severity=ChangeSeverity.MEDIUM if abs(delta) > 2 else ChangeSeverity.LOW,
-                description=f"Breach count changed by {delta:+d} ({len(prev_breaches)} → {len(curr_breaches)})",
-            ))
+            events.append(
+                self._make_event(
+                    target=label,
+                    change_type=ChangeType.FIELD_CHANGE,
+                    old_value=str(len(prev_breaches)),
+                    new_value=str(len(curr_breaches)),
+                    source_module="monitoring",
+                    severity=ChangeSeverity.MEDIUM if abs(delta) > 2 else ChangeSeverity.LOW,
+                    description=f"Breach count changed by {delta:+d} ({len(prev_breaches)} → {len(curr_breaches)})",
+                )
+            )
 
         return events
 
@@ -261,15 +270,17 @@ class ChangeDetector:
             old_val = prev_risk.get(field)
             new_val = curr_risk.get(field)
             if old_val != new_val:
-                events.append(self._make_event(
-                    target=label,
-                    change_type=ChangeType.RISK_SCORE_CHANGE,
-                    old_value=str(old_val) if old_val is not None else None,
-                    new_value=str(new_val) if new_val is not None else None,
-                    source_module="monitoring",
-                    severity=ChangeSeverity.HIGH,
-                    description=f"Risk {field} changed: {old_val} → {new_val}",
-                ))
+                events.append(
+                    self._make_event(
+                        target=label,
+                        change_type=ChangeType.RISK_SCORE_CHANGE,
+                        old_value=str(old_val) if old_val is not None else None,
+                        new_value=str(new_val) if new_val is not None else None,
+                        source_module="monitoring",
+                        severity=ChangeSeverity.HIGH,
+                        description=f"Risk {field} changed: {old_val} → {new_val}",
+                    )
+                )
 
         return events
 
@@ -282,23 +293,28 @@ class ChangeDetector:
         """Field-level diff on scalar subject attributes."""
         events: list[ChangeEvent] = []
         scalar_fields = {
-            "primary_name", "confidence_score",
-            "current_employer", "job_title",
-            "city", "country",
+            "primary_name",
+            "confidence_score",
+            "current_employer",
+            "job_title",
+            "city",
+            "country",
         }
         for field in scalar_fields:
             old_val = prev_subject.get(field)
             new_val = curr_subject.get(field)
             if old_val != new_val and new_val is not None:
-                events.append(self._make_event(
-                    target=label,
-                    change_type=ChangeType.ATTRIBUTE_CHANGE,
-                    old_value=str(old_val) if old_val is not None else None,
-                    new_value=str(new_val),
-                    source_module="monitoring",
-                    severity=ChangeSeverity.LOW,
-                    description=f"Attribute '{field}' changed: {old_val} → {new_val}",
-                ))
+                events.append(
+                    self._make_event(
+                        target=label,
+                        change_type=ChangeType.ATTRIBUTE_CHANGE,
+                        old_value=str(old_val) if old_val is not None else None,
+                        new_value=str(new_val),
+                        source_module="monitoring",
+                        severity=ChangeSeverity.LOW,
+                        description=f"Attribute '{field}' changed: {old_val} → {new_val}",
+                    )
+                )
         return events
 
     # ------------------------------------------------------------------
@@ -327,6 +343,7 @@ class ChangeDetector:
         description: str = "",
     ) -> ChangeEvent:
         import uuid
+
         return ChangeEvent(
             event_id=f"ce-{uuid.uuid4().hex[:12]}",
             target=target,

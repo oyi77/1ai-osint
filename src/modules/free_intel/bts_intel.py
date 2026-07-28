@@ -6,7 +6,6 @@ Indonesia MCC = 510.
 
 import logging
 import os
-from typing import Optional
 
 import httpx
 from pydantic import BaseModel, Field
@@ -87,15 +86,10 @@ class BTSIntel:
     def __init__(self):
         self.token = os.environ.get("OPENCELLID_TOKEN", "")
 
-    def identify_operator(self, phone: str) -> Optional[tuple[str, int]]:
+    def identify_operator(self, phone: str) -> tuple[str, int] | None:
         """Identify Indonesian mobile operator from phone number prefix."""
         # Normalize to 0xxx format
-        p = (
-            phone.replace("+62", "0")
-            .replace("62", "0", 1)
-            .replace("-", "")
-            .replace(" ", "")
-        )
+        p = phone.replace("+62", "0").replace("62", "0", 1).replace("-", "").replace(" ", "")
         prefix = p[:4]
         return INDONESIA_OPERATORS.get(prefix)
 
@@ -108,9 +102,7 @@ class BTSIntel:
             result.mnc = op[1]
         return result
 
-    async def get_towers_in_area(
-        self, lat: float, lon: float, radius_km: int = 5
-    ) -> list[BTSTower]:
+    async def get_towers_in_area(self, lat: float, lon: float, radius_km: int = 5) -> list[BTSTower]:
         """Get cell towers in a geographic area."""
         if not self.token:
             logger.info("OPENCELLID_TOKEN not set — BTS lookup skipped")

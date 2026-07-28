@@ -4,17 +4,17 @@ import hashlib
 import json
 import time
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 
 class Cache:
     """Simple JSON file cache with TTL support."""
 
-    def __init__(self, cache_dir: Optional[Path] = None, default_ttl: int = 3600):
-        """
-        Args:
-            cache_dir: Directory for cache files. Defaults to .osint_cache
-            default_ttl: Default time-to-live in seconds (1 hour).
+    def __init__(self, cache_dir: Path | None = None, default_ttl: int = 3600):
+        """Args:
+        cache_dir: Directory for cache files. Defaults to .osint_cache
+        default_ttl: Default time-to-live in seconds (1 hour).
+
         """
         self.cache_dir = cache_dir or Path(".osint_cache")
         self.cache_dir.mkdir(parents=True, exist_ok=True)
@@ -25,7 +25,7 @@ class Cache:
         safe_key = hashlib.sha256(key.encode()).hexdigest()
         return self.cache_dir / f"{safe_key}.json"
 
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any | None:
         """Retrieve a cached value. Returns None if missing or expired."""
         path = self._key_path(key)
         if not path.exists():
@@ -39,7 +39,7 @@ class Cache:
         except (json.JSONDecodeError, OSError):
             return None
 
-    def set(self, key: str, value: Any, ttl: Optional[int] = None) -> None:
+    def set(self, key: str, value: Any, ttl: int | None = None) -> None:
         """Store a value in the cache."""
         path = self._key_path(key)
         ttl = ttl if ttl is not None else self.default_ttl

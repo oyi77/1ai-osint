@@ -12,7 +12,6 @@ from __future__ import annotations
 import asyncio
 import logging
 from dataclasses import dataclass
-from typing import Optional
 
 import httpx
 
@@ -30,7 +29,7 @@ class BatchBalanceResult:
 
     address: str
     balance_wei: int
-    error: Optional[str] = None
+    error: str | None = None
 
 
 _EVM_CHUNK_SIZE = 25  # Max addresses per JSON-RPC batch call (free endpoint friendly)
@@ -39,7 +38,7 @@ _EVM_CHUNK_SIZE = 25  # Max addresses per JSON-RPC batch call (free endpoint fri
 async def batch_check_balances(
     addresses: list[str],
     chain: ChainConfig,
-    client: Optional[httpx.AsyncClient] = None,
+    client: httpx.AsyncClient | None = None,
 ) -> list[BatchBalanceResult]:
     """Check native balances for multiple EVM addresses in chunked JSON-RPC batch calls.
 
@@ -53,6 +52,7 @@ async def batch_check_balances(
 
     Returns:
         List of BatchBalanceResult, one per address.
+
     """
     if not chain.rpc_url or not addresses:
         return [BatchBalanceResult(address=a, balance_wei=0, error="No RPC URL") for a in addresses]
@@ -122,7 +122,7 @@ async def batch_check_balances(
 async def batch_check_sol_balances(
     addresses: list[str],
     rpc_url: str = "https://api.mainnet-beta.solana.com",
-    client: Optional[httpx.AsyncClient] = None,
+    client: httpx.AsyncClient | None = None,
 ) -> list[BatchBalanceResult]:
     """Check SOL balances for multiple addresses in one JSON-RPC batch call.
 
@@ -136,6 +136,7 @@ async def batch_check_sol_balances(
 
     Returns:
         List of BatchBalanceResult (balance_lamports in balance_wei field).
+
     """
     if not addresses:
         return []
@@ -249,7 +250,7 @@ class TokenBalanceResult:
     token_address: str
     balance_raw: int  # Raw balance in token's smallest unit
     decimals: int
-    error: Optional[str] = None
+    error: str | None = None
 
     @property
     def balance(self) -> float:
@@ -261,7 +262,7 @@ async def batch_check_token_balances(
     addresses: list[str],
     tokens: list[TokenContract],
     chain: ChainConfig,
-    client: Optional[httpx.AsyncClient] = None,
+    client: httpx.AsyncClient | None = None,
 ) -> list[TokenBalanceResult]:
     """Check ERC-20 token balances for multiple addresses via eth_call batching.
 
@@ -276,6 +277,7 @@ async def batch_check_token_balances(
 
     Returns:
         List of TokenBalanceResult for each address × token pair with non-zero balance.
+
     """
     if not chain.rpc_url or not addresses or not tokens:
         return []

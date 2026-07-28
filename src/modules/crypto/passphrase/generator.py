@@ -3,9 +3,8 @@
 Generates standards-compliant mnemonic seed phrases with configurable
 word counts (12, 15, 18, 21, 24 words) and language support.
 """
-from __future__ import annotations
 
-from typing import Optional
+from __future__ import annotations
 
 from bip_utils import (
     Bip39Languages,
@@ -52,10 +51,9 @@ class MnemonicValidationError(Exception):
 def generate_mnemonic(
     word_count: int = 24,
     language: str = "english",
-    entropy: Optional[bytes] = None,
+    entropy: bytes | None = None,
 ) -> str:
-    """
-    Generate a BIP-39 mnemonic phrase.
+    """Generate a BIP-39 mnemonic phrase.
 
     Args:
         word_count: Number of words (12, 15, 18, 21, or 24).
@@ -68,17 +66,14 @@ def generate_mnemonic(
 
     Raises:
         MnemonicGenerationError: If word_count or language is invalid.
+
     """
     if word_count not in _WORD_COUNT_MAP:
-        raise MnemonicGenerationError(
-            f"Invalid word count {word_count}. Must be one of {VALID_WORD_COUNTS}"
-        )
+        raise MnemonicGenerationError(f"Invalid word count {word_count}. Must be one of {VALID_WORD_COUNTS}")
 
     lang_key = language.lower()
     if lang_key not in _LANGUAGE_MAP:
-        raise MnemonicGenerationError(
-            f"Invalid language '{language}'. Must be one of {VALID_LANGUAGES}"
-        )
+        raise MnemonicGenerationError(f"Invalid language '{language}'. Must be one of {VALID_LANGUAGES}")
 
     words_num = _WORD_COUNT_MAP[word_count]
     lang_enum = _LANGUAGE_MAP[lang_key]
@@ -94,8 +89,7 @@ def generate_mnemonic(
 
 
 def validate_mnemonic(mnemonic: str, language: str = "english") -> bool:
-    """
-    Validate a BIP-39 mnemonic phrase (checksum + wordlist membership).
+    """Validate a BIP-39 mnemonic phrase (checksum + wordlist membership).
 
     Args:
         mnemonic: Space-separated mnemonic phrase.
@@ -103,6 +97,7 @@ def validate_mnemonic(mnemonic: str, language: str = "english") -> bool:
 
     Returns:
         True if the mnemonic is valid, False otherwise.
+
     """
     lang_key = language.lower()
     if lang_key not in _LANGUAGE_MAP:
@@ -117,8 +112,7 @@ def validate_mnemonic(mnemonic: str, language: str = "english") -> bool:
 
 
 def mnemonic_to_seed(mnemonic: str, passphrase: str = "") -> bytes:
-    """
-    Derive a 512-bit seed from a BIP-39 mnemonic.
+    """Derive a 512-bit seed from a BIP-39 mnemonic.
 
     Args:
         mnemonic: Valid BIP-39 mnemonic phrase.
@@ -126,6 +120,7 @@ def mnemonic_to_seed(mnemonic: str, passphrase: str = "") -> bytes:
 
     Returns:
         64-byte seed bytes.
+
     """
     return Bip39SeedGenerator(mnemonic).Generate(passphrase)
 
@@ -134,12 +129,12 @@ def generate_with_details(
     word_count: int = 24,
     language: str = "english",
 ) -> dict:
-    """
-    Generate a mnemonic with full metadata for OSINT reporting.
+    """Generate a mnemonic with full metadata for OSINT reporting.
 
     Returns:
         Dict with keys: mnemonic, word_count, language, entropy_bits,
         is_valid, word_list.
+
     """
     mnemonic = generate_mnemonic(word_count=word_count, language=language)
     words = mnemonic.split()

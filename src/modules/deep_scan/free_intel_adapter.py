@@ -8,14 +8,14 @@ from __future__ import annotations
 
 import logging
 import uuid
-from typing import Any, Optional
+from typing import Any
 
 from src.core.models import Finding, ScanResult, Severity
 
 logger = logging.getLogger(__name__)
 
 
-async def _run_social_dorks_intel(target: str) -> Optional[ScanResult]:
+async def _run_social_dorks_intel(target: str) -> ScanResult | None:
     """Run social dorks intel on a name and return findings."""
     from src.modules.free_intel.social_dorks_intel import SocialDorksIntel
 
@@ -64,7 +64,7 @@ async def _run_social_dorks_intel(target: str) -> Optional[ScanResult]:
     )
 
 
-async def _run_gravatar_intel(target: str) -> Optional[ScanResult]:
+async def _run_gravatar_intel(target: str) -> ScanResult | None:
     """Run Gravatar lookup on an email and return findings."""
     from src.modules.free_intel.gravatar_intel import GravatarIntel
 
@@ -130,7 +130,7 @@ async def _run_gravatar_intel(target: str) -> Optional[ScanResult]:
     )
 
 
-async def _run_wayback_intel(target: str) -> Optional[ScanResult]:
+async def _run_wayback_intel(target: str) -> ScanResult | None:
     """Run Wayback Machine snapshot finder on a URL and return findings."""
     from src.modules.free_intel.wayback_intel import WaybackIntel
 
@@ -173,7 +173,7 @@ async def _run_wayback_intel(target: str) -> Optional[ScanResult]:
     )
 
 
-async def _run_github_intel(target: str) -> Optional[ScanResult]:
+async def _run_github_intel(target: str) -> ScanResult | None:
     """Run GitHub intel extraction on a username."""
     from src.modules.free_intel.github_intel import GitHubIntel
 
@@ -258,7 +258,7 @@ async def _run_github_intel(target: str) -> Optional[ScanResult]:
     )
 
 
-async def _run_google_dork_intel(target: str) -> Optional[ScanResult]:
+async def _run_google_dork_intel(target: str) -> ScanResult | None:
     """Run Google dork search on a name."""
     from src.modules.free_intel.google_dork_intel import GoogleDorkIntel
 
@@ -370,7 +370,7 @@ async def _run_google_dork_intel(target: str) -> Optional[ScanResult]:
     )
 
 
-async def _run_hibp_free(target: str) -> Optional[ScanResult]:
+async def _run_hibp_free(target: str) -> ScanResult | None:
     """Run HIBP free breach check on an email."""
     from src.modules.free_intel.hibp_free import HIBPIntel
 
@@ -416,7 +416,7 @@ async def _run_hibp_free(target: str) -> Optional[ScanResult]:
     )
 
 
-async def _run_bts_intel(target: str) -> Optional[ScanResult]:
+async def _run_bts_intel(target: str) -> ScanResult | None:
     """Run BTS tower intelligence on a phone number."""
     from src.modules.free_intel.bts_intel import BTSIntel
 
@@ -452,7 +452,6 @@ async def _run_bts_intel(target: str) -> Optional[ScanResult]:
             )
         )
 
-
     if not findings:
         return None
 
@@ -468,8 +467,7 @@ async def _run_bts_intel(target: str) -> Optional[ScanResult]:
     )
 
 
-
-async def _run_pddikti_intel(target: str) -> Optional[ScanResult]:
+async def _run_pddikti_intel(target: str) -> ScanResult | None:
     """Run PDDIKTI Indonesian student database search on a name."""
     from src.modules.free_intel.pddikti_intel import PDDIKTIIntel
 
@@ -513,7 +511,7 @@ async def _run_pddikti_intel(target: str) -> Optional[ScanResult]:
     )
 
 
-async def _run_tech_jobs_intel(target: str) -> Optional[ScanResult]:
+async def _run_tech_jobs_intel(target: str) -> ScanResult | None:
     """Run tech jobs profile search on a name."""
     from src.modules.free_intel.tech_jobs_intel import TechJobsIntel
 
@@ -559,8 +557,7 @@ async def _run_tech_jobs_intel(target: str) -> Optional[ScanResult]:
     )
 
 
-
-async def _run_whatsapp_check(target: str) -> Optional[ScanResult]:
+async def _run_whatsapp_check(target: str) -> ScanResult | None:
     """Run WhatsApp presence check on a phone number."""
     from src.modules.free_intel.whatsapp_telegram_check import MessagingIntel
 
@@ -597,7 +594,7 @@ async def _run_whatsapp_check(target: str) -> Optional[ScanResult]:
     )
 
 
-async def _run_telegram_check(target: str) -> Optional[ScanResult]:
+async def _run_telegram_check(target: str) -> ScanResult | None:
     """Run Telegram username presence check."""
     from src.modules.free_intel.whatsapp_telegram_check import MessagingIntel
 
@@ -694,7 +691,7 @@ _FREE_INTEL_DISPATCH: dict[str, tuple[str, str, Any]] = {
 }
 
 
-async def run_free_intel_scan(module_name: str, target: str) -> Optional[ScanResult]:
+async def run_free_intel_scan(module_name: str, target: str) -> ScanResult | None:
     """Run a single free intel module scan and return a structured ScanResult.
 
     Args:
@@ -703,6 +700,7 @@ async def run_free_intel_scan(module_name: str, target: str) -> Optional[ScanRes
 
     Returns:
         ScanResult with findings, or None on failure/no data.
+
     """
     entry = _FREE_INTEL_DISPATCH.get(module_name)
     if not entry:

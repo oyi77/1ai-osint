@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import hashlib
 from collections import defaultdict
-from typing import Any, Optional
+from typing import Any
 
 from src.modules.identity_tracking._graph_models import (
     GraphEdge,
@@ -27,8 +27,7 @@ __all__ = [
 
 
 class IdentityGraph:
-    """
-    Graph data structure for ZKIT identity tracking.
+    """Graph data structure for ZKIT identity tracking.
 
     Nodes are hashed identity attributes (email, username, phone, domain).
     Edges represent co-occurrence — two hashes observed together during
@@ -38,10 +37,10 @@ class IdentityGraph:
     """
 
     def __init__(self, salt: str = "") -> None:
-        """
-        Args:
-            salt: Per-investigation salt for ZKIT hashing. If empty,
-                  hashes will not be reproducible across sessions.
+        """Args:
+        salt: Per-investigation salt for ZKIT hashing. If empty,
+              hashes will not be reproducible across sessions.
+
         """
         self._salt = salt
         self._nodes: dict[str, GraphNode] = {}
@@ -59,10 +58,12 @@ class IdentityGraph:
 
         Args:
             raw_value: The plaintext attribute (email, phone, etc.)
+
         Returns:
             Hex-encoded SHA-256 hash string.
+
         """
-        preimage = f"{self._salt}:{raw_value}".encode("utf-8")
+        preimage = f"{self._salt}:{raw_value}".encode()
         return hashlib.sha256(preimage).hexdigest()
 
     # ------------------------------------------------------------------
@@ -73,8 +74,8 @@ class IdentityGraph:
         self,
         node_id: str,
         node_type: NodeType,
-        source: Optional[str] = None,
-        metadata: Optional[dict[str, Any]] = None,
+        source: str | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> GraphNode:
         """Add a node to the graph or update an existing one.
 
@@ -83,8 +84,10 @@ class IdentityGraph:
             node_type: The type of hashed attribute.
             source: Optional source module or dataset name.
             metadata: Optional metadata dict to merge.
+
         Returns:
             The created or updated GraphNode.
+
         """
         if node_id in self._nodes:
             node = self._nodes[node_id]
@@ -107,8 +110,8 @@ class IdentityGraph:
         source_id: str,
         target_id: str,
         weight: float = 1.0,
-        source: Optional[str] = None,
-        metadata: Optional[dict[str, Any]] = None,
+        source: str | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> GraphEdge:
         """Add or update a co-occurrence edge between two nodes.
 
@@ -121,11 +124,13 @@ class IdentityGraph:
             weight: Confidence weight for the co-occurrence (0.0-1.0).
             source: Optional source module name.
             metadata: Optional metadata dict to merge.
+
         Returns:
             The created or updated GraphEdge.
 
         Raises:
             KeyError: If either node_id does not exist in the graph.
+
         """
         if source_id not in self._nodes:
             raise KeyError(f"Node not found: {source_id}")
@@ -165,8 +170,10 @@ class IdentityGraph:
 
         Args:
             other: Another IdentityGraph instance.
+
         Returns:
             Count of newly added nodes + edges.
+
         """
         added = 0
 
@@ -215,12 +222,14 @@ class IdentityGraph:
             node_id: The starting node ID.
             max_depth: BFS depth limit (default 1 = direct neighbors only).
             min_weight: Minimum edge weight to traverse.
+
         Returns:
             Dict with 'node' (the center node), 'neighbors' list,
             and 'edges' list connecting them.
 
         Raises:
             KeyError: If node_id does not exist.
+
         """
         if node_id not in self._nodes:
             raise KeyError(f"Node not found: {node_id}")
@@ -259,8 +268,8 @@ class IdentityGraph:
         self,
         raw_value: str,
         node_type: NodeType,
-        source: Optional[str] = None,
-        metadata: Optional[dict[str, Any]] = None,
+        source: str | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> tuple[str, GraphNode]:
         """Hash a raw attribute and add it as a node.
 
@@ -269,8 +278,10 @@ class IdentityGraph:
             node_type: The type of attribute.
             source: Optional source name.
             metadata: Optional metadata.
+
         Returns:
             Tuple of (hash_hex, GraphNode).
+
         """
         hash_hex = self.hash_attribute(raw_value)
         node = self.add_node(hash_hex, node_type, source=source, metadata=metadata)
@@ -282,7 +293,7 @@ class IdentityGraph:
         type_a: NodeType,
         raw_b: str,
         type_b: NodeType,
-        source: Optional[str] = None,
+        source: str | None = None,
         weight: float = 1.0,
     ) -> tuple[str, str, GraphEdge]:
         """Hash two raw attributes, add nodes, and create a co-occurrence edge.
@@ -294,8 +305,10 @@ class IdentityGraph:
             type_b: NodeType for second attribute.
             source: Optional source name.
             weight: Edge confidence weight.
+
         Returns:
             Tuple of (hash_a, hash_b, GraphEdge).
+
         """
         hash_a, _ = self.add_raw_attribute(raw_a, type_a, source=source)
         hash_b, _ = self.add_raw_attribute(raw_b, type_b, source=source)
@@ -314,7 +327,7 @@ class IdentityGraph:
     def edge_count(self) -> int:
         return len(self._edges)
 
-    def get_node(self, node_id: str) -> Optional[GraphNode]:
+    def get_node(self, node_id: str) -> GraphNode | None:
         return self._nodes.get(node_id)
 
     def get_all_nodes(self) -> list[GraphNode]:

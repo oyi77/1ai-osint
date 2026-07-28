@@ -12,7 +12,6 @@ import os
 import tempfile
 import uuid
 from datetime import datetime, timezone
-from typing import List
 
 from src.core.models import Finding
 
@@ -29,7 +28,7 @@ class ExternalToolDomainMixin:
         """Run an external command — provided by ExternalToolCoordinator."""
         raise NotImplementedError  # pragma: no cover
 
-    async def _run_theharvester(self, domain: str) -> List[Finding]:
+    async def _run_theharvester(self, domain: str) -> list[Finding]:
         """Execute theHarvester and parse JSON output."""
         findings = []
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -49,7 +48,7 @@ class ExternalToolDomainMixin:
                     logger.warning("theHarvester timeout for %s", domain)
 
                 if os.path.exists(json_path):
-                    with open(json_path, "r", encoding="utf-8") as jf:
+                    with open(json_path, encoding="utf-8") as jf:
                         data = json.load(jf)
 
                         for email in data.get("emails", []):
@@ -88,7 +87,7 @@ class ExternalToolDomainMixin:
 
         return findings
 
-    async def _run_webcheck(self, domain: str) -> List[Finding]:
+    async def _run_webcheck(self, domain: str) -> list[Finding]:
         """Execute Web-check."""
         findings = []
         cmd = ["web-check", domain, "--json"]
@@ -120,7 +119,7 @@ class ExternalToolDomainMixin:
             logger.debug("Web-check failed: %s", e)
         return findings
 
-    async def _run_worldmonitor(self, domain: str) -> List[Finding]:
+    async def _run_worldmonitor(self, domain: str) -> list[Finding]:
         """Execute WorldMonitor."""
         findings = []
         cmd = ["worldmonitor", "scan", domain, "--json"]
@@ -152,7 +151,7 @@ class ExternalToolDomainMixin:
             logger.debug("WorldMonitor failed: %s", e)
         return findings
 
-    async def _run_crucix(self, domain: str) -> List[Finding]:
+    async def _run_crucix(self, domain: str) -> list[Finding]:
         """Execute Crucix."""
         findings = []
         cmd = ["crucix", "-d", domain, "-j"]
@@ -184,7 +183,7 @@ class ExternalToolDomainMixin:
             logger.debug("Crucix failed: %s", e)
         return findings
 
-    async def _run_amass(self, domain: str) -> List[Finding]:
+    async def _run_amass(self, domain: str) -> list[Finding]:
         """Execute Amass."""
         findings = []
         cmd = ["amass", "enum", "-d", domain, "-json", "amass_out.json"]
@@ -192,7 +191,7 @@ class ExternalToolDomainMixin:
             logger.info("Running Amass for %s...", domain)
             await self._run_command(cmd, timeout=300.0)
             if os.path.exists("amass_out.json"):
-                with open("amass_out.json", "r") as f:
+                with open("amass_out.json") as f:
                     for line in f:
                         data = json.loads(line)
                         name = data.get("name")
@@ -217,7 +216,7 @@ class ExternalToolDomainMixin:
             logger.debug("Amass failed: %s", e)
         return findings
 
-    async def _run_subfinder(self, domain: str) -> List[Finding]:
+    async def _run_subfinder(self, domain: str) -> list[Finding]:
         """Execute Subfinder."""
         findings = []
         cmd = ["subfinder", "-d", domain, "-silent", "-json"]

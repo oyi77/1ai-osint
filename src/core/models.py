@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -35,14 +35,14 @@ class BreachRecord(BaseModel):
     """A record from a breach/leak database."""
 
     source: str = Field(..., description="Breach source name")
-    email: Optional[str] = None
-    username: Optional[str] = None
-    password_hash: Optional[str] = None
-    password_plain: Optional[str] = None
-    domain: Optional[str] = None
-    ip_address: Optional[str] = None
-    phone: Optional[str] = None
-    breach_date: Optional[datetime] = None
+    email: str | None = None
+    username: str | None = None
+    password_hash: str | None = None
+    password_plain: str | None = None
+    domain: str | None = None
+    ip_address: str | None = None
+    phone: str | None = None
+    breach_date: datetime | None = None
     description: str = ""
     data_classes: list[str] = Field(default_factory=list)
     severity: Severity = Severity.MEDIUM
@@ -57,7 +57,7 @@ class Identity(BaseModel):
         default_factory=dict,
         description="Original attribute names (never persisted with raw values in ZKIT mode)",
     )
-    correlation_id: Optional[str] = None
+    correlation_id: str | None = None
     first_seen: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     last_seen: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     sources: list[str] = Field(default_factory=list)
@@ -76,8 +76,8 @@ class ScanResult(BaseModel):
     identities: list[Identity] = Field(default_factory=list)
     metadata: dict[str, Any] = Field(default_factory=dict)
     started_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    completed_at: Optional[datetime] = None
-    error: Optional[str] = None
+    completed_at: datetime | None = None
+    error: str | None = None
 
     @property
     def finding_count(self) -> int:
@@ -88,7 +88,7 @@ class ScanResult(BaseModel):
         return sum(1 for f in self.findings if f.severity == Severity.CRITICAL)
 
     @property
-    def duration_seconds(self) -> Optional[float]:
+    def duration_seconds(self) -> float | None:
         if self.completed_at:
             return (self.completed_at - self.started_at).total_seconds()
         return None

@@ -71,6 +71,7 @@ class TimelineBuilder:
         -------
         Timeline with events sorted chronologically and snapshots
         built from aggregated state.
+
         """
         events: list[TimelineEvent] = []
 

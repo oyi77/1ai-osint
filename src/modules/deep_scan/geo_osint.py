@@ -15,7 +15,7 @@ import logging
 import math
 import re
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -28,9 +28,9 @@ _BASE32 = "0123456789bcdefghjkmnpqrstuvwxyz"
 class LocationEvent(BaseModel):
     """A geolocation event extracted from evidence."""
 
-    timestamp: Optional[datetime] = None
-    lat: Optional[float] = None
-    lon: Optional[float] = None
+    timestamp: datetime | None = None
+    lat: float | None = None
+    lon: float | None = None
     geohash: str = ""
     source: str = ""
     label: str = ""
@@ -102,7 +102,7 @@ class GeoOSINTEngine:
         a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
         return R * 2 * math.asin(math.sqrt(a))
 
-    def extract_exif_coords(self, exif_data: dict[str, Any]) -> Optional[tuple[float, float]]:
+    def extract_exif_coords(self, exif_data: dict[str, Any]) -> tuple[float, float] | None:
         """Extract GPS coordinates from EXIF metadata dict.
 
         Expects keys like: GPS_Latitude, GPS_Longitude, GPSLatitude, GPSLongitude
@@ -134,7 +134,7 @@ class GeoOSINTEngine:
         return None
 
     @staticmethod
-    def _parse_dms(dms_str: str) -> Optional[float]:
+    def _parse_dms(dms_str: str) -> float | None:
         """Parse a DMS string like '51 deg 30\' 26.00" N' to decimal degrees."""
         pattern = re.compile(r"(\d+)\s*deg\s*(\d+)'\s*([\d.]+)\"?\s*([NSEW]?)")
         m = pattern.search(dms_str)
@@ -156,6 +156,7 @@ class GeoOSINTEngine:
 
         Args:
             ip_geos: list of dicts with keys: ip, lat, lon, source (optional)
+
         """
         # Convert to LocationEvent list
         events = []
