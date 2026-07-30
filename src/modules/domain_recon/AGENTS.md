@@ -8,9 +8,9 @@ Domain reconnaissance — subdomain enumeration, technology fingerprinting, and 
 
 ## Key Files
 | File | Description |
-|------|-------------|
-| `infra_fingerprint.py` | Technology stack and infrastructure fingerprinting |
-| `__init__.py` | Package initializer |
+||------|-------------|
+|| `__init__.py` | Full `DomainReconTool` implementation (233 lines) — subdomain enumeration, technology fingerprinting, infrastructure analysis |
+|| `infra_fingerprint.py` | Technology stack and infrastructure fingerprinting |
 
 ## For AI Agents
 

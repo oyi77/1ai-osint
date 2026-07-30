@@ -53,6 +53,15 @@ class Settings(BaseSettings):
     scanner_workers: int = 20
     scanner_mode: str = "targeted"
 
+    # Database
+    db_type: str = "sqlite"  # "sqlite" or "postgres"
+    db_path: str = "1ai-osint.db"  # SQLite path
+    db_host: str = "localhost"
+    db_port: int = 5432
+    db_name: str = "osint"
+    db_user: str = "osint"
+    db_password: str = ""
+
     # Application settings
     log_level: str = "INFO"
     cache_dir: str = ".osint_cache"

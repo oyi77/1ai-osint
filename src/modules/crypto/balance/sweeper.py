@@ -65,6 +65,9 @@ class Sweeper:
             self._created_client = True
         return self._client
 
+    # Solana minimum rent-exempt balance in lamports
+    SOLANA_RENT_EXEMPT = 890880
+
     async def close(self) -> None:
         if self._created_client and self._client:
             await self._client.aclose()
@@ -301,7 +304,7 @@ class Sweeper:
         blockhash = Hash.from_string(bh_str)
 
         fee = 5000
-        rent_exempt = 890880  # Solana minimum rent-exempt balance
+        rent_exempt = self.SOLANA_RENT_EXEMPT
         amount_to_send = balance_raw - fee - rent_exempt
         if amount_to_send <= 0:
             return SweepResult(

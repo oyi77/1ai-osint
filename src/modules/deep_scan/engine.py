@@ -178,7 +178,35 @@ class DeepScanEngine:
 
         result.completed_at = datetime.now(timezone.utc)
 
-        # --- PHASE 3: External Tool Intelligence (Sherlock, Maigret, theHarvester) ---
+        # Phase 3: External Tool Intelligence
+        await self._run_external_tools_phase(target, result)
+
+        # Phase 4: Profile Scraping & Vision Correlation
+        await self._verify_profiles_phase(target, result)
+
+        # ZKIT cross-module correlation
+        try:
+            result.zkit_result = self._run_zkit_correlation(result)
+        except Exception as exc:
+            logger.warning("ZKIT correlation failed: %s", exc)
+            result.errors.append(f"zkit_correlation: {exc}")
+
+        logger.info(
+            "Deep scan complete: %d identifiers, %d findings, %d iterations, %.1fs",
+            result.identifier_count,
+            result.finding_count,
+            result.iterations,
+            result.duration_sec,
+        )
+        return result
+
+    async def _run_external_tools_phase(self, target: str, result: DeepScanResult) -> None:
+        """Phase 3: Run external OSINT tools (Sherlock, theHarvester, etc.) on discovered usernames and domains.
+
+        Collects unique usernames and domains from the scan results so far,
+        then dispatches external CLI-based intelligence tools to gather
+        additional cross-platform profile and domain information.
+        """
         from src.modules.vendor.external_tools import ExternalToolIntel
 
         ext_intel = ExternalToolIntel()
@@ -215,100 +243,90 @@ class DeepScanEngine:
                     result.scan_results.append(res)
                     result.findings.extend(res.findings)
 
-        # --- END PHASE 3 ---
+    async def _verify_profiles_phase(self, target: str, result: DeepScanResult) -> None:
+        """Phase 4: Scrape social profiles and run vision-based correlation to verify identity.
 
-        # --- PHASE 4: Profile Scraping & Vision Correlation Verification ---
+        Filters social OSINT findings for high-value platforms, scrapes each
+        profile for bio and picture content, then uses the VisionCorrelator to
+        cross-check against the target name. Unverified or duplicate profiles
+        are filtered out from the final findings list.
+        """
         social_findings = [
             f for f in result.findings if f.module == "social_osint" and f.raw_data.get("type") == "social_account"
         ]
-        if social_findings:
-            logger.info(
-                "Executing Phase 4: Scraping and correlating %d social profiles...",
-                len(social_findings),
-            )
-            scraper = DeepScraperEngine()
-            correlator = VisionCorrelator()
-
-            high_value_platforms = {
-                "linkedin",
-                "medium",
-                "linktree",
-                "strava",
-                "github",
-                "gitlab",
-                "instagram",
-                "tiktok",
-            }
-            to_verify = [f for f in social_findings if f.raw_data.get("platform") in high_value_platforms][:5]
-
-            async def verify_finding(finding) -> None:
-                url = finding.raw_data.get("url")
-                if not url:
-                    return
-                try:
-                    scraped = await scraper.scrape_profile(url)
-                    if scraped:
-                        finding.raw_data["bio"] = scraped.get("text_content", "")[:500]
-                        finding.raw_data["profile_picture"] = scraped.get("profile_picture_url", "")
-
-                        target_profile = {"text_content": f"Full Name: {target}"}
-                        confidence = await correlator.correlate_profiles(target_profile, scraped)
-                        finding.raw_data["correlation_confidence"] = confidence
-                        finding.raw_data["verified"] = confidence >= 0.5
-                        logger.info(
-                            "Profile %s correlation confidence: %.2f (verified=%s)",
-                            url,
-                            confidence,
-                            finding.raw_data["verified"],
-                        )
-                    else:
-                        finding.raw_data["verified"] = False
-                        finding.raw_data["correlation_confidence"] = 0.0
-                except Exception as e:
-                    logger.debug("Failed to scrape/correlate profile %s: %s", url, e)
-                    finding.raw_data["verified"] = False
-                    finding.raw_data["correlation_confidence"] = 0.0
-
-            if to_verify:
-                await asyncio.gather(*[verify_finding(f) for f in to_verify], return_exceptions=True)
-
-            # Filter out unverified profiles to ensure we only report confirmed identities
-            # Also deduplicate by URL to avoid showing the same profile multiple times
-            verified_findings = []
-            seen_urls = set()
-
-            for f in result.findings:
-                # If it went through verification and failed, drop it
-                if "verified" in f.raw_data and not f.raw_data["verified"]:
-                    continue
-
-                # Deduplicate social profiles by URL
-                url = f.raw_data.get("url")
-                if url:
-                    if url in seen_urls:
-                        continue
-                    seen_urls.add(url)
-
-                verified_findings.append(f)
-
-            result.findings = verified_findings
-        # --- END PHASE 4 ---
-
-        # ZKIT cross-module correlation
-        try:
-            result.zkit_result = self._run_zkit_correlation(result)
-        except Exception as exc:
-            logger.warning("ZKIT correlation failed: %s", exc)
-            result.errors.append(f"zkit_correlation: {exc}")
+        if not social_findings:
+            return
 
         logger.info(
-            "Deep scan complete: %d identifiers, %d findings, %d iterations, %.1fs",
-            result.identifier_count,
-            result.finding_count,
-            result.iterations,
-            result.duration_sec,
+            "Executing Phase 4: Scraping and correlating %d social profiles...",
+            len(social_findings),
         )
-        return result
+        scraper = DeepScraperEngine()
+        correlator = VisionCorrelator()
+
+        high_value_platforms = {
+            "linkedin",
+            "medium",
+            "linktree",
+            "strava",
+            "github",
+            "gitlab",
+            "instagram",
+            "tiktok",
+        }
+        to_verify = [f for f in social_findings if f.raw_data.get("platform") in high_value_platforms][:5]
+
+        async def verify_finding(finding) -> None:
+            url = finding.raw_data.get("url")
+            if not url:
+                return
+            try:
+                scraped = await scraper.scrape_profile(url)
+                if scraped:
+                    finding.raw_data["bio"] = scraped.get("text_content", "")[:500]
+                    finding.raw_data["profile_picture"] = scraped.get("profile_picture_url", "")
+
+                    target_profile = {"text_content": f"Full Name: {target}"}
+                    confidence = await correlator.correlate_profiles(target_profile, scraped)
+                    finding.raw_data["correlation_confidence"] = confidence
+                    finding.raw_data["verified"] = confidence >= 0.5
+                    logger.info(
+                        "Profile %s correlation confidence: %.2f (verified=%s)",
+                        url,
+                        confidence,
+                        finding.raw_data["verified"],
+                    )
+                else:
+                    finding.raw_data["verified"] = False
+                    finding.raw_data["correlation_confidence"] = 0.0
+            except Exception as e:
+                logger.debug("Failed to scrape/correlate profile %s: %s", url, e)
+                finding.raw_data["verified"] = False
+                finding.raw_data["correlation_confidence"] = 0.0
+
+        if to_verify:
+            await asyncio.gather(*[verify_finding(f) for f in to_verify], return_exceptions=True)
+
+        # Filter out unverified profiles to ensure we only report confirmed identities
+        # Also deduplicate by URL to avoid showing the same profile multiple times
+        verified_findings = []
+        seen_urls = set()
+
+        for f in result.findings:
+            # If it went through verification and failed, drop it
+            if "verified" in f.raw_data and not f.raw_data["verified"]:
+                continue
+
+            # Deduplicate social profiles by URL
+            url = f.raw_data.get("url")
+            if url:
+                if url in seen_urls:
+                    continue
+                seen_urls.add(url)
+
+            verified_findings.append(f)
+
+        result.findings = verified_findings
 
     def _run_zkit_correlation(self, result: DeepScanResult) -> Any | None:
         """Run ZKIT identity correlation on all collected scan results."""

@@ -70,6 +70,7 @@ class RandomScanner:
         self,
         workers: int = 5,
         api_concurrency: int = 50,
+        btc_concurrency: int = 5,
         chains: list[ChainConfig] | None = None,
         hit_logger: HitLogger | None = None,
     ):
@@ -77,7 +78,10 @@ class RandomScanner:
         self.chains = chains or list(ALL_CHAINS)
         self.hit_logger = hit_logger
         self._api_semaphore = asyncio.Semaphore(api_concurrency)
-        self._btc_semaphore = asyncio.Semaphore(5)  # BTC gets lower concurrency (free APIs are rate-limited)
+        self._btc_concurrency = btc_concurrency
+        self._btc_semaphore = asyncio.Semaphore(
+            self._btc_concurrency
+        )  # BTC gets lower concurrency (free APIs are rate-limited)
         # Per-chain rate limiters: serialize balance checks per chain with min interval
         self._chain_locks: dict[str, asyncio.Lock] = {}
         self._chain_last_call: dict[str, float] = {}

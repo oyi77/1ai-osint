@@ -8,14 +8,16 @@ Email OSINT — email validation, breach database lookup, and associated account
 
 ## Key Files
 | File | Description |
-|------|-------------|
-| `__init__.py` | Package initializer (tool registration) |
+||------|-------------|
+|| `__init__.py` | Full `EmailOSINTTool` implementation (246 lines) — breach lookup, email validation, account discovery |
 
 ## For AI Agents
 
 ### Working In This Directory
-- Checks emails against known breach databases
-- Validates email deliverability and format
+|- **Full implementation** — `EmailOSINTTool` class with breach database lookup, email validation, and associated account discovery
+|- Checks emails against known breach databases (DeHashed, HIBP-style via Chiasmodon)
+|- Validates email deliverability and format
+|- Results feed into ZKIT identity correlation|
 
 ## Dependencies
 

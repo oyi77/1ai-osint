@@ -8,14 +8,16 @@ Social media OSINT — username enumeration, profile scraping, and cross-platfor
 
 ## Key Files
 | File | Description |
-|------|-------------|
-| `__init__.py` | Package initializer (tool registration) |
+||------|-------------|
+|| `__init__.py` | Full `SocialOSINTTool` implementation (231 lines) — username enumeration, profile scraping, cross-platform identity correlation |
 
 ## For AI Agents
 
 ### Working In This Directory
-- Username search across 100+ platforms
-- Profile data aggregation and correlation
+|- **Full implementation** — `SocialOSINTTool` class with username search, profile scraping, and cross-platform identity correlation
+|- Username search across 100+ platforms (social networks, forums, developer platforms)
+|- Profile data aggregation and correlation
+|- All results feed into ZKIT identity correlation engine|
 
 ## Dependencies
 

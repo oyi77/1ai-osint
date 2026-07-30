@@ -1,13 +1,13 @@
 """Shared test fixtures for 1ai-osint."""
 
 from pathlib import Path
-from typing import Generator
+from typing import AsyncGenerator
 
 import pytest
 
 from src.core.cache import Cache
 from src.core.config import Settings
-from src.core.database import Database
+from src.core.database import Database, SQLiteBackend
 from src.core.models import BreachRecord, Finding, Identity, ScanResult, Severity
 from src.core.rate_limiter import RateLimiter
 
@@ -30,12 +30,12 @@ def test_settings(tmp_dir: Path) -> Settings:
 
 
 @pytest.fixture
-def test_db(tmp_dir: Path) -> Generator[Database, None, None]:
+async def test_db(tmp_dir: Path) -> AsyncGenerator[Database, None]:
     """Provide an in-memory-like SQLite database for testing."""
-    db = Database(db_path=tmp_dir / "test.db")
-    db.init_schema()
+    db = Database(backend=SQLiteBackend(db_path=tmp_dir / "test.db"))
+    await db.init_schema()
     yield db
-    db.close()
+    await db.close()
 
 
 @pytest.fixture

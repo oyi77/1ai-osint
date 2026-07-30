@@ -11,6 +11,8 @@ services:
       - ./data:/app/data
       - ./state:/app/state
     command: ["leak-finder", "--continuous", "--interval", "300"]
+    depends_on:
+      - postgres
     networks:
       - osint-net
     deploy:
@@ -39,6 +41,8 @@ services:
     ports:
       - "8000:8000"
     command: ["uvicorn", "src.api.app:app", "--host", "0.0.0.0", "--port", "8000"]
+    depends_on:
+      - postgres
     networks:
       - osint-net
     healthcheck:
@@ -53,6 +57,18 @@ services:
           memory: 1G
           cpus: "0.5"
 
+  # PostgreSQL database (shared state)
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: osint
+      POSTGRES_USER: osint
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-osint}
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    networks:
+      - osint-net
+
   # Identity resolver — on-demand identity resolution
   resolver:
     build:
@@ -63,27 +79,20 @@ services:
     env_file: .env
     volumes:
       - ./data:/app/data
-    command: ["resolve", "--help"]
+    command: ["deep-scan", "--profile", "fast"]
     networks:
       - osint-net
     profiles:
       - on-demand
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
 
-  # SQLite database (shared state)
-  # For distributed: replace with PostgreSQL
-  # postgres:
-  #   image: postgres:16-alpine
-  #   environment:
-  #     POSTGRES_DB: osint
-  #     POSTGRES_USER: osint
-  #     POSTGRES_PASSWORD: ${DB_PASSWORD:-osint}
-  #   volumes:
-  #     - pg-data:/var/lib/postgresql/data
-  #   networks:
-  #     - osint-net
-
-# volumes:
-#   pg-data:
+volumes:
+  pg-data:
 
 networks:
   osint-net:
