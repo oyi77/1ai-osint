@@ -60,9 +60,9 @@ class DeepScanEngine:
 
     def __init__(
         self,
-        max_iterations: int = 10,
+        max_iterations: int | None = None,
         max_identifiers: int = 500,
-        timeout_per_module: float = 60.0,
+        timeout_per_module: float | None = None,
         modules: list[str] | None = None,
         *,
         fast: bool = False,
@@ -73,8 +73,18 @@ class DeepScanEngine:
         profile_config: Any = None,
     ):
         if profile_config is not None:
-            max_iterations = profile_config.max_iterations
-            timeout_per_module = profile_config.timeout_per_module
+            # Profile supplies the defaults; explicit caller values are honored
+            # but capped at the profile limit (so `--max-iterations 0` can seed-only).
+            max_iterations = (
+                profile_config.max_iterations
+                if max_iterations is None
+                else min(max_iterations, profile_config.max_iterations)
+            )
+            timeout_per_module = (
+                profile_config.timeout_per_module
+                if timeout_per_module is None
+                else min(timeout_per_module, profile_config.timeout_per_module)
+            )
             max_identifiers = profile_config.max_identifiers
             max_pivot_handles = profile_config.max_pivot_handles
             max_targets_per_iteration = profile_config.max_targets_per_iteration
@@ -83,8 +93,16 @@ class DeepScanEngine:
             modules = list(profile_config.modules)
         elif fast:
             defaults = fast_scan_defaults()
-            max_iterations = min(max_iterations, int(defaults["max_iterations"]))
-            timeout_per_module = min(timeout_per_module, float(defaults["timeout_per_module"]))
+            max_iterations = (
+                int(defaults["max_iterations"])
+                if max_iterations is None
+                else min(max_iterations, int(defaults["max_iterations"]))
+            )
+            timeout_per_module = (
+                float(defaults["timeout_per_module"])
+                if timeout_per_module is None
+                else min(timeout_per_module, float(defaults["timeout_per_module"]))
+            )
             max_identifiers = min(max_identifiers, int(defaults["max_identifiers"]))
             max_pivot_handles = int(defaults["max_pivot_handles"])
             max_targets_per_iteration = int(defaults["max_targets_per_iteration"])
@@ -92,9 +110,10 @@ class DeepScanEngine:
             if modules is None:
                 modules = fast_module_list()
 
-        self.max_iterations = max_iterations
+        # No profile and no fast path: fall back to plain defaults.
+        self.max_iterations = max_iterations if max_iterations is not None else 10
         self.max_identifiers = max_identifiers
-        self.timeout_per_module = timeout_per_module
+        self.timeout_per_module = timeout_per_module if timeout_per_module is not None else 60.0
         self.modules = set(modules) if modules else set(_MODULE_INPUTS.keys())
         self.fast = fast
         self.max_concurrency = max_concurrency
