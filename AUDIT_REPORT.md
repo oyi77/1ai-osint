@@ -269,7 +269,7 @@ The CLI `monitor` command (`monitor_commands.py`) does NOT use this module — i
 | `people_finder/search.py` | — | REAL |
 | `data_leaks/` | breach_checker.py, aggregator.py | REAL |
 | `report_engine/` | __init__.py, html_template.py | REAL — ReportEngine, imported in 6 places in scan_commands.py |
-| `modules/vendor/` | external_tools.py + 3 mixins (242 loc) | REAL — ExternalToolIntel, imported by deep_scan/engine.py:210 |
+| `modules/vendor/` | external_tools.py + 3 mixins (242 loc) | REAL — ExternalToolIntel, imported by deep_scan/engine.py:292 (Phase 3) |
 | `vendor/chiasmodon/` | 37 files: 15 leak tools, 19 providers, pychiasmodon | REAL — imported by data_leaks/, people_finder/, phone_finder/ |
 
 ---
@@ -308,10 +308,36 @@ Every major module has dedicated test files with consistent naming: `test_<modul
 | `crypto_tracer` in `scan_profiles.py` | Declared in `DEEP_EXTRA` and registered in `_MODULE_REGISTRY` (`src/modules/__init__.py:46`) as `BlockchainTxTracer` (262 lines, real tx tracer), but the engine's resolver `cli/helpers.get_module()` (engine.py:348) has NO `crypto_tracer` branch — returns `None`, and it's not in `_MODULE_INPUTS`, `_SOURCE_MODULES`, or `_FREE_INTEL_DISPATCH` | **UNWIRED real module — kept; dispatch wiring tracked (plan item 9)** |
 | `darknet` in `scan_profiles.py` | Was declared in `DEEP_EXTRA` but no module exists — not in `_MODULE_INPUTS`, `_SOURCE_MODULES`, `_FREE_INTEL_DISPATCH`, and `get_module()` returns `None` | **REMOVED — silent no-op** |
 | `src/modules/free_intel/ai_enricher.py` | 117-line file with real `AIExtractor` class, but has zero importers across `src/`. Not in `_FREE_INTEL_DISPATCH`, `_MODULE_INPUTS`, or `get_module()` | **ORPHAN — file exists, no wire** |
-| `src/modules/vendor/` | 5 files (3 mixins + external_tools.py) | **ALIVE** — `ExternalToolIntel` in `external_tools.py` (179 lines) imported by `deep_scan/engine.py:210`. The 3 mixins (242 lines total) are imported by `external_tools.py:13-15`. |
-| `src/vendor/chiasmodon/` | 37-file package: 15 leak tools, 19 OSINT providers, base framework | **ALIVE** — imported by `data_leaks/aggregator.py` (leak check tools), `people_finder/search.py` (sherlock, maigret, whatsmyname providers), `phone_finder/lookup.py` (phoneinfoga). Graceful ImportError fallbacks throughout. |
+| `src/modules/vendor/` | 5 files (3 mixins + external_tools.py) | **ALIVE** — `ExternalToolIntel` in `external_tools.py` (179 lines) imported by `deep_scan/engine.py:292` and invoked as Phase 3 at `engine.py:201`/`:285`. The 3 mixins (242 lines total) are imported by `external_tools.py:13-15`. |
+| `src/vendor/chiasmodon/` leak tools + base | 15 leak tools (`leak_*`, `hibp`, `shodan`, `chiasmodon_bridge.py`), pychiasmodon client, base framework | **ALIVE** — imported by `data_leaks/aggregator.py` (leak check tools) and `chiasmodon_bridge.py`. Graceful ImportError fallbacks throughout. |
+| `src/vendor/chiasmodon/providers/` | 19 OSINT CLI-wrapper providers, 385 lines (incl. `__init__.py` 41) | **SPLIT — 4 ALIVE, 15 DEAD**: sherlock/maigret/whatsmyname → `people_finder/search.py:53-75` (gated on `shutil.which`), phoneinfoga → `phone_finder/lookup.py`. The other 15 (272 lines: haveibeenpwned, shodan, virustotal, abuseipdb, whoisxml, crtsh, wayback, social, holehe, h8mail, amass, theharvester, spiderfoot, datasploit, exiftool) have **zero production importers** — referenced only by `tests/unit/test_chiasmodon_providers.py` and the package's own `__init__.py` re-exports (which nothing production-side imports) | **15 REMOVE (test-only), 4 KEEP** |
 
-**Dead code ratio:** ~1% of total lines (ai_enricher orphan only; darknet entry removed, plugin system alive). Remarkably clean.
+**Dead code ratio:** ~389 lines of true orphans (ai_enricher 117 + 15 test-only chiasmodon providers 272) — still under ~4% of the codebase, but the provider mass is redundant *triplication* of live wrapper code (see 16.1), not just dead weight.
+
+---
+
+### 16.1 ExternalToolIntel vs chiasmodon providers — duplicate CLI wrappers
+
+Three independent frameworks shell out to the same external OSINT CLIs. All verified live (except where marked DEAD):
+
+| CLI tool | `ExternalToolIntel` (deep_scan Phase 3, `modules/vendor/`) | `sources/*_source.py` (leak_finder default run, CLI `--sources all`, node contract) | chiasmodon provider (people/phone finder) | Wrapper count |
+|----------|----------------------------------------------------------|----------------------------------------------------------------------------------------|----------------------------------------------|---------------|
+| sherlock | `_run_sherlock` (subprocess CSV) | `sherlock_source.py` | `sherlock.py` (people_finder) | **3× live** |
+| maigret | `_run_maigret` (subprocess JSON) | `maigret_source.py` | `maigret.py` (people_finder) | **3× live** |
+| phoneinfoga | — (phone_finder `__init__.py` does direct HTTP :3000) | `phoneinfoga_source.py` (subprocess) | `phoneinfoga.py` (phone_finder/lookup) | **3× live** (2 subprocess + 1 HTTP) |
+| whatsmyname | — | `whatsmyname_source.py` (HTTP to web app) | `whatsmyname.py` (people_finder, CLI) | **2× live** |
+| holehe | — | `holehe_source.py` (`from holehe import check_email` library) | `holehe.py` — **DEAD** (test-only) | dual, 1 dead |
+| theHarvester / amass / spiderfoot | **only production consumer** (`_ext_domain_mixin`, `_ext_recon_mixin`) | theharvester/amass/spiderfoot `_source.py` live | provider **DEAD** (test-only) | dead dup |
+| hibp / shodan / virustotal / abuseipdb / crtsh / wayback / social / h8mail / exiftool | — | live `*_source.py` twin for each | provider **DEAD** (test-only) | dead dup |
+| whoisxml | — | only `whois_source.py` (different service) | provider **DEAD** (test-only) | superseded, not duplicated |
+| datasploit | — | no source twin at all | provider **DEAD** (test-only) | fully orphan |
+
+**Findings:**
+- `ExternalToolIntel` is **not redundant** — it is the only production consumer of the domain/recon CLIs (theHarvester, amass, subfinder, bbot, spiderfoot, chiasmodon CLI, social-analyzer, ghunt, leakosint, web-check, worldmonitor, crucix). Its chiasmodon-provider counterparts are all in the dead 15.
+- The **sherlock/maigret triple-wrappers serve three distinct consumers**: Phase-3 deep scan (`ExternalToolIntel`), leak-finder default scan + CLI `--sources all` + node source contract (`sources/`), and people-finder (`chiasmodon providers`). None is dead; all are reachable.
+- `deep_scan`'s source-adapter path (`engine.py:436`, `SOURCE_MODULES = {dehashed, leakcheck, snylla, snusbase, hibp, intelx}`) does **not** route to the OSINT sources — those run via `crypto/leak_finder/coordinator.py:74-89` (defaults to `list(ALL_SOURCES)`), `node/master_api.py:136-138`, and CLI `--sources all`.
+
+**Recommended remediation (see EVOLUTION_PLAN item 3):** delete the 15 test-only providers + prune `providers/__init__.py` + trim `tests/unit/test_chiasmodon_providers.py` to the 4 live providers; keep `ExternalToolIntel`; optionally route its `_run_sherlock`/`_run_maigret` through one canonical wrapper as a later refactor (behavior-preserving, not a delete).
 
 ---
 
@@ -341,6 +367,6 @@ Every major module has dedicated test files with consistent naming: `test_<modul
 | Deep scan engine files | 34 | `deep_scan/` (glob) |
 | Vendor tools | 37 (chiasmodon) + 5 (modules/vendor) = 42 | `vendor/chiasmodon/`, `modules/vendor/` |
 | Report engine files | 2 | `report_engine/` |
-| Dead/placeholder | ~1% | ai_enricher orphan (117 lines) + darknet (removed) — plugin system alive |
+| Dead/placeholder | ~389 lines (<~4%) | ai_enricher orphan (117) + 15 test-only chiasmodon providers (272) — redundant triplication, see §16.1 |
 | CI workflows | 3 | ci.yml, release.yml, docs-sync.yml |
 | Docker build stages | 3 | Go tools → Python deps → runtime |

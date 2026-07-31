@@ -36,17 +36,22 @@
 
 ### 3. Evaluate Vendor Consolidation: `modules/vendor/` vs `vendor/chiasmodon/`
 
-**Ground truth:** Two separate vendor trees exist. `src/modules/vendor/` has `ExternalToolIntel` (179 lines, imported by `deep_scan/engine.py:210`) with 3 mixins (242 lines total) — provides general OSINT tool orchestration. `src/vendor/chiasmodon/` has 37 files — 15 leak tools + 19 providers + `pychiasmodon` client + base framework — imported by `data_leaks/aggregator.py`, `people_finder/search.py`, `phone_finder/lookup.py`. Both are alive and actively used.
+**Ground truth:** Two separate vendor trees exist. `src/modules/vendor/` has `ExternalToolIntel` (179 lines, imported by `deep_scan/engine.py:292` inside Phase 3 `_run_external_tools_phase` at `engine.py:285`) with 3 mixins (242 lines total) — wraps 14 external CLIs via subprocess. `src/vendor/chiasmodon/` has 37 files — 15 leak tools + 19 OSINT providers + `pychiasmodon` client + base framework — imported by `data_leaks/aggregator.py`, `people_finder/search.py`, `phone_finder/lookup.py`.
 
-**Potential action:**
-- Audit whether `ExternalToolIntel` in `modules/vendor/` duplicates functionality already covered by the chiasmodon provider suite
-- If overlap exists, consolidate into `vendor/chiasmodon/` and delete `modules/vendor/`
-- If they serve different roles (general OSINT orchestration vs specific leak tools), document the boundary
-- This is an architectural audit, not a delete
+**Audit result (completed — every claim verified by import grep + consumer trace):**
 
-**Verification:** Trace which providers each tree wraps. Check if deep_scan's vendor tools run the same sherlock/maigret/holehe as chiasmodon's providers. Report findings before acting.
+1. **`ExternalToolIntel` is NOT redundant.** It is the only production consumer of the domain/recon CLIs (theHarvester, amass, subfinder, bbot, spiderfoot, chiasmodon CLI, social-analyzer, ghunt, leakosint, web-check, worldmonitor, crucix). Its chiasmodon-provider counterparts for theHarvester/amass/spiderfoot are in the dead 15 below.
+2. **15 of 19 chiasmodon providers are production-dead** (272 lines): haveibeenpwned, shodan, virustotal, abuseipdb, whoisxml, crtsh, wayback, social, holehe, h8mail, amass, theharvester, spiderfoot, datasploit, exiftool — referenced only by `tests/unit/test_chiasmodon_providers.py` and `providers/__init__.py` re-exports (no production importer). Live 4: sherlock, maigret, whatsmyname (people_finder), phoneinfoga (phone_finder/lookup).
+3. **Triple wrapper duplication** for sherlock/maigret (ExternalToolIntel Phase 3 + `sources/*_source.py` leak-finder/CLI/node + chiasmodon provider), and dual for phoneinfoga (2 subprocess + 1 HTTP), whatsmyname, holehe. The `sources/` variants are live via `crypto/leak_finder/coordinator.py:74-89` (default `list(ALL_SOURCES)`), `node/master_api.py:136-138`, and CLI `--sources all` — NOT via the deep_scan engine adapter (`SOURCE_MODULES = {dehashed, leakcheck, snylla, snusbase, hibp, intelx}`, `_module_config.py:63`).
 
-**Risk:** Low if read-only audit; moderate if deleting — both trees have real callers.
+**Action (concrete):**
+- **Delete the 15 dead providers** (`providers/{haveibeenpwned,shodan,virustotal,abuseipdb,whoisxml,crtsh,wayback,social,holehe,h8mail,amass,theharvester,spiderfoot,datasploit,exiftool}.py`), prune `providers/__init__.py` to the 4 live imports, and trim `tests/unit/test_chiasmodon_providers.py` to the live 4 (keep the CLI-wrapper test pattern for the survivors). ~1 day.
+- **Keep `ExternalToolIntel`** — delete only if the domain/recon CLIs get re-homed into `sources/` first; out of scope.
+- **Optional refactor (not a delete):** reroute Phase-3 `_run_sherlock`/`_run_maigret` (external_tools.py) through the chiasmodon providers so each CLI has one canonical Python wrapper; behavior-preserving, verify with `pytest tests/integration/test_deep_scan_golden.py`.
+
+**Verification:** after deletion, `grep -rn "chiasmodon.providers" src/ --include="*.py"` shows only sherlock/maigret/whatsmyname/phoneinfoga imports; `pytest tests/unit/test_chiasmodon_providers.py tests/unit/test_people_finder.py tests/unit/test_phone_finder.py -q` passes.
+
+**Risk:** Low — the dead 15 have zero production callers; the live 4 are untouched. Keep the deletion scoped to provider files (never touch `leak_*` tools — those are live via `aggregator.py`).
 
 ---
 
@@ -181,7 +186,7 @@
 | 1 | Plugin system: wire hooks or keep | Unwired subsystem | `src/plugin/` — functional (CLI works, 31 tests), hooks never fire in scan lifecycle | 1 day (wire) / 30 min (keep) |
 | 2 | Dead profile entry (`darknet`) | Dead code | `DEEP_EXTRA` in scan_profiles.py — no module exists anywhere | 30 min |
 | 3 | `report_engine/` | Alive | 2 files, imported in 6 places (scan_commands.py) | Already done |
-| 4 | `vendor/` trees | Alive | `modules/vendor/` (5 files, 179+242 loc) + `vendor/chiasmodon/` (37 files). Both have real callers. | Architectural audit (not delete) |
+| 4 | `vendor/` trees | Alive — duplication audited | `modules/vendor/` (5 files, ExternalToolIntel + 3 mixins) + `vendor/chiasmodon/` (37 files). Audit complete: ExternalToolIntel not redundant (sole consumer of domain/recon CLIs); 15/19 chiasmodon providers production-dead (272 LOC, test-only); sherlock/maigret triple-wrapped across 3 frameworks | 1 day (delete 15 dead providers + prune __init__ + trim test) |
 | 5 | Fragile sed in docs-sync.yml | Fragile CI | `release.yml` sed pattern | 30 min |
 | 6 | No PyPI publish | Missing capability | `release.yml` has no publish step | 1 day |
 | 7 | Docker image not pushed | Missing capability | `release.yml` builds but doesn't push | 1 day |
