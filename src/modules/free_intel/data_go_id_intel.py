@@ -26,8 +26,11 @@ SEARCH_URL = "https://data.go.id/dataset"
 USER_AGENT = "1ai-osint/1.0 (+government open data research)"
 
 # Flight-data title extraction: JSON string keys inside the RSC payload.
-_TITLE_RE = re.compile(r'\\"title\\":\\"((?:[^\\"]|\\\\.){3,120})\\"')
-_ORG_RE = re.compile(r'\\"(?:nama_organisasi|organization|instansi)\\":\\"((?:[^\\"]|\\\\.){3,120})\\"')
+# The page is HTML-embedded so quotes are escaped as `\"` (backslash + quote).
+# A title is any run of chars (with `\X` escape pairs) up to the closing `\"`.
+_TITLE_RE = re.compile(r'\\"title\\":\\"((?:\\\\.|[^\\\\])*?)\\"')
+# An org object's title is immediately followed by `,"type":"organization"`.
+_ORG_TYPE_RE = re.compile(r'\\"title\\":\\"((?:\\\\.|[^\\\\])*?)\\",\\"type\\":\\"organization\\"')
 
 
 def _unescape(value: str) -> str:
@@ -59,26 +62,26 @@ class DataGoIdIntel:
             return []
 
         titles: list[str] = []
+        org_titles = {_unescape(m.group(1)).strip() for m in _ORG_TYPE_RE.finditer(text)}
         for m in _TITLE_RE.finditer(text):
             title = _unescape(m.group(1)).strip()
-            if title and title not in titles:
-                titles.append(title)
+            if not title or title in titles:
+                continue
+            titles.append(title)
             if len(titles) >= limit * 2:
                 break
-
-        orgs = [_unescape(m.group(1)).strip() for m in _ORG_RE.finditer(text)]
 
         # Filter out UI chrome strings ("kategori", org names, etc.) that
         # happen to live in title-shaped JSON — keep plausible dataset names.
         results: list[dict] = []
         stopwords = {"kategori", "Semua Data", "Dataset", "Homepage", "Contact"}
         for title in titles:
-            if title in stopwords or len(title) < 12:
+            if title in stopwords or len(title) < 12 or title in org_titles:
                 continue
             results.append(
                 {
                     "title": title,
-                    "organization": orgs[0] if orgs else "",
+                    "organization": "",
                 }
             )
             if len(results) >= limit:

@@ -112,7 +112,13 @@ async def agent_loop_scan(target: str, max_sources: int = 12) -> dict:
     # Patch the module-level scan functions to route into our simulator.
     import src.modules.deep_scan.agent_loop as al
 
-    async def _fake_source(name: str, target: str, source_inst=None, requester: str = "bench") -> object:
+    async def _fake_source(
+        name: str,
+        target: str,
+        source_inst=None,
+        requester: str = "bench",
+        requester_tier=None,
+    ) -> object:
         from src.core.models import ScanResult
 
         res = await _simulated_scan(name, target)
@@ -126,7 +132,12 @@ async def agent_loop_scan(target: str, max_sources: int = 12) -> dict:
             findings=[],
         )
 
-    async def _fake_free(name: str, target: str) -> object:
+    async def _fake_free(
+        name: str,
+        target: str,
+        requester: str = "bench",
+        requester_tier=None,
+    ) -> object:
         from src.core.models import ScanResult
 
         res = await _simulated_scan(name, target)
