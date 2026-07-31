@@ -135,6 +135,35 @@ async def test_pandi_lookup_returns_none_on_non_200():
 
 
 @pytest.mark.asyncio
+async def test_pandi_lookup_uses_rdap_path_prefix():
+    """The RDAP endpoint must include the /rdap/ path segment (IANA bootstrap).
+
+    Regression guard: the endpoint previously lacked the path segment, which
+    made every live lookup return 404 (verified against rdap.pandi.id).
+    """
+    scanner = PandiWhoisIntel()
+    captured: list[str] = []
+
+    async def fake_get(url, headers=None):
+        captured.append(url)
+
+        class _Resp:
+            status_code = 200
+
+            def json(self):
+                return _rdap_payload()
+
+        return _Resp()
+
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value.get = fake_get
+    with patch("httpx.AsyncClient", return_value=mock_client):
+        await scanner.lookup("example.co.id")
+    assert captured, "lookup should have issued an HTTP request"
+    assert captured[0] == "https://rdap.pandi.id/rdap/domain/example.co.id"
+
+
+@pytest.mark.asyncio
 async def test_run_pandi_whois_intel_builds_findings():
     with patch(
         "src.modules.free_intel.pandi_whois_intel.PandiWhoisIntel.lookup",

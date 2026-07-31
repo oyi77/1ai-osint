@@ -22,7 +22,7 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-RDAP_ENDPOINT = "https://rdap.pandi.id/domain/{domain}"
+RDAP_ENDPOINT = "https://rdap.pandi.id/rdap/domain/{domain}"
 _ID_TLD_RE = re.compile(
     r"^[a-z0-9-]+\.(?:co\.id|or\.id|web\.id|ac\.id|sch\.id|go\.id|mil\.id|biz\.id|id)$", re.IGNORECASE
 )
