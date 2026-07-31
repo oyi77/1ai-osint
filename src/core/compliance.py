@@ -28,10 +28,12 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from src.core.config import settings
+from src.core.rbac import AccessTier
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_RETENTION_DAYS = 30  # Sherlockeye standard per blueprint §4.5
+DEFAULT_RPM = 60  # default per-source requests-per-minute (ToS guard)
 
 
 class LegalBasis(str, Enum):
@@ -52,6 +54,10 @@ class SourceCompliance(BaseModel):
     retention_days: int = DEFAULT_RETENTION_DAYS
     requires_consent: bool = False
     tos_notes: str = ""
+    # RBAC (Layer 3): minimum tier required to query this source.
+    min_tier: AccessTier = AccessTier.READONLY
+    # ToS guard (Layer 3): per-source rate ceiling in requests/minute.
+    requests_per_minute: int = DEFAULT_RPM
 
 
 class AuditEntry(BaseModel):
@@ -81,6 +87,8 @@ def _register(
     retention_days: int = DEFAULT_RETENTION_DAYS,
     requires_consent: bool = False,
     tos_notes: str = "",
+    min_tier: AccessTier = AccessTier.READONLY,
+    requests_per_minute: int = DEFAULT_RPM,
 ) -> None:
     _COMPLIANCE_REGISTRY[source] = SourceCompliance(
         source=source,
@@ -88,6 +96,8 @@ def _register(
         retention_days=retention_days,
         requires_consent=requires_consent,
         tos_notes=tos_notes,
+        min_tier=min_tier,
+        requests_per_minute=requests_per_minute,
     )
 
 
@@ -171,6 +181,9 @@ for _name in ("dehashed", "intelx", "leakcheck", "snusbase", "snylla"):
         tos_notes=(
             "Paid breach database — legal basis review required " "before production use (blueprint §3 ⛔ category)"
         ),
+        # Undocumented + sensitive → ADMIN-only (RBAC Layer 3).
+        min_tier=AccessTier.ADMIN,
+        requests_per_minute=10,
     )
 
 # — Free intel module (public endpoints, no API keys) —
@@ -223,6 +236,25 @@ def get_compliance(source_name: str) -> SourceCompliance:
 def is_consent_required(source_name: str) -> bool:
     """True if the source touches Pasal 4.2 sensitive categories."""
     return get_compliance(source_name).requires_consent
+
+
+def min_tier_for(source_name: str) -> AccessTier:
+    """Return the minimum access tier required to query this source."""
+    return get_compliance(source_name).min_tier
+
+
+def source_allows_tier(source_name: str, requester_tier: AccessTier) -> bool:
+    """True if ``requester_tier`` is privileged enough to query the source.
+
+    RBAC (Layer 3): a requester must hold a tier at least as privileged as
+    the source's ``min_tier``.
+    """
+    return requester_tier >= min_tier_for(source_name)
+
+
+def requests_per_minute_for(source_name: str) -> int:
+    """Return the per-source ToS rate ceiling (requests per minute)."""
+    return get_compliance(source_name).requests_per_minute
 
 
 def registered_sources() -> list[str]:

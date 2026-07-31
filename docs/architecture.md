@@ -92,16 +92,18 @@ selection, iteration counts, and timeouts. Results are exported as HTML,
 rule-based planner on top of the engine: one target → `detect_target_type()`
 picks an ordered source plan (email/phone/username/domain/name/crypto), a
 parallel primary wave runs, and rate-limited/errored sources fall back to
-alternates. Every step is compliance-gated (consent-required sources are
-blocked pre-run) and audited through the same adapter layer. A head-to-head
-benchmark (`scripts/benchmark_agent_vs_batch.py`) measures 6.22x wall-clock
-speedup over the naive "run everything" batch.
+alternates. Every step passes the compliance gates — consent gate (UU PDP
+Pasal 4.2), RBAC gate (`src/core/rbac.py` — per-source `min_tier` vs caller
+tier), ToS guard (`src/core/tos_guard.py` — per-source rate ceiling) — and
+is audited through the same adapter layer. A head-to-head benchmark
+(`scripts/benchmark_agent_vs_batch.py`) measures 6.22x wall-clock speedup
+over the naive "run everything" batch.
 
 ### MCP bridge
 
 `src/mcp_bridge/server.py` (blueprint Phase 1 S3) is a FastMCP server
-exposing `search(target, source_filter)` (wraps `run_source_scan` +
-`CrossModuleCorrelator.correlate`), `list_sources()` and
+exposing `search(target, source_filter, requester_tier)` (wraps
+`run_source_scan` + `CrossModuleCorrelator.correlate`), `list_sources()` and
 `source_compliance()` to any MCP-capable client. Run standalone via
 `uv run python -m src.mcp_bridge.server` (stdio). Named `mcp_bridge` (not
 `mcp`) so it cannot shadow the official MCP SDK package.

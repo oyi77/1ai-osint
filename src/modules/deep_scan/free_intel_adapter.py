@@ -10,7 +10,10 @@ import logging
 import uuid
 from typing import Any
 
+from src.core.compliance import get_compliance, record_audit, source_allows_tier
 from src.core.models import Finding, ScanResult, Severity
+from src.core.rbac import AccessTier
+from src.core.tos_guard import tos_allows
 
 logger = logging.getLogger(__name__)
 
@@ -808,20 +811,61 @@ _FREE_INTEL_DISPATCH: dict[str, tuple[str, str, Any]] = {
 }
 
 
-async def run_free_intel_scan(module_name: str, target: str) -> ScanResult | None:
+async def run_free_intel_scan(
+    module_name: str,
+    target: str,
+    requester: str = "unknown",
+    requester_tier: AccessTier = AccessTier.ADMIN,
+) -> ScanResult | None:
     """Run a single free intel module scan and return a structured ScanResult.
 
     Args:
         module_name: Module key from _FREE_INTEL_DISPATCH (e.g. 'social_dorks_intel')
         target: Search target string (name, email, or URL).
+        requester: Caller identity for the audit trail.
+        requester_tier: Caller's access tier for the RBAC gate.
 
     Returns:
         ScanResult with findings, or None on failure/no data.
+
+    Compliance: RBAC (min-tier) and ToS (rate ceiling) gates are enforced
+    here for free-intel modules — same Layer 3 guarantees as the
+    breach/leak source adapter path.
 
     """
     entry = _FREE_INTEL_DISPATCH.get(module_name)
     if not entry:
         logger.warning("Unknown free intel module: %s", module_name)
+        return None
+
+    # RBAC gate — tier must be at least the source's min_tier.
+    if not source_allows_tier(module_name, requester_tier):
+        record_audit(
+            source=module_name,
+            target=target,
+            requester=requester,
+            outcome="blocked",
+            legal_basis=get_compliance(module_name).legal_basis.value,
+        )
+        logger.warning(
+            "Blocked free intel %s for '%s': requester tier %s below required %s",
+            module_name,
+            target,
+            requester_tier.name,
+            get_compliance(module_name).min_tier.name,
+        )
+        return None
+
+    # ToS guard — respect the platform's documented rate ceiling.
+    if not tos_allows(module_name):
+        record_audit(
+            source=module_name,
+            target=target,
+            requester=requester,
+            outcome="throttled",
+            legal_basis=get_compliance(module_name).legal_basis.value,
+        )
+        logger.warning("Throttled free intel %s for '%s': ToS rate ceiling hit", module_name, target)
         return None
 
     label, _, handler = entry

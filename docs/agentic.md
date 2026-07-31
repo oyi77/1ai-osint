@@ -10,13 +10,14 @@ A FastMCP server (`mcp` SDK 1.x) exposing three tools over stdio:
 
 | Tool | Description |
 | --- | --- |
-| `search(target, source_filter=None)` | Runs `run_source_scan()` over the requested sources (or the full registry) and feeds results into `CrossModuleCorrelator.correlate()`. Returns findings + correlation graph stats. |
-| `list_sources()` | Lists all registered source adapters. |
-| `source_compliance(source)` | Returns the UU PDP legal basis / retention / consent posture for a source. |
+| `search(target, source_filter=None, requester_tier="admin")` | Runs `run_source_scan()` over the requested sources (or the full registry) and feeds results into `CrossModuleCorrelator.correlate()`. Returns findings + correlation graph stats. The `requester_tier` param (readonly/analyst/admin) gates sources above the caller's tier. |
+| `list_sources()` | Lists all registered source adapters (incl. `min_tier` + `requests_per_minute`). |
+| `source_compliance(source)` | Returns the UU PDP legal basis / retention / consent posture for a source (incl. tier + rate ceiling). |
 
 The bridge **delegates** — it re-implements no scanning or correlation
 logic. Compliance is inherited: every adapter call goes through the same
-legal-basis gate and audit log as the CLI/engine paths.
+legal-basis gate, RBAC gate, ToS guard, and audit log as the CLI/engine
+paths.
 
 ### Why `mcp_bridge` and not `mcp`?
 
@@ -52,8 +53,10 @@ One input → rule-based planner → structured report:
 3. The **primary wave** runs concurrently (up to 3 sources).
 4. Rate-limited or errored sources trigger the **fallback wave**: alternate
    sources run in batches until enough succeed.
-5. Compliance gate: consent-required sources (UU PDP Pasal 4.2) are blocked
-   pre-run unless explicitly allowed.
+5. Compliance gates, in order: consent gate (UU PDP Pasal 4.2 sources are
+   blocked pre-run), RBAC gate (sources whose `min_tier` exceeds the
+   caller's tier are blocked), ToS guard (sources over their per-source
+   rate ceiling are throttled — audited as `outcome="throttled"`).
 6. Every adapter call is audited (same JSONL audit log as Phase 0).
 
 ### Usage

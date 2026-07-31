@@ -25,6 +25,7 @@ from typing import Any
 from mcp.server.fastmcp import FastMCP
 
 from src.core.compliance import get_compliance
+from src.core.rbac import AccessTier
 from src.modules.deep_scan.source_adapter import run_source_scan
 from src.modules.identity_tracking.correlation import CrossModuleCorrelator
 from src.modules.sources import discover_sources
@@ -48,6 +49,7 @@ async def _run_sources(
     target: str,
     source_filter: list[str] | None,
     requester: str,
+    requester_tier: AccessTier,
 ) -> dict[str, dict[str, Any]]:
     """Run each requested source adapter and return module_name → ScanResult."""
     sources_map = discover_sources()
@@ -72,6 +74,7 @@ async def _run_sources(
             target,
             source_inst,
             requester=requester,
+            requester_tier=requester_tier,
         )
         if scan_result is None:
             continue
@@ -129,6 +132,7 @@ def _correlate_results(
 async def search(
     target: str,
     source_filter: list[str] | None = None,
+    requester_tier: str = "admin",
 ) -> dict[str, Any]:
     """Run breach/leak source lookup on a target and correlate findings.
 
@@ -137,11 +141,14 @@ async def search(
         source_filter: Optional list of source names to query (subset of
             dehashed, leakcheck, snylla, snusbase, hibp, intelx).
             Defaults to all configured sources.
+        requester_tier: Caller's access tier (readonly/analyst/admin).
+            Sources above the tier are blocked by the RBAC gate.
 
     Returns:
         {"target": ..., "sources": {name: ScanResult}, "correlation": {...}}
     """
-    results = await _run_sources(target, source_filter, requester="mcp")
+    tier = AccessTier.from_str(requester_tier)
+    results = await _run_sources(target, source_filter, requester="mcp", requester_tier=tier)
     correlation = _correlate_results(results, target)
     return {
         "target": target,
@@ -162,6 +169,8 @@ async def list_sources() -> dict[str, Any]:
                 "legal_basis": get_compliance(name).legal_basis.value,
                 "retention_days": get_compliance(name).retention_days,
                 "requires_consent": get_compliance(name).requires_consent,
+                "min_tier": get_compliance(name).min_tier.name,
+                "requests_per_minute": get_compliance(name).requests_per_minute,
             }
             for name in available
         ]
@@ -185,6 +194,8 @@ async def source_compliance(source: str) -> dict[str, Any]:
         "retention_days": comp.retention_days,
         "requires_consent": comp.requires_consent,
         "tos_notes": comp.tos_notes,
+        "min_tier": comp.min_tier.name,
+        "requests_per_minute": comp.requests_per_minute,
     }
 
 

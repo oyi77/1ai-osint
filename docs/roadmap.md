@@ -532,8 +532,8 @@ class MyModule(BaseModule):
 - [x] **MCP bridge (blueprint Phase 1 S3)**: `src/mcp_bridge/server.py` — FastMCP server exposing search / list_sources / source_compliance to any MCP client
 - [x] **Thin agent loop (blueprint Phase 1 S4)**: `deep_scan/agent_loop.py` — rule-based planner + alternate-source fallback on rate-limit/error; 6.22x vs naive batch (`scripts/benchmark_agent_vs_batch.py`)
 - [x] **Open-government adapters (blueprint Phase 2 S5)**: PANDI RDAP + data.go.id (Satu Data Indonesia) with `government_open_data` legal basis
-- [ ] RBAC per user tier (currently single auth token)
-- [ ] ToS guard per source: rate-limit awareness per platform ToS
+- [x] **RBAC per user tier (blueprint Layer 3)**: `src/core/rbac.py` — AccessTier (readonly/analyst/admin), token→tier resolution (`WEB_AUTH_TOKENS="tier:token,..."`, legacy `WEB_AUTH_TOKEN` = admin), per-source `min_tier` gate enforced in `run_source_scan` + `run_free_intel_scan` + MCP `search(requester_tier=...)`; web auth middleware resolves tier into `scope["auth_tier"]` (`/api/auth/tier`)
+- [x] **ToS guard per source (blueprint Layer 3)**: `src/core/tos_guard.py` — per-source `requests_per_minute` ceiling from the compliance registry (breach DBs capped at 10 rpm), enforced before every external query; over-limit calls are throttled and recorded as `outcome="throttled"` in the audit trail
 
 ---
 

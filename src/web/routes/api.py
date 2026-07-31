@@ -5,9 +5,22 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
+
+from src.core.rbac import AccessTier
 
 router = APIRouter(prefix="/api", tags=["api"])
+
+
+@router.get("/auth/tier")
+async def auth_tier(request: Request) -> dict:
+    """Return the caller's resolved access tier (RBAC Layer 3).
+
+    When auth is disabled (no WEB_AUTH_TOKEN / WEB_AUTH_TOKENS) the caller
+    is treated as ADMIN — same as the engine's internal default.
+    """
+    tier = request.scope.get("auth_tier", AccessTier.ADMIN)
+    return {"tier": tier.name, "rank": int(tier)}
 
 
 @router.get("/health")
@@ -17,7 +30,6 @@ async def health_check() -> dict:
         "status": "ok",
         "version": "1.0.0",
     }
-
     # Check database module availability
     db_available = importlib.util.find_spec("src.core.database") is not None
     statuses["database_available"] = db_available

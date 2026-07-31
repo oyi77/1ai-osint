@@ -59,9 +59,16 @@ records one JSONL entry:
 }
 ```
 
-- **Outcomes:** `ok` / `empty` / `error` / `blocked`
+- **Outcomes:** `ok` / `empty` / `error` / `blocked` / `throttled`
 - **Consent gate:** a source flagged `requires_consent` is blocked *before*
   any query is made, and the block itself is audited.
+- **RBAC gate (Layer 3):** every source carries a `min_tier`; a requester
+  whose tier is below it is blocked pre-query and the block is audited
+  (`src/core/rbac.py` — AccessTier readonly/analyst/admin).
+- **ToS guard (Layer 3):** every source carries a `requests_per_minute`
+  ceiling; queries over the ceiling are throttled (not fired) and audited
+  as `outcome="throttled"` (`src/core/tos_guard.py`). Paid breach DBs are
+  capped at 10 rpm; public sources default to 60 rpm.
 - **Retention:** default 30 days (Sherlockeye standard, blueprint §4.5);
   `purge_expired_audit_entries()` enforces it.
 - **Config:** log path via `AUDIT_LOG_PATH` env var (default
@@ -74,9 +81,20 @@ from src.core.compliance import (
     get_compliance, record_audit, read_audit_entries,
     purge_expired_audit_entries, registered_sources,
 )
+from src.core.rbac import AccessTier, tier_for_token
+from src.core.tos_guard import tos_allows
 
 # What legal basis does this source have?
 comp = get_compliance("hibp")          # LegalBasis.PUBLIC_API_TOS
+
+# RBAC: resolve a caller's tier from a bearer token, then gate a source.
+tier = tier_for_token(token)            # AccessTier (None = unknown token)
+if not source_allows_tier("dehashed", tier or AccessTier.READONLY):
+    ...  # blocked — source requires a higher tier
+
+# ToS guard: respect the platform's documented rate ceiling.
+if tos_allows("dehashed"):              # False = throttled, do not fire
+    ...  # proceed with the query
 
 # Everything querying a source goes through record_audit().
 record_audit(source="hibp", target="x@y.com",
@@ -87,17 +105,15 @@ entries = read_audit_entries(limit=100)
 purged = purge_expired_audit_entries()
 ```
 
-## Roadmap (still open — Phase 0b)
+## Roadmap (still open)
 
-- RBAC per user tier
-- ToS guard per source (rate-limit awareness per platform ToS)
 - Retention policy UI/API endpoint
-- Wire free-intel adapter through the same audit gate
+- JWT sessions + per-route tier decorators on the web layer
 
 ## Verification
 
 ```bash
-uv run pytest tests/unit/test_compliance.py -q   # 21 tests
+uv run pytest tests/unit/test_compliance.py tests/unit/test_rbac_tos.py -q   # compliance + RBAC/ToS
 uv run mypy src/                                  # 0 errors
 uv run ruff check src/ tests/                     # 0 errors
 ```

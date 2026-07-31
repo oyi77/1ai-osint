@@ -15,8 +15,15 @@ import logging
 import uuid
 from typing import Any
 
-from src.core.compliance import get_compliance, is_consent_required, record_audit
+from src.core.compliance import (
+    get_compliance,
+    is_consent_required,
+    record_audit,
+    source_allows_tier,
+)
 from src.core.models import Finding, ScanResult, Severity
+from src.core.rbac import AccessTier
+from src.core.tos_guard import tos_allows
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +76,7 @@ async def run_source_scan(
     target: str,
     source_instance: Any,
     requester: str = "unknown",
+    requester_tier: AccessTier = AccessTier.ADMIN,
 ) -> ScanResult | None:
     """Run a single breach/leak source scan and return a structured ScanResult.
 
@@ -77,13 +85,18 @@ async def run_source_scan(
         target: Search target (email, username, etc.)
         source_instance: Instantiated source class with search_for_address()
         requester: Caller identity for the audit trail (default "unknown")
+        requester_tier: Caller's access tier for the RBAC gate
+            (default ADMIN — internal engine paths are fully privileged;
+            web/MCP callers pass their resolved tier).
 
     Returns:
         ScanResult with structured findings, or None on failure.
 
     Compliance: sources requiring explicit consent (Pasal 4.2 UU PDP
-    categories) are blocked before any query is made; every executed
-    query is recorded in the central audit log.
+    categories) are blocked before any query is made; sources whose
+    ``min_tier`` exceeds the requester's tier are blocked by RBAC; sources
+    over their ToS rate ceiling are throttled; every executed query is
+    recorded in the central audit log.
 
     """
     compliance = get_compliance(source_name)
@@ -103,6 +116,36 @@ async def run_source_scan(
             source_name,
             target,
         )
+        return None
+
+    # RBAC gate (Layer 3) — tier must be at least the source's min_tier.
+    if not source_allows_tier(source_name, requester_tier):
+        record_audit(
+            source=source_name,
+            target=target,
+            requester=requester,
+            outcome="blocked",
+            legal_basis=compliance.legal_basis.value,
+        )
+        logger.warning(
+            "Blocked source %s for '%s': requester tier %s below required %s",
+            source_name,
+            target,
+            requester_tier.name,
+            compliance.min_tier.name,
+        )
+        return None
+
+    # ToS guard (Layer 3) — respect the platform's documented rate ceiling.
+    if not tos_allows(source_name):
+        record_audit(
+            source=source_name,
+            target=target,
+            requester=requester,
+            outcome="throttled",
+            legal_basis=compliance.legal_basis.value,
+        )
+        logger.warning("Throttled source %s for '%s': ToS rate ceiling hit", source_name, target)
         return None
 
     scan_id = f"source-{source_name}-{uuid.uuid4().hex[:8]}"

@@ -60,7 +60,7 @@ the ID/SEA moat — not in re-implementing adapters.
 | --- | --- | --- |
 | **L5 — Output & Reporting** | ~80% | `report_engine/html_template.py`, `output/` (pdf, sarif, json, report_generator, zkit_formatter), `deep_scan/ai_briefing.py` + `briefing_builder.py` — narrative briefing already exists |
 | **L4 — AI Reasoning & Correlation** | ~75% | `identity_tracking/`: `zkit_engine` (salted SHA-256), `correlation.py` (`CrossModuleCorrelator`, `ResolvedEntity`, `ingest_scan_results`, `correlate`, `_build_evidence`), `identity_graph`, `behavioral_fingerprint`, `counterintel`, `neo4j_export.py` |
-| **L3 — Access Control & Compliance** | ~65% | Present: `WEB_AUTH_TOKEN` middleware, node audit trail (`node/db.py:get_audit_trail`, `GET /api/audit`), ZKIT redaction audit (`output/zkit_formatter.py:RedactionAuditEntry`), case audit in `investigations/`. **New (Phase 0):** `src/core/compliance.py` — legal-basis registry (78 sources incl. govt open-data), JSONL audit log at adapter layer, consent gate, 30-day retention purge. **Absent:** RBAC per tier, ToS guard per source |
+| **L3 — Access Control & Compliance** | ~85% | Present: multi-tier bearer auth (`WEB_AUTH_TOKENS="tier:token,..."` + legacy `WEB_AUTH_TOKEN`=admin), RBAC gate (`src/core/rbac.py` — AccessTier readonly/analyst/admin, per-source `min_tier` enforced in `run_source_scan`/`run_free_intel_scan`/MCP `search(requester_tier=...)`), node audit trail (`node/db.py:get_audit_trail`, `GET /api/audit`), ZKIT redaction audit, case audit. **New (Phase 0):** `src/core/compliance.py` — legal-basis registry (78 sources incl. govt open-data), JSONL audit log at adapter layer, consent gate, 30-day retention purge. **New (Layer 3):** `src/core/tos_guard.py` — per-source `requests_per_minute` ceiling enforced before every external query (throttled → `outcome="throttled"` audit). **Remaining:** JWT sessions, per-route tier decorators |
 | **L2 — Source Adapter / Tool Layer** | 65% | Uniform adapters ✅. **MCP-native ✅** — `src/mcp_bridge/server.py` (FastMCP, Phase 1 S3) exposing search/list_sources/source_compliance; thin agent loop (`deep_scan/agent_loop.py`, Phase 1 S4) with rule-based planning + rate-limit fallback |
 | **L1 — Data Sources** | 65% | Global: 66 adapters, deep in crypto/leak/identity niches, not 200+ module breadth (SpiderFoot reference). **Local ID/SEA: partial ✅** — PANDI RDAP (`pandi_whois_intel`), data.go.id Satu Data Indonesia (`data_go_id_intel`), PDDIKTI. OSS/NIB, AHU, operator prefix mapping remain deferred to legal review |
 
@@ -89,9 +89,11 @@ the ID/SEA moat — not in re-implementing adapters.
 2. **Agentic-First** — ~40%: MCP server (S3) + thin agent loop (S4) shipped;
    remaining headroom is deeper self-correction (multi-pass, confidence-
    driven re-planning) and MCP resource endpoints.
-3. **Compliance-by-Design** — ~65%: legal-basis registry, adapter-layer audit
-   log, consent gate, retention purge (Phase 0) + govt open-data tagging;
-   remaining: RBAC per tier, ToS guard per source.
+3. **Compliance-by-Design** — ~85%: legal-basis registry, adapter-layer audit
+   log, consent gate, retention purge (Phase 0) + govt open-data tagging +
+   **RBAC per tier** (`src/core/rbac.py`, `min_tier` gate) + **ToS guard per
+   source** (`src/core/tos_guard.py`, per-source rpm ceiling, throttled audit
+   outcome). Remaining: JWT sessions, per-route tier enforcement.
 
 ## 6. Phased execution plan
 
@@ -110,7 +112,8 @@ the ID/SEA moat — not in re-implementing adapters.
   `.osint_audit.jsonl`); consent-flagged sources are blocked pre-query and
   the block is audited; `purge_expired_audit_entries()` enforces the 30-day
   retention default. Tests: valid query, rate-limited query, consent-flagged
-  source — 21 tests in `tests/unit/test_compliance.py`, all passing.
+  source, RBAC tier gate, ToS throttling — `tests/unit/test_compliance.py`
+  + `tests/unit/test_rbac_tos.py`, all passing.
 
 ### Phase 1 — Agentic validation (priority 2)
 - **S3 — Minimal MCP server**: ✅ **EXECUTED — `src/mcp_bridge/server.py`**

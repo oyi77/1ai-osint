@@ -21,6 +21,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from src.core.compliance import get_compliance
+from src.core.rbac import AccessTier
 from src.modules.deep_scan.free_intel_adapter import list_free_intel_modules, run_free_intel_scan
 from src.modules.deep_scan.source_adapter import run_source_scan
 from src.modules.sources import discover_sources
@@ -237,6 +238,7 @@ class AgentScanPlanner:
         max_sources: int = 6,
         allow_consent_required: bool = False,
         requester: str = "agent_loop",
+        requester_tier: AccessTier = AccessTier.ADMIN,
         timeout_per_source: float = 30.0,
     ) -> AgentScanReport:
         """Execute the plan with fallback on rate-limit/error."""
@@ -254,7 +256,7 @@ class AgentScanPlanner:
         alternates = runnable[3:]
 
         results = await asyncio.gather(
-            *(self._run_one(step, target, requester, timeout_per_source) for step in primary),
+            *(self._run_one(step, target, requester, requester_tier, timeout_per_source) for step in primary),
             return_exceptions=True,
         )
         for step, res in zip(primary, results, strict=False):
@@ -277,7 +279,7 @@ class AgentScanPlanner:
                     break
                 batch = fb_batch[batch_start : batch_start + 3]
                 fb_results = await asyncio.gather(
-                    *(self._run_one(step, target, requester, timeout_per_source) for step in batch),
+                    *(self._run_one(step, target, requester, requester_tier, timeout_per_source) for step in batch),
                     return_exceptions=True,
                 )
                 for step, res in zip(batch, fb_results, strict=False):
@@ -298,6 +300,7 @@ class AgentScanPlanner:
         step: AgentScanStep,
         target: str,
         requester: str,
+        requester_tier: AccessTier,
         timeout: float,
     ) -> int:
         """Run one planned step, returning finding count (0 on no-data)."""
@@ -306,12 +309,23 @@ class AgentScanPlanner:
             if step.kind == "source":
                 source_inst = self._sources_map[step.source]()
                 scan = await asyncio.wait_for(
-                    run_source_scan(step.source, target, source_inst, requester=requester),
+                    run_source_scan(
+                        step.source,
+                        target,
+                        source_inst,
+                        requester=requester,
+                        requester_tier=requester_tier,
+                    ),
                     timeout=timeout,
                 )
             else:
                 scan = await asyncio.wait_for(
-                    run_free_intel_scan(step.source, target),
+                    run_free_intel_scan(
+                        step.source,
+                        target,
+                        requester=requester,
+                        requester_tier=requester_tier,
+                    ),
                     timeout=timeout,
                 )
         except asyncio.TimeoutError as exc:
@@ -347,6 +361,7 @@ async def run_agent_scan(
     max_sources: int = 6,
     allow_consent_required: bool = False,
     requester: str = "agent_loop",
+    requester_tier: AccessTier = AccessTier.ADMIN,
 ) -> AgentScanReport:
     """Convenience wrapper: one input → thin-agent scan → structured report."""
     planner = AgentScanPlanner()
@@ -355,4 +370,5 @@ async def run_agent_scan(
         max_sources=max_sources,
         allow_consent_required=allow_consent_required,
         requester=requester,
+        requester_tier=requester_tier,
     )

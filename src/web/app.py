@@ -10,22 +10,28 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from src.core.rbac import AccessTier
+
 HERE = Path(__file__).parent
 
 
 class AuthMiddleware:
-    """Optional bearer-token gate for the Web UI.
+    """Bearer-token gate with per-tier RBAC (blueprint Layer 3).
 
-    Enabled only when ``WEB_AUTH_TOKEN`` is set at app creation time. When
-    enabled, every HTTP request is rejected with ``401`` unless it carries an
-    ``Authorization: Bearer <token>`` header or targets an exempt path
+    Enabled only when ``WEB_AUTH_TOKEN`` (legacy, treated as ADMIN) or
+    ``WEB_AUTH_TOKENS`` (``tier:token,tier:token``) is set at app creation.
+    When enabled, every HTTP request is rejected with ``401`` unless it
+    carries an ``Authorization: Bearer *** header or targets an exempt path
     (``/static/*`` static assets and the ``/api/health`` health check). The
-    token comparison uses :func:`secrets.compare_digest` (timing-safe).
+    resolved access tier is stored in ``scope["auth_tier"]`` so route
+    handlers can enforce source-level RBAC. Token comparison uses
+    :func:`secrets.compare_digest` (timing-safe).
     """
 
-    def __init__(self, app, token: str):
+    def __init__(self, app, token: str | None = None, tokens: dict[str, AccessTier] | None = None):
         self.app = app
-        self.token = token
+        self._token = token
+        self._tokens = tokens or {}
 
     async def __call__(self, scope, receive, send) -> None:
         if scope.get("type") != "http" or self._is_authorized(scope):
@@ -41,7 +47,16 @@ class AuthMiddleware:
         for key, value in scope.get("headers", []):
             if key.lower() == b"authorization":
                 scheme, _, token = value.decode("latin-1").partition(" ")
-                return scheme.lower() == "bearer" and secrets.compare_digest(token, self.token)
+                if scheme.lower() != "bearer" or not token:
+                    return False
+                if self._token is not None and secrets.compare_digest(token, self._token):
+                    scope["auth_tier"] = AccessTier.ADMIN
+                    return True
+                tier = self._tokens.get(token)
+                if tier is not None:
+                    scope["auth_tier"] = tier
+                    return True
+                return False
         return False
 
 
@@ -68,9 +83,24 @@ def create_app() -> FastAPI:
     app.include_router(timeline_router)
     app.include_router(api_router)
 
-    # Optional bearer-token auth — enabled when WEB_AUTH_TOKEN is set.
-    token = os.environ.get("WEB_AUTH_TOKEN", "").strip()
-    if token:
-        app.add_middleware(AuthMiddleware, token=token)
+    # Optional bearer-token auth — enabled when a token is configured.
+    # Legacy single token (WEB_AUTH_TOKEN) → ADMIN; multi-tier via
+    # WEB_AUTH_TOKENS = "readonly:tok1,admin:tok2".
+    legacy_token = os.environ.get("WEB_AUTH_TOKEN", "").strip()
+    tokens: dict[str, AccessTier] = {}
+    for pair in os.environ.get("WEB_AUTH_TOKENS", "").split(","):
+        pair = pair.strip()
+        if not pair or ":" not in pair:
+            continue
+        tier_name, _, token = pair.partition(":")
+        token = token.strip()
+        if token:
+            tokens[token] = AccessTier.from_str(tier_name.strip())
+    if legacy_token or tokens:
+        app.add_middleware(
+            AuthMiddleware,
+            token=legacy_token or None,
+            tokens=tokens,
+        )
 
     return app
