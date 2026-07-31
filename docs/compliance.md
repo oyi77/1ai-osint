@@ -29,7 +29,9 @@ Every source has a `LegalBasis`:
 | `public_api_tos` | Official API with documented ToS (HIBP, GitHub, …) |
 | `undocumented` | **No legal basis documented — gap is visible, not assumed** |
 
-- 76 sources are backfilled (see `registered_sources()`).
+- 78 sources are backfilled (see `registered_sources()`), including the
+  open-government adapters `pandi_whois_intel`, `data_go_id_intel` and
+  `pddikti_intel` tagged `government_open_data` (blueprint Phase 2 S5).
 - Unknown sources **default to `undocumented`** so the gap surfaces in the
   audit trail instead of being silently assumed compliant.
 - Paid breach DBs (dehashed, intelx, leakcheck, snusbase, snylla) are

@@ -54,6 +54,7 @@ dependencies = [
     "neo4j>=5.20.0",
     "lxml>=5.0",
     "selectolax>=0.3",
+    "mcp>=1.0,<2.0",
 ]
 
 [project.optional-dependencies]

@@ -512,6 +512,112 @@ async def _run_pddikti_intel(target: str) -> ScanResult | None:
     )
 
 
+async def _run_pandi_whois_intel(target: str) -> ScanResult | None:
+    """Run PANDI RDAP lookup on a .id domain."""
+    from src.modules.free_intel.pandi_whois_intel import PandiWhoisIntel
+
+    scanner = PandiWhoisIntel()
+    try:
+        record = await scanner.lookup(target)
+    except Exception as exc:
+        logger.debug("pandi_whois_intel lookup failed: %s", exc)
+        return None
+
+    if record is None:
+        return None
+
+    findings: list[Finding] = []
+    if record.registrant_org or record.registrant_name:
+        findings.append(
+            Finding(
+                id=f"find-{uuid.uuid4().hex[:8]}",
+                module="free_pandi_whois",
+                title=f".id registrant: {record.registrant_org or record.registrant_name}",
+                description=f"PANDI registry record for {record.domain}",
+                severity=Severity.INFO,
+                raw_data={
+                    "domain": record.domain,
+                    "registrant_org": record.registrant_org,
+                    "registrant_name": record.registrant_name,
+                    "created": record.created,
+                    "expires": record.expires,
+                    "nameservers": record.nameservers,
+                },
+                confidence=0.85,
+                tags=["pandi", "whois", "rdap", "indonesia", "domain"],
+            )
+        )
+    if record.nameservers:
+        findings.append(
+            Finding(
+                id=f"find-{uuid.uuid4().hex[:8]}",
+                module="free_pandi_whois",
+                title=f"Nameservers: {', '.join(record.nameservers[:4])}",
+                description=f"NS records for {record.domain} (PANDI registry)",
+                severity=Severity.INFO,
+                raw_data={"nameservers": record.nameservers, "domain": record.domain},
+                confidence=0.9,
+                tags=["pandi", "whois", "dns"],
+            )
+        )
+
+    if not findings:
+        return None
+
+    return ScanResult(
+        scan_id=f"free-pandi-{uuid.uuid4().hex[:8]}",
+        module="free_pandi_whois",
+        target=target,
+        status="ok",
+        findings=findings,
+        metadata={
+            "created": record.created,
+            "expires": record.expires,
+            "status": record.status,
+        },
+    )
+
+
+async def _run_data_go_id_intel(target: str) -> ScanResult | None:
+    """Run data.go.id government open-data search on a keyword."""
+    from src.modules.free_intel.data_go_id_intel import DataGoIdIntel
+
+    scanner = DataGoIdIntel()
+    try:
+        datasets = await scanner.search_datasets(target)
+    except Exception as exc:
+        logger.debug("data_go_id_intel search failed: %s", exc)
+        return None
+
+    if not datasets:
+        return None
+
+    findings: list[Finding] = []
+    for ds in datasets:
+        findings.append(
+            Finding(
+                id=f"find-{uuid.uuid4().hex[:8]}",
+                module="free_data_go_id",
+                title=f"Dataset: {ds['title'][:90]}",
+                description="Public government dataset on data.go.id"
+                + (f" — {ds['organization']}" if ds.get("organization") else ""),
+                severity=Severity.INFO,
+                raw_data={"title": ds["title"], "organization": ds.get("organization", "")},
+                confidence=0.6,
+                tags=["data_go_id", "open_data", "indonesia", "government"],
+            )
+        )
+
+    return ScanResult(
+        scan_id=f"free-data-go-id-{uuid.uuid4().hex[:8]}",
+        module="free_data_go_id",
+        target=target,
+        status="ok",
+        findings=findings,
+        metadata={"dataset_count": len(datasets)},
+    )
+
+
 async def _run_tech_jobs_intel(target: str) -> ScanResult | None:
     """Run tech jobs profile search on a name."""
     from src.modules.free_intel.tech_jobs_intel import TechJobsIntel
@@ -673,6 +779,16 @@ _FREE_INTEL_DISPATCH: dict[str, tuple[str, str, Any]] = {
         "name",
         "pddikti_intel",
         _run_pddikti_intel,
+    ),
+    "pandi_whois_intel": (
+        "domain",
+        "pandi_whois_intel",
+        _run_pandi_whois_intel,
+    ),
+    "data_go_id_intel": (
+        "keyword",
+        "data_go_id_intel",
+        _run_data_go_id_intel,
     ),
     "tech_jobs_intel": (
         "name",

@@ -528,7 +528,10 @@ class MyModule(BaseModule):
 - [x] Jurisdiction warning: alert if operation may violate local laws
 - [x] Audit log export for legal proceedings (tamper-evident)
 - [x] PII handling policy: no long-term storage of personal data beyond investigation scope
-- [x] **Compliance layer (blueprint Phase 0)**: legal-basis registry (76 sources), central JSONL audit log at the adapter layer, consent gate for Pasal 4.2 categories, 30-day retention purge — see [compliance.md](compliance.md)
+- [x] **Compliance layer (blueprint Phase 0)**: legal-basis registry (78 sources incl. govt open-data), central JSONL audit log at the adapter layer, consent gate for Pasal 4.2 categories, 30-day retention purge — see [compliance.md](compliance.md)
+- [x] **MCP bridge (blueprint Phase 1 S3)**: `src/mcp_bridge/server.py` — FastMCP server exposing search / list_sources / source_compliance to any MCP client
+- [x] **Thin agent loop (blueprint Phase 1 S4)**: `deep_scan/agent_loop.py` — rule-based planner + alternate-source fallback on rate-limit/error; 6.22x vs naive batch (`scripts/benchmark_agent_vs_batch.py`)
+- [x] **Open-government adapters (blueprint Phase 2 S5)**: PANDI RDAP + data.go.id (Satu Data Indonesia) with `government_open_data` legal basis
 - [ ] RBAC per user tier (currently single auth token)
 - [ ] ToS guard per source: rate-limit awareness per platform ToS
 

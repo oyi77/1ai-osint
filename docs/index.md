@@ -71,6 +71,7 @@ uv run 1ai-osint deep-scan "Target Name" --profile deep --case INV-001 --pdf
 - [References](references.md) — tools, services, and collections
 - [Roadmap](roadmap.md) — project master plan
 - [Compliance](compliance.md) — legal-basis registry and audit log (UU PDP)
+- [Agentic Layer](agentic.md) — MCP bridge and thin agent loop (blueprint Phase 1)
 - [Blueprint Gap Analysis](blueprint-gap-analysis.md) — strategic gap vs the August 2026 blueprint
 - [Development](development.md) — contributing and quality gates
 

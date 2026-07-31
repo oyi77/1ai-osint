@@ -196,6 +196,16 @@ _register(
     LegalBasis.GOVERNMENT_OPEN_DATA,
     tos_notes="PDDIKTI open data — government open data basis (blueprint §4)",
 )
+_register(
+    "pandi_whois_intel",
+    LegalBasis.GOVERNMENT_OPEN_DATA,
+    tos_notes="PANDI RDAP registry data — public .id registration records (blueprint §5 local moat)",
+)
+_register(
+    "data_go_id_intel",
+    LegalBasis.GOVERNMENT_OPEN_DATA,
+    tos_notes="data.go.id Satu Data Indonesia — public government datasets (blueprint §5 local moat)",
+)
 
 
 def get_compliance(source_name: str) -> SourceCompliance:

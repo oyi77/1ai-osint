@@ -15,9 +15,9 @@ Usage:
 
 import argparse
 import asyncio
+import os
 import sys
 import time
-import os
 
 # Ensure project root is on path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -25,8 +25,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 async def run_benchmark(workers: int = 20, duration: int = 60) -> None:
     """Run the scanner for a fixed duration and report metrics."""
-    from src.modules.crypto.balance.scanner_engine import RandomScanner
     from src.modules.crypto.balance.chains import ALL_CHAINS
+    from src.modules.crypto.balance.scanner_engine import RandomScanner
 
     print("=" * 60)
     print("  Scanner Throughput Benchmark")
@@ -45,11 +45,7 @@ async def run_benchmark(workers: int = 20, duration: int = 60) -> None:
     stats = await scanner.run(duration_sec=duration)
     elapsed = time.monotonic() - start
 
-    error_rate = (
-        (stats.api_errors / stats.addresses_checked * 100)
-        if stats.addresses_checked > 0
-        else 0.0
-    )
+    error_rate = (stats.api_errors / stats.addresses_checked * 100) if stats.addresses_checked > 0 else 0.0
 
     print("")
     print("=" * 60)
