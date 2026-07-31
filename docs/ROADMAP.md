@@ -362,9 +362,9 @@
 
 #### 5.1 Plugin/Extension System
 
-- [x] Module plugin API: third parties can publish custom modules as pip packages
-- [x] Module registry: `osint install socmint-twitter-pro`
-- [x] Hook system: pre/post processing hooks for every pipeline stage
+- [~] Module plugin API: `PluginRegistry().discover()` scans `src.plugins` + `1ai_osint.plugins` entry points (verified `src/plugin/registry.py`), but pyproject.toml declares no entry-point group and no third-party pip package is registered — publishable, unproven
+- [ ] Module registry: no `install` subcommand exists — `osint install socmint-twitter-pro` is NOT implemented (CLI surface: version/doctor/modules/plugins/web/leak_finder/sweep/resolve/monitor/node/master/scan/deep_scan/report/report_from_file/zkit-deep-scan)
+- [ ] Hook system: `HookDispatcher` exists (`src/plugin/hooks.py`) but is never wired into the scan lifecycle — zero `dispatcher.dispatch()` calls in `deep_scan/engine.py`/`scan_commands.py`, so hooks never fire during scans (verified audit §16)
 
 #### 5.2 Web UI (Optional but High Value)
 

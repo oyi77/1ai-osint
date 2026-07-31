@@ -13,7 +13,7 @@
 - **ROADMAP status:** Phase 0 (Foundation) ✅ — **verified correct.** Phase 1 (Core Intel) ✅ — **verified correct.** Phase 2 (AI & ML) in progress ✅
 - **CI/CD:** Present — GitHub Actions with lint, test matrix (3.12/3.13, coverage gate 77%), docs-sync, and release workflows
 - **Docker:** Multi-stage build producing runtime image with OSINT tools (githound, gitleaks, sherlock, maigret, chromium, tor)
-- **Dead/placeholder code ratio:** ~1% (ai_enricher orphan + removed darknet entry). Plugin system is functional — not dead. Negligible — only 2 of ~306 source files affected.
+- **Dead/placeholder code ratio:** ~272 lines (<~3%) — the 15 test-only chiasmodon providers (redundant triplication, see §16.1). `ai_enricher` + `crypto_tracer` were since wired into dispatch (commit `8db5a28`); `darknet` entry removed. Plugin system is functional — not dead. Negligible — 1 of ~306 source files affected.
 - **Test maturity:** ~95 test files, benchmarks, integration tests — strong coverage
 - **Biggest gap:** No PyPI package — `release.yml` builds wheel+sdist but no `publish` step
 
@@ -118,7 +118,7 @@ engine.py (DeepScanEngine)
 - **fast** — basic: leaks, social, web
 - **standard** — fast + email_osint, phone_finder + all free_intel modules
 - **deep** — standard + domain_recon, gitleaks, vuln_scan + all free_intel
-*   ⚠️ `crypto_tracer` is declared in `DEEP_EXTRA` but NOT in any dispatch path — silent no-op (real module, missing `get_module()` branch). `darknet` was removed from `DEEP_EXTRA` (no module exists).
+*   ✅ `crypto_tracer` (real module) wired into dispatch — commit `8db5a28`: `cli/helpers.get_module()` branch (`helpers.py:61-62`) returns `BlockchainTxTracer`; `_module_config.py:23` registers `crypto_tracer → CRYPTO_ADDRESS`; engine routes BTC addresses to it. `darknet` was removed from `DEEP_EXTRA` (no module exists).
 
 **Dispatch:** `_MODULE_INPUTS` dict → target-type routing. `_FREE_INTEL_MODULES` derived dynamically from `free_intel_adapter.list_free_intel_modules()`.
 
@@ -144,7 +144,7 @@ engine.py (DeepScanEngine)
 
 **All 11 registered in `free_intel_adapter._FREE_INTEL_DISPATCH`.**
 
-📄 `src/modules/free_intel/ai_enricher.py` (117 lines, real LLM-based extractor) exists on disk but is NOT in any dispatch path — no `_FREE_INTEL_DISPATCH` entry, not in `_MODULE_INPUTS`, not in `get_module()`. It has zero importers and is orphaned.
+📄 `src/modules/free_intel/ai_enricher.py` (117 lines, real `AIExtractor`) is wired as deep-scan **Phase 5 AI enrichment** — commit `8db5a28`, `engine.py` `_run_ai_enrichment` (~:250): collects snippets across findings, runs `AIExtractor` with 60s timeout, skips gracefully without an API key, appends `module="ai_enricher"` dossier finding. Deliberately NOT in `_FREE_INTEL_DISPATCH` — it needs cross-module context (full scan results), not a single string target.
 
 ---
 
@@ -303,16 +303,16 @@ Every major module has dedicated test files with consistent naming: `test_<modul
 
 | Component | Details | Verdict |
 |-----------|---------|---------|
-| `src/plugin/` (registry.py, base.py, hooks.py) | **ALIVE** — functional: `PluginRegistry().discover()` finds and registers plugins, CLI `plugins` command works (verified: lists `example_logger` v0.1.0), 31 unit tests pass. Gap: `HookDispatcher` never wired into scan lifecycle — hooks fire only via manual `dispatcher.dispatch()` (wiring gap, same class as `crypto_tracer`) | **UNWIRED subsystem — kept; hook wiring tracked (plan item 1)** |
+| `src/plugin/` (registry.py, base.py, hooks.py) | **ALIVE** — functional: `PluginRegistry().discover()` finds and registers plugins, CLI `plugins` command works (verified: lists `example_logger` v0.1.0), 31 unit tests pass. Gap: `HookDispatcher` never wired into scan lifecycle — hooks fire only via manual `dispatcher.dispatch()` (wiring gap remains open; same-class gaps `crypto_tracer`/`ai_enricher` were wired in `8db5a28`) | **UNWIRED subsystem — kept; hook wiring tracked (EVOLUTION_PLAN.md item 1 — keep option resolved `953cab0`)** |
 | `src/plugins/example_plugin.py` | Example plugin — discovered and registered at runtime by `PluginRegistry.discover()` | **ALIVE — reference plugin** |
-| `crypto_tracer` in `scan_profiles.py` | Declared in `DEEP_EXTRA` and registered in `_MODULE_REGISTRY` (`src/modules/__init__.py:46`) as `BlockchainTxTracer` (262 lines, real tx tracer), but the engine's resolver `cli/helpers.get_module()` (engine.py:348) has NO `crypto_tracer` branch — returns `None`, and it's not in `_MODULE_INPUTS`, `_SOURCE_MODULES`, or `_FREE_INTEL_DISPATCH` | **UNWIRED real module — kept; dispatch wiring tracked (plan item 9)** |
+| `crypto_tracer` in `scan_profiles.py` | `BlockchainTxTracer` (262 lines, real tx tracer, `src/modules/crypto/tx_tracer.py`) — now fully wired (commit `8db5a28`): `cli/helpers.get_module()` branch at `helpers.py:61-62` returns the tracer, `_module_config.py:23` registers `crypto_tracer → CRYPTO_ADDRESS` input, engine detects BTC addresses (`_detect_identifier`, chain=bitcoin) | **WIRED — real module, dispatch added 8db5a28** |
 | `darknet` in `scan_profiles.py` | Was declared in `DEEP_EXTRA` but no module exists — not in `_MODULE_INPUTS`, `_SOURCE_MODULES`, `_FREE_INTEL_DISPATCH`, and `get_module()` returns `None` | **REMOVED — silent no-op** |
-| `src/modules/free_intel/ai_enricher.py` | 117-line file with real `AIExtractor` class, but has zero importers across `src/`. Not in `_FREE_INTEL_DISPATCH`, `_MODULE_INPUTS`, or `get_module()` | **ORPHAN — file exists, no wire** |
+| `src/modules/free_intel/ai_enricher.py` | 117-line `AIExtractor` class — now wired as deep-scan Phase 5 `_run_ai_enrichment` (commit `8db5a28`, engine.py:250): collects snippets across findings, runs `AIExtractor` with 60s timeout (skips gracefully without API key), appends `module="ai_enricher"` dossier finding. 5 AI-enrichment test paths added | **WIRED — Phase 5 AI enrichment (8db5a28)** |
 | `src/modules/vendor/` | 5 files (3 mixins + external_tools.py) | **ALIVE** — `ExternalToolIntel` in `external_tools.py` (179 lines) imported by `deep_scan/engine.py:292` and invoked as Phase 3 at `engine.py:201`/`:285`. The 3 mixins (242 lines total) are imported by `external_tools.py:13-15`. |
 | `src/vendor/chiasmodon/` leak tools + base | 15 leak tools (`leak_*`, `hibp`, `shodan`, `chiasmodon_bridge.py`), pychiasmodon client, base framework | **ALIVE** — imported by `data_leaks/aggregator.py` (leak check tools) and `chiasmodon_bridge.py`. Graceful ImportError fallbacks throughout. |
 | `src/vendor/chiasmodon/providers/` | 19 OSINT CLI-wrapper providers, 385 lines (incl. `__init__.py` 41) | **SPLIT — 4 ALIVE, 15 DEAD**: sherlock/maigret/whatsmyname → `people_finder/search.py:53-75` (gated on `shutil.which`), phoneinfoga → `phone_finder/lookup.py`. The other 15 (272 lines: haveibeenpwned, shodan, virustotal, abuseipdb, whoisxml, crtsh, wayback, social, holehe, h8mail, amass, theharvester, spiderfoot, datasploit, exiftool) have **zero production importers** — referenced only by `tests/unit/test_chiasmodon_providers.py` and the package's own `__init__.py` re-exports (which nothing production-side imports) | **15 REMOVE (test-only), 4 KEEP** |
 
-**Dead code ratio:** ~389 lines of true orphans (ai_enricher 117 + 15 test-only chiasmodon providers 272) — still under ~4% of the codebase, but the provider mass is redundant *triplication* of live wrapper code (see 16.1), not just dead weight.
+**Dead code ratio:** ~272 lines of true orphans (the 15 test-only chiasmodon providers; `ai_enricher` + `crypto_tracer` were since wired into dispatch — commit `8db5a28`) — well under ~4% of the codebase, but the provider mass is redundant *triplication* of live wrapper code (see 16.1), not just dead weight.
 
 ---
 
@@ -367,6 +367,6 @@ Three independent frameworks shell out to the same external OSINT CLIs. All veri
 | Deep scan engine files | 34 | `deep_scan/` (glob) |
 | Vendor tools | 37 (chiasmodon) + 5 (modules/vendor) = 42 | `vendor/chiasmodon/`, `modules/vendor/` |
 | Report engine files | 2 | `report_engine/` |
-| Dead/placeholder | ~389 lines (<~4%) | ai_enricher orphan (117) + 15 test-only chiasmodon providers (272) — redundant triplication, see §16.1 |
+| Dead/placeholder | ~272 lines (<~3%) | 15 test-only chiasmodon providers (272) — redundant triplication, see §16.1; ai_enricher + crypto_tracer wired 8db5a28 |
 | CI workflows | 3 | ci.yml, release.yml, docs-sync.yml |
 | Docker build stages | 3 | Go tools → Python deps → runtime |

@@ -9,6 +9,8 @@
 
 ### 1. Plugin System: Wire Hooks or Keep as Documented Extension Point
 
+**Status: ✅ RESOLVED (keep option) — commit `953cab0`** removed the dead `_plugin_registry` declaration at `src/cli/main.py`; hooks remain an opt-in extension point. The preferred "wire" option was explicitly NOT taken (no `dispatcher.dispatch("on_scan_*")` call in `deep_scan/engine.py` or `scan_commands.py`).
+
 **Ground truth:** `src/plugin/` (registry.py 197 lines, hooks.py 105, base.py 78) is a **functional subsystem** — NOT dead scaffolding. `PluginRegistry().discover()` finds and registers plugins; the CLI `plugins` command works (verified: lists `example_logger` v0.1.0 with hooks `[on_scan_start, on_scan_end]`); 31 unit tests in `tests/unit/test_plugin_system.py` pass. `src/plugins/example_plugin.py` is a reference plugin registered at runtime. The one real gap: `HookDispatcher` is never wired into the scan lifecycle — nothing calls `dispatcher.dispatch("on_scan_*")` in `deep_scan/engine.py` or `scan_commands.py`, so hooks exist but never fire during actual scans. Same gap class as `crypto_tracer`/`ai_enricher` — unwired, not dead. `src/cli/main.py:30` `_plugin_registry` is a dead declaration (never assigned; only TYPE_CHECKING import).
 
 **Action (choose):**
@@ -22,11 +24,13 @@
 
 ### 2. Remove Dead Profile Entry (`darknet`)
 
+**Status: ✅ DONE — commit `2a572df`** removed `darknet` from `DEEP_EXTRA` in `scan_profiles.py`; verified zero `darknet` matches remain in that file.
+
 **Ground truth:** `src/modules/deep_scan/scan_profiles.py` declares `darknet` in `DEEP_EXTRA`. It has no module anywhere: not in `SOURCE_MODULES` (`_module_config.py:62` — `{dehashed, leakcheck, snylla, snusbase, hibp, intelx}`), no `get_module()` branch in `src/cli/helpers.py:31-77`, no entry in `src/modules/__init__.py` registry. `src/modules/sources/darknet_source.py` exists (a `DarknetSource` class) but has zero importers in `src/`. In deep scan, the engine hits `engine.py:380` → `_get_module('darknet')` returns `None` → silently skipped. It is a pure no-op entry.
 
 **Action:**
 - Remove `darknet` from the `DEEP_EXTRA` tuple in `scan_profiles.py`
-- (Keep `crypto_tracer` — that module IS real; its gap is missing dispatch wiring, tracked as item 9 below)
+- (Keep `crypto_tracer` — that module IS real; its gap was missing dispatch wiring, tracked as item 9 below → now resolved by commit `8db5a28`)
 
 **Verification:** `grep -r "darknet" src/modules/deep_scan/ --include="*.py"` → only `threat_model.py` string comparisons remain (finding-label checks, unaffected). After deletion: `pytest tests/unit/test_scan_profiles.py tests/integration/test_deep_scan_golden.py -q` passes.
 
@@ -56,6 +60,8 @@
 ---
 
 ### 4. Fix `docs-sync.yml` Version Badge Sync
+
+**Status: ✅ DONE — commit `61bf87d`** replaced the fragile `sed -i` with idempotent version-badge sync; verified no `sed`/`perl` remains in `.github/workflows/docs-sync.yml`.
 
 **Ground truth:** `docs-sync.yml` uses a fragile `sed -i "s/version-[0-9.]\+/version-$VERSION/g" README.md` that will fail if the version format changes or README.md lacks an existing version badge.
 
@@ -126,6 +132,8 @@
 
 ### 9. Wire Missing Dispatch for Real Modules (`ai_enricher`, `crypto_tracer`)
 
+**Status: ✅ DONE — commit `8db5a28`** wired both modules (see AUDIT_REPORT.md §6 + §16 rows 308/310).
+
 **Ground truth:** Two modules are registered/real but never run by deep scan because they lack dispatch wiring:
 - `src/modules/free_intel/ai_enricher.py` (117 lines) has a real `AIExtractor` class with LLM-based analysis, but it is **NOT registered** in `_FREE_INTEL_DISPATCH`, `_MODULE_INPUTS`, or `get_module()`. It has zero importers across `src/` — it's orphaned. Per the audit learning: "The ai_enricher module must be excluded from the direct adapter pattern — it needs cross-module context from other scan results, not just a single string target."
 - `crypto_tracer` IS a real module — `BlockchainTxTracer` (262 lines, `src/modules/crypto/tx_tracer.py`, real Etherscan+Blockchair+Solana APIs with mock fallback), registered in `src/modules/__init__.py:46`, listed in `FAST_SKIP_MODULES`, the builtin deep profile, and `_VALID_MODULES` (`deep_scan/profiles.py`), and consumed by `timeline_builder.py:94` (`finding.module == "crypto_tracer"`). It is missing only the `get_module()` branch in `src/cli/helpers.py:31-77` — so `engine.py:380-382` resolves `None` and silently skips it. This is a functionality gap, not dead code.
@@ -183,17 +191,17 @@
 
 | # | Gap | Tier | Evidence | Difficulty |
 |---|-----|------|----------|------------|
-| 1 | Plugin system: wire hooks or keep | Unwired subsystem | `src/plugin/` — functional (CLI works, 31 tests), hooks never fire in scan lifecycle | 1 day (wire) / 30 min (keep) |
-| 2 | Dead profile entry (`darknet`) | Dead code | `DEEP_EXTRA` in scan_profiles.py — no module exists anywhere | 30 min |
+| 1 | Plugin system: wire hooks or keep | Unwired subsystem | `src/plugin/` — functional (CLI works, 31 tests), hooks never fire in scan lifecycle | ✅ Done (keep) — `953cab0` |
+| 2 | Dead profile entry (`darknet`) | Dead code | `DEEP_EXTRA` in scan_profiles.py — no module exists anywhere | ✅ Done — `2a572df` |
 | 3 | `report_engine/` | Alive | 2 files, imported in 6 places (scan_commands.py) | Already done |
 | 4 | `vendor/` trees | Alive — duplication audited | `modules/vendor/` (5 files, ExternalToolIntel + 3 mixins) + `vendor/chiasmodon/` (37 files). Audit complete: ExternalToolIntel not redundant (sole consumer of domain/recon CLIs); 15/19 chiasmodon providers production-dead (272 LOC, test-only); sherlock/maigret triple-wrapped across 3 frameworks | 1 day (delete 15 dead providers + prune __init__ + trim test) |
-| 5 | Fragile sed in docs-sync.yml | Fragile CI | `release.yml` sed pattern | 30 min |
+| 5 | Fragile sed in docs-sync.yml | Fragile CI | `release.yml` sed pattern | ✅ Done — `61bf87d` |
 | 6 | No PyPI publish | Missing capability | `release.yml` has no publish step | 1 day |
 | 7 | Docker image not pushed | Missing capability | `release.yml` builds but doesn't push | 1 day |
 | 8 | Dockerfile uses pip, not uv | Inconsistency | Project standard is uv | 2 hours |
 | 9 | Web UI has no auth | Security gap | `src/web/main.py` — no middleware | 1-2 days |
-| 10 | Dispatch gap: `ai_enricher` + `crypto_tracer` | Functionality gap | 117 + 262 real lines, zero dispatch wiring — not in `get_module()` | 2-3 days |
-| 11 | Plugin system: wire hooks or keep | Architecture debt | Functional subsystem, unwired dispatch (same class as crypto_tracer) | 1 day wire / 30 min keep |
+| 10 | Dispatch gap: `ai_enricher` + `crypto_tracer` | Functionality gap | 117 + 262 real lines, zero dispatch wiring — not in `get_module()` | ✅ Done — `8db5a28` |
+| 11 | Plugin system: wire hooks or keep | Architecture debt | Functional subsystem, unwired dispatch (gaps of this class were wired in `8db5a28`) | ✅ Done (keep) — `953cab0` |
 | 12 | No docs site | Missing capability | No mkdocs/sphinx config | 2-3 days |
 | 13 | pipx/uv tool entry | Already present | `[project.scripts]` at pyproject.toml:86-87 — `1ai-osint = "src.cli.main:app"` | Already done |
 
@@ -201,16 +209,16 @@
 
 ```
 ┌──────────────────────────────────────────────────┐
-|  1-3 days:  Wire or keep plugin hooks; audit vendor consolidation     |
-|             Fix fragile CI sed                     |
+│  Done:  plugin keep `953cab0` · darknet `2a572df`            │
+│         docs-sync sed fix `61bf87d` · ai_enricher +           │
+│         crypto_tracer dispatch `8db5a28` · vendor audit       │
 ├──────────────────────────────────────────────────┤
 │  1-2 weeks: PyPI + Docker publish in release CI   │
 │             Docker uv migration                    │
 │             Web auth layer                         │
-│             ai_enricher cross-module context        │
 ├──────────────────────────────────────────────────┤
-|  Strategic:  Docs site (mkdocs/sphinx + Pages)   |
-|             Plugin hook wiring (keep as opt-in)   |
+│  Strategic:  Docs site (mkdocs/sphinx + Pages)   │
+│             Plugin hook wiring (kept as opt-in)   │
 └──────────────────────────────────────────────────┘
 ```
 
