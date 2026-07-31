@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 import typer
 
 from src.cli.app import app
@@ -20,14 +18,6 @@ from .commands import (
     node_commands,  # noqa: F401
     scan_commands,  # noqa: F401
 )
-
-if TYPE_CHECKING:
-    from src.plugin import PluginRegistry
-
-# ---------------------------------------------------------------------------
-# Plugin system — auto-discover and register plugins on import
-# ---------------------------------------------------------------------------
-_plugin_registry: PluginRegistry | None = None
 
 _LogFormatChoice = typer.Option("text", "--log-format", help="Log output format: text or json.", case_sensitive=False)
 _LogLevelOption = typer.Option(
