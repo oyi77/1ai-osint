@@ -144,6 +144,12 @@ the ID/SEA moat — not in re-implementing adapters.
   loop plans (domain → pandi_whois; name → data_go_id). 12 tests in
   `tests/unit/test_government_intel.py`, all passing. OSS/NIB, AHU,
   marketplace scrapers remain deferred to legal review.
+  - **Endpoint fix (commit `b13a27d`)**: the PANDI RDAP endpoint was
+    missing the `/rdap/` path segment (IANA bootstrap: the `.id` base is
+    `https://rdap.pandi.id/rdap/`), so every live lookup 404'd. Fixed +
+    regression test. Live-verified: `pandi.id` → PANDI Registrar (created
+    2013-04-14, expires 2027-04-14, 3 NS); `google.co.id` → PT Digital
+    Registra Indonesia (created 2004-12-18, ns1-4.google.com).
 
 ### Phase 3+ — Partial (foundation approved; only legal-safe items)
 - ✅ **Head-to-head benchmark** — `scripts/benchmark_agent_vs_batch.py`:
