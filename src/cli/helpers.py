@@ -58,6 +58,10 @@ def get_module(name: str, zkit_salt: str = "") -> Any:
         from src.modules.crypto.balance import CryptoBalanceTool
 
         return CryptoBalanceTool(zkit_salt=zkit_salt)
+    elif name in ("crypto_tracer", "tx_tracer"):
+        from src.modules.crypto.tx_tracer import BlockchainTxTracer
+
+        return BlockchainTxTracer(zkit_salt=zkit_salt)
     elif name in ("domain", "domain_recon"):
         from src.modules.domain_recon import DomainReconTool
 

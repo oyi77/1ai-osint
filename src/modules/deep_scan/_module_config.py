@@ -20,6 +20,7 @@ MODULE_INPUTS: dict[str, set[IdentifierType]] = {
     "phone_finder": {IdentifierType.PHONE},
     "data_leaks": {IdentifierType.EMAIL, IdentifierType.USERNAME, IdentifierType.PHONE},
     "crypto_balance": {IdentifierType.CRYPTO_ADDRESS},
+    "crypto_tracer": {IdentifierType.CRYPTO_ADDRESS},
     "gitleaks": {IdentifierType.DOMAIN, IdentifierType.URL},
     "vuln_scanner": {IdentifierType.DOMAIN, IdentifierType.IP},
     "dehashed": {

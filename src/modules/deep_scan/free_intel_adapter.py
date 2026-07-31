@@ -330,7 +330,7 @@ async def _run_google_dork_intel(target: str) -> ScanResult | None:
             )
         )
 
-    if result.urls:
+    if result.urls or result.snippets:
         findings.append(
             Finding(
                 id=f"find-{uuid.uuid4().hex[:8]}",
@@ -340,6 +340,7 @@ async def _run_google_dork_intel(target: str) -> ScanResult | None:
                 severity=Severity.INFO,
                 raw_data={
                     "urls": result.urls[:10],
+                    "snippets": result.snippets[:40],
                     "extracted_emails": result.extracted_emails,
                     "extracted_phones": result.extracted_phones,
                     "linkedin_urls": result.linkedin_urls,

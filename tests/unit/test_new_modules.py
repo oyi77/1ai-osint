@@ -1615,6 +1615,13 @@ class TestGetModule:
         assert mod is not None
         assert mod.name == "crypto_balance"
 
+    def test_crypto_tracer(self):
+        from src.cli.helpers import get_module as _get_module
+
+        mod = _get_module("crypto_tracer")
+        assert mod is not None
+        assert mod.name == "crypto_tracer"
+
     def test_domain(self):
         from src.cli.helpers import get_module as _get_module
 

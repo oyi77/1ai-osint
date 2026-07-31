@@ -13,7 +13,7 @@ from collections.abc import Awaitable
 from datetime import datetime, timezone
 from typing import Any
 
-from src.core.models import ScanResult
+from src.core.models import Finding, ScanResult, Severity
 from src.modules.deep_scan import (
     DeepScanResult,
     Identifier,
@@ -184,6 +184,13 @@ class DeepScanEngine:
         # Phase 4: Profile Scraping & Vision Correlation
         await self._verify_profiles_phase(target, result)
 
+        # Phase 5: AI snippet enrichment — structured dossier from dork snippets
+        try:
+            await self._run_ai_enrichment(result, target)
+        except Exception as exc:
+            logger.warning("AI enrichment failed: %s", exc)
+            result.errors.append(f"ai_enricher: {exc}")
+
         # ZKIT cross-module correlation
         try:
             result.zkit_result = self._run_zkit_correlation(result)
@@ -199,6 +206,62 @@ class DeepScanEngine:
             result.duration_sec,
         )
         return result
+
+    async def _run_ai_enrichment(self, result: DeepScanResult, target: str) -> None:
+        """Phase 5: synthesize a structured dossier from search snippets.
+
+        Collects snippets from free-intel dork findings (raw_data["snippet"] or
+        raw_data["snippets"]), then runs the AI extractor once over them. A
+        non-empty dossier is attached as an ``ai_enricher`` finding so it
+        surfaces in the final report. Skipped entirely when the extractor is
+        unavailable (no OPENAI_API_KEY / OMNIROUTE_API_KEY) or yields nothing.
+        """
+        snippets: list[str] = []
+        for finding in result.findings:
+            raw = finding.raw_data or {}
+            for key in ("snippet", "snippets"):
+                value = raw.get(key)
+                if isinstance(value, str):
+                    snippets.append(value)
+                elif isinstance(value, list):
+                    snippets.extend(s for s in value if isinstance(s, str))
+        if not snippets:
+            return
+
+        from src.modules.free_intel.ai_enricher import AIExtractor
+
+        extractor = AIExtractor()
+        if not extractor.is_available():
+            logger.debug("ai_enricher skipped: no API key configured")
+            return
+
+        dossier = await asyncio.wait_for(
+            extractor.extract_from_snippets(target, snippets[:40]),
+            timeout=60,
+        )
+        if not dossier:
+            return
+        serialized = dossier.model_dump(exclude_defaults=True)
+        if not serialized:
+            logger.debug("ai_enricher skipped: empty dossier")
+            return
+
+        result.findings.append(
+            Finding(
+                id=f"find-ai_enricher-{len(result.findings) + 1}",
+                module="ai_enricher",
+                title=f"AI dossier for {target}",
+                description=("Structured profile synthesized from search snippets " f"({len(snippets)} snippets)"),
+                severity=Severity.INFO,
+                raw_data={
+                    "dossier": serialized,
+                    "snippet_count": len(snippets),
+                    "target": target,
+                },
+                confidence=0.6,
+                tags=["ai", "enrichment", "dossier"],
+            )
+        )
 
     async def _run_external_tools_phase(self, target: str, result: DeepScanResult) -> None:
         """Phase 3: Run external OSINT tools (Sherlock, theHarvester, etc.) on discovered usernames and domains.
@@ -593,6 +656,15 @@ class DeepScanEngine:
                 id_type=IdentifierType.CRYPTO_ADDRESS,
                 source=source,
                 metadata={"chain": "ethereum"},
+            )
+
+        # Bitcoin address
+        if re.match(r"^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$", value):
+            return Identifier(
+                value=value,
+                id_type=IdentifierType.CRYPTO_ADDRESS,
+                source=source,
+                metadata={"chain": "bitcoin"},
             )
 
         # IP address

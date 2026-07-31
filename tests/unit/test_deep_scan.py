@@ -217,6 +217,12 @@ class TestDeepScanEngine:
         ident = engine._detect_identifier("0x" + "a" * 40, "input")
         assert ident.id_type == IdentifierType.CRYPTO_ADDRESS
 
+    def test_detect_btc_address(self):
+        engine = self._make_engine()
+        ident = engine._detect_identifier("1BoatSLRHtKNngkdXEeobR76b53LETtpyT", "input")
+        assert ident.id_type == IdentifierType.CRYPTO_ADDRESS
+        assert ident.metadata.get("chain") == "bitcoin"
+
     def test_detect_ip(self):
         engine = self._make_engine()
         ident = engine._detect_identifier("1.2.3.4", "input")
@@ -522,6 +528,110 @@ class TestDeepScanEngineExtended:
         # Long base58 string matches username regex (3-50 alphanumeric)
         ident = engine._detect_identifier("HAgk6YWDPri5UyX4Y18XzYrFf5C7R5m9v6kQ2J3j8tXr", "input")
         assert ident is not None  # matches username or name
+
+    def test_module_inputs_contains_crypto_tracer(self):
+        from src.modules.deep_scan.engine import _MODULE_INPUTS
+
+        assert IdentifierType.CRYPTO_ADDRESS in _MODULE_INPUTS["crypto_tracer"]
+
+    @pytest.mark.asyncio
+    async def test_ai_enrichment_attaches_dossier(self):
+        from src.modules.free_intel.ai_enricher import EnrichedDossierData
+
+        engine = self._make_engine()
+        result = DeepScanResult(target="t", started_at=datetime.now(timezone.utc))
+        result.findings.append(
+            Finding(
+                id="f1",
+                module="google_dork",
+                title="dork",
+                raw_data={"snippet": "John Doe works at Acme as engineer"},
+            )
+        )
+        with patch("src.modules.free_intel.ai_enricher.AIExtractor") as mock_extractor:
+            mock_instance = mock_extractor.return_value
+            mock_instance.is_available.return_value = True
+            mock_instance.extract_from_snippets = AsyncMock(return_value=EnrichedDossierData(current_employer="Acme"))
+            await engine._run_ai_enrichment(result, "t")
+        dossier_findings = [f for f in result.findings if f.module == "ai_enricher"]
+        assert len(dossier_findings) == 1
+        assert dossier_findings[0].raw_data["dossier"]["current_employer"] == "Acme"
+        mock_instance.extract_from_snippets.assert_awaited_once_with("t", ["John Doe works at Acme as engineer"])
+
+    @pytest.mark.asyncio
+    async def test_ai_enrichment_collects_snippets_list(self):
+        from src.modules.free_intel.ai_enricher import EnrichedDossierData
+
+        engine = self._make_engine()
+        result = DeepScanResult(target="t", started_at=datetime.now(timezone.utc))
+        result.findings.append(
+            Finding(
+                id="f1",
+                module="social_dork",
+                title="dork",
+                raw_data={"snippets": ["snippet one", "snippet two"]},
+            )
+        )
+        with patch("src.modules.free_intel.ai_enricher.AIExtractor") as mock_extractor:
+            mock_instance = mock_extractor.return_value
+            mock_instance.is_available.return_value = True
+            mock_instance.extract_from_snippets = AsyncMock(return_value=EnrichedDossierData(job_title="Engineer"))
+            await engine._run_ai_enrichment(result, "t")
+        mock_instance.extract_from_snippets.assert_awaited_once_with("t", ["snippet one", "snippet two"])
+
+    @pytest.mark.asyncio
+    async def test_ai_enrichment_skipped_no_snippets(self):
+        engine = self._make_engine()
+        result = DeepScanResult(target="t", started_at=datetime.now(timezone.utc))
+        result.findings.append(Finding(id="f1", module="email_osint", title="plain", raw_data={"email": "a@b.com"}))
+        with patch("src.modules.free_intel.ai_enricher.AIExtractor") as mock_extractor:
+            await engine._run_ai_enrichment(result, "t")
+        mock_extractor.assert_not_called()
+        assert all(f.module != "ai_enricher" for f in result.findings)
+
+    @pytest.mark.asyncio
+    async def test_ai_enrichment_skipped_unavailable(self):
+        from src.modules.free_intel.ai_enricher import EnrichedDossierData
+
+        engine = self._make_engine()
+        result = DeepScanResult(target="t", started_at=datetime.now(timezone.utc))
+        result.findings.append(
+            Finding(
+                id="f1",
+                module="google_dork",
+                title="dork",
+                raw_data={"snippet": "snippet"},
+            )
+        )
+        with patch("src.modules.free_intel.ai_enricher.AIExtractor") as mock_extractor:
+            mock_instance = mock_extractor.return_value
+            mock_instance.is_available.return_value = False
+            mock_instance.extract_from_snippets = AsyncMock(return_value=EnrichedDossierData())
+            await engine._run_ai_enrichment(result, "t")
+        mock_instance.extract_from_snippets.assert_not_awaited()
+        assert all(f.module != "ai_enricher" for f in result.findings)
+
+    @pytest.mark.asyncio
+    async def test_ai_enrichment_skipped_empty_dossier(self):
+        from src.modules.free_intel.ai_enricher import EnrichedDossierData
+
+        engine = self._make_engine()
+        result = DeepScanResult(target="t", started_at=datetime.now(timezone.utc))
+        result.findings.append(
+            Finding(
+                id="f1",
+                module="google_dork",
+                title="dork",
+                raw_data={"snippet": "snippet"},
+            )
+        )
+        with patch("src.modules.free_intel.ai_enricher.AIExtractor") as mock_extractor:
+            mock_instance = mock_extractor.return_value
+            mock_instance.is_available.return_value = True
+            mock_instance.extract_from_snippets = AsyncMock(return_value=EnrichedDossierData())
+            await engine._run_ai_enrichment(result, "t")
+        mock_instance.extract_from_snippets.assert_awaited_once()
+        assert all(f.module != "ai_enricher" for f in result.findings)
 
     def test_add_identifier_dedup(self):
         engine = self._make_engine()
