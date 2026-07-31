@@ -528,6 +528,9 @@ class MyModule(BaseModule):
 - [x] Jurisdiction warning: alert if operation may violate local laws
 - [x] Audit log export for legal proceedings (tamper-evident)
 - [x] PII handling policy: no long-term storage of personal data beyond investigation scope
+- [x] **Compliance layer (blueprint Phase 0)**: legal-basis registry (76 sources), central JSONL audit log at the adapter layer, consent gate for Pasal 4.2 categories, 30-day retention purge — see [compliance.md](compliance.md)
+- [ ] RBAC per user tier (currently single auth token)
+- [ ] ToS guard per source: rate-limit awareness per platform ToS
 
 ---
 

@@ -70,6 +70,8 @@ uv run 1ai-osint deep-scan "Target Name" --profile deep --case INV-001 --pdf
 - [Configuration](configuration.md) — environment variables
 - [References](references.md) — tools, services, and collections
 - [Roadmap](roadmap.md) — project master plan
+- [Compliance](compliance.md) — legal-basis registry and audit log (UU PDP)
+- [Blueprint Gap Analysis](blueprint-gap-analysis.md) — strategic gap vs the August 2026 blueprint
 - [Development](development.md) — contributing and quality gates
 
 ## License

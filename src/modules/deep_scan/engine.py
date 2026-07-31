@@ -538,7 +538,7 @@ class DeepScanEngine:
     ) -> None:
         """Run a breach/leak source via the source adapter."""
         await self._run_module_scan(
-            run_source_scan(source_name, target, source_inst),
+            run_source_scan(source_name, target, source_inst, requester="deep_scan_engine"),
             f"source_{source_name}",
             target,
             result,

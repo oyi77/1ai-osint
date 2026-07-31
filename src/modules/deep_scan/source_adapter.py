@@ -3,6 +3,9 @@
 Converts RawLeak objects from breach/leak sources into structured
 ScanResult objects with rich raw_data that the deep scan engine
 and report generator can consume for intelligence-grade output.
+
+Compliance (blueprint Layer 3): every query passes through the
+legal-basis gate and is recorded in the central audit log (S2).
 """
 
 from __future__ import annotations
@@ -12,6 +15,7 @@ import logging
 import uuid
 from typing import Any
 
+from src.core.compliance import get_compliance, is_consent_required, record_audit
 from src.core.models import Finding, ScanResult, Severity
 
 logger = logging.getLogger(__name__)
@@ -60,18 +64,47 @@ _STRUCTURED_SOURCES = {
 }
 
 
-async def run_source_scan(source_name: str, target: str, source_instance: Any) -> ScanResult | None:
+async def run_source_scan(
+    source_name: str,
+    target: str,
+    source_instance: Any,
+    requester: str = "unknown",
+) -> ScanResult | None:
     """Run a single breach/leak source scan and return a structured ScanResult.
 
     Args:
         source_name: Short source key (e.g. "dehashed", "snylla")
         target: Search target (email, username, etc.)
         source_instance: Instantiated source class with search_for_address()
+        requester: Caller identity for the audit trail (default "unknown")
 
     Returns:
         ScanResult with structured findings, or None on failure.
 
+    Compliance: sources requiring explicit consent (Pasal 4.2 UU PDP
+    categories) are blocked before any query is made; every executed
+    query is recorded in the central audit log.
+
     """
+    compliance = get_compliance(source_name)
+
+    # Consent gate — never query Pasal 4.2 sensitive categories without
+    # an explicit, reviewed legal basis (blueprint §4.2).
+    if is_consent_required(source_name):
+        record_audit(
+            source=source_name,
+            target=target,
+            requester=requester,
+            outcome="blocked",
+            legal_basis=compliance.legal_basis.value,
+        )
+        logger.warning(
+            "Blocked source %s for '%s': consent required (Pasal 4.2)",
+            source_name,
+            target,
+        )
+        return None
+
     scan_id = f"source-{source_name}-{uuid.uuid4().hex[:8]}"
     findings: list[Finding] = []
     errors: list[str] = []
@@ -80,9 +113,23 @@ async def run_source_scan(source_name: str, target: str, source_instance: Any) -
         raw_leaks = await source_instance.search_for_address(target)
     except Exception as exc:
         logger.debug("Source %s error for '%s': %s", source_name, target, exc)
+        record_audit(
+            source=source_name,
+            target=target,
+            requester=requester,
+            outcome="error",
+            legal_basis=compliance.legal_basis.value,
+        )
         return None
 
     if not raw_leaks:
+        record_audit(
+            source=source_name,
+            target=target,
+            requester=requester,
+            outcome="empty",
+            legal_basis=compliance.legal_basis.value,
+        )
         return None
 
     source_config = _STRUCTURED_SOURCES.get(source_name, {})
@@ -107,7 +154,23 @@ async def run_source_scan(source_name: str, target: str, source_instance: Any) -
         )
 
     if not findings:
+        record_audit(
+            source=source_name,
+            target=target,
+            requester=requester,
+            outcome="empty",
+            legal_basis=compliance.legal_basis.value,
+        )
         return None
+
+    record_audit(
+        source=source_name,
+        target=target,
+        requester=requester,
+        outcome="ok",
+        findings_count=len(findings),
+        legal_basis=compliance.legal_basis.value,
+    )
 
     return ScanResult(
         scan_id=scan_id,

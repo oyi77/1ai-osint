@@ -40,5 +40,7 @@ nav:
   - Configuration: configuration.md
   - References: references.md
   - Roadmap: roadmap.md
+  - Compliance: compliance.md
   - Blueprint Gap Analysis: blueprint-gap-analysis.md
+  - Blueprint (BerkahKarya): 1ai-osint-Blueprint.md
   - Development: development.md

@@ -60,7 +60,7 @@ the ID/SEA moat — not in re-implementing adapters.
 | --- | --- | --- |
 | **L5 — Output & Reporting** | ~80% | `report_engine/html_template.py`, `output/` (pdf, sarif, json, report_generator, zkit_formatter), `deep_scan/ai_briefing.py` + `briefing_builder.py` — narrative briefing already exists |
 | **L4 — AI Reasoning & Correlation** | ~75% | `identity_tracking/`: `zkit_engine` (salted SHA-256), `correlation.py` (`CrossModuleCorrelator`, `ResolvedEntity`, `ingest_scan_results`, `correlate`, `_build_evidence`), `identity_graph`, `behavioral_fingerprint`, `counterintel`, `neo4j_export.py` |
-| **L3 — Access Control & Compliance** | ~25% | Present: `WEB_AUTH_TOKEN` middleware, node audit trail (`node/db.py:get_audit_trail`, `GET /api/audit`), ZKIT redaction audit (`output/zkit_formatter.py:RedactionAuditEntry`), case audit in `investigations/`. **Absent:** legal-basis tagging per source, retention/purge policy, ToS guard per source, RBAC per tier |
+| **L3 — Access Control & Compliance** | ~60% | Present: `WEB_AUTH_TOKEN` middleware, node audit trail (`node/db.py:get_audit_trail`, `GET /api/audit`), ZKIT redaction audit (`output/zkit_formatter.py:RedactionAuditEntry`), case audit in `investigations/`. **New (Phase 0):** `src/core/compliance.py` — legal-basis registry (76 sources), JSONL audit log at adapter layer, consent gate, 30-day retention purge. **Absent:** RBAC per tier, ToS guard per source |
 | **L2 — Source Adapter / Tool Layer** | 50% | Uniform adapters ✅. **MCP-native ❌** — zero MCP code anywhere in `src/` (verified grep). This is the blueprint's strongest architectural mandate (§2, §1.2) |
 | **L1 — Data Sources** | 60% | Global: 66 adapters, deep in crypto/leak/identity niches, not 200+ module breadth (SpiderFoot reference). **Local ID/SEA: 0%** — no BPS/data.go.id, PANDI WHOIS, OSS/NIB, AHU, operator prefix mapping |
 
@@ -94,15 +94,21 @@ the ID/SEA moat — not in re-implementing adapters.
 ## 6. Phased execution plan
 
 ### Phase 0 — Compliance gate (priority 1; low risk, high ROI)
-- **S1 — Legal-basis registry**: new `src/core/compliance.py` — pydantic
+
+- **S1 — Legal-basis registry**: ✅ **EXECUTED — `src/core/compliance.py`**.
   `LegalBasis` enum (`government_open_data` / `legitimate_interest` /
-  `consent` / `public_api_tos`), plus `legal_basis`, `retention_days`,
-  `requires_consent` fields on each source. Backfill all 66 sources from
-  their actual API contracts.
-- **S2 — Central audit log at the adapter layer**: wrap
-  `run_source_scan()` so every query records source, target, legal_basis,
-  timestamp, requester. Tests: valid query, rate-limited query,
-  consent-flagged source.
+  `consent` / `public_api_tos` / `undocumented`), `SourceCompliance`
+  (with `legal_basis`, `retention_days`, `requires_consent`), 76 sources
+  backfilled; unknown sources default to `undocumented` so gaps stay visible.
+  Paid breach DBs (dehashed, intelx, leakcheck, snusbase, snylla) flagged
+  `undocumented` + legal-review note per blueprint §3 ⛔.
+- **S2 — Central audit log at the adapter layer**: ✅ **EXECUTED**.
+  `run_source_scan()` now audits every query (source, target, legal_basis,
+  timestamp, requester, outcome) to JSONL (`AUDIT_LOG_PATH`, default
+  `.osint_audit.jsonl`); consent-flagged sources are blocked pre-query and
+  the block is audited; `purge_expired_audit_entries()` enforces the 30-day
+  retention default. Tests: valid query, rate-limited query, consent-flagged
+  source — 21 tests in `tests/unit/test_compliance.py`, all passing.
 
 ### Phase 1 — Agentic validation (priority 2)
 - **S3 — Minimal MCP server**: `src/mcp/server.py` exposing `search(target,

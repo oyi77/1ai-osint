@@ -66,6 +66,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     cache_dir: str = ".osint_cache"
     rate_limit_file: str = ".osint_rate_limit.json"
+    audit_log_path: str = ".osint_audit.jsonl"
 
     @property
     def project_root(self) -> Path:
