@@ -5,7 +5,7 @@
 > CLI-first security investigation tool combining OSINT aggregator, secret scanner, crypto analyzer, and Zero Knowledge Identity Tracking (ZKIT) — all orchestrated by AI via LangGraph + Omniroute.
 
 [![CI](https://github.com/openclaw/1ai-osint/actions/workflows/ci.yml/badge.svg)](https://github.com/openclaw/1ai-osint/actions/workflows/ci.yml)
-[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://python.org)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://python.org)
 [![Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 [![Mypy](https://img.shields.io/badge/type%20checked-mypy-blue)](http://mypy-lang.org/)
 [![Coverage](https://img.shields.io/badge/coverage-77%25-yellow)](https://coverage.readthedocs.io/)
@@ -54,7 +54,7 @@ uv run 1ai-osint deep-scan user@example.com --profile deep --case INV-001 --pdf
 
 ```
                           ┌──────────────────────┐
-                          │    CLI (Click/Typer)  │
+                          │    CLI (Typer)        │
                           └──────┬───────┬───────┘
                                  │       │
                     ┌────────────▼┐  ┌───▼────────────┐
@@ -94,7 +94,7 @@ uv run pre-commit install
 
 ### Code standards
 
-- **2160+ tests** — pytest with `pytest.mark.asyncio` for async modules
+- **2245+ tests** — pytest with `pytest.mark.asyncio` for async modules
 - **77% coverage** — `--cov=src --cov-fail-under=70`
 - **0 mypy errors** — strict-ish config with targeted vendor overrides
 - **0 ruff errors** — with `--fix`
