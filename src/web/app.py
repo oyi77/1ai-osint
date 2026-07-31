@@ -16,16 +16,18 @@ HERE = Path(__file__).parent
 
 
 class AuthMiddleware:
-    """Bearer-token gate with per-tier RBAC (blueprint Layer 3).
+    """Bearer-token gate with per-tier RBAC + optional JWT sessions (Layer 3).
 
     Enabled only when ``WEB_AUTH_TOKEN`` (legacy, treated as ADMIN) or
     ``WEB_AUTH_TOKENS`` (``tier:token,tier:token``) is set at app creation.
     When enabled, every HTTP request is rejected with ``401`` unless it
     carries an ``Authorization: Bearer *** header or targets an exempt path
-    (``/static/*`` static assets and the ``/api/health`` health check). The
-    resolved access tier is stored in ``scope["auth_tier"]`` so route
-    handlers can enforce source-level RBAC. Token comparison uses
-    :func:`secrets.compare_digest` (timing-safe).
+    (``/static/*`` static assets, ``/api/health``, and ``/api/auth/login``).
+    Bearer tokens may be either static tier tokens (timing-safe comparison)
+    or JWT session tokens minted by ``/api/auth/login`` (verified signature +
+    expiry, tier read from the ``tier`` claim). The resolved access tier is
+    stored in ``scope["auth_tier"]`` so route handlers can enforce
+    source-level RBAC.
     """
 
     def __init__(self, app, token: str | None = None, tokens: dict[str, AccessTier] | None = None):
@@ -42,7 +44,7 @@ class AuthMiddleware:
 
     def _is_authorized(self, scope) -> bool:
         path = scope.get("path", "")
-        if path == "/api/health" or path.startswith("/static"):
+        if path == "/api/health" or path.startswith("/static") or path == "/api/auth/login":
             return True
         for key, value in scope.get("headers", []):
             if key.lower() == b"authorization":
@@ -55,6 +57,13 @@ class AuthMiddleware:
                 tier = self._tokens.get(token)
                 if tier is not None:
                     scope["auth_tier"] = tier
+                    return True
+                # JWT session token fallback
+                from src.web.auth import verify_token
+
+                jwt_tier = verify_token(token)
+                if jwt_tier is not None:
+                    scope["auth_tier"] = jwt_tier
                     return True
                 return False
         return False
@@ -85,21 +94,15 @@ def create_app() -> FastAPI:
 
     # Optional bearer-token auth — enabled when a token is configured.
     # Legacy single token (WEB_AUTH_TOKEN) → ADMIN; multi-tier via
-    # WEB_AUTH_TOKENS = "readonly:tok1,admin:tok2".
-    legacy_token = os.environ.get("WEB_AUTH_TOKEN", "").strip()
-    tokens: dict[str, AccessTier] = {}
-    for pair in os.environ.get("WEB_AUTH_TOKENS", "").split(","):
-        pair = pair.strip()
-        if not pair or ":" not in pair:
-            continue
-        tier_name, _, token = pair.partition(":")
-        token = token.strip()
-        if token:
-            tokens[token] = AccessTier.from_str(tier_name.strip())
-    if legacy_token or tokens:
+    # WEB_AUTH_TOKENS = "readonly:tok1,admin:tok2". Re-read at app creation
+    # so runtime config is honored.
+    from src.core.rbac import tiers_from_env
+
+    tokens = tiers_from_env()
+    if tokens:
         app.add_middleware(
             AuthMiddleware,
-            token=legacy_token or None,
+            token=os.environ.get("WEB_AUTH_TOKEN", "").strip() or None,
             tokens=tokens,
         )
 

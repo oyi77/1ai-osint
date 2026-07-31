@@ -125,12 +125,52 @@ class DeepScanEngine:
 
     async def scan(self, target: str) -> DeepScanResult:
         """Run a deep scan on a target identifier."""
+        # Fire the on_scan_start hook (error-isolated: a failing plugin never
+        # aborts the scan itself).
+        try:
+            from src.plugin import get_dispatcher
+
+            await get_dispatcher().dispatch(
+                "on_scan_start",
+                target=target,
+                module="deep_scan",
+            )
+        except Exception as exc:  # pragma: no cover - defensive only
+            logger.warning("Plugin hook on_scan_start failed: %s", exc)
+
         started_at = datetime.now(timezone.utc)
         result = DeepScanResult(
             target=target,
             started_at=started_at,
             max_iterations=self.max_iterations,
         )
+
+        try:
+            return await self._scan_impl(target, result, started_at)
+        except Exception as exc:
+            logger.exception("Deep scan failed for %s", target)
+            result.errors.append(f"deep_scan: {exc}")
+            result.completed_at = datetime.now(timezone.utc)
+            # Fire the on_error hook — plugins may record or alert on failure.
+            try:
+                from src.plugin import get_dispatcher
+
+                await get_dispatcher().dispatch(
+                    "on_error",
+                    error=exc,
+                    context={"target": target, "module": "deep_scan"},
+                )
+            except Exception as hook_exc:  # pragma: no cover - defensive only
+                logger.warning("Plugin hook on_error failed: %s", hook_exc)
+            return result
+
+    async def _scan_impl(
+        self,
+        target: str,
+        result: DeepScanResult,
+        started_at: datetime,
+    ) -> DeepScanResult:
+        """Inner scan body — hook-free so plugins can't corrupt the flow."""
 
         # Detect initial identifier type
         initial = self._detect_identifier(target, "input")
@@ -224,6 +264,16 @@ class DeepScanEngine:
             result.iterations,
             result.duration_sec,
         )
+
+        # Fire the on_scan_end hook (error-isolated). Plugins may observe the
+        # final result; the scan outcome is unaffected.
+        try:
+            from src.plugin import get_dispatcher
+
+            await get_dispatcher().dispatch("on_scan_end", result=result)
+        except Exception as exc:  # pragma: no cover - defensive only
+            logger.warning("Plugin hook on_scan_end failed: %s", exc)
+
         return result
 
     async def _run_ai_enrichment(self, result: DeepScanResult, target: str) -> None:

@@ -5,11 +5,47 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 
-from src.core.rbac import AccessTier
+from src.core.rbac import AccessTier, tiers_from_env
+from src.web.auth import require_tier
 
 router = APIRouter(prefix="/api", tags=["api"])
+
+
+@router.post("/auth/login")
+async def auth_login(request: Request) -> dict:
+    """Exchange a static tier token for a short-lived JWT session token.
+
+    Body: ``{"token": "<static-token>"}``. Requires ``JWT_SECRET`` to be
+    configured; otherwise the endpoint is disabled (410). The returned
+    ``access_token`` carries the same tier as the static token and can be
+    used in ``Authorization: Bearer`` for subsequent calls until it expires
+    (``JWT_TTL_HOURS``, default 24h).
+    """
+    from src.web.auth import issue_token, jwt_enabled
+
+    if not jwt_enabled():
+        raise HTTPException(status_code=410, detail="JWT login disabled (JWT_SECRET not set)")
+
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON body") from None
+
+    token = str(body.get("token", ""))
+    tokens = tiers_from_env()
+    tier = tokens.get(token)
+    if tier is None:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    access_token = issue_token(token, tier)
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "tier": tier.name.lower(),
+        "expires_in_hours": 24,
+    }
 
 
 @router.get("/auth/tier")
@@ -76,8 +112,11 @@ async def stats_overview() -> dict:
 
 
 @router.get("/search")
-async def search_all(q: str = "") -> dict:
-    """Search across entities, reports, and findings."""
+async def search_all(
+    q: str = "",
+    _tier_ok: None = Depends(require_tier(AccessTier.ANALYST)),
+) -> dict:
+    """Search across entities, reports, and findings (requires ANALYST tier)."""
     if not q or len(q.strip()) < 2:
         raise HTTPException(status_code=400, detail="Query must be at least 2 characters")
 

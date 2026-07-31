@@ -362,9 +362,9 @@
 
 #### 5.1 Plugin/Extension System
 
-- [~] Module plugin API: `PluginRegistry().discover()` scans `src.plugins` + `1ai_osint.plugins` entry points (verified `src/plugin/registry.py`), but pyproject.toml declares no entry-point group and no third-party pip package is registered — publishable, unproven
-- [ ] Module registry: no `install` subcommand exists — `osint install socmint-twitter-pro` is NOT implemented (CLI surface: version/doctor/modules/plugins/web/leak_finder/sweep/resolve/monitor/node/master/scan/deep_scan/report/report_from_file/zkit-deep-scan)
-- [ ] Hook system: `HookDispatcher` exists (`src/plugin/hooks.py`) but is never wired into the scan lifecycle — zero `dispatcher.dispatch()` calls in `deep_scan/engine.py`/`scan_commands.py`, so hooks never fire during scans (verified audit §16)
+- [x] Module plugin API: `PluginRegistry().discover()` scans `src.plugins` + `1ai_osint.plugins` entry points (verified `src/plugin/registry.py`); pyproject.toml now declares the `[project.entry-points."1ai_osint.plugins"]` group so third-party pip packages register automatically
+- [x] Module registry: `osint install <package>` subcommand implemented — pip-installs a plugin package and re-discovers entry points (`src/cli/commands/config_commands.py::install`)
+- [x] Hook system: `HookDispatcher` wired into the scan lifecycle — `deep_scan/engine.py` fires `on_scan_start` / `on_scan_end` / `on_error` (error-isolated); built-in `ExamplePlugin` in `src/plugins/` now fires on every deep scan
 
 #### 5.2 Web UI (Optional but High Value)
 

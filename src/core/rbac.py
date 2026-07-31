@@ -83,6 +83,32 @@ def tier_for_token(token: str | None) -> AccessTier | None:
     return _TOKEN_TIERS.get(token)
 
 
+def tiers_from_env() -> dict[str, AccessTier]:
+    """Build the token→tier map from the environment at call time.
+
+    Unlike the module-level ``_TOKEN_TIERS`` (captured once at import), this
+    re-reads ``WEB_AUTH_TOKEN`` / ``WEB_AUTH_TOKENS`` on every call, so
+    runtime config changes (tests, live reconfiguration) are honored.
+    """
+    tokens: dict[str, AccessTier] = {}
+    legacy = os.environ.get("WEB_AUTH_TOKEN", "").strip()
+    for pair in os.environ.get("WEB_AUTH_TOKENS", "").split(","):
+        pair = pair.strip()
+        if not pair or ":" not in pair:
+            continue
+        tier_name, _, token = pair.partition(":")
+        token = token.strip()
+        if not token:
+            continue
+        tier = AccessTier.from_str(tier_name.strip())
+        if token in tokens and tier < tokens[token]:
+            continue  # keep the highest privilege mapping
+        tokens[token] = tier
+    if legacy:
+        tokens[legacy] = AccessTier.ADMIN
+    return tokens
+
+
 def token_is_valid(token: str | None) -> bool:
     """Timing-safe check that the token is a known one."""
     if not token:

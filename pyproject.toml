@@ -91,6 +91,10 @@ Issues = "https://github.com/oyi77/1ai-osint/issues"
 [project.scripts]
 1ai-osint = "src.cli.main:app"
 
+# Third-party plugin packages register under this group; the registry picks
+# them up via importlib.metadata at discover() time.
+[project.entry-points."1ai_osint.plugins"]
+
 [build-system]
 requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"

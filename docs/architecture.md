@@ -95,7 +95,11 @@ parallel primary wave runs, and rate-limited/errored sources fall back to
 alternates. Every step passes the compliance gates — consent gate (UU PDP
 Pasal 4.2), RBAC gate (`src/core/rbac.py` — per-source `min_tier` vs caller
 tier), ToS guard (`src/core/tos_guard.py` — per-source rate ceiling) — and
-is audited through the same adapter layer. A head-to-head benchmark
+is audited through the same adapter layer. The engine also fires plugin
+hooks (`on_scan_start` / `on_scan_end` / `on_error` via
+`src/plugin/__init__.py::get_dispatcher`), so third-party plugins can
+observe or extend the scan lifecycle; the built-in `ExamplePlugin` in
+`src/plugins/` fires on every deep scan. A head-to-head benchmark
 (`scripts/benchmark_agent_vs_batch.py`) measures 6.22x wall-clock speedup
 over the naive "run everything" batch.
 
@@ -113,8 +117,25 @@ JSON, STIX, or PDF briefings. See [Modules](modules.md) and
 ### Plugin system
 
 `src/plugin/` provides a plugin registry (`PluginRegistry.discover()` scans
-`src.plugins` and the `1ai_osint.plugins` entry-point group), a hook
-dispatcher, and an example plugin.
+`src.plugins` and the `1ai_osint.plugins` entry-point group declared in
+pyproject.toml), a hook dispatcher (`HookDispatcher` — wired into the deep
+scan lifecycle), and an example plugin. New plugins can be installed at
+runtime with `osint install <package>` (pip-installs and re-discovers).
+
+### Web auth (RBAC + JWT sessions)
+
+`src/web/auth.py` implements the Layer-3 access-control stack on top of the
+web layer:
+
+- **Static tier tokens** — `WEB_AUTH_TOKENS="readonly:tok1,admin:tok2"`
+  (legacy `WEB_AUTH_TOKEN` = ADMIN), verified timing-safe by the middleware
+  in `src/web/app.py`; the resolved tier is stored in `scope["auth_tier"]`.
+- **JWT sessions** — `POST /api/auth/login` exchanges a static token for a
+  signed HS256 JWT carrying `tier` + `exp` claims (`JWT_SECRET`,
+  `JWT_TTL_HOURS`). The middleware accepts both static and JWT bearers.
+- **Per-route tier enforcement** — `require_tier(AccessTier.ANALYST)` is a
+  FastAPI dependency that 403s callers below the threshold (e.g.
+  `/api/search`). `GET /api/auth/tier` reports the caller's resolved tier.
 
 ### ZKIT
 

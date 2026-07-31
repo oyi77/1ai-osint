@@ -67,6 +67,56 @@ def plugins() -> None:
 
 
 @app.command()
+def install(
+    package: str = typer.Argument(
+        ..., help="pip package name (or local path) exposing a 1ai_osint.plugins entry point"
+    ),
+    upgrade: bool = typer.Option(False, "--upgrade", help="Pass --upgrade to pip"),
+) -> None:
+    """Install a plugin package and register it with the plugin registry.
+
+    Installs *package* via pip (into the active environment), then
+    re-discovers plugins so the newly installed entry points are picked up.
+    Any distribution exposing a ``1ai_osint.plugins`` entry point group
+    (declared in its ``[project.entry-points."1ai_osint.plugins"]`` section)
+    is loaded automatically — no code changes needed.
+
+    Example:
+        osint install socmint-twitter-pro
+    """
+    import subprocess
+    import sys
+
+    from src.plugin import PluginRegistry, reset_plugins
+
+    pip_args = [sys.executable, "-m", "pip", "install"]
+    if upgrade:
+        pip_args.append("--upgrade")
+    pip_args.append(package)
+
+    typer.echo(f"Installing {package} ...")
+    proc = subprocess.run(pip_args, capture_output=True, text=True)
+    if proc.returncode != 0:
+        typer.echo(proc.stderr.strip(), err=True)
+        raise typer.Exit(code=1)
+    typer.echo(proc.stdout.strip())
+
+    # Force a fresh discovery so the new package's entry points are visible.
+    reset_plugins()
+    registry = PluginRegistry()
+    discovered = registry.discover()
+    new_names = [p.name for p in discovered]
+    if new_names:
+        typer.echo(f"Registered plugin(s): {', '.join(new_names)}")
+    else:
+        typer.echo(
+            f"Installed {package}, but no 1ai_osint.plugins entry points were "
+            "found. The package may not be a 1ai-osint plugin.",
+        )
+        raise typer.Exit(code=2)
+
+
+@app.command()
 def web(
     port: int = typer.Option(8080, "--port", "-p", help="Port to bind the web server to"),
     host: str = typer.Option("0.0.0.0", "--host", "-H", help="Host address to bind to"),

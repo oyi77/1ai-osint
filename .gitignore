@@ -1,5 +1,7 @@
 # Byte-compiled / optimized / DLL files
+*.pyc
 __pycache__/
+.osint_audit.jsonl
 *.py[cod]
 *$py.class
 

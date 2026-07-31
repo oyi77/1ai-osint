@@ -81,14 +81,14 @@ from src.core.compliance import (
     get_compliance, record_audit, read_audit_entries,
     purge_expired_audit_entries, registered_sources,
 )
-from src.core.rbac import AccessTier, tier_for_token
+from src.core.rbac import AccessTier, tiers_from_env
 from src.core.tos_guard import tos_allows
 
 # What legal basis does this source have?
 comp = get_compliance("hibp")          # LegalBasis.PUBLIC_API_TOS
 
 # RBAC: resolve a caller's tier from a bearer token, then gate a source.
-tier = tier_for_token(token)            # AccessTier (None = unknown token)
+tier = tiers_from_env().get(token)     # AccessTier | None (unknown token)
 if not source_allows_tier("dehashed", tier or AccessTier.READONLY):
     ...  # blocked — source requires a higher tier
 
@@ -107,8 +107,9 @@ purged = purge_expired_audit_entries()
 
 ## Roadmap (still open)
 
+- Refresh-token rotation for web sessions
+- Per-source rate tiers per tier level (e.g. ADMIN gets higher rpm than READONLY)
 - Retention policy UI/API endpoint
-- JWT sessions + per-route tier decorators on the web layer
 
 ## Verification
 
