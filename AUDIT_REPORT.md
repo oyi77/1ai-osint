@@ -13,7 +13,7 @@
 - **ROADMAP status:** Phase 0 (Foundation) ✅ — **verified correct.** Phase 1 (Core Intel) ✅ — **verified correct.** Phase 2 (AI & ML) in progress ✅
 - **CI/CD:** Present — GitHub Actions with lint, test matrix (3.12/3.13, coverage gate 77%), docs-sync, and release workflows
 - **Docker:** Multi-stage build producing runtime image with OSINT tools (githound, gitleaks, sherlock, maigret, chromium, tor)
-- **Dead/placeholder code ratio:** ~3% (plugin system, 2 dead profile entries, ai_enricher orphan). Negligible — only 3 of ~240 source files affected.
+- **Dead/placeholder code ratio:** ~1% (ai_enricher orphan + removed darknet entry). Plugin system is functional — not dead. Negligible — only 2 of ~306 source files affected.
 - **Test maturity:** ~95 test files, benchmarks, integration tests — strong coverage
 - **Biggest gap:** No PyPI package — `release.yml` builds wheel+sdist but no `publish` step
 
@@ -38,7 +38,7 @@
 | `master` | `node_commands.py` | — | REAL — MasterBot |
 | `doctor` | `scan_commands.py` | — | REAL |
 | `modules` | `scan_commands.py` | — | REAL |
-| `plugins` | helpers in `app.py` | — | REAL — calls `init_plugins()`, but plugin system is dead |
+| `plugins` | `config_commands.py` | — | REAL — `init_plugins()` → `PluginRegistry().discover()` lists `example_logger`; hooks unwired (see §16) |
 | `version` | `scan_commands.py` | — | REAL |
 | `crypto` | `crypto_commands.py` | scan, check, balance, tx | REAL |
 | `identity` | `identity_commands.py` | graph, correlate, export | REAL |
@@ -303,15 +303,15 @@ Every major module has dedicated test files with consistent naming: `test_<modul
 
 | Component | Details | Verdict |
 |-----------|---------|---------|
-| `src/plugin/` (registry.py, base.py, hooks.py) | HookDispatcher never instantiated. `init_plugins()` only called from CLI `plugins` command. | **DEAD — standalone scaffolding, no integration** |
-| `src/plugins/example_plugin.py` | Example plugin | **DEAD — example only** |
+| `src/plugin/` (registry.py, base.py, hooks.py) | **ALIVE** — functional: `PluginRegistry().discover()` finds and registers plugins, CLI `plugins` command works (verified: lists `example_logger` v0.1.0), 31 unit tests pass. Gap: `HookDispatcher` never wired into scan lifecycle — hooks fire only via manual `dispatcher.dispatch()` (wiring gap, same class as `crypto_tracer`) | **UNWIRED subsystem — kept; hook wiring tracked (plan item 1)** |
+| `src/plugins/example_plugin.py` | Example plugin — discovered and registered at runtime by `PluginRegistry.discover()` | **ALIVE — reference plugin** |
 | `crypto_tracer` in `scan_profiles.py` | Declared in `DEEP_EXTRA` and registered in `_MODULE_REGISTRY` (`src/modules/__init__.py:46`) as `BlockchainTxTracer` (262 lines, real tx tracer), but the engine's resolver `cli/helpers.get_module()` (engine.py:348) has NO `crypto_tracer` branch — returns `None`, and it's not in `_MODULE_INPUTS`, `_SOURCE_MODULES`, or `_FREE_INTEL_DISPATCH` | **UNWIRED real module — kept; dispatch wiring tracked (plan item 9)** |
 | `darknet` in `scan_profiles.py` | Was declared in `DEEP_EXTRA` but no module exists — not in `_MODULE_INPUTS`, `_SOURCE_MODULES`, `_FREE_INTEL_DISPATCH`, and `get_module()` returns `None` | **REMOVED — silent no-op** |
 | `src/modules/free_intel/ai_enricher.py` | 117-line file with real `AIExtractor` class, but has zero importers across `src/`. Not in `_FREE_INTEL_DISPATCH`, `_MODULE_INPUTS`, or `get_module()` | **ORPHAN — file exists, no wire** |
 | `src/modules/vendor/` | 5 files (3 mixins + external_tools.py) | **ALIVE** — `ExternalToolIntel` in `external_tools.py` (179 lines) imported by `deep_scan/engine.py:210`. The 3 mixins (242 lines total) are imported by `external_tools.py:13-15`. |
 | `src/vendor/chiasmodon/` | 37-file package: 15 leak tools, 19 OSINT providers, base framework | **ALIVE** — imported by `data_leaks/aggregator.py` (leak check tools), `people_finder/search.py` (sherlock, maigret, whatsmyname providers), `phone_finder/lookup.py` (phoneinfoga). Graceful ImportError fallbacks throughout. |
 
-**Dead code ratio:** ~3% of total lines. Remarkably clean.
+**Dead code ratio:** ~1% of total lines (ai_enricher orphan only; darknet entry removed, plugin system alive). Remarkably clean.
 
 ---
 
@@ -330,7 +330,7 @@ Every major module has dedicated test files with consistent naming: `test_<modul
 
 | Metric | Value | Source |
 |--------|-------|--------|
-| Python source files | ~240 | `glob src/**/*.py` (including 37 chiasmodon vendor files) |
+| Python source files | ~306 | `glob src/**/*.py` (including 37 chiasmodon vendor files) |
 | Test files | ~95 | `glob tests/**/*.py` |
 | Source adapters | 69 (65 shared + 4 leak_finder) | auto-discovery in `sources/__init__.py` |
 | CLI commands | 16 | verified in command files |
@@ -341,6 +341,6 @@ Every major module has dedicated test files with consistent naming: `test_<modul
 | Deep scan engine files | 34 | `deep_scan/` (glob) |
 | Vendor tools | 37 (chiasmodon) + 5 (modules/vendor) = 42 | `vendor/chiasmodon/`, `modules/vendor/` |
 | Report engine files | 2 | `report_engine/` |
-| Dead/placeholder | ~1% | plugin/ + ai_enricher orphan + 2 dead profile entries |
+| Dead/placeholder | ~1% | ai_enricher orphan (117 lines) + darknet (removed) — plugin system alive |
 | CI workflows | 3 | ci.yml, release.yml, docs-sync.yml |
 | Docker build stages | 3 | Go tools → Python deps → runtime |

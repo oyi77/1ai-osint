@@ -7,18 +7,16 @@
 
 ## Quick-Impact Wins (≤1 day each)
 
-### 1. Remove Dead Plugin Scaffolding
+### 1. Plugin System: Wire Hooks or Keep as Documented Extension Point
 
-**Ground truth:** `src/plugin/` has `registry.py`, `base.py`, `hooks.py`, `example.py`. `HookDispatcher` is never instantiated. `init_plugins()` is only called from CLI `plugins` command. The entire system integrates nowhere — it's standalone scaffolding.
+**Ground truth:** `src/plugin/` (registry.py 197 lines, hooks.py 105, base.py 78) is a **functional subsystem** — NOT dead scaffolding. `PluginRegistry().discover()` finds and registers plugins; the CLI `plugins` command works (verified: lists `example_logger` v0.1.0 with hooks `[on_scan_start, on_scan_end]`); 31 unit tests in `tests/unit/test_plugin_system.py` pass. `src/plugins/example_plugin.py` is a reference plugin registered at runtime. The one real gap: `HookDispatcher` is never wired into the scan lifecycle — nothing calls `dispatcher.dispatch("on_scan_*")` in `deep_scan/engine.py` or `scan_commands.py`, so hooks exist but never fire during actual scans. Same gap class as `crypto_tracer`/`ai_enricher` — unwired, not dead. `src/cli/main.py:30` `_plugin_registry` is a dead declaration (never assigned; only TYPE_CHECKING import).
 
-**Action:**
-- Delete `src/plugin/` entirely
-- Remove `plugins` CLI command from `src/cli/app.py` (or replace with a stub that says "deprecated")
-- Delete `src/plugins/example_plugin.py`
+**Action (choose):**
+- **Wire (preferred):** call `init_plugins()` once at CLI startup (or in `scan_commands`), then `await HookDispatcher(registry).dispatch("on_scan_start", target=..., module=...)` in `deep_scan/engine.py` before/after module iterations; dispatch `on_report` after report generation. ~1 day.
+- **Keep as extension point:** document that hooks are opt-in (callers invoke `dispatcher.dispatch` explicitly); remove the dead `_plugin_registry` declaration in `src/cli/main.py:30`. ~30 min.
+- **Do NOT delete:** removing `src/plugin/` breaks the working `plugins` CLI command and 456 lines of tests for zero benefit.
 
-**Verification:** `grep -r "init_plugins\|HookDispatcher\|import.*plugin" src/ --include="*.py"` → only the CLI commands module. After deletion: `pytest tests/ -x -q` passes.
-
-**Risk:** None — dead code removal. Rollback via git revert.
+**Verification (wire path):** `uv run python -m src.cli.main scan ... --plugins` produces `[ExamplePlugin] Scan STARTED/ENDED` log lines; `pytest tests/unit/test_plugin_system.py -q` stays green.
 
 ---
 
@@ -137,15 +135,15 @@
 
 ## Strategic Architecture Items (>1 week each)
 
-### 10. Wire Plugin System or Delete It
+### 10. Plugin System: Long-Term Direction
 
-**Ground truth:** The plugin scaffolding exists but is unused. The correct decision depends on whether the project wants third-party plugin support (unlikely for a security tool) or not.
+**Ground truth:** The plugin system is a **functional subsystem** — `PluginRegistry().discover()` works, CLI `plugins` command lists `example_logger` v0.1.0, 31 unit tests pass. The only gap is that `HookDispatcher` is never wired into the scan lifecycle (hooks exist but never fire during scans). Quick-Impact #1 covers the immediate decision; this item is the strategic call on direction.
 
 **Options:**
-- **Delete** (recommended, 1 day): Remove `src/plugin/`, CLI `plugins` command. Same as Quick-Impact #1.
-- **Wire it** (1+ week): Hook plugin `before_scan`/`after_scan`/`on_finding` callbacks into `DeepScanEngine._run_iteration()`. This requires integrating the dispatcher into 5+ engine methods.
+- **Wire hooks** (1+ week): Hook plugin `before_scan`/`after_scan`/`on_finding` callbacks into `DeepScanEngine._run_iteration()` — requires integrating the dispatcher into 5+ engine methods. Optional third-party plugin support.
+- **Keep as extension point** (30 min): document that hooks are opt-in; callers invoke `dispatcher.dispatch` explicitly. Remove the dead `_plugin_registry` declaration in `src/cli/main.py:30`.
 
-**Recommendation:** Delete. Security tools don't benefit from third-party plugins — the risk of malicious plugins is not worth the convenience. If extensibility is needed, the existing module discovery in `sources/` and `free_intel/` provides a better extension model.
+**Recommendation:** Keep — do not delete. The system is alive (working CLI + tests) and provides a clean opt-in extension point. Wire hooks only if third-party extensibility is a product requirement; otherwise document as opt-in. Deletion would break the working `plugins` CLI command and 456 lines of tests for zero benefit. (If extensibility is needed, the existing module discovery in `sources/` and `free_intel/` provides a complementary extension model.)
 
 ---
 
@@ -180,7 +178,7 @@
 
 | # | Gap | Tier | Evidence | Difficulty |
 |---|-----|------|----------|------------|
-| 1 | Dead plugin scaffolding | Dead code | `src/plugin/` — never integrated | 1 hour |
+| 1 | Plugin system: wire hooks or keep | Unwired subsystem | `src/plugin/` — functional (CLI works, 31 tests), hooks never fire in scan lifecycle | 1 day (wire) / 30 min (keep) |
 | 2 | Dead profile entry (`darknet`) | Dead code | `DEEP_EXTRA` in scan_profiles.py — no module exists anywhere | 30 min |
 | 3 | `report_engine/` | Alive | 2 files, imported in 6 places (scan_commands.py) | Already done |
 | 4 | `vendor/` trees | Alive | `modules/vendor/` (5 files, 179+242 loc) + `vendor/chiasmodon/` (37 files). Both have real callers. | Architectural audit (not delete) |
@@ -190,25 +188,24 @@
 | 8 | Dockerfile uses pip, not uv | Inconsistency | Project standard is uv | 2 hours |
 | 9 | Web UI has no auth | Security gap | `src/web/main.py` — no middleware | 1-2 days |
 | 10 | Dispatch gap: `ai_enricher` + `crypto_tracer` | Functionality gap | 117 + 262 real lines, zero dispatch wiring — not in `get_module()` | 2-3 days |
-| 11 | Plugin system: wire or delete | Architecture debt | Standalone scaffolding | 1 day delete / 1 week+ wire |
+| 11 | Plugin system: wire hooks or keep | Architecture debt | Functional subsystem, unwired dispatch (same class as crypto_tracer) | 1 day wire / 30 min keep |
 | 12 | No docs site | Missing capability | No mkdocs/sphinx config | 2-3 days |
-| 13 | No pipx/uv tool entry | Missing capability | No `[project.scripts]` in pyproject.toml | 1 hour |
+| 13 | pipx/uv tool entry | Already present | `[project.scripts]` at pyproject.toml:86-87 — `1ai-osint = "src.cli.main:app"` | Already done |
 
 ## Quick Summary
 
 ```
 ┌──────────────────────────────────────────────────┐
-│  1-3 days:  Clean dead plugin scaffolding; audit vendor consolidation     │
-│             Fix fragile CI sed                     │
-│             Add [project.scripts] for CLI          │
+|  1-3 days:  Wire or keep plugin hooks; audit vendor consolidation     |
+|             Fix fragile CI sed                     |
 ├──────────────────────────────────────────────────┤
 │  1-2 weeks: PyPI + Docker publish in release CI   │
 │             Docker uv migration                    │
 │             Web auth layer                         │
 │             ai_enricher cross-module context        │
 ├──────────────────────────────────────────────────┤
-│  Strategic:  Docs site (mkdocs/sphinx + Pages)     │
-│             Decision on plugin system (wire/del)  │
+|  Strategic:  Docs site (mkdocs/sphinx + Pages)   |
+|             Plugin hook wiring (keep as opt-in)   |
 └──────────────────────────────────────────────────┘
 ```
 
