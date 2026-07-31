@@ -22,7 +22,6 @@ DEEP_EXTRA: tuple[str, ...] = (
     "email_osint",
     "phone_finder",
     "intelx",
-    "darknet",
     "vuln_scanner",
     "crypto_balance",
     "crypto_tracer",
@@ -79,13 +78,7 @@ def resolve_scan_profile(
         )
 
     if n == "deep":
-        mods = list(
-            dict.fromkeys(
-                list(FAST_CORE_MODULES)
-                + list(DEEP_EXTRA)
-                + keyed_breach
-            )
-        )
+        mods = list(dict.fromkeys(list(FAST_CORE_MODULES) + list(DEEP_EXTRA) + keyed_breach))
         return ScanProfileConfig(
             name="deep",
             modules=tuple(mods),

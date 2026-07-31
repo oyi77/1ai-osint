@@ -118,7 +118,7 @@ engine.py (DeepScanEngine)
 - **fast** — basic: leaks, social, web
 - **standard** — fast + email_osint, phone_finder + all free_intel modules
 - **deep** — standard + domain_recon, gitleaks, vuln_scan + all free_intel
-  ⚠️ `crypto_tracer` and `darknet` are declared in `DEEP_EXTRA` but NOT in any dispatch path — they are silent no-ops
+*   ⚠️ `crypto_tracer` is declared in `DEEP_EXTRA` but NOT in any dispatch path — silent no-op (real module, missing `get_module()` branch). `darknet` was removed from `DEEP_EXTRA` (no module exists).
 
 **Dispatch:** `_MODULE_INPUTS` dict → target-type routing. `_FREE_INTEL_MODULES` derived dynamically from `free_intel_adapter.list_free_intel_modules()`.
 
@@ -305,8 +305,8 @@ Every major module has dedicated test files with consistent naming: `test_<modul
 |-----------|---------|---------|
 | `src/plugin/` (registry.py, base.py, hooks.py) | HookDispatcher never instantiated. `init_plugins()` only called from CLI `plugins` command. | **DEAD — standalone scaffolding, no integration** |
 | `src/plugins/example_plugin.py` | Example plugin | **DEAD — example only** |
-| `crypto_tracer` in `scan_profiles.py` | Declared in `DEEP_EXTRA` and registered in `get_module()` as `BlockchainTxTracer` (262 lines, real tx tracer), but NOT in `_MODULE_INPUTS`, `_SOURCE_MODULES`, or `_FREE_INTEL_DISPATCH` | **DEAD profile entry — deep scan never activates it** |
-| `darknet` in `scan_profiles.py` | Declared in `DEEP_EXTRA` but no dispatch path — not in `_MODULE_INPUTS`, `_SOURCE_MODULES`, `_FREE_INTEL_DISPATCH`, and `get_module()` returns `None` | **DEAD profile entry — silent no-op** |
+| `crypto_tracer` in `scan_profiles.py` | Declared in `DEEP_EXTRA` and registered in `get_module()` as `BlockchainTxTracer` (262 lines, real tx tracer), but NOT in `_MODULE_INPUTS`, `_SOURCE_MODULES`, or `_FREE_INTEL_DISPATCH` | **UNWIRED real module — kept; dispatch wiring tracked (plan item 9)** |
+| `darknet` in `scan_profiles.py` | Was declared in `DEEP_EXTRA` but no module exists — not in `_MODULE_INPUTS`, `_SOURCE_MODULES`, `_FREE_INTEL_DISPATCH`, and `get_module()` returns `None` | **REMOVED — silent no-op** |
 | `src/modules/free_intel/ai_enricher.py` | 117-line file with real `AIExtractor` class, but has zero importers across `src/`. Not in `_FREE_INTEL_DISPATCH`, `_MODULE_INPUTS`, or `get_module()` | **ORPHAN — file exists, no wire** |
 | `src/modules/vendor/` | 5 files (3 mixins + external_tools.py) | **ALIVE** — `ExternalToolIntel` in `external_tools.py` (179 lines) imported by `deep_scan/engine.py:210`. The 3 mixins (242 lines total) are imported by `external_tools.py:13-15`. |
 | `src/vendor/chiasmodon/` | 37-file package: 15 leak tools, 19 OSINT providers, base framework | **ALIVE** — imported by `data_leaks/aggregator.py` (leak check tools), `people_finder/search.py` (sherlock, maigret, whatsmyname providers), `phone_finder/lookup.py` (phoneinfoga). Graceful ImportError fallbacks throughout. |

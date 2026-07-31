@@ -22,17 +22,17 @@
 
 ---
 
-### 2. Remove Dead Profile Entries (`crypto_tracer`, `darknet`)
+### 2. Remove Dead Profile Entry (`darknet`)
 
-**Ground truth:** `src/modules/deep_scan/scan_profiles.py` declares `crypto_tracer` and `darknet` in `DEEP_EXTRA`. `crypto_tracer` IS a real module (`BlockchainTxTracer`, 262 lines, registered in `get_module()` as `"crypto_tracer"`) but has no `_MODULE_INPUTS`, `_SOURCE_MODULES`, or `_FREE_INTEL_DISPATCH` dispatch entry — the deep scan engine never routes targets to it. `darknet` has no module at all (`get_module('darknet')` returns `None`). Both are silent no-ops in the deep scan context.
+**Ground truth:** `src/modules/deep_scan/scan_profiles.py` declares `darknet` in `DEEP_EXTRA`. It has no module anywhere: not in `SOURCE_MODULES` (`_module_config.py:62` — `{dehashed, leakcheck, snylla, snusbase, hibp, intelx}`), no `get_module()` branch in `src/cli/helpers.py:31-77`, no entry in `src/modules/__init__.py` registry. `src/modules/sources/darknet_source.py` exists (a `DarknetSource` class) but has zero importers in `src/`. In deep scan, the engine hits `engine.py:380` → `_get_module('darknet')` returns `None` → silently skipped. It is a pure no-op entry.
 
 **Action:**
-- Remove `crypto_tracer` and `darknet` from the `DEEP_EXTRA` tuple in `scan_profiles.py`
-- (If these were planned modules, create stub files and add dispatch entries; otherwise just delete)
+- Remove `darknet` from the `DEEP_EXTRA` tuple in `scan_profiles.py`
+- (Keep `crypto_tracer` — that module IS real; its gap is missing dispatch wiring, tracked as item 9 below)
 
-**Verification:** `grep -r "crypto_tracer\|darknet" src/modules/deep_scan/ --include="*.py"` → only removed from profiles no unexpected references. After deletion: `pytest tests/ -x -q` passes.
+**Verification:** `grep -r "darknet" src/modules/deep_scan/ --include="*.py"` → only `threat_model.py` string comparisons remain (finding-label checks, unaffected). After deletion: `pytest tests/unit/test_scan_profiles.py tests/integration/test_deep_scan_golden.py -q` passes.
 
-**Risk:** None — these entries are unreachable no-ops. Removing them changes no runtime behavior.
+**Risk:** None — this entry is an unreachable no-op. Removing it changes no runtime behavior.
 
 ---
 
@@ -121,16 +121,17 @@
 
 ---
 
-### 9. Resolve `ai_enricher` Module Context Gap
+### 9. Wire Missing Dispatch for Real Modules (`ai_enricher`, `crypto_tracer`)
 
-**Ground truth:** `src/modules/free_intel/ai_enricher.py` (117 lines) has a real `AIExtractor` class with LLM-based analysis, but it is **NOT registered** in `_FREE_INTEL_DISPATCH`, `_MODULE_INPUTS`, or `get_module()`. It has zero importers across `src/` — it's orphaned. Per the audit learning: "The ai_enricher module must be excluded from the direct adapter pattern — it needs cross-module context from other scan results, not just a single string target."
+**Ground truth:** Two modules are registered/real but never run by deep scan because they lack dispatch wiring:
+- `src/modules/free_intel/ai_enricher.py` (117 lines) has a real `AIExtractor` class with LLM-based analysis, but it is **NOT registered** in `_FREE_INTEL_DISPATCH`, `_MODULE_INPUTS`, or `get_module()`. It has zero importers across `src/` — it's orphaned. Per the audit learning: "The ai_enricher module must be excluded from the direct adapter pattern — it needs cross-module context from other scan results, not just a single string target."
+- `crypto_tracer` IS a real module — `BlockchainTxTracer` (262 lines, `src/modules/crypto/tx_tracer.py`, real Etherscan+Blockchair+Solana APIs with mock fallback), registered in `src/modules/__init__.py:46`, listed in `FAST_SKIP_MODULES`, the builtin deep profile, and `_VALID_MODULES` (`deep_scan/profiles.py`), and consumed by `timeline_builder.py:94` (`finding.module == "crypto_tracer"`). It is missing only the `get_module()` branch in `src/cli/helpers.py:31-77` — so `engine.py:380-382` resolves `None` and silently skips it. This is a functionality gap, not dead code.
 
 **Action:**
-- Add an `enrich_from_results()` entry point that accepts `List[ScanResult]` (the full scan output) instead of a single `name: str`
-- Wire this secondary entry point into `deep_scan/engine.py`'s post-processing phase (after all other modules complete)
-- Keep the single-target `scan(name)` proxy for backwards compatibility
+- `ai_enricher`: add an `enrich_from_results()` entry point that accepts `List[ScanResult]` (the full scan output) instead of a single `name: str`; wire it into `deep_scan/engine.py`'s post-processing phase (after all other modules complete); keep the single-target `scan(name)` proxy for backwards compatibility
+- `crypto_tracer`: add `elif name in ("crypto_tracer", "tx_tracer"): from src.modules.crypto.tx_tracer import BlockchainTxTracer; return BlockchainTxTracer(zkit_salt=zkit_salt)` to `cli/helpers.get_module()`; verify `_MODULE_INPUTS` accepts crypto targets so the engine routes wallet/address/tx identifiers to it
 
-**Verification:** A deep scan with AI enrichment enabled attaches richer LLM context in the final report output. Test both the single-target and cross-module paths.
+**Verification:** A deep scan with AI enrichment enabled attaches richer LLM context in the final report output; a deep scan on a crypto address produces `crypto_tracer` findings with `transactions` raw_data that `timeline_builder` picks up. Test both the single-target and cross-module paths.
 
 ---
 
@@ -180,7 +181,7 @@
 | # | Gap | Tier | Evidence | Difficulty |
 |---|-----|------|----------|------------|
 | 1 | Dead plugin scaffolding | Dead code | `src/plugin/` — never integrated | 1 hour |
-| 2 | Dead profile entries (`crypto_tracer`, `darknet`) | Dead code | `DEEP_EXTRA` in scan_profiles.py — no dispatch path | 30 min |
+| 2 | Dead profile entry (`darknet`) | Dead code | `DEEP_EXTRA` in scan_profiles.py — no module exists anywhere | 30 min |
 | 3 | `report_engine/` | Alive | 2 files, imported in 6 places (scan_commands.py) | Already done |
 | 4 | `vendor/` trees | Alive | `modules/vendor/` (5 files, 179+242 loc) + `vendor/chiasmodon/` (37 files). Both have real callers. | Architectural audit (not delete) |
 | 5 | Fragile sed in docs-sync.yml | Fragile CI | `release.yml` sed pattern | 30 min |
@@ -188,7 +189,7 @@
 | 7 | Docker image not pushed | Missing capability | `release.yml` builds but doesn't push | 1 day |
 | 8 | Dockerfile uses pip, not uv | Inconsistency | Project standard is uv | 2 hours |
 | 9 | Web UI has no auth | Security gap | `src/web/main.py` — no middleware | 1-2 days |
-| 10 | ai_enricher orphaned | Functionality gap | 117 real lines, zero importers — not in any dispatch path | 2-3 days |
+| 10 | Dispatch gap: `ai_enricher` + `crypto_tracer` | Functionality gap | 117 + 262 real lines, zero dispatch wiring — not in `get_module()` | 2-3 days |
 | 11 | Plugin system: wire or delete | Architecture debt | Standalone scaffolding | 1 day delete / 1 week+ wire |
 | 12 | No docs site | Missing capability | No mkdocs/sphinx config | 2-3 days |
 | 13 | No pipx/uv tool entry | Missing capability | No `[project.scripts]` in pyproject.toml | 1 hour |
