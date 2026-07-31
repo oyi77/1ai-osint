@@ -1,0 +1,43 @@
+site_name: 1ai-osint
+site_description: One-stop AI-Powered OSINT & ZKIT Research Platform
+site_url: https://oyi77.github.io/1ai-osint/
+repo_url: https://github.com/oyi77/1ai-osint
+repo_name: oyi77/1ai-osint
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.top
+    - navigation.footer
+
+markdown_extensions:
+  - admonition
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - Architecture: architecture.md
+  - Modules: modules.md
+  - CLI: cli.md
+  - Web UI: web-ui.md
+  - Configuration: configuration.md
+  - References: references.md
+  - Roadmap: roadmap.md
+  - Development: development.md

@@ -4,13 +4,13 @@
 
 > CLI-first security investigation tool combining OSINT aggregator, secret scanner, crypto analyzer, and Zero Knowledge Identity Tracking (ZKIT) — all orchestrated by AI via LangGraph + Omniroute.
 
-[![CI](https://github.com/openclaw/1ai-osint/actions/workflows/ci.yml/badge.svg)](https://github.com/openclaw/1ai-osint/actions/workflows/ci.yml)
+[![CI](https://github.com/oyi77/1ai-osint/actions/workflows/ci.yml/badge.svg)](https://github.com/oyi77/1ai-osint/actions/workflows/ci.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://python.org)
 [![Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 [![Mypy](https://img.shields.io/badge/type%20checked-mypy-blue)](http://mypy-lang.org/)
 [![Coverage](https://img.shields.io/badge/coverage-77%25-yellow)](https://coverage.readthedocs.io/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/openclaw/1ai-osint/releases)
+[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/oyi77/1ai-osint/releases)
 
 ## Quick Start
 
@@ -94,13 +94,15 @@ uv run pre-commit install
 
 ### Code standards
 
-- **2245+ tests** — pytest with `pytest.mark.asyncio` for async modules
+- **2215 tests** — pytest with `pytest.mark.asyncio` for async modules
 - **77% coverage** — `--cov=src --cov-fail-under=70`
 - **0 mypy errors** — strict-ish config with targeted vendor overrides
 - **0 ruff errors** — with `--fix`
 - **AGI-friendly** — see [AGENTS.md](AGENTS.md) for our AI coding conventions
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) for the full improvement plan to 10/10.
+
+Full documentation: [https://oyi77.github.io/1ai-osint/](https://oyi77.github.io/1ai-osint/)
 
 ## Research
 

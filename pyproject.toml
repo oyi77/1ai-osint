@@ -72,6 +72,10 @@ dev = [
     "jinja2>=3.1",
     "asyncpg>=0.29.0",
 ]
+docs = [
+    "mkdocs>=1.6",
+    "mkdocs-material>=9.5",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

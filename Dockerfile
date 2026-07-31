@@ -6,14 +6,13 @@ RUN go install github.com/zricethezav/githound@latest && \
     go install github.com/gitleaks/gitleaks/v8@latest
 
 # Stage 2: Python dependencies
-FROM python:3.12-slim AS builder
+FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS builder
 
 WORKDIR /build
 COPY pyproject.toml .
 COPY src/ src/
 
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir ".[dev]"
+RUN uv pip install --system --no-cache ".[dev]"
 
 # Stage 3: Runtime
 FROM python:3.12-slim AS runtime
@@ -28,7 +27,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Sherlock and Maigret (social media OSINT)
-RUN pip install --no-cache-dir sherlock-project maigret
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+RUN uv pip install --system --no-cache sherlock-project maigret
 
 # Copy Go-built binaries (GitHound + Gitleaks)
 COPY --from=tools-builder /go/bin/githound /usr/local/bin/githound

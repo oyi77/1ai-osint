@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  packages: write
 
 jobs:
   release:
@@ -27,10 +28,33 @@ jobs:
       - name: Build wheel and source dist
         run: python -m build
 
+      - name: Publish to PyPI
+        if: ${{ secrets.PYPI_TOKEN != '' }}
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_TOKEN }}
+          skip-existing: true
+
       - name: Build Docker image
         run: |
           TAG_NAME=${GITHUB_REF#refs/tags/}
           docker build -t 1ai-osint:$TAG_NAME -t 1ai-osint:latest .
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push Docker images to GHCR
+        run: |
+          IMAGE=ghcr.io/${{ github.repository }}
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          docker tag 1ai-osint:$TAG_NAME $IMAGE:$TAG_NAME
+          docker tag 1ai-osint:latest $IMAGE:latest
+          docker push $IMAGE:$TAG_NAME
+          docker push $IMAGE:latest
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
