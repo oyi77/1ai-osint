@@ -26,11 +26,30 @@ jobs:
 
       - name: Sync documentation version badges
         run: |
-          VERSION=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
-          echo "Current project version: $VERSION"
-          # Sync version in badges or references if needed
-          sed -i "s/version-[0-9.]\+/version-$VERSION/g" README.md || true
-          
+          python - <<'EOF'
+          import re, tomllib
+          from pathlib import Path
+
+          ver = tomllib.load(open('pyproject.toml', 'rb'))['project']['version']
+          readme = Path('README.md')
+          text = readme.read_text()
+          # Match only the version part so the badge color suffix (-blue.svg) survives.
+          pattern = re.compile(r'version-\d+\.\d+\.\d+')
+          if pattern.search(text):
+              text = pattern.sub(f'version-{ver}', text)
+          else:
+              badge = (
+                  f"[![Version](https://img.shields.io/badge/version-{ver}-blue.svg)]"
+                  f"(https://github.com/openclaw/1ai-osint/releases)"
+              )
+              anchor = "[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)"
+              if anchor not in text:
+                  raise SystemExit('README.md: license badge anchor not found')
+              text = text.replace(anchor, anchor + "\n" + badge, 1)
+          readme.write_text(text)
+          print(f"Synced version badge to {ver}")
+          EOF
+
       - name: Commit and push changes if updated
         run: |
           git config --local user.email "action@github.com"

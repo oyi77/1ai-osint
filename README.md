@@ -10,6 +10,7 @@
 [![Mypy](https://img.shields.io/badge/type%20checked-mypy-blue)](http://mypy-lang.org/)
 [![Coverage](https://img.shields.io/badge/coverage-77%25-yellow)](https://coverage.readthedocs.io/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/openclaw/1ai-osint/releases)
 
 ## Quick Start
 
