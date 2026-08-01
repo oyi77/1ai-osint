@@ -48,3 +48,42 @@ jobs:
           name: coverage-report-${{ matrix.python-version }}
           path: .coverage
           retention-days: 7
+
+  audit:
+    runs-on: ubuntu-latest
+    # Dependency CVEs are advisory, not a hard gate: a finding may have no
+    # upstream fix yet (e.g. transitive `ecdsa`), which would otherwise red
+    # every commit forever. The full report is always uploaded for review.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          python-version: "3.13"
+          enable-cache: true
+      - name: Export locked requirements
+        run: uv export --extra dev -o /tmp/reqs.txt --frozen && grep -v '^-e ' /tmp/reqs.txt > /tmp/reqs_clean.txt
+      - name: Scan dependencies (pip-audit)
+        run: |
+          uvx pip-audit -r /tmp/reqs_clean.txt --format json > /tmp/pip_audit.json 2>/tmp/pip_audit.log || true
+          python - <<'EOF'
+          import json
+          with open('/tmp/pip_audit.json') as f:
+              data = json.load(f)
+          deps = data.get('dependencies', [])
+          vulns = [d for d in deps if d.get('vulns')]
+          print(f'dependencies scanned: {len(deps)}')
+          print(f'dependencies with known CVEs: {len(vulns)}')
+          for d in vulns:
+              for v in d['vulns']:
+                  print(f"  {d['name']} {d.get('version')} -> {v.get('id')} (fix: {v.get('fix_versions') or 'none'})")
+          EOF
+      - name: Upload audit report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pip-audit-report
+          path: |
+            /tmp/pip_audit.json
+            /tmp/pip_audit.log
+          retention-days: 30

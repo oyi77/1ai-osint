@@ -11,9 +11,7 @@ logger = logging.getLogger(__name__)
 
 _EMAIL_RE = re.compile(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}")
 _PHONE_RE = re.compile(r"[\+]?[(]?[0-9]{1,4}[)]?[-\s\./0-9]{7,15}")
-_DOMAIN_RE = re.compile(
-    r"(?:https?://)?([a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}"
-)
+_DOMAIN_RE = re.compile(r"(?:https?://)?([a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}")
 _BTC_RE = re.compile(r"[13][a-km-zA-HJ-NP-Z1-9]{25,34}")
 _ETH_RE = re.compile(r"0x[0-9a-fA-F]{40}")
 _NIK_RE = re.compile(r"\b\d{16}\b")
@@ -156,8 +154,12 @@ def username_from_profile_url(url: str) -> str | None:
 
 
 def _is_valid_nik(nik: str) -> bool:
-    """Validate Indonesian NIK format."""
-    if len(nik) != 16:
+    """Validate Indonesian NIK format.
+
+    Total: returns ``False`` for any malformed input instead of raising,
+    so callers may invoke it without pre-filtering for digits.
+    """
+    if len(nik) != 16 or not nik.isdigit():
         return False
     province = int(nik[:2])
     city = int(nik[2:4])

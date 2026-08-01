@@ -1,0 +1,61 @@
+name: Benchmark
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "scripts/benchmark.py"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          python-version: "3.13"
+          enable-cache: true
+      - name: Install dependencies
+        run: uv sync --group dev --frozen
+      - name: Run throughput benchmark
+        # The receipt captures machine spec, commit, params and metrics. The
+        # verdict itself is NOT used as a gate: public RPC endpoints are
+        # flaky by nature, so a FAIL verdict documents an honest snapshot of
+        # live upstream health rather than a code regression. The job fails
+        # only if the benchmark crashes before producing a receipt.
+        run: |
+          uv run python scripts/benchmark.py --duration 20 --workers 10 --json > /tmp/bench_raw.log 2>&1 || true
+      - name: Extract receipt
+        run: |
+          python - <<'EOF'
+          import json
+
+          raw = open("/tmp/bench_raw.log", encoding="utf-8").read()
+          try:
+              start = raw.index("{")
+          except ValueError as exc:  # noqa: TRY301
+              print(raw[-2000:])
+              raise SystemExit("benchmark produced no JSON receipt") from exc
+          receipt = json.loads(raw[start:])
+          with open("benchmark_receipt.json", "w", encoding="utf-8") as fh:
+              json.dump(receipt, fh, indent=2)
+          print("schema:", receipt.get("schema"))
+          print("verdict:", receipt.get("verdict"))
+          print("mnemonics/sec:", receipt.get("metrics", {}).get("mnemonics_per_sec"))
+          print("error_rate_pct:", receipt.get("metrics", {}).get("error_rate_pct"))
+          EOF
+      - name: Upload receipt
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: benchmark-receipt
+          path: benchmark_receipt.json
+          retention-days: 30
