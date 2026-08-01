@@ -81,9 +81,7 @@ class TestEntityExtractor:
     def test_extract_unknown_entity_type(self, extractor, mock_client):
         response = json.dumps(
             {
-                "entities": [
-                    {"entity_type": "unknown_type", "value": "test", "confidence": 0.5}
-                ],
+                "entities": [{"entity_type": "unknown_type", "value": "test", "confidence": 0.5}],
                 "summary": "",
             }
         )
@@ -93,6 +91,77 @@ class TestEntityExtractor:
 
         assert len(result.entities) == 1
         assert result.entities[0].entity_type == EntityType.OTHER
+
+    def test_extract_non_numeric_confidence_defaults(self, extractor, mock_client):
+        response = json.dumps(
+            {
+                "entities": [
+                    {
+                        "entity_type": "email",
+                        "value": "a@b.com",
+                        "confidence": "high",
+                    },
+                    {
+                        "entity_type": "phone",
+                        "value": "+123",
+                        "confidence": None,
+                    },
+                ],
+                "summary": "",
+            }
+        )
+        mock_client.extract_entities.return_value = response
+
+        result = extractor.extract("text")
+
+        assert len(result.entities) == 2
+        assert result.entities[0].confidence == 0.5
+        assert result.entities[1].confidence == 0.5
+
+    def test_extract_out_of_range_confidence_clamped(self, extractor, mock_client):
+        response = json.dumps(
+            {
+                "entities": [
+                    {
+                        "entity_type": "email",
+                        "value": "a@b.com",
+                        "confidence": 1.5,
+                    },
+                    {
+                        "entity_type": "phone",
+                        "value": "+123",
+                        "confidence": -0.2,
+                    },
+                ],
+                "summary": "",
+            }
+        )
+        mock_client.extract_entities.return_value = response
+
+        result = extractor.extract("text")
+
+        assert len(result.entities) == 2
+        assert result.entities[0].confidence == 1.0
+        assert result.entities[1].confidence == 0.0
+
+    def test_extract_valid_confidence_preserved(self, extractor, mock_client):
+        response = json.dumps(
+            {
+                "entities": [
+                    {
+                        "entity_type": "email",
+                        "value": "a@b.com",
+                        "confidence": 0.85,
+                    }
+                ],
+                "summary": "",
+            }
+        )
+        mock_client.extract_entities.return_value = response
+
+        result = extractor.extract("text")
+
+        assert result.entities[0].confidence == 0.85
 
     def test_extract_from_findings(self, extractor, mock_client):
         response = json.dumps(

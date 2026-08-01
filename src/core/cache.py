@@ -136,5 +136,16 @@ class Cache:
         return count
 
     def has(self, key: str) -> bool:
-        """Check if a non-expired entry exists."""
-        return self.get(key) is not None
+        """Check if a non-expired entry exists.
+
+        Unlike :meth:`get`, this avoids deserializing the cached value — only
+        the TTL metadata is inspected, which keeps existence checks cheap.
+        """
+        path = self._key_path(key)
+        if not path.exists():
+            return False
+        try:
+            data = json.loads(path.read_text())
+            return data.get("expires_at", 0) > time.time()
+        except (json.JSONDecodeError, OSError):
+            return False

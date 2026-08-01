@@ -111,10 +111,42 @@ class CounterIntelAnalyzer:
         "opsec_tools": ["pgp", "gpg", "signal", "wickr", "keybase"],
     }
 
+    @staticmethod
+    def _item_attr(item: Any, name: str, default: Any = "") -> Any:
+        """Read an attribute from an evidence/identifier item.
+
+        Accepts both Pydantic-style objects and plain dicts so reports from
+        different backends (dataclasses, dicts, JSON payloads) are handled.
+        """
+        if isinstance(item, dict):
+            return item.get(name, default)
+        return getattr(item, name, default)
+
+    @staticmethod
+    def _get_evidence(report: Any) -> list:
+        """Return the report evidence list (dict or object report)."""
+        if isinstance(report, dict):
+            return report.get("evidence", []) or []
+        return getattr(report, "evidence", []) or []
+
+    @staticmethod
+    def _get_identifiers(report: Any) -> list:
+        """Return the report identifiers list (dict or object report)."""
+        if isinstance(report, dict):
+            return report.get("identifiers", []) or []
+        return getattr(report, "identifiers", []) or []
+
+    @staticmethod
+    def _get_timeline(report: Any) -> list:
+        """Return the report timeline list (dict or object report)."""
+        if isinstance(report, dict):
+            return report.get("timeline", []) or []
+        return getattr(report, "timeline", []) or []
+
     def assess_legend_probability(self, report: Any) -> CounterIntelAssessment:
         """Run full counterintelligence assessment."""
         assessment = CounterIntelAssessment()
-        evidence = getattr(report, "evidence", []) or []
+        evidence = self._get_evidence(report)
 
         # Run each legend indicator rule
         legend_score = 0.0
@@ -131,9 +163,7 @@ class CounterIntelAnalyzer:
             assessment.legend_indicators.append(indicator)
 
             if triggered:
-                weight = {"high": 0.3, "medium": 0.15, "low": 0.05}.get(
-                    rule_def["severity"], 0.05
-                )
+                weight = {"high": 0.3, "medium": 0.15, "low": 0.05}.get(rule_def["severity"], 0.05)
                 legend_score += weight
 
         assessment.legend_confidence = round(min(legend_score, 1.0), 3)
@@ -158,50 +188,42 @@ class CounterIntelAnalyzer:
 
         return assessment
 
-    def _check_rule(
-        self, rule: str, report: Any, evidence: list
-    ) -> tuple[bool, list[str]]:
+    def _check_rule(self, rule: str, report: Any, evidence: list) -> tuple[bool, list[str]]:
         """Check a specific legend rule. Returns (triggered, evidence_notes)."""
         ev_notes = []
 
         if rule == "NO_BREACH_EXPOSURE":
             breach_ev = [
-                e
-                for e in evidence
-                if getattr(e, "identifier_type", "") in ("email", "password", "hash")
+                e for e in evidence if self._item_attr(e, "identifier_type", "") in ("email", "password", "hash")
             ]
             if not breach_ev:
                 ev_notes.append("Zero breach records found")
                 return True, ev_notes
 
         elif rule == "NO_HISTORICAL_FOOTPRINT":
-            timeline = getattr(report, "timeline", []) or []
+            timeline = self._get_timeline(report)
             if not timeline:
                 ev_notes.append("No temporal evidence found")
                 return True, ev_notes
 
         elif rule == "USERNAME_PATTERN_MATCH":
-            identifiers = getattr(report, "identifiers", []) or []
+            identifiers = self._get_identifiers(report)
             for ident in identifiers:
-                val = getattr(ident, "value", "")
+                val = self._item_attr(ident, "value", "")
                 if (
-                    getattr(ident, "id_type", None)
-                    and str(getattr(ident, "id_type", "")) == "IdentifierType.USERNAME"
+                    self._item_attr(ident, "id_type", None)
+                    and str(self._item_attr(ident, "id_type", "")) == "IdentifierType.USERNAME"
                 ):
                     # Pattern: word + 3-5 digits
                     if re.match(r"^[a-z]+\d{3,5}$", val.lower()):
-                        ev_notes.append(
-                            f"Username '{val}' matches common legend pattern"
-                        )
+                        ev_notes.append(f"Username '{val}' matches common legend pattern")
                         return True, ev_notes
 
         elif rule == "PERFECT_OPSEC_CONSISTENCY":
             # If OPSEC is advanced across many sources — flag as suspicious
             privacy_hits = self._count_privacy_signals(evidence)
             if privacy_hits >= 3:
-                ev_notes.append(
-                    f"Consistent privacy tooling across {privacy_hits} evidence signals"
-                )
+                ev_notes.append(f"Consistent privacy tooling across {privacy_hits} evidence signals")
                 return True, ev_notes
 
         return False, []
@@ -210,7 +232,7 @@ class CounterIntelAnalyzer:
         """Count how many privacy/OPSEC signals appear in evidence."""
         count = 0
         all_text = " ".join(
-            str(getattr(e, "identifier_value", "")) + " " + str(getattr(e, "notes", ""))
+            str(self._item_attr(e, "identifier_value", "")) + " " + str(self._item_attr(e, "notes", ""))
             for e in evidence
         ).lower()
         for category, keywords in self._OPSEC_SIGNALS.items():
@@ -220,14 +242,14 @@ class CounterIntelAnalyzer:
 
     def score_opsec_level(self, report: Any) -> OPSECLevel:
         """Score the subject's operational security sophistication."""
-        evidence = getattr(report, "evidence", []) or []
+        evidence = self._get_evidence(report)
         privacy_count = self._count_privacy_signals(evidence)
 
         # Check for Tor/darknet usage
-        darknet_ev = [e for e in evidence if getattr(e, "source", "") == "darknet"]
+        darknet_ev = [e for e in evidence if self._item_attr(e, "source", "") == "darknet"]
         uses_tor = bool(darknet_ev) or any(
-            "tor" in str(getattr(e, "identifier_value", "")).lower()
-            or ".onion" in str(getattr(e, "identifier_value", "")).lower()
+            "tor" in str(self._item_attr(e, "identifier_value", "")).lower()
+            or ".onion" in str(self._item_attr(e, "identifier_value", "")).lower()
             for e in evidence
         )
 
@@ -243,47 +265,35 @@ class CounterIntelAnalyzer:
     def detect_deception_patterns(self, report: Any) -> list[str]:
         """Identify specific deception patterns in evidence."""
         indicators = []
-        evidence = getattr(report, "evidence", []) or []
-        identifiers = getattr(report, "identifiers", []) or []
+        evidence = self._get_evidence(report)
+        identifiers = self._get_identifiers(report)
 
         # Contradictory location signals
         locations = set()
         for ev in evidence:
-            raw = getattr(ev, "raw_data", {}) or {}
+            raw = self._item_attr(ev, "raw_data", {}) or {}
             for key in ("city", "country", "region"):
                 if raw.get(key):
                     locations.add(str(raw[key]))
         if len(locations) >= 4:
-            indicators.append(
-                f"Contradictory location signals across {len(locations)} distinct locations"
-            )
+            indicators.append(f"Contradictory location signals across {len(locations)} distinct locations")
 
         # Multiple disconnected identities
-        emails = [
-            i
-            for i in identifiers
-            if str(getattr(i, "id_type", "")) == "IdentifierType.EMAIL"
-        ]
+        emails = [i for i in identifiers if str(self._item_attr(i, "id_type", "")) == "IdentifierType.EMAIL"]
         if len(emails) >= 5:
-            indicators.append(
-                f"{len(emails)} distinct email addresses — possible multiple simultaneous legends"
-            )
+            indicators.append(f"{len(emails)} distinct email addresses — possible multiple simultaneous legends")
 
         # Suspiciously clean digital profile
         if not evidence:
-            indicators.append(
-                "Zero evidence found — subject may have actively scrubbed digital footprint"
-            )
+            indicators.append("Zero evidence found — subject may have actively scrubbed digital footprint")
 
         # AI-generated content signals (placeholder — would require NLP in production)
         # For now, flag very short bio texts
         for ev in evidence:
-            raw = getattr(ev, "raw_data", {}) or {}
+            raw = self._item_attr(ev, "raw_data", {}) or {}
             bio = str(raw.get("bio", "") or raw.get("description", "") or "")
             if 0 < len(bio) < 20:
-                indicators.append(
-                    f"Suspiciously minimal profile bio ({len(bio)} chars) — possible synthetic identity"
-                )
+                indicators.append(f"Suspiciously minimal profile bio ({len(bio)} chars) — possible synthetic identity")
                 break
 
         return indicators
@@ -292,12 +302,8 @@ class CounterIntelAnalyzer:
         """Build recommended counterintelligence actions."""
         recs = []
         if assessment.is_likely_legend:
-            recs.append(
-                "High legend probability — request independent verification of claimed identity"
-            )
-            recs.append(
-                "Cross-reference creation dates with known legend factories or automated account providers"
-            )
+            recs.append("High legend probability — request independent verification of claimed identity")
+            recs.append("Cross-reference creation dates with known legend factories or automated account providers")
         if assessment.opsec_level in (OPSECLevel.INTERMEDIATE, OPSECLevel.ADVANCED):
             recs.append(
                 f"OPSEC level {assessment.opsec_level.value} — standard collection approaches may be compromised"
@@ -308,7 +314,5 @@ class CounterIntelAnalyzer:
                 f"{len(assessment.deception_indicators)} deception pattern(s) found — treat all self-reported data as suspect"
             )
         if not recs:
-            recs.append(
-                "No significant counterintelligence concerns — standard collection protocols apply"
-            )
+            recs.append("No significant counterintelligence concerns — standard collection protocols apply")
         return recs

@@ -14,7 +14,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from src.core.models import Finding, Identity, ScanResult
+from src.core.models import BreachRecord, Finding, Identity, ScanResult
 
 _DEFAULT_DB_PATH = Path("1ai-osint.db")
 
@@ -35,6 +35,11 @@ class DatabaseBackend(ABC):
     @abstractmethod
     async def get_scan(self, scan_id: str) -> ScanResult | None:
         """Retrieve a scan by ID, including findings."""
+        ...
+
+    @abstractmethod
+    async def get_breach_records(self, scan_id: str) -> list[BreachRecord]:
+        """Retrieve breach records for a scan."""
         ...
 
     @abstractmethod
@@ -202,6 +207,7 @@ class SQLiteBackend(DatabaseBackend):
         findings = [
             Finding(
                 id=r["id"],
+                scan_id=r["scan_id"],
                 module=r["module"],
                 title=r["title"],
                 description=r["description"],
@@ -214,17 +220,62 @@ class SQLiteBackend(DatabaseBackend):
             for r in findings_rows
         ]
 
+        breach_cursor = await conn.execute("SELECT * FROM breach_records WHERE scan_id = ?", (scan_id,))
+        breach_rows = await breach_cursor.fetchall()
+        breach_records = [
+            BreachRecord(
+                source=r["source"],
+                email=r["email"],
+                username=r["username"],
+                password_hash=r["password_hash"],
+                password_plain=None,
+                domain=r["domain"],
+                ip_address=r["ip_address"],
+                phone=r["phone"],
+                breach_date=datetime.fromisoformat(r["breach_date"]) if r["breach_date"] else None,
+                description=r["description"],
+                data_classes=json.loads(r["data_classes"]),
+                severity=r["severity"],
+                raw=json.loads(r["raw"]),
+            )
+            for r in breach_rows
+        ]
+
         return ScanResult(
             scan_id=row["scan_id"],
             module=row["module"],
             target=row["target"],
             status=row["status"],
             findings=findings,
+            breach_records=breach_records,
             metadata=json.loads(row["metadata"]),
             started_at=datetime.fromisoformat(row["started_at"]),
             completed_at=datetime.fromisoformat(row["completed_at"]) if row["completed_at"] else None,
             error=row["error"],
         )
+
+    async def get_breach_records(self, scan_id: str) -> list[BreachRecord]:
+        conn = await self._connect()
+        cursor = await conn.execute("SELECT * FROM breach_records WHERE scan_id = ?", (scan_id,))
+        rows = await cursor.fetchall()
+        return [
+            BreachRecord(
+                source=r["source"],
+                email=r["email"],
+                username=r["username"],
+                password_hash=r["password_hash"],
+                password_plain=None,
+                domain=r["domain"],
+                ip_address=r["ip_address"],
+                phone=r["phone"],
+                breach_date=datetime.fromisoformat(r["breach_date"]) if r["breach_date"] else None,
+                description=r["description"],
+                data_classes=json.loads(r["data_classes"]),
+                severity=r["severity"],
+                raw=json.loads(r["raw"]),
+            )
+            for r in rows
+        ]
 
     async def save_identity(self, identity: Identity) -> None:
         conn = await self._connect()
@@ -434,6 +485,7 @@ class PostgresBackend(DatabaseBackend):
             findings = [
                 Finding(
                     id=r["id"],
+                    scan_id=r["scan_id"],
                     module=r["module"],
                     title=r["title"],
                     description=r["description"],
@@ -446,17 +498,61 @@ class PostgresBackend(DatabaseBackend):
                 for r in findings_rows
             ]
 
+            breach_rows = await conn.fetch("SELECT * FROM breach_records WHERE scan_id = $1", scan_id)
+            breach_records = [
+                BreachRecord(
+                    source=r["source"],
+                    email=r["email"],
+                    username=r["username"],
+                    password_hash=r["password_hash"],
+                    password_plain=None,
+                    domain=r["domain"],
+                    ip_address=r["ip_address"],
+                    phone=r["phone"],
+                    breach_date=r["breach_date"],
+                    description=r["description"],
+                    data_classes=json.loads(r["data_classes"]),
+                    severity=r["severity"],
+                    raw=json.loads(r["raw"]),
+                )
+                for r in breach_rows
+            ]
+
             return ScanResult(
                 scan_id=row["scan_id"],
                 module=row["module"],
                 target=row["target"],
                 status=row["status"],
                 findings=findings,
+                breach_records=breach_records,
                 metadata=json.loads(row["metadata"]),
                 started_at=row["started_at"],
                 completed_at=row["completed_at"],
                 error=row["error"],
             )
+
+    async def get_breach_records(self, scan_id: str) -> list[BreachRecord]:
+        pool = await self._get_pool()
+        async with pool.acquire() as conn:
+            rows = await conn.fetch("SELECT * FROM breach_records WHERE scan_id = $1", scan_id)
+            return [
+                BreachRecord(
+                    source=r["source"],
+                    email=r["email"],
+                    username=r["username"],
+                    password_hash=r["password_hash"],
+                    password_plain=None,
+                    domain=r["domain"],
+                    ip_address=r["ip_address"],
+                    phone=r["phone"],
+                    breach_date=r["breach_date"],
+                    description=r["description"],
+                    data_classes=json.loads(r["data_classes"]),
+                    severity=r["severity"],
+                    raw=json.loads(r["raw"]),
+                )
+                for r in rows
+            ]
 
     async def save_identity(self, identity: Identity) -> None:
         pool = await self._get_pool()
@@ -534,6 +630,9 @@ class Database:
 
     async def get_scan(self, scan_id: str) -> ScanResult | None:
         return await self._backend.get_scan(scan_id)
+
+    async def get_breach_records(self, scan_id: str) -> list[BreachRecord]:
+        return await self._backend.get_breach_records(scan_id)
 
     async def save_identity(self, identity: Identity) -> None:
         await self._backend.save_identity(identity)

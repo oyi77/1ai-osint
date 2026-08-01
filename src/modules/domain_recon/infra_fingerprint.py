@@ -103,7 +103,7 @@ class InfraFingerprintEngine:
 
         Uses first 4 bytes of MD5 as a deterministic integer.
         """
-        digest = hashlib.md5(data).digest()
+        digest = hashlib.md5(data, usedforsecurity=False).digest()
         return int.from_bytes(digest[:4], "big", signed=True)
 
     async def _fetch_favicon_hash(self, domain: str) -> int | None:

@@ -1,8 +1,20 @@
-"""Export a TargetDossier to beautiful HTML."""
+"""Export a TargetDossier to beautiful HTML.
+
+Every data-derived string is HTML-escaped before interpolation to prevent XSS
+when a dossier embeds hostile values (e.g. a crafted alias, bio or URL).
+"""
 
 from __future__ import annotations
 
+import html as html_mod
+from urllib.parse import quote
+
 from src.modules.deep_scan._dossier_models import TargetDossier
+
+
+def _esc(value: object) -> str:
+    """HTML-escape a value for safe interpolation into text or attributes."""
+    return html_mod.escape(str(value) if value is not None else "")
 
 
 def export_dossier_html(dossier: TargetDossier) -> str:
@@ -16,14 +28,14 @@ def export_dossier_html(dossier: TargetDossier) -> str:
     pfp = (
         data["profile_pictures"][0]
         if data["profile_pictures"]
-        else "https://ui-avatars.com/api/?name=" + data["full_name"]
+        else "https://ui-avatars.com/api/?name=" + quote(str(data["full_name"]))
     )
 
     # Build sections
     emails_html = (
         "".join(
             [
-                f"<li><strong>{e['address']}</strong> (Source: {e['source']}, Conf: {e['confidence']})</li>"
+                f"<li><strong>{_esc(e['address'])}</strong> (Source: {_esc(e['source'])}, Conf: {_esc(e['confidence'])})</li>"
                 for e in data["emails"]
             ]
         )
@@ -32,7 +44,7 @@ def export_dossier_html(dossier: TargetDossier) -> str:
     phones_html = (
         "".join(
             [
-                f"<li><strong>{p['number']}</strong> (Operator: {p['operator']}, WA: {p['whatsapp_registered']})</li>"
+                f"<li><strong>{_esc(p['number'])}</strong> (Operator: {_esc(p['operator'])}, WA: {_esc(p['whatsapp_registered'])})</li>"
                 for p in data["phones"]
             ]
         )
@@ -43,18 +55,18 @@ def export_dossier_html(dossier: TargetDossier) -> str:
     for s in data["social_accounts"]:
         socials_html += f"""
         <div class="social-card">
-            <h4>{s["platform"].title()} - @{s["username"]}</h4>
-            <p><a href="{s["url"]}">{s["url"]}</a></p>
-            {f'<p><em>"{s["bio"]}"</em></p>' if s.get("bio") else ""}
+            <h4>{_esc(s["platform"].title())} - @{_esc(s["username"])}</h4>
+            <p><a href="{_esc(s["url"])}">{_esc(s["url"])}</a></p>
+            {f'<p><em>"{_esc(s["bio"])}"</em></p>' if s.get("bio") else ""}
         </div>
         """
     if not socials_html:
         socials_html = "<p>No social accounts discovered.</p>"
 
-    gaps_html = "".join([f"<li>{gap}</li>" for gap in data["intelligence_gaps"]]) or "<li>None</li>"
+    gaps_html = "".join([f"<li>{_esc(gap)}</li>" for gap in data["intelligence_gaps"]]) or "<li>None</li>"
 
     breaches_html = (
-        "".join([f"<li><span class='badge red'>{b}</span></li>" for b in data["breached_services"]])
+        "".join([f"<li><span class='badge red'>{_esc(b)}</span></li>" for b in data["breached_services"]])
         or "<li>No breaches found</li>"
     )
 
@@ -62,7 +74,7 @@ def export_dossier_html(dossier: TargetDossier) -> str:
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Intelligence Dossier: {data["full_name"]}</title>
+    <title>Intelligence Dossier: {_esc(data["full_name"])}</title>
     <style>
         :root {{
             --bg: #0f172a;
@@ -160,15 +172,15 @@ def export_dossier_html(dossier: TargetDossier) -> str:
 </head>
 <body>
     <div class="container">
-        <div class="classification">{data["classification"]}</div>
+        <div class="classification">{_esc(data["classification"])}</div>
 
         <div class="header">
-            <img src="{pfp}" alt="Subject Avatar" class="avatar">
+            <img src="{_esc(pfp)}" alt="Subject Avatar" class="avatar">
             <div class="header-content">
-                <h1>{data["full_name"]}</h1>
-                <p><strong>Aliases:</strong> {", ".join(data["aliases"]) or "None"}</p>
+                <h1>{_esc(data["full_name"])}</h1>
+                <p><strong>Aliases:</strong> {_esc(", ".join(data["aliases"]) or "None")}</p>
                 <p><strong>Confidence Score:</strong> <span class="badge {"green" if data["confidence_score"] > 0.5 else "red"}">{data["confidence_score"] * 100}%</span></p>
-                <p><small>ID: {data["report_id"]} | Generated: {data["generated_at"]}</small></p>
+                <p><small>ID: {_esc(data["report_id"])} | Generated: {_esc(data["generated_at"])}</small></p>
             </div>
         </div>
 
@@ -183,9 +195,9 @@ def export_dossier_html(dossier: TargetDossier) -> str:
 
             <div class="card">
                 <h3>Employment & Location</h3>
-                <p><strong>Employer:</strong> {data["current_employer"] or "Unknown"}</p>
-                <p><strong>Title:</strong> {data["job_title"] or "Unknown"}</p>
-                <p><strong>Locations:</strong> {", ".join(data["known_locations"]) or "Unknown"}</p>
+                <p><strong>Employer:</strong> {_esc(data["current_employer"] or "Unknown")}</p>
+                <p><strong>Title:</strong> {_esc(data["job_title"] or "Unknown")}</p>
+                <p><strong>Locations:</strong> {_esc(", ".join(data["known_locations"]) or "Unknown")}</p>
             </div>
 
             <div class="card full-width">
@@ -199,7 +211,7 @@ def export_dossier_html(dossier: TargetDossier) -> str:
                 <h3>Security Profile</h3>
                 <p><strong>Breached Services:</strong></p>
                 <ul>{breaches_html}</ul>
-                <p><strong>Exposed Data Types:</strong> {", ".join(data["exposed_data_types"]) or "None"}</p>
+                <p><strong>Exposed Data Types:</strong> {_esc(", ".join(data["exposed_data_types"]) or "None")}</p>
             </div>
 
             <div class="card">
@@ -208,7 +220,7 @@ def export_dossier_html(dossier: TargetDossier) -> str:
             </div>
         </div>
 
-        <div class="classification" style="margin-top: 3rem;">{data["classification"]}</div>
+        <div class="classification" style="margin-top: 3rem;">{_esc(data["classification"])}</div>
     </div>
 </body>
 </html>

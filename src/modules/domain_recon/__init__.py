@@ -10,6 +10,8 @@ from typing import Any
 import httpx
 
 from src.core.models import Finding, ScanResult, Severity
+from src.core.rate_limiter import RateLimiter
+from src.core.ssrf_guard import validate_scan_target
 from src.modules.base.base import BaseOSINTTool
 
 logger = logging.getLogger(__name__)
@@ -27,6 +29,7 @@ class DomainReconTool(BaseOSINTTool):
     def __init__(self, **kwargs: Any):
         self.timeout = kwargs.pop("timeout", 30)
         super().__init__(**kwargs)
+        self._rate_limiter = RateLimiter(requests_per_minute=30, burst=5)
 
     async def search(self, query: str, **kwargs: Any) -> ScanResult:
         """Search for domain information."""
@@ -37,6 +40,18 @@ class DomainReconTool(BaseOSINTTool):
         scan_id = self._make_scan_id()
         started_at = datetime.now(timezone.utc)
         findings: list[Finding] = []
+
+        if not validate_scan_target(target):
+            return ScanResult(
+                scan_id=scan_id,
+                module=self.name,
+                target=target,
+                status="blocked",
+                findings=[],
+                metadata={"reason": "target blocked by SSRF guard"},
+                started_at=started_at,
+                completed_at=datetime.now(timezone.utc),
+            )
 
         try:
             # Run all recon tasks concurrently
@@ -93,6 +108,7 @@ class DomainReconTool(BaseOSINTTool):
         """Perform WHOIS lookup."""
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
+                await self._rate_limiter.acquire_async(key="domain:whois")
                 resp = await client.get(f"https://whois.arin.net/rest/domain/{domain}")
                 if resp.status_code == 200:
                     return Finding(
@@ -115,6 +131,7 @@ class DomainReconTool(BaseOSINTTool):
         """Enumerate DNS records."""
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
+                await self._rate_limiter.acquire_async(key="domain:dns")
                 resp = await client.get(f"https://dns.google/resolve?name={domain}&type=ANY")
                 if resp.status_code == 200:
                     data = resp.json()
@@ -140,6 +157,7 @@ class DomainReconTool(BaseOSINTTool):
         """Discover subdomains via crt.sh."""
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
+                await self._rate_limiter.acquire_async(key="domain:crtsh_sub")
                 resp = await client.get(f"https://crt.sh/?q=%.{domain}&output=json")
                 if resp.status_code == 200:
                     data = resp.json()
@@ -171,6 +189,7 @@ class DomainReconTool(BaseOSINTTool):
         """Check certificate transparency logs."""
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
+                await self._rate_limiter.acquire_async(key="domain:crtsh_ct")
                 resp = await client.get(f"https://crt.sh/?q={domain}&output=json")
                 if resp.status_code == 200:
                     data = resp.json()
@@ -195,6 +214,7 @@ class DomainReconTool(BaseOSINTTool):
         """Detect technology stack via HTTP headers."""
         try:
             async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+                await self._rate_limiter.acquire_async(key="domain:tech")
                 resp = await client.get(f"https://{domain}")
                 headers = dict(resp.headers)
                 tech_indicators: dict[str, Any] = {}

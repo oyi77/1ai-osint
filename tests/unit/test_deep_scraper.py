@@ -138,6 +138,18 @@ async def test_scrape_cache_hit(engine, mock_httpx_client):
     mock_httpx_client.get.assert_not_called()
 
 
+@pytest.mark.asyncio
+async def test_scrape_ssrf_guard_skips_internal_targets(engine, mock_httpx_client, monkeypatch):
+    """Internal/private targets are blocked before any HTTP request is made."""
+    monkeypatch.setattr("src.modules.deep_scan.deep_scraper.validate_scan_target", lambda url: False)
+
+    result = await engine.scrape("http://169.254.169.254/")
+
+    assert result.status == "skipped"
+    assert "SSRF" in result.error
+    mock_httpx_client.get.assert_not_called()
+
+
 # ---------------------------------------------------------------------------
 # Content type detection
 # ---------------------------------------------------------------------------

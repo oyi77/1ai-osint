@@ -7,14 +7,21 @@ Includes:
   - Timeline card
   - Pivot recommendations
   - Print-friendly CSS embedded
+
+All user- and data-derived strings are HTML-escaped before interpolation to
+prevent XSS when a report embeds hostile values (e.g. a crafted identifier,
+source URL or breach name). Raw-HTML builder helpers return ``markupsafe.Markup``
+so Jinja2 autoescape does not double-escape their output.
 """
 
 from __future__ import annotations
 
+import html as html_mod
 import math
 from pathlib import Path
 
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, select_autoescape
+from markupsafe import Markup
 
 from src.modules.deep_scan.field_labels import (
     format_platform_block,
@@ -23,6 +30,11 @@ from src.modules.deep_scan.field_labels import (
 from src.modules.deep_scan.models_report import IntelReport
 
 _TEMPLATE_DIR = Path(__file__).parent.parent / "templates"
+
+
+def _esc(value: object) -> str:
+    """HTML-escape a value for safe interpolation into text or attributes."""
+    return html_mod.escape(str(value) if value is not None else "")
 
 
 def _format_block_record(record: dict) -> str:
@@ -35,11 +47,11 @@ def _format_block_record(record: dict) -> str:
         body = format_platform_block(platforms, user)
         if record.get("display_name") and record.get("display_name") != user:
             body = (
-                f"<b>👤Display name: </b> <code>{record['display_name']}</code><br>"
-                f"<b>👤Handle: </b> <code>{user}</code><br><br>{body}"
+                f"<b>👤Display name: </b> <code>{_esc(record['display_name'])}</code><br>"
+                f"<b>👤Handle: </b> <code>{_esc(user)}</code><br><br>{body}"
             )
-        return body
-    return format_record_fields(record)
+        return Markup(body)
+    return Markup(format_record_fields(record))
 
 
 def _svg_graph(report: IntelReport) -> str:
@@ -97,14 +109,15 @@ def _svg_graph(report: IntelReport) -> str:
         elif node.type == "name":
             fill = "#f59e0b"
         r = 18
-        label = node.label[:12] + (".." if len(node.label) > 12 else "")
+        raw_label = str(node.label if node.label is not None else "")
+        label = _esc(raw_label[:12] + (".." if len(raw_label) > 12 else ""))
         svg_parts.append(f'<circle cx="{pos[0]}" cy="{pos[1]}" r="{r}" fill="{fill}" opacity="0.8"/>')
         svg_parts.append(
             f'<text x="{pos[0]}" y="{pos[1] + 4}" text-anchor="middle" fill="white" font-size="9">{label}</text>'
         )
 
     svg_parts.append("</svg>")
-    return "\n".join(svg_parts)
+    return Markup("\n".join(svg_parts))
 
 
 def _risk_gauge(score: float) -> str:
@@ -122,7 +135,7 @@ def _risk_gauge(score: float) -> str:
     elif score > 0.25:
         color = "#eab308"
 
-    return (
+    return Markup(
         f'<svg width="120" height="70" xmlns="http://www.w3.org/2000/svg">'
         f'<path d="M10,50 A40,40 0 0,1 90,50" fill="none" stroke="#e2e8f0" stroke-width="8"/>'
         f'<path d="M10,50 A40,40 0 0,1 {x:.1f},{y:.1f}" fill="none" stroke="{color}" stroke-width="8"/>'
@@ -133,7 +146,10 @@ def _risk_gauge(score: float) -> str:
 
 def export_html(report: IntelReport) -> str:
     """Render IntelReport to self-contained HTML (LeakBase-style + dashboard)."""
-    env = Environment(loader=FileSystemLoader(str(_TEMPLATE_DIR)))
+    env = Environment(
+        loader=FileSystemLoader(str(_TEMPLATE_DIR)),
+        autoescape=select_autoescape(["html", "xml"]),
+    )
     env.globals["format_record"] = _format_block_record
     try:
         template = env.get_template("report_briefing.html.j2")
@@ -154,7 +170,7 @@ def export_html(report: IntelReport) -> str:
 def _reliability_badge(reliability: str) -> str:
     """Render a colored NATO A-F reliability badge."""
     cls = f"badge-{reliability.lower()}" if reliability.lower() in "abcdf" else "badge-f"
-    return f'<span class="badge {cls}">{reliability}</span>'
+    return Markup(f'<span class="badge {cls}">{_esc(reliability)}</span>')
 
 
 def _render_inline(report: IntelReport) -> str:
@@ -172,13 +188,15 @@ def _render_inline(report: IntelReport) -> str:
                 f"{ev.http_status}</span>"
             )
         url_display = ev.url or ""
+        url_esc = _esc(url_display)
+        url_text = _esc(url_display[:50])
         evidence_rows += f"""
         <tr>
-            <td>{ev.identifier_value}</td>
-            <td>{ev.identifier_type}</td>
-            <td>{ev.source} {_reliability_badge(ev.source_reliability)}</td>
+            <td>{_esc(ev.identifier_value)}</td>
+            <td>{_esc(ev.identifier_type)}</td>
+            <td>{_esc(ev.source)} {_reliability_badge(ev.source_reliability)}</td>
             <td>{status_badge}</td>
-            <td><a href="{url_display}" target="_blank">{url_display[:50]}</a></td>
+            <td><a href="{url_esc}" target="_blank">{url_text}</a></td>
             <td>{ev.confidence:.0%}</td>
         </tr>"""
 
@@ -186,9 +204,9 @@ def _render_inline(report: IntelReport) -> str:
     for k, v in report.confidence_by_identifier.items():
         confidence_rows += f"""
         <tr>
-            <td>{k}</td>
+            <td>{_esc(k)}</td>
             <td>{v.total:.0%}</td>
-            <td>{v.grade}</td>
+            <td>{_esc(v.grade)}</td>
         </tr>"""
 
     timeline_rows = ""
@@ -196,9 +214,9 @@ def _render_inline(report: IntelReport) -> str:
         ts = t.timestamp.isoformat() if t.timestamp else ""
         timeline_rows += f"""
         <tr>
-            <td>{ts[:19]}</td>
-            <td>{t.source}</td>
-            <td>{t.detail}</td>
+            <td>{_esc(ts[:19])}</td>
+            <td>{_esc(t.source)}</td>
+            <td>{_esc(t.detail)}</td>
             <td>{t.confidence:.0%}</td>
         </tr>"""
 
@@ -206,10 +224,10 @@ def _render_inline(report: IntelReport) -> str:
     for p in report.pivots:
         pivot_rows += f"""
         <tr>
-            <td><strong>{p.target_type}</strong></td>
-            <td>{p.target_value}</td>
-            <td>{p.rationale}</td>
-            <td>{", ".join(p.expected_sources)}</td>
+            <td><strong>{_esc(p.target_type)}</strong></td>
+            <td>{_esc(p.target_value)}</td>
+            <td>{_esc(p.rationale)}</td>
+            <td>{_esc(", ".join(p.expected_sources))}</td>
         </tr>"""
 
     # Breach timeline
@@ -223,7 +241,7 @@ def _render_inline(report: IntelReport) -> str:
             data_classes = ", ".join(data_classes)
         breach_rows += f"""
         <tr>
-            <td>{name}</td><td>{date}</td><td>{data_classes}</td><td>{ev.source}</td>
+            <td>{_esc(name)}</td><td>{_esc(date)}</td><td>{_esc(data_classes)}</td><td>{_esc(ev.source)}</td>
         </tr>"""
 
     # Cross-module correlations
@@ -231,10 +249,10 @@ def _render_inline(report: IntelReport) -> str:
     for c in getattr(report, "correlation_clusters", None) or []:
         correlation_rows += f"""
         <div class="card" style="margin:8px 0">
-            <b>Entity {c.get("entity_id", "?")}</b><br>
+            <b>Entity {_esc(c.get("entity_id", "?"))}</b><br>
             Confidence: {c.get("confidence", 0):.0%}<br>
-            Modules: {", ".join(c.get("source_modules", []))}<br>
-            Evidence: {", ".join(c.get("evidence", []))}
+            Modules: {_esc(", ".join(c.get("source_modules", [])))}<br>
+            Evidence: {_esc(", ".join(c.get("evidence", [])))}
         </div>"""
 
     # Structured PII section
@@ -244,8 +262,8 @@ def _render_inline(report: IntelReport) -> str:
     for ev in pii_items:
         pii_rows += f"""
         <tr>
-            <td>{ev.identifier_type.upper()}</td><td>{ev.identifier_value}</td>
-            <td>{ev.source}</td><td>{ev.confidence:.0%}</td>
+            <td>{_esc(ev.identifier_type.upper())}</td><td>{_esc(ev.identifier_value)}</td>
+            <td>{_esc(ev.source)}</td><td>{ev.confidence:.0%}</td>
         </tr>"""
 
     # Breaches found count
@@ -255,14 +273,20 @@ def _render_inline(report: IntelReport) -> str:
     factors_html = ""
     for f in report.risk.factors:
         check = "&#x2705;" if f.triggered else "&#x2796;"
-        factors_html += f'<span style="margin:4px">{check} {f.description}</span><br>'
+        factors_html += f'<span style="margin:4px">{check} {_esc(f.description)}</span><br>'
+
+    warnings_html = ""
+    if report.warnings:
+        warnings_html = (
+            '<div class="warning">' + "</div><div class='warning'>".join(_esc(w) for w in report.warnings) + "</div>"
+        )
 
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Intel Report: {report.target}</title>
+<title>Intel Report: {_esc(report.target)}</title>
 <style>
   * {{ box-sizing: border-box; margin: 0; padding: 0; }}
   body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; padding: 24px; }}
@@ -307,8 +331,8 @@ def _render_inline(report: IntelReport) -> str:
   <div>
     <h1>Intel Report</h1>
     <div class="meta">
-      Target: <strong>{report.target}</strong> &middot;
-      Report ID: {report.report_id} &middot;
+      Target: <strong>{_esc(report.target)}</strong> &middot;
+      Report ID: {_esc(report.report_id)} &middot;
       Duration: {report.duration_sec:.1f}s &middot;
       Iterations: {report.iterations}
     </div>
@@ -328,10 +352,10 @@ def _render_inline(report: IntelReport) -> str:
 </div>
 
 <div class="summary">
-  <strong>Summary:</strong> {report.summary}
+  <strong>Summary:</strong> {_esc(report.summary)}
 </div>
 
-{'<div class="warning">' + "</div><div class='warning'>".join(report.warnings) + "</div>" if report.warnings else ""}
+{warnings_html}
 
 <h2>Risk Factors</h2>
 <div class="card">{factors_html}</div>

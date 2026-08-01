@@ -22,7 +22,7 @@ class GravatarProfile(BaseModel):
 class GravatarIntel:
     async def lookup(self, email: str) -> GravatarProfile | None:
         """Look up a Gravatar profile by email address."""
-        email_hash = hashlib.md5(email.strip().lower().encode()).hexdigest()
+        email_hash = hashlib.md5(email.strip().lower().encode(), usedforsecurity=False).hexdigest()
         url = f"https://en.gravatar.com/{email_hash}.json"
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:

@@ -1,21 +1,23 @@
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-05-31 -->
+<!-- Generated: 2026-08-01 -->
 
 # scripts
 
 ## Purpose
-Utility scripts for benchmarking and demonstrations.
+Utility scripts for benchmarking, demonstrations, and infrastructure soak testing.
 
 ## Key Files
 | File | Description |
 |------|-------------|
 | `benchmark.py` | Performance benchmarking script |
 | `demo.sh` | Demo/shell script |
+| `soak.py` | Network-free soak test of `RateLimiter` + `Cache` (receipt schema `1ai-osint.soak.receipt.v1`) |
 
 ## For AI Agents
 
 ### Working In This Directory
 - Scripts are standalone utilities, not part of the main application
 - Run with `python scripts/benchmark.py` or `bash scripts/demo.sh`
+- Run a soak with `uv run python scripts/soak.py --duration 60 --json > receipt.json 2> report.txt`; writes only to temp dirs, never to `.osint_rate_limit.json`/`.osint_cache`
 
 <!-- MANUAL: -->

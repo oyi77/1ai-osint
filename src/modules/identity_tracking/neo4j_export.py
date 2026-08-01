@@ -62,6 +62,21 @@ except ImportError:  # pragma: no cover
 
 
 # ---------------------------------------------------------------------------
+# Cypher helpers
+# ---------------------------------------------------------------------------
+
+
+def _relationship_match_clause() -> str:
+    """Cypher WHERE clause matching relationship endpoints by elementId or ``id``.
+
+    Parentheses are required: ``AND`` binds tighter than ``OR`` in Cypher, so
+    without them ``elementId(a) = $from_id OR (a.id = $from_id AND
+    elementId(b) = $to_id) OR b.id = $to_id`` would match the wrong nodes.
+    """
+    return "WHERE (elementId(a) = $from_id OR a.id = $from_id) " "AND (elementId(b) = $to_id OR b.id = $to_id)"
+
+
+# ---------------------------------------------------------------------------
 # Neo4j Bolt client
 # ---------------------------------------------------------------------------
 
@@ -251,8 +266,7 @@ class Neo4jClient:
             result = await session.run(
                 f"""
                 MATCH (a), (b)
-                WHERE elementId(a) = $from_id OR a.id = $from_id
-                  AND elementId(b) = $to_id OR b.id = $to_id
+                {_relationship_match_clause()}
                 CREATE (a)-[r:{rel_type} $props]->(b)
                 RETURN elementId(r) AS rid
                 """,

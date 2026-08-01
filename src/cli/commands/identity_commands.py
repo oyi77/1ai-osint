@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import json
-from datetime import datetime, timezone
+import sys
+import uuid
 from typing import Any
 
 import typer
@@ -78,41 +79,60 @@ def resolve(
                 errors.append(f"{name}: {exc}")
 
         # Build result
-        result: dict[str, Any] = {
-            "input": input,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "sources_queried": len(source_names),
-            "leaks_found": len(all_leaks),
-            "keys_extracted": len(all_keys),
-            "identities": [],
-            "errors": errors,
-        }
+        from src.core.models import Finding, ScanResult, Severity
 
-        # Group leaks by source
-        for leak in all_leaks:
-            result["identities"].append(
-                {
-                    "source": leak.source_name,
-                    "url": leak.source_url,
-                    "text_preview": leak.text[:200],
-                }
+        scan_id = f"resolve-{uuid.uuid4().hex[:8]}"
+        findings: list[Finding] = []
+        for i, leak in enumerate(all_leaks):
+            findings.append(
+                Finding(
+                    id=f"leak-{i}",
+                    module=leak.source_name,
+                    scan_id=scan_id,
+                    title=f"Leak from {leak.source_name}",
+                    description=leak.text[:500],
+                    severity=Severity.MEDIUM,
+                    raw_data={"source_url": leak.source_url, "preview": leak.text[:200]},
+                    confidence=0.5,
+                    tags=["leak"],
+                )
+            )
+        for i, key in enumerate(all_keys):
+            findings.append(
+                Finding(
+                    id=f"key-{i}",
+                    module="crypto_leak_finder",
+                    scan_id=scan_id,
+                    title=f"Extracted {key.key_type.value} key",
+                    description="Crypto key material found in leak text",
+                    severity=Severity.HIGH,
+                    raw_data={"addresses": key.derived_addresses},
+                    confidence=0.7,
+                    tags=["crypto", "secret"],
+                )
             )
 
-        # Add extracted keys
-        for key in all_keys:
-            result.setdefault("crypto_keys", []).append(
-                {
-                    "type": key.key_type.value,
-                    "addresses": key.derived_addresses,
-                }
-            )
+        result = ScanResult(
+            scan_id=scan_id,
+            module="identity_resolve",
+            target=input,
+            status="partial" if errors else "ok",
+            findings=findings,
+            metadata={
+                "sources_queried": len(source_names),
+                "leaks_found": len(all_leaks),
+                "keys_extracted": len(all_keys),
+                "errors": errors,
+            },
+        )
 
         # Output
         if output == "json":
-            typer.echo(json.dumps(result, indent=2, default=str))
+            typer.echo(json.dumps(result.model_dump(mode="json"), indent=2))
         elif output == "sarif":
-            typer.echo(_format_sarif(result))  # type: ignore[arg-type]
+            typer.echo(_format_sarif([result]))
         elif output == "pdf":
-            typer.echo(_format_pdf(result))  # type: ignore[arg-type]
+            sys.stdout.buffer.write(_format_pdf([result]))
+            typer.echo("", err=True)  # newline on stderr so terminal stays clean
 
     asyncio.run(_resolve())

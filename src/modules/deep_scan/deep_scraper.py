@@ -13,6 +13,7 @@ Features:
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import random
 import time
@@ -23,6 +24,7 @@ import httpx
 
 from src.core.cache import Cache
 from src.core.rate_limiter import RateLimiter
+from src.core.ssrf_guard import validate_scan_target
 
 logger = logging.getLogger(__name__)
 
@@ -157,10 +159,10 @@ class DeepScraperEngine:
         """Pick a random User-Agent from the pool."""
         return random.choice(USER_AGENTS)
 
-    def _random_delay(self) -> None:
+    async def _random_delay(self) -> None:
         """Sleep a random amount within the configured delay range to avoid fingerprinting."""
         delay = random.uniform(*self.delay_range)
-        time.sleep(delay)
+        await asyncio.sleep(delay)
 
     def _detect_content_type(self, content_type: str) -> str:
         """Classify the content type of a response.
@@ -322,6 +324,10 @@ class DeepScraperEngine:
         if _visited is None:
             _visited = set()
 
+        # Reject private/internal targets (SSRF protection) before any request.
+        if not validate_scan_target(url):
+            return DeepScraperResult(url=url, status="skipped", error="Blocked by SSRF guard")
+
         if url in _visited:
             return DeepScraperResult(url=url, status="skipped", error="Already visited")
         _visited.add(url)
@@ -425,7 +431,7 @@ class DeepScraperEngine:
                     delay = 2 ** (attempt - 1)  # exponential backoff: 1, 2, 4
                     delay += random.uniform(0, 0.5)  # jitter
                     logger.debug("Backoff %.2fs before retry", delay)
-                    time.sleep(delay)
+                    await asyncio.sleep(delay)
 
             except (httpx.TimeoutException, httpx.ConnectError) as e:
                 last_error = str(e)
@@ -439,7 +445,7 @@ class DeepScraperEngine:
                 if attempt < self.max_retries:
                     delay = 2 ** (attempt - 1)
                     delay += random.uniform(0, 0.5)
-                    time.sleep(delay)
+                    await asyncio.sleep(delay)
 
             except Exception as e:
                 last_error = str(e)
@@ -497,7 +503,7 @@ class DeepScraperEngine:
                 child = await self.scrape(link, depth=depth, _visited=visited)
                 if child.status == "ok" and child.title:
                     results.append({"url": link, "title": child.title})
-                self._random_delay()
+                await self._random_delay()
 
         return results
 

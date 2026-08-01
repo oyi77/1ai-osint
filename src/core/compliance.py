@@ -19,6 +19,8 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+import tempfile
 import uuid
 from datetime import datetime, timedelta, timezone
 from enum import Enum
@@ -188,7 +190,7 @@ for _name, _note in _LEGITIMATE_INTEREST_SOURCES.items():
     _register(_name, LegalBasis.LEGITIMATE_INTEREST, tos_notes=_note)
 
 # — Paid breach DBs: legal review required before production use (blueprint §3 ⛔) —
-for _name in ("dehashed", "intelx", "leakcheck", "snusbase", "snylla"):
+for _name in ("dehashed", "intelx", "leakcheck", "snusbase", "snylla", "scylla"):
     _register(
         _name,
         LegalBasis.UNDOCUMENTED,
@@ -324,7 +326,8 @@ def purge_expired_audit_entries(now: datetime | None = None) -> int:
     """Remove audit entries older than their retention window.
 
     Default retention is 30 days (blueprint §4.5). Returns the number of
-    purged entries.
+    purged entries. The rewrite is atomic (temp file + ``os.replace``) so a
+    crash mid-purge can never truncate the audit log.
     """
     path = audit_log_path()
     if not path.exists():
@@ -348,7 +351,18 @@ def purge_expired_audit_entries(now: datetime | None = None) -> int:
                 logger.debug("Skipping malformed audit line: %s", exc)
             kept.append(line)
     if purged:
-        path.write_text("\n".join(kept) + ("\n" if kept else ""), encoding="utf-8")
+        body = "\n".join(kept) + ("\n" if kept else "")
+        fd, tmp_name = tempfile.mkstemp(dir=str(path.parent), prefix=path.name, suffix=".tmp")
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as tmp:
+                tmp.write(body)
+            os.replace(tmp_name, path)
+        except OSError:
+            logger.warning("Atomic audit purge failed; leaving log untouched")
+            try:
+                os.unlink(tmp_name)
+            except OSError:
+                pass
     return purged
 
 

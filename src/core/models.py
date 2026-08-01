@@ -22,6 +22,7 @@ class Finding(BaseModel):
 
     id: str = Field(..., description="Unique finding identifier")
     module: str = Field(..., description="Source module name")
+    scan_id: str | None = Field(default=None, description="Scan this finding belongs to")
     title: str = Field(..., description="Short finding description")
     description: str = Field(default="", description="Detailed description")
     severity: Severity = Field(default=Severity.INFO)

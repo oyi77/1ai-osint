@@ -214,9 +214,13 @@ ALL_CHAINS: list[ChainConfig] = [
     SOLANA,
 ]
 
-# Map for quick lookup by name
-CHAIN_MAP: dict[str, ChainConfig] = {c.name.lower(): c for c in ALL_CHAINS}
-CHAIN_MAP.update({c.symbol.lower(): c for c in ALL_CHAINS})
+# Map for quick lookup by name or symbol. First definition wins so that
+# multi-chain symbols (e.g. "ETH" shared by Ethereum/Arbitrum/Optimism/Base)
+# resolve to the canonical chain (Ethereum) instead of the last one defined.
+CHAIN_MAP: dict[str, ChainConfig] = {}
+for _chain in ALL_CHAINS:
+    CHAIN_MAP.setdefault(_chain.name.lower(), _chain)
+    CHAIN_MAP.setdefault(_chain.symbol.lower(), _chain)
 
 
 def chain_by_name(name: str) -> ChainConfig | None:

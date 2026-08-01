@@ -10,6 +10,7 @@ from typing import Any
 import httpx
 
 from src.core.models import Finding, ScanResult, Severity
+from src.core.rate_limiter import RateLimiter
 from src.modules.base.base import BaseOSINTTool
 
 logger = logging.getLogger(__name__)
@@ -36,6 +37,7 @@ class SocialOSINTTool(BaseOSINTTool):
     def __init__(self, **kwargs: Any):
         self.timeout = kwargs.pop("timeout", 30)
         super().__init__(**kwargs)
+        self._rate_limiter = RateLimiter(requests_per_minute=60, burst=10)
 
     async def search(self, query: str, **kwargs: Any) -> ScanResult:
         """Search for social media presence."""
@@ -82,9 +84,7 @@ class SocialOSINTTool(BaseOSINTTool):
                 "username": query,
                 "display_name": target.strip() if target.strip() != query else None,
                 "platforms_checked": len(self.PLATFORMS),
-                "tasks_completed": len(
-                    [r for r in results if not isinstance(r, Exception)]
-                ),
+                "tasks_completed": len([r for r in results if not isinstance(r, Exception)]),
                 "tasks_failed": len([r for r in results if isinstance(r, Exception)]),
             },
             started_at=started_at,
@@ -109,6 +109,7 @@ class SocialOSINTTool(BaseOSINTTool):
         """Search for GitHub user."""
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
+                await self._rate_limiter.acquire_async(key="social:github")
                 resp = await client.get(f"https://api.github.com/users/{username}")
                 if resp.status_code == 200:
                     data = resp.json()
@@ -132,9 +133,8 @@ class SocialOSINTTool(BaseOSINTTool):
         """Search for GitLab user."""
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                resp = await client.get(
-                    f"https://gitlab.com/api/v4/users?username={username}"
-                )
+                await self._rate_limiter.acquire_async(key="social:gitlab")
+                resp = await client.get(f"https://gitlab.com/api/v4/users?username={username}")
                 if resp.status_code == 200:
                     data = resp.json()
                     if data:
@@ -158,6 +158,7 @@ class SocialOSINTTool(BaseOSINTTool):
         """Search for Reddit user."""
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
+                await self._rate_limiter.acquire_async(key="social:reddit")
                 resp = await client.get(
                     f"https://www.reddit.com/user/{username}/about.json",
                     headers={"User-Agent": "1ai-osint/0.1.0"},
@@ -194,6 +195,7 @@ class SocialOSINTTool(BaseOSINTTool):
                 for platform, url_template in self.PLATFORMS.items():
                     try:
                         url = url_template.format(username=username)
+                        await self._rate_limiter.acquire_async(key=f"social:{platform}")
                         resp = await client.get(url)
                         platforms_checked.append(
                             {

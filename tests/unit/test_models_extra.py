@@ -114,6 +114,10 @@ class TestFinding:
         f = Finding(id="1", module="m", title="t")
         assert f.confidence == 0.5
 
+    def test_scan_id_defaults_none(self):
+        f = Finding(id="1", module="m", title="t")
+        assert f.scan_id is None
+
 
 class TestBreachRecord:
     def test_required_source(self):

@@ -48,7 +48,7 @@ class BloomFilter:
 
     def _hash_indices(self, item: str) -> list[int]:
         """Generate k hash indices for an item."""
-        h1 = int(hashlib.md5(item.encode()).hexdigest(), 16)
+        h1 = int(hashlib.md5(item.encode(), usedforsecurity=False).hexdigest(), 16)
         h2 = int(hashlib.sha256(item.encode()).hexdigest(), 16)
         return [(h1 + i * h2) % self._size for i in range(self._hash_count)]
 

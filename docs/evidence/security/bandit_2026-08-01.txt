@@ -1,0 +1,65 @@
+Bandit Security Scan — 2026-08-01
+===================================
+Command: uvx bandit -r src -q -f json
+Exit code: 1 (findings present; expected)
+
+Result totals
+-------------
+Total findings: 123
+  HIGH:    0
+  MEDIUM:  10
+  LOW:     113
+
+Findings by test id:
+  B404 (subprocess import):         11  LOW
+  B603 (subprocess without shell):  12  LOW
+  B104 (bind to all interfaces):     2  MEDIUM
+  B110 (try/except/pass):           35  LOW
+  B101 (assert used):               15  LOW
+  B107 (hardcoded password default): 3  LOW
+  B112 (try/except/continue):       11  LOW
+  B608 (SQL f-string):               1  MEDIUM
+  B311 (random without crypto):     19  LOW
+  B105 (hardcoded password string):  5  LOW
+  B704 (markupsafe no_escape):       5  MEDIUM
+  B607 (subprocess cwd not absolute): 2  LOW
+  B113 (request without timeout):    2  MEDIUM
+
+Per-finding review verdicts
+---------------------------
+FIXED (5x HIGH, B324 weak hashlib — all non-crypto protocol uses):
+  1. src/modules/crypto/balance/bloom.py:51      hashlib.md5()  -> usedforsecurity=False (bloom double-hash)
+  2. src/modules/data_leaks/breach_checker.py:95 hashlib.md5()  -> usedforsecurity=False (HIBP k-anonymity prefix)
+  3. src/modules/domain_recon/infra_fingerprint.py:106 hashlib.md5() -> usedforsecurity=False (favicon fingerprint)
+  4. src/modules/free_intel/gravatar_intel.py:25 hashlib.md5()  -> usedforsecurity=False (Gravatar URL hash)
+  5. src/modules/sources/telegram_source.py:46   hashlib.sha1() -> usedforsecurity=False (session-id dedup)
+
+FALSE POSITIVE (B704 x5, html_export.py:53,54,120,138,173):
+  Markup() wraps content whose every data-derived value is escaped first.
+  Verified empirically: hostile <script> input produces escaped &lt;script&gt;
+  in output; no raw script tag reaches HTML. Design documented in module docstring.
+
+FALSE POSITIVE (B608, ai_analyzer.py:131):
+  f-string interpolates only module-level constant _TABLE_NAME, not user input.
+
+INTENDED (B104 x2):
+  src/cli/commands/config_commands.py:122 — CLI --host default 0.0.0.0,
+    user-invoked dashboard, overridable.
+  src/web/main.py:13 — uvicorn dev entry point.
+
+OUT OF SCOPE / VENDORED (B113 x2):
+  src/vendor/chiasmodon/hibp/__init__.py:19, src/vendor/chiasmodon/shodan/__init__.py:19
+  — vendored third-party tooling (sync requests, key-gated), not owned by this repo.
+
+LOW findings (B101, B104, B105, B107, B110, B112, B311, B404, B603, B607):
+  Review-only class. B311 (random without crypto) is limited to non-security
+  randomness (sampling, jitter). B110/B112 are intentional error-swallowing in
+  best-effort collector loops. B404/B603/B607 are shell=False subprocess use
+  with fixed command arrays. B105/B107 are default/example credential strings,
+  not live secrets. Accepted as-is.
+
+Conclusion
+----------
+No HIGH-severity findings after remediation. All MEDIUM findings reviewed with
+a documented verdict (false positive, intended, or out-of-scope vendored code).
+LOW findings are review-only and accepted.

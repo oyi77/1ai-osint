@@ -24,6 +24,13 @@ class TestCache:
         time.sleep(0.01)
         assert cache.get("key1") is None
 
+    def test_has_expiry(self, tmp_path):
+        """has() must be expiry-aware, not just presence-aware."""
+        cache = Cache(cache_dir=tmp_path / "cache", default_ttl=0)
+        cache.set("key1", "value")
+        time.sleep(0.01)
+        assert cache.has("key1") is False
+
     def test_delete(self, test_cache):
         test_cache.set("key1", "value")
         assert test_cache.delete("key1") is True

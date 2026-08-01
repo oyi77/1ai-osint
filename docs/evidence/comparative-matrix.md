@@ -25,21 +25,22 @@ Conclusion: the rule-based planner + rate-limit fallback in `src/modules/deep_sc
 
 ## 2. Tool Capability Matrix
 
-| Capability | 1ai-osint | Sherlock | Maigret | SpiderFoot | theHarvester | Holehe |
-|------------|-----------|----------|---------|------------|--------------|--------|
-| **Username enumeration (social platforms)** | ✅ (80+ site checks via username_finder) | ✅ (400+ sites) | ✅ (1000+ sites) | ✅ (as module) | ❌ | ❌ |
-| **Breach data aggregation** | ✅ (HIBP + 5 commercial/aggregator backends, severity-scored, dedup, correlation) | ❌ | ❌ | ✅ (partial, passive) | ❌ | ❌ |
-| **Email→account discovery** | ✅ | ❌ | ❌ | ✅ (partial) | ✅ (email hunter) | ✅ (email only) |
-| **Phone lookup with carrier/format handling** | ✅ (E.164 normalization, ID country-code fallback) | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **Crypto forensics (wallet balances, BIP-39 mnemonics, private-key/passphrase checks)** | ✅ (ZKIT module, 181.7 derivations/sec) | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **Identity graph correlation (link across sources)** | ✅ (in-memory graph, connected components, cluster scoring) | ❌ | ❌ | ✅ (graph view) | ❌ | ❌ |
-| **AI orchestration (LLM summarization, planner)** | ✅ (LangGraph agent loop, provider-agnostic) | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **Indonesian-specific sources (PDDIKTI, data.go.id, Pandi WHOIS, NIK)** | ✅ (built-in modules) | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **ZKIT-specific: crypto + identity + breach correlation** | ✅ (unique differentiator) | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **Scans one target per invocation** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Standalone CLI + Web UI + REST API** | ✅ CLI/UI/API (auth fail-closed optional) | ✅ CLI | ✅ CLI | ✅ CLI/UI | ✅ CLI | ✅ CLI |
-| **API key requirements** | Optional (free sources work without keys) | None | None | Some modules | Some | None |
-| **Language/ecosystem** | Python, async/await, Pydantic models | Python | Python | Python | Python | Python |
+| Capability | 1ai-osint | Sherlock | Maigret | SpiderFoot | theHarvester | Holehe | Maltego | Recon-ng |
+|------------|-----------|----------|---------|------------|--------------|--------|---------|----------|
+| **Username enumeration (social platforms)** | ✅ (80+ site checks via username_finder) | ✅ (400+ sites) | ✅ (1000+ sites) | ✅ (as module) | ❌ | ❌ | ✅ (transforms, commercial) | ❌ |
+| **Breach data aggregation** | ✅ (HIBP + 5 commercial/aggregator backends, severity-scored, dedup, correlation) | ❌ | ❌ | ✅ (partial, passive) | ❌ | ❌ | ✅ (HIBP transform, commercial) | ❌ |
+| **Email→account discovery** | ✅ | ❌ | ❌ | ✅ (partial) | ✅ (email hunter) | ✅ (email only) | ✅ (email entity + transforms) | ❌ |
+| **Phone lookup with carrier/format handling** | ✅ (E.164 normalization, ID country-code fallback) | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ (phone entity; commercial transforms) | ❌ |
+| **Secrets / credential scanning** | ✅ (gitleaks-based module, integrated with dossier output) | ❌ | ❌ | ✅ (some modules) | ❌ | ❌ | ❌ | ❌ |
+| **Crypto forensics (wallet balances, BIP-39 mnemonics, private-key/passphrase checks)** | ✅ (ZKIT module, 181.7 derivations/sec) | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Identity graph correlation (link across sources)** | ✅ (in-memory graph, connected components, cluster scoring) | ❌ | ❌ | ✅ (graph view) | ❌ | ❌ | ✅ (core strength — visual link analysis of entities) | ❌ |
+| **AI orchestration (LLM summarization, planner)** | ✅ (LangGraph agent loop, provider-agnostic) | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Indonesian-specific sources (PDDIKTI, data.go.id, Pandi WHOIS, NIK)** | ✅ (built-in modules) | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **ZKIT-specific: crypto + identity + breach correlation** | ✅ (unique differentiator) | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Scans one target per invocation** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Standalone CLI + Web UI + REST API** | ✅ CLI/UI/API (auth fail-closed optional) | ✅ CLI | ✅ CLI | ✅ CLI/UI | ✅ CLI | ✅ CLI | ✅ Desktop GUI | ✅ CLI (console) |
+| **API key requirements** | Optional (free sources work without keys) | None | None | Some modules | Some | None | Required for most commercial transforms (free CE tier) | Some modules |
+| **Language/ecosystem** | Python, async/await, Pydantic models | Python | Python | Python | Python | Python | Java (JVM desktop) | Python |
 
 ---
 
@@ -49,6 +50,8 @@ Conclusion: the rule-based planner + rate-limit fallback in `src/modules/deep_sc
 - **SpiderFoot** — 200+ passive sources and long-running correlation scans; mature attack-surface recon. 1ai-osint focuses on *person* intelligence (identity, breach, crypto) rather than infrastructure recon.
 - **theHarvester** — subdomain/email harvesting for domains, well-suited to infrastructure mapping.
 - **Holehe** — simple, focused email→site-signup checker with a large site list.
+- **Maltego** — commercial visual link-analysis: its graph/entity model and transform marketplace (DNS, WHOIS, social, HIBP, Shodan) are the industry standard for exploratory link discovery. A free Community Edition exists, but the most powerful transforms require commercial data-provider licenses.
+- **Recon-ng** — open-source (MIT) modular recon framework with a Metasploit-style console and 100+ modules; strong for domain/host infrastructure recon and API-driven sources (Shodan, VirusTotal), with no person/identity or crypto focus.
 
 ## 4. Where 1ai-osint leads
 
@@ -58,10 +61,20 @@ Conclusion: the rule-based planner + rate-limit fallback in `src/modules/deep_sc
 4. **AI agent loop** — planner picks relevant sources, rate-limit fallback avoids wasted calls (6.22x wall-clock win in the deterministic benchmark), and LLM summary produces an analyst-ready report.
 5. **Auth fail-closed option** — setting `REQUIRE_AUTH_TOKENS` (with `WEB_AUTH_TOKEN` / `API_AUTH_TOKEN`) returns 401 for unauthenticated API access (verified live); the local-dev default is intentionally fail-open for zero-config startup (see `docs/evidence/edge-case-matrix.md` §4, `docs/configuration.md` auth section, and `.env.example`, which ships `REQUIRE_AUTH_TOKENS` empty).
 6. **Phone/ID normalization** — E.164 + Indonesian ID country-code fallback handling.
+7. **Secret scanning as a first-class module** — `src/modules/gitleaks` produces findings that flow into the same severity-scored, deduped dossier pipeline as breach and identity results, rather than a standalone side tool.
 
-## 5. Honest caveats (not certifiable offline)
+## 5. Accuracy, verification & safety (this repo, deterministic)
+
+- **Test suite:** 2462 tests passing, 8 skipped (`uv run pytest`); `ruff check src/ tests/ scripts/` clean; `mypy src/` clean across 301 source files; bandit report on file (`docs/evidence/security/bandit_2026-08-01.json`).
+- **Anti-fabrication:** every outbound source call passes a persisted token-bucket rate limiter; findings carry source + timestamp metadata; aggregator backends with no wired vendor adapter are reported *honestly empty*, never synthesized (see `docs/VERIFIED.md`).
+- **Safety controls:** SSRF guard on `deep_scraper` and `domain_recon` (blocks private/internal targets), XSS-escaping in HTML/JSON exports, optional fail-closed auth, per-client inbound throttling via `RequestLimiter`.
+- **Soak evidence:** rate-limiter + cache stability run — `docs/evidence/soak/receipt_2026-08-01.json`.
+- **Recorded, not hidden:** a prior benchmark receipt (`docs/evidence/benchmark/receipt_2026-08-01.json`) failed on real API errors (79 api_errors, 32.6% error rate) and is kept as evidence; the single open dependency advisory (`ecdsa` 0.19.2, PYSEC-2026-1325, no upstream fix) is transitive and recorded in the CVE scan files.
+
+## 6. Honest caveats (not certifiable offline)
 
 - Live source freshness, uptime, and regional availability vary; no offline run can certify real-world breadth.
 - Sherlock/Maigret site-count advantages are real for username-only hunts.
+- Maltego/Recon-ng rows are assessed from public documentation; Maltego's commercial transform breadth is licensed, not replicated here.
 - Breach backend coverage depends on the operator's own API keys for commercial aggregators.
-- "Best in the world" is a marketing claim; this matrix documents measured and structural strengths, not an absolute industry ranking.
+- "Best in the world" is a marketing claim; this matrix documents measured and structural strengths, not an absolute industry ranking. Independent third-party audit is the remaining step before any such claim could be made responsibly.

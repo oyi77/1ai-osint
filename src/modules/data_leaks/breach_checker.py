@@ -92,7 +92,7 @@ class BlindQueryResolver:
         val_bytes = val.strip().encode("utf-8")
         if hash_type.lower() == "sha256":
             return hashlib.sha256(val_bytes).hexdigest().upper()
-        return hashlib.sha1(val_bytes).hexdigest().upper()
+        return hashlib.sha1(val_bytes, usedforsecurity=False).hexdigest().upper()
 
     async def check_password_pwned(self, password: str) -> tuple[bool, int]:
         """Check if a password has been pwned using HaveIBeenPwned range API.

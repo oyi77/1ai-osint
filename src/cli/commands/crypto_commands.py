@@ -114,21 +114,69 @@ def sweep(
     """Sweep funds from leaked wallets to destination addresses."""
 
     async def _sweep() -> None:
+        from src.modules.crypto.balance.chains import CHAIN_MAP
+        from src.modules.crypto.balance.checker import check_balance
+        from src.modules.crypto.balance.deriver import (
+            derive_from_mnemonic,
+            derive_from_privatekey,
+            detect_input_type,
+        )
         from src.modules.crypto.balance.sweeper import Sweeper
 
         sweeper = Sweeper()
 
+        async def _sweep_derived(derived: list, chain_filter: str, dry_run: bool) -> list[dict]:
+            """Check balances for derived addresses and sweep any funded wallets."""
+            results: list[dict] = []
+            for addr in derived:
+                cfg = CHAIN_MAP.get(addr.chain.lower())
+                if cfg is None or addr.private_key_hex is None:
+                    continue
+                if chain_filter != "all" and cfg.name.lower() != chain_filter.lower():
+                    continue
+                bal = await check_balance(addr.address, cfg, derivation_path=addr.derivation_path)
+                if bal.balance_raw <= 0:
+                    continue
+                if dry_run:
+                    results.append(
+                        {
+                            "chain": cfg.name,
+                            "address": addr.address,
+                            "balance_raw": bal.balance_raw,
+                            "action": "would-sweep (dry run)",
+                        }
+                    )
+                    continue
+                sweep_result = await sweeper.sweep(addr.private_key_hex, cfg, addr.address, bal.balance_raw)
+                results.append(sweep_result.__dict__)
+            return results
+
         try:
             if mnemonic:
                 typer.echo(f"Sweeping mnemonic: {mnemonic[:20]}...")
-                result = await sweeper.sweep_from_mnemonic(  # type: ignore[attr-defined]
-                    mnemonic, chain=chain, dry_run=dry_run
-                )
-                typer.echo(json.dumps(result, indent=2, default=str))
+                try:
+                    derived = derive_from_mnemonic(mnemonic)
+                except ValueError as exc:
+                    typer.echo(f"Error: {exc}", err=True)
+                    raise typer.Exit(1)
+                results = await _sweep_derived(derived, chain, dry_run)
+                typer.echo(json.dumps(results, indent=2, default=str))
             elif key:
                 typer.echo(f"Sweeping key: {key[:10]}...")
-                result = await sweeper.sweep_from_key(key, chain=chain, dry_run=dry_run)  # type: ignore[attr-defined]
-                typer.echo(json.dumps(result, indent=2, default=str))
+                try:
+                    input_type = detect_input_type(key)
+                    if input_type == "mnemonic":
+                        derived = derive_from_mnemonic(key)
+                    elif input_type == "private_key":
+                        derived = [derive_from_privatekey(key)]
+                    else:
+                        typer.echo("Error: Input is not a private key or mnemonic", err=True)
+                        raise typer.Exit(1)
+                except ValueError as exc:
+                    typer.echo(f"Error: {exc}", err=True)
+                    raise typer.Exit(1)
+                results = await _sweep_derived(derived, chain, dry_run)
+                typer.echo(json.dumps(results, indent=2, default=str))
             elif auto:
                 typer.echo("Auto-sweep: scanning for funded wallets...")
                 # Use leak finder to find keys, then sweep
@@ -149,6 +197,6 @@ def sweep(
                 typer.echo("Specify --key, --mnemonic, or --auto", err=True)
                 raise typer.Exit(1)
         finally:
-            await sweeper.stop()  # type: ignore[attr-defined]
+            await sweeper.close()
 
     asyncio.run(_sweep())

@@ -1,0 +1,35 @@
+name: Soak
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  soak:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          python-version: "3.13"
+          enable-cache: true
+      - name: Install dependencies
+        run: uv sync --group dev --frozen
+      - name: Run core infrastructure soak (rate limiter + cache)
+        run: |
+          mkdir -p docs/evidence/soak
+          uv run python scripts/soak.py --duration 90 --json \
+            > docs/evidence/soak/receipt_ci_${{ github.run_id }}.json 2>/tmp/soak_report.txt
+          cat /tmp/soak_report.txt
+      - name: Upload soak receipt
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: soak-receipt
+          path: docs/evidence/soak/receipt_ci_${{ github.run_id }}.json
+          retention-days: 30

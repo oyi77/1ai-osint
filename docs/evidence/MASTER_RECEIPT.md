@@ -29,7 +29,7 @@
 
 | Suite | Result |
 |---|---|
-| Full pytest | **2414 passed, 8 skipped** (~105.30 s) |
+| Full pytest | **2462 passed, 8 skipped** (~107.19 s) |
 | Crypto + deriver | 150 passed |
 | Data leaks | 13 passed |
 | Rate-limit / auth-fail-closed / phone units | 21 passed (incl. new `test_api_rate_limit.py`, `test_auth_fail_closed.py`) |
@@ -79,7 +79,7 @@ Rate limit (burst 25 POSTs @ 60 RPM / burst 5) — `docs/evidence/curl/burst_sta
 
 ## 5. Comparative positioning
 
-`docs/evidence/comparative-matrix.md` — head-to-head vs 6 industry tools (Maltego, SpiderFoot, theHarvester, HIBP, Sherlock, OSINTgram) across auth model, rate limiting, correlation, secret scanning, crypto/ZKIT, phone carrier fallback, AI orchestration, and reporting. 1ai-osint is the only one covering the full AI-orchestrated breach→secret→crypto→identity pipeline.
+`docs/evidence/comparative-matrix.md` — capability-by-capability matrix vs **7 industry tools** (Sherlock, Maigret, SpiderFoot, theHarvester, Holehe, Maltego, Recon-ng) across username enumeration, breach aggregation, email discovery, phone/carrier handling, **secrets/credential scanning**, crypto/ZKIT forensics, identity-graph correlation, AI orchestration, API model, and reporting. 1ai-osint is the only one covering the full AI-orchestrated breach→secret→crypto→identity pipeline. Matrix §5 documents accuracy/verification & safety (test suite, anti-fabrication, SSRF/XSS controls, soak evidence, recorded-not-hidden failures); §6 lists honest caveats, including that competitor rows are assessed from public documentation and that **an independent third-party audit is the remaining step** before any "best in the world" claim could be made responsibly.
 
 ## 6. Honest split: verified vs not certifiable offline
 

@@ -10,6 +10,7 @@ import pytest
 
 from src.core.compliance import (
     DEFAULT_RETENTION_DAYS,
+    AccessTier,
     LegalBasis,
     SourceCompliance,
     audit_log_path,
@@ -53,6 +54,12 @@ class TestLegalBasisRegistry:
         comp = get_compliance("dehashed")
         assert comp.legal_basis == LegalBasis.UNDOCUMENTED
         assert "review" in comp.tos_notes.lower()
+
+    def test_scylla_is_admin_only_with_rate_limit(self):
+        comp = get_compliance("scylla")
+        assert comp.legal_basis == LegalBasis.UNDOCUMENTED
+        assert comp.min_tier == AccessTier.ADMIN
+        assert comp.requests_per_minute == 10
 
     def test_unknown_source_defaults_to_undocumented(self):
         comp = get_compliance("totally_unknown_source")

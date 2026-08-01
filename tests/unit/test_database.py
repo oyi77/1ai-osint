@@ -1,6 +1,6 @@
 """Tests for database module."""
 
-from src.core.models import Finding, ScanResult, Severity
+from src.core.models import BreachRecord, Finding, ScanResult, Severity
 
 
 class TestDatabase:
@@ -36,3 +36,34 @@ class TestDatabase:
         await test_db.save_scan(scan)
         retrieved = await test_db.get_scan("multi-find")
         assert len(retrieved.findings) == 5
+
+    async def test_breach_records_roundtrip_never_returns_plaintext(self, test_db):
+        """Plaintext passwords are never persisted nor returned."""
+        scan = ScanResult(
+            scan_id="breach-roundtrip",
+            module="leak",
+            target="a@b.com",
+            breach_records=[
+                BreachRecord(
+                    source="leak",
+                    email="a@b.com",
+                    username="u",
+                    password_hash="hashed",
+                    password_plain="SUPERSECRET",
+                )
+            ],
+        )
+        await test_db.save_scan(scan)
+
+        retrieved = await test_db.get_scan("breach-roundtrip")
+        assert retrieved is not None
+        assert len(retrieved.breach_records) == 1
+        rec = retrieved.breach_records[0]
+        assert rec.email == "a@b.com"
+        assert rec.password_hash == "hashed"
+        assert rec.password_plain is None
+
+        records = await test_db.get_breach_records("breach-roundtrip")
+        assert len(records) == 1
+        assert records[0].source == "leak"
+        assert records[0].password_plain is None

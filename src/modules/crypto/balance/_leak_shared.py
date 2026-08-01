@@ -399,7 +399,7 @@ async def verify_and_alert_key(
                     None, derive_from_privatekey, key_candidate, chain
                 )
                 break
-            except (ValueError, Exception):
+            except Exception:
                 continue
 
         if derived is None:

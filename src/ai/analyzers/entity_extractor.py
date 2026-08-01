@@ -99,7 +99,7 @@ class EntityExtractor:
                 ExtractedEntity(
                     entity_type=entity_type,
                     value=str(item.get("value", "")),
-                    confidence=float(item.get("confidence", 0.5)),
+                    confidence=self._parse_confidence(item.get("confidence")),
                     context=str(item.get("context", "")),
                 )
             )
@@ -109,6 +109,20 @@ class EntityExtractor:
             summary=data.get("summary", ""),
             raw_response=raw_response,
         )
+
+    @staticmethod
+    def _parse_confidence(value: Any) -> float:
+        """Parse an LLM-supplied confidence value into a clamped float.
+
+        LLM responses are not guaranteed to return a numeric confidence
+        (e.g. "high", "0.85/1.0", null). A malformed value must not abort
+        the whole extraction — it degrades to the default 0.5 instead.
+        """
+        try:
+            confidence = float(value)
+        except (TypeError, ValueError):
+            return 0.5
+        return min(1.0, max(0.0, confidence))
 
     @staticmethod
     def _finding_to_text(finding: dict[str, Any]) -> str:

@@ -43,7 +43,7 @@ class TelegramSource:
         # Use a unique session file to avoid IP conflicts between local and VPS
         import hashlib
 
-        session_id = hashlib.md5(f"{self.api_id}:{self.api_hash}".encode()).hexdigest()[:8]
+        session_id = hashlib.md5(f"{self.api_id}:{self.api_hash}".encode(), usedforsecurity=False).hexdigest()[:8]
         session_name = f"leak_finder_{session_id}"
         bot_token = os.getenv("TELEGRAM_BOT_TOKEN", "")
         client = TelegramClient(session_name, self.api_id, self.api_hash)
