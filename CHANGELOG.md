@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- 5 new keyless RE-first sources (0-API priority): hackertarget hostsearch/reverse-IP, Google DoH DNS records, mempool.space, ip-api.com, keys.openpgp.org PGP lookup
+- 0-API mode registry now reports 93 sources / 79 keyless-capable / 73 keyless-only
 - AI analysis pipeline: LangGraph orchestrator with entity extraction, correlation, risk scoring
 - Behavioral profiling and anomaly detection modules
 - Continuous monitoring subsystem: watchlist, change detection, alert dispatch

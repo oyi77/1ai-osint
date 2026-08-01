@@ -70,6 +70,11 @@ _REGISTRY: dict[str, SourceEntry] = {
     "crypto_balance": SourceEntry(RE),
     "crypto_tracer": SourceEntry(RE),
     "vuln_scanner": SourceEntry(RE),
+    "hackertarget": SourceEntry(RE),
+    "dns_records": SourceEntry(RE),
+    "mempool": SourceEntry(RE),
+    "ip_api": SourceEntry(RE),
+    "pgp_keys": SourceEntry(RE),
     # --- SCRAPE: keyless HTML / structured scraping ---
     "paste": SourceEntry(SCRAPE),
     "duckduckgo": SourceEntry(SCRAPE),

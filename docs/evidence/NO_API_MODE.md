@@ -30,6 +30,21 @@ fails over to an absent key.
 `censys`, `securitytrails`, `virustotal`, `greynoise`, `hunter`, `wigle`,
 `zoomeye`.
 
+## Keyless RE-first sources (no key, no account)
+
+Reverse-engineered public endpoints, transport priority RE (0):
+
+- **hackertarget** — domain → `hostsearch` CSV (`host,ip` leaks), IP →
+  `reverseiplookup`; skips `error`/`api count exceeded` lines; never raises.
+- **dns_records** — Google DoH (`dns.google/resolve`) over
+  A/AAAA/NS/MX/TXT/CNAME; labeled leaks (`A 93.184.216.34 (TTL 300)`).
+- **mempool** — `mempool.space` address summary + top txs (funded/spent sats,
+  confirmed txs, UTXO and unconfirmed counts, top-10 tx values).
+- **ip_api** — `ip-api.com` (HTTP) with `fields` param; 15-field geolocation
+  leaks incl. proxy/ASN flags on `status: success`.
+- **pgp_keys** — `keys.openpgp.org` by-email SHA-1 digest lookup; emits a leak
+  only when a `-----BEGIN PGP PUBLIC KEY BLOCK-----` block is returned.
+
 ## Keyless-capable API sources
 
 - **Shodan** — falls back to the keyless [Shodan InternetDB](
@@ -47,9 +62,9 @@ receipt, from `source_registry.no_api_metrics()`:
 
 ```json
 "transports": {
-  "total_sources": 88,
-  "keyless_capable": 74,
-  "keyless_only": 68
+  "total_sources": 93,
+  "keyless_capable": 79,
+  "keyless_only": 73
 }
 ```
 
@@ -58,5 +73,6 @@ receipt, from `source_registry.no_api_metrics()`:
 ```bash
 uv run pytest tests/unit/test_source_registry.py \
   tests/unit/test_shodan_internetdb.py \
-  tests/unit/test_etherscan_keyless.py -q
+  tests/unit/test_etherscan_keyless.py \
+  tests/unit/test_new_re_sources.py -q
 ```

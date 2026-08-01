@@ -2632,10 +2632,44 @@ class TestShodanSource:
 
     @pytest.mark.asyncio
     async def test_search_for_address_no_key(self):
+        """No API key -> keyless InternetDB fallback (mock, no live calls)."""
+        from src.modules.sources.shodan_source import ShodanSource
+
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.json.return_value = {
+            "ports": [53, 80],
+            "hostnames": ["dns.google"],
+            "cpes": [],
+            "vulns": ["CVE-2024-0001"],
+            "tags": ["cloud"],
+        }
+        mock_client = AsyncMock()
+        mock_client.get = AsyncMock(return_value=resp)
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+        source = ShodanSource(api_key="", request_delay=0.0, timeout=5.0)
+        with patch(
+            "src.modules.sources.shodan_source.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            with patch(
+                "src.modules.sources.shodan_source.asyncio.sleep",
+                new_callable=AsyncMock,
+            ):
+                with patch("src.modules.sources.shodan_source.time.monotonic", return_value=0.0):
+                    leaks = await source.search_for_address("8.8.8.8")
+        assert len(leaks) == 5
+        assert all(leak.source_name == "shodan_internetdb" for leak in leaks)
+        assert leaks[0].text == "Open port: 53"
+
+    @pytest.mark.asyncio
+    async def test_search_for_address_no_key_domain_returns_empty(self):
+        """InternetDB is IPv4-only: domains with no key yield no leaks, no error."""
         from src.modules.sources.shodan_source import ShodanSource
 
         source = ShodanSource(api_key="", request_delay=0.0, timeout=5.0)
-        leaks = await source.search_for_address("8.8.8.8")
+        leaks = await source.search_for_address("example.com")
         assert leaks == []
 
     @pytest.mark.asyncio

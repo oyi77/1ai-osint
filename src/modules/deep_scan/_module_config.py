@@ -45,6 +45,12 @@ MODULE_INPUTS: dict[str, set[IdentifierType]] = {
         IdentifierType.DOMAIN,
         IdentifierType.NAME,
     },
+    # Keyless RE sources (0-API mode; reverse-engineered / public endpoints)
+    "hackertarget": {IdentifierType.DOMAIN, IdentifierType.IP},
+    "dns_records": {IdentifierType.DOMAIN},
+    "mempool": {IdentifierType.CRYPTO_ADDRESS},
+    "ip_api": {IdentifierType.IP},
+    "pgp_keys": {IdentifierType.EMAIL},
     # Free intel modules (search engine dorking, gravatar, wayback)
     "social_dorks_intel": {IdentifierType.NAME},
     "gravatar_intel": {IdentifierType.EMAIL},
@@ -60,4 +66,16 @@ MODULE_INPUTS: dict[str, set[IdentifierType]] = {
 }
 
 # Sources handled by source_adapter (separate from CLI modules)
-SOURCE_MODULES: set[str] = {"dehashed", "leakcheck", "snylla", "snusbase", "hibp", "intelx"}
+SOURCE_MODULES: set[str] = {
+    "dehashed",
+    "leakcheck",
+    "snylla",
+    "snusbase",
+    "hibp",
+    "intelx",
+    "hackertarget",
+    "dns_records",
+    "mempool",
+    "ip_api",
+    "pgp_keys",
+}

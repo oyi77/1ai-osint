@@ -111,19 +111,24 @@ _PUBLIC_API_SOURCES = {
     "censys": "Censys API — paid tier, ToS-governed",
     "codeberg": "Gitea public API",
     "crtsh": "Certificate Transparency log API",
+    "dns_records": "Google DoH resolver — public DNS data",
     "etherscan": "Etherscan API — public blockchain data",
     "feodo": "abuse.ch Feodo tracker feed (open threat intel)",
     "github": "GitHub REST API — ToS-governed, token auth",
     "gitlab": "GitLab public API",
     "gomod": "Go module proxy public API",
     "greynoise": "GreyNoise API — ToS-governed",
+    "hackertarget": "HackerTarget free API — keyless, ToS-governed",
     "hibp": "HIBP v3 API — lawful gold standard per blueprint §3",
     "hunter": "Hunter.io API — paid tier, ToS-governed",
+    "ip_api": "ip-api.com free endpoint — HTTP-only, ToS-governed",
     "ipinfo": "ipinfo.io API — ToS-governed",
     "malwarebazaar": "MalwareBazaar API (abuse.ch open feed)",
     "mastodon": "Mastodon public API",
+    "mempool": "mempool.space public API — open blockchain data",
     "npm": "npm registry public API",
     "otx": "AlienVault OTX API — open threat intel",
+    "pgp_keys": "keys.openpgp.org VKS — public key directory",
     "pulsedive": "Pulsedive API — threat intel feed",
     "pypi": "PyPI JSON API",
     "reddit": "Reddit via pullpush.io API",
@@ -195,7 +200,7 @@ for _name in ("dehashed", "intelx", "leakcheck", "snusbase", "snylla", "scylla")
         _name,
         LegalBasis.UNDOCUMENTED,
         tos_notes=(
-            "Paid breach database — legal basis review required " "before production use (blueprint §3 ⛔ category)"
+            "Paid breach database — legal basis review required before production use (blueprint §3 ⛔ category)"
         ),
         # Undocumented + sensitive → ADMIN-only (RBAC Layer 3).
         min_tier=AccessTier.ADMIN,
