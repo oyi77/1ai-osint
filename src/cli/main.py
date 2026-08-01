@@ -4,13 +4,19 @@ from __future__ import annotations
 
 import typer
 
-from src.cli.app import app
-from src.core.logging_config import setup_logging as _setup_logging
+# Load .env before any src.* import so settings (API keys, paths) are read
+# from the environment even when the CLI runs outside `uv run`.
+from dotenv import load_dotenv  # noqa: E402
+
+load_dotenv()  # noqa: E402
+
+from src.cli.app import app  # noqa: E402
+from src.core.logging_config import setup_logging as _setup_logging  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Import command modules — triggers @app.command() decorators during import
 # ---------------------------------------------------------------------------
-from .commands import (
+from .commands import (  # noqa: E402
     config_commands,  # noqa: F401
     crypto_commands,  # noqa: F401
     identity_commands,  # noqa: F401

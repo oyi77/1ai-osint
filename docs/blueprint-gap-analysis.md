@@ -36,8 +36,13 @@ src/modules/sources/
 ```
 
 - Uniform interface: `search_for_address(address) -> list[RawLeak]` via
-  `src/modules/sources/base.py:BaseLeakSource`, with `rate_limiter.py` and
-  `cache.py` applied per repo convention.
+  `src/modules/sources/base.py:BaseLeakSource`. Rate limiting and caching are
+  not applied per adapter — they are enforced centrally at the orchestration
+  layer: `src/core/tos_guard.py` caps each source's requests-per-minute before
+  every external query (throttled queries are recorded with
+  `outcome="throttled"` in the audit log), and `src/modules/deep_scan/deep_scraper.py`
+  applies `RateLimiter` (`requests_per_minute=30, burst=5`) with result caching
+  via `src/core/cache.py`.
 - Already bridged into the engine: `src/modules/deep_scan/source_adapter.py:run_source_scan()`
   converts `RawLeak` → `ScanResult` (`module="source_{name}"`, per-source
   `confidence`).

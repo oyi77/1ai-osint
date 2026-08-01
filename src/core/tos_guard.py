@@ -53,7 +53,10 @@ def tos_allows(source_name: str) -> bool:
     Consumes one token from the per-source bucket. Returns False when the
     bucket is empty — the caller must skip the query.
     """
-    wait = _get_limiter(source_name).acquire()
+    # Key the token bucket by source name: all per-source limiter instances
+    # share one state file, so an unkeyed acquire would make every source
+    # draw from the same "default" bucket (first source exhausts the rest).
+    wait = _get_limiter(source_name).acquire(key=source_name)
     if wait > 0:
         logger.debug(
             "ToS guard: source %s rate-limited (%.2fs wait) — throttling",

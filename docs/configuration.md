@@ -83,11 +83,37 @@ cp .env.example .env
 | `LOG_LEVEL` | `INFO` | Log level: `DEBUG`, `INFO`, `WARNING`, `ERROR`. |
 | `CACHE_DIR` | `.osint_cache` | Cache directory (relative to project root). |
 | `RATE_LIMIT_FILE` | `.osint_rate_limit.json` | Rate limit state file. |
+| `AUDIT_LOG_PATH` | `.osint_audit.jsonl` | Compliance audit log — every adapter query is recorded here (tamper-evident, blueprint Layer 3). |
+| `API_JOBS_DIR` | `state/jobs` | Directory where the API server persists running/finished scan jobs (empty = `<project_root>/state/jobs`). |
+| `API_CORS_ORIGINS` | dev defaults | Comma-separated CORS origins allowed by the API server (empty = `http://localhost:5173`, `http://127.0.0.1:5173`). |
+
+> The API app also reads `AI_OSINT_JOBS_DIR` and `AI_OSINT_CORS_ORIGINS`
+> directly from the environment; when set, those override
+> `API_JOBS_DIR` / `API_CORS_ORIGINS` (see `src/api/app.py`).
+
+## Database
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `DB_TYPE` | `sqlite` | Database backend: `sqlite` or `postgres`. |
+| `DB_PATH` | `1ai-osint.db` | SQLite database path (used when `DB_TYPE=sqlite`). |
+| `DB_HOST` | `localhost` | Postgres host. |
+| `DB_PORT` | `5432` | Postgres port. |
+| `DB_NAME` | `osint` | Postgres database name. |
+| `DB_USER` | `osint` | Postgres user. |
+| `DB_PASSWORD` | — | Postgres password. |
 
 ## Web UI
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `WEB_AUTH_TOKEN` | — | Optional bearer token protecting the web dashboard. When set, every route except `/api/health` and `/static` requires `Authorization: Bearer <WEB_AUTH_TOKEN>`. When empty/unset, the web UI runs unauthenticated (local dev default). |
+| `WEB_AUTH_TOKEN` | — | Optional bearer token protecting the web dashboard. When set, every route except `/api/health`, `/static`, and `/api/auth/login` requires `Authorization: Bearer <WEB_AUTH_TOKEN>`. When empty/unset, the web UI runs unauthenticated (local dev default). |
+| `WEB_AUTH_TOKENS` | — | Multi-tier bearer tokens as `tier:token,tier:token` (e.g. `readonly:tok1,admin:tok2`). Overrides the legacy `WEB_AUTH_TOKEN` for per-tier RBAC (tiers: `readonly`, `analyst`, `admin`). |
 
 See [Web UI](web-ui.md) for the authentication behavior in detail.
+
+## Master Node API (distributed coordination)
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `MASTER_API_TOKEN` | — | Bearer token for the master coordination API (`src/modules/node/master_api.py`). When unset, the node API stays open (backward-compatible local dev default) and a warning is logged. Set a strong token for any shared/distributed deployment. |

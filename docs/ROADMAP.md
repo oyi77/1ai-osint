@@ -517,7 +517,7 @@ class MyModule(BaseModule):
 - [x] API keys encrypted at rest (if stored)
 - [x] Input sanitization on all external data (no eval, no shell injection)
 - [x] SSRF protection on URL-fetching modules
-- [x] Rate limiting on API server to prevent abuse
+- [x] Rate limiting on API server to prevent abuse — implemented as per-source RPM ceilings in `src/core/tos_guard.py` plus a `RateLimiter` (30 req/min, burst 5) in `src/modules/deep_scan/deep_scraper.py`
 - [x] JWT-based authentication for multi-user deployments
 - [x] RBAC: investigator, analyst, admin roles
 

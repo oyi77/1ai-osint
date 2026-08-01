@@ -1,4 +1,4 @@
-"""Minimal MCP server for 1ai-osint (blueprint Phase 1 — S3).
+"""MCP server for 1ai-osint (blueprint Phase 1 — S3).
 
 Exposes 1ai-osint's deep-scan + correlation pipeline as MCP tools so any
 MCP-capable client (Claude Code/Desktop, other agents in the 1ai-hub
@@ -9,6 +9,12 @@ Tools:
     list_sources()               — available sources with legal basis
     source_compliance(source)    — compliance metadata for one source
 
+Resources:
+    osint://sources             — JSON catalog of sources + compliance
+
+Prompts:
+    investigate(target, ...)    — guided multi-source investigation plan
+
 Run (stdio transport — default for Claude Code / Desktop):
     uv run python -m src.mcp_bridge.server
 
@@ -18,6 +24,7 @@ memory streams).
 
 from __future__ import annotations
 
+import json
 import logging
 import uuid
 from typing import Any
@@ -157,24 +164,27 @@ async def search(
     }
 
 
+def _source_catalog() -> list[dict[str, Any]]:
+    """Available adapter sources with compliance metadata (shared by tool/resource)."""
+    sources_map = discover_sources()
+    available = sorted(SOURCE_MODULES & set(sources_map))
+    return [
+        {
+            "name": name,
+            "legal_basis": get_compliance(name).legal_basis.value,
+            "retention_days": get_compliance(name).retention_days,
+            "requires_consent": get_compliance(name).requires_consent,
+            "min_tier": get_compliance(name).min_tier.name,
+            "requests_per_minute": get_compliance(name).requests_per_minute,
+        }
+        for name in available
+    ]
+
+
 @server.tool()
 async def list_sources() -> dict[str, Any]:
     """List breach/leak sources with compliance metadata (legal basis, retention)."""
-    sources_map = discover_sources()
-    available = sorted(SOURCE_MODULES & set(sources_map))
-    return {
-        "sources": [
-            {
-                "name": name,
-                "legal_basis": get_compliance(name).legal_basis.value,
-                "retention_days": get_compliance(name).retention_days,
-                "requires_consent": get_compliance(name).requires_consent,
-                "min_tier": get_compliance(name).min_tier.name,
-                "requests_per_minute": get_compliance(name).requests_per_minute,
-            }
-            for name in available
-        ]
-    }
+    return {"sources": _source_catalog()}
 
 
 @server.tool()
@@ -197,6 +207,61 @@ async def source_compliance(source: str) -> dict[str, Any]:
         "min_tier": comp.min_tier.name,
         "requests_per_minute": comp.requests_per_minute,
     }
+
+
+# ── Resources ─────────────────────────────────────────────────────────────────
+
+
+@server.resource("osint://sources")
+async def sources_resource() -> str:
+    """JSON catalog of available breach/leak sources and their compliance metadata."""
+    return json.dumps({"sources": _source_catalog()}, indent=2)
+
+
+# ── Prompts ───────────────────────────────────────────────────────────────────
+
+
+@server.prompt()
+async def investigate(
+    target: str,
+    source_filter: str | None = None,
+) -> list[dict[str, str | dict[str, str]]]:
+    """Build a guided multi-source OSINT investigation plan for a target.
+
+    Args:
+        target: Search target (email, username, phone, or domain).
+        source_filter: Comma-separated subset of sources to query (dehashed,
+            leakcheck, snylla, snusbase, hibp, intelx). Defaults to all.
+
+    Returns:
+        Assistant briefing + user prompt that references the MCP tools.
+    """
+    sources = _source_catalog()
+    names = [s["name"] for s in sources]
+    chosen = [s.strip() for s in (source_filter or "").split(",") if s.strip()] or names
+    unknown = sorted(set(chosen) - set(names))
+    plan = (
+        f"Investigation plan for target `{target}`:\n"
+        f"- Sources to query: {', '.join(chosen) or 'none'}\n"
+        f"- Available sources: {', '.join(names)}\n"
+        "- Step 1: call `search` to run the breach/leak sources and get cross-source correlation.\n"
+        "- Step 2: call `source_compliance` for any source whose legal basis or retention needs review.\n"
+        "- Step 3: call `list_sources` (or read resource `osint://sources`) to refresh the source catalog.\n"
+        f"- RBAC: sources gated above the caller's tier are skipped; default tier is `admin`.\n"
+    )
+    if unknown:
+        plan += f"- Note: unknown/unsupported sources ignored: {', '.join(unknown)}\n"
+    return [
+        {
+            "role": "assistant",
+            "content": {
+                "type": "text",
+                "text": "I have prepared a step-by-step investigation plan for the target. "
+                "Use the 1ai-osint MCP tools to execute it.",
+            },
+        },
+        {"role": "user", "content": {"type": "text", "text": plan}},
+    ]
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────

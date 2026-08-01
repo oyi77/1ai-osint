@@ -58,7 +58,7 @@ class DataGoIdIntel:
                     return []
                 text = resp.text
         except Exception as e:
-            logger.debug("data.go.id search failed for %q: %s", keyword, e)
+            logger.debug("data.go.id search failed for %s: %s", keyword, e)
             return []
 
         titles: list[str] = []

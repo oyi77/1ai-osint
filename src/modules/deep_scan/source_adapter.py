@@ -150,12 +150,11 @@ async def run_source_scan(
 
     scan_id = f"source-{source_name}-{uuid.uuid4().hex[:8]}"
     findings: list[Finding] = []
-    errors: list[str] = []
 
     try:
         raw_leaks = await source_instance.search_for_address(target)
     except Exception as exc:
-        logger.debug("Source %s error for '%s': %s", source_name, target, exc)
+        logger.warning("Source %s error for '%s': %s", source_name, target, exc)
         record_audit(
             source=source_name,
             target=target,
@@ -219,7 +218,7 @@ async def run_source_scan(
         scan_id=scan_id,
         module=f"source_{source_name}",
         target=target,
-        status="error" if errors else "ok",
+        status="ok",
         findings=findings,
     )
 

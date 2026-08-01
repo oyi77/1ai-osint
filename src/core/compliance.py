@@ -69,7 +69,7 @@ class AuditEntry(BaseModel):
     target: str
     legal_basis: str
     requester: str
-    outcome: str  # ok | empty | error | blocked
+    outcome: str  # ok | empty | error | blocked | throttled
     findings_count: int = 0
     retention_days: int = DEFAULT_RETENTION_DAYS
 
@@ -138,6 +138,13 @@ _PUBLIC_API_SOURCES = {
 }
 for _name, _note in _PUBLIC_API_SOURCES.items():
     _register(_name, LegalBasis.PUBLIC_API_TOS, tos_notes=_note)
+
+# Real per-source rate ceilings from each API's published rate-limit
+# contract (Layer 3 ToS guard). These override the generic 60 rpm default
+# so the guard enforces what each provider actually allows.
+for _name, _rpm in (("virustotal", 4), ("hibp", 30), ("abuseipdb", 120)):
+    if _name in _COMPLIANCE_REGISTRY:
+        _COMPLIANCE_REGISTRY[_name].requests_per_minute = _rpm
 
 # — Legitimate-interest sources (publicly available data via OSINT tooling) —
 _LEGITIMATE_INTEREST_SOURCES = {

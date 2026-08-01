@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import logging
+import os
 import socket
 import subprocess
 import time
@@ -45,6 +46,10 @@ class NodeAgent:
         self._scanner_process: asyncio.subprocess.Process | None = None
         self._running = False
         self._seen_keys: set[str] = set()
+
+    def _master_headers(self) -> dict[str, str]:
+        token = os.environ.get("MASTER_API_TOKEN")
+        return {"X-Master-Token": token} if token else {}
 
     async def start(self) -> None:
         """Register with master and start heartbeat loop."""
@@ -231,7 +236,7 @@ class NodeAgent:
         """Download seen keys from master API."""
         try:
             async with httpx.AsyncClient(timeout=10) as client:
-                resp = await client.get(f"{self.master_api_url}/api/seen")
+                resp = await client.get(f"{self.master_api_url}/api/seen", headers=self._master_headers())
                 if resp.status_code == 200:
                     data = resp.json()
                     bloom = data.get("bloom", "")
@@ -252,6 +257,7 @@ class NodeAgent:
                         "node_id": self.node_id,
                         "keys": keys,
                     },
+                    headers=self._master_headers(),
                 )
                 if resp.status_code == 200:
                     recorded = resp.json().get("recorded", 0)
@@ -272,6 +278,7 @@ class NodeAgent:
                         "node_id": self.node_id,
                         "ttl_seconds": ttl,
                     },
+                    headers=self._master_headers(),
                 )
                 return resp.status_code == 200
         except Exception as exc:
@@ -289,6 +296,7 @@ class NodeAgent:
                         "node_id": self.node_id,
                         "sweep_tx": sweep_tx,
                     },
+                    headers=self._master_headers(),
                 )
         except Exception as exc:
             logger.debug("Failed to report sweep: %s", exc)
@@ -316,6 +324,7 @@ class NodeAgent:
                             "cpu_percent": psutil.cpu_percent(interval=0.1),
                         },
                     },
+                    headers=self._master_headers(),
                 )
         except Exception as exc:
             logger.debug("Failed to send heartbeat: %s", exc)

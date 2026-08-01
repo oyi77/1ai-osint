@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
 import pathlib
 import sys
@@ -21,12 +22,18 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 
-from src.core.config import settings
+load_dotenv()
+
+from src.core.config import settings  # noqa: E402
+from src.core.ssrf_guard import validate_scan_target  # noqa: E402
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="1ai-osint API", version="0.1.0")
 _JOBS: dict[str, dict[str, Any]] = {}
@@ -76,8 +83,14 @@ def _load_jobs() -> dict[str, dict[str, Any]]:
             key=lambda item: str(item.get("created_at") or ""),
             reverse=True,
         )
+        # Jobs restored from a crash may have been mid-run; never resurrect
+        # them as "running" (a resumed runner would double-execute).
+        for item in items:
+            if item.get("status") == "running":
+                item["status"] = "interrupted"
         return {item["job_id"]: item for item in items[:_MAX_PERSISTED_JOBS]}
-    except Exception:
+    except Exception as exc:
+        logger.warning("failed to load persisted jobs from %s: %s", _JOBS_FILE, exc)
         return {}
 
 
@@ -91,8 +104,8 @@ def _save_jobs() -> None:
         tmp = _JOBS_FILE.with_suffix(".tmp")
         tmp.write_text(payload, encoding="utf-8")
         os.replace(tmp, _JOBS_FILE)
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning("failed to persist jobs to %s: %s", _JOBS_FILE, exc)
 
 
 _JOBS = _load_jobs()
@@ -130,7 +143,7 @@ class ScanResponse(BaseModel):
 class ReactScanRequest(BaseModel):
     target: str = Field(min_length=1)
     fast: bool = True
-    max_iterations: int = 5
+    max_iterations: int = Field(default=5, ge=1)
 
 
 class ReactJobResponse(BaseModel):
@@ -146,6 +159,7 @@ def _create_job(
     profile: str,
     case_id: str = "",
     budget: float = 15.0,
+    max_iterations: int | None = None,
 ) -> dict[str, Any]:
     job: dict[str, Any] = {
         "job_id": job_id,
@@ -154,6 +168,9 @@ def _create_job(
         "profile": profile,
         "case_id": case_id,
         "budget": budget,
+        "max_iterations": max_iterations,
+        "retry_count": 0,
+        "last_error": None,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "started_at": None,
         "completed_at": None,
@@ -168,10 +185,12 @@ def _create_job(
 
 
 def _clean_target(req: ScanRequest) -> None:
-    """Reject blank targets and normalise the value in place."""
+    """Reject blank / internal targets and normalise the value in place."""
     target = req.target.strip()
     if not target:
         raise HTTPException(status_code=422, detail="target must not be empty")
+    if not validate_scan_target(target):
+        raise HTTPException(status_code=422, detail="Blocked private/internal scan target")
     req.target = target
 
 
@@ -211,7 +230,7 @@ async def create_scan(req: ScanRequest) -> ScanResponse:
 def get_scan(job_id: str) -> dict[str, Any]:
     job = _JOBS.get(job_id)
     if not job:
-        raise HTTPException(404, "job not found")
+        raise HTTPException(status_code=404, detail="Job not found")
     return job
 
 
@@ -262,10 +281,13 @@ async def _run_job(job_id: str, req: ScanRequest) -> None:
                 pdf_bytes=pdf if isinstance(pdf, bytes) else None,
             )
     except Exception as exc:
+        logger.exception("job %s failed while scanning target %r", job_id, req.target)
         job.update(
             {
                 "status": "failed",
                 "error": str(exc),
+                "last_error": str(exc),
+                "retry_count": int(job.get("retry_count", 0)) + 1,
                 "completed_at": datetime.now(timezone.utc).isoformat(),
             }
         )
@@ -283,10 +305,12 @@ async def start_scan_react(request: ReactScanRequest) -> ReactJobResponse:
     target = request.target.strip()
     if not target:
         raise HTTPException(status_code=422, detail="target must not be empty")
+    if not validate_scan_target(target):
+        raise HTTPException(status_code=422, detail="Blocked private/internal scan target")
     profile = "fast" if request.fast else "standard"
     req = ScanRequest(target=target, profile=profile, max_iterations=request.max_iterations)
     job_id = f"job-{uuid.uuid4().hex[:12]}"
-    _create_job(job_id, target=target, profile=profile)
+    _create_job(job_id, target=target, profile=profile, max_iterations=request.max_iterations)
     _track(asyncio.create_task(_run_job(job_id, req)))
     return ReactJobResponse(job_id=job_id, status="queued", target=target)
 

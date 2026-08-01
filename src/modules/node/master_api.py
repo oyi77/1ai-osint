@@ -3,16 +3,34 @@
 from __future__ import annotations
 
 import logging
+import os
+import secrets
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import FastAPI, HTTPException
+from dotenv import load_dotenv
+from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel
 
 from src.modules.node import db
 
+load_dotenv()
+
 logger = logging.getLogger(__name__)
+
+#: Optional shared secret protecting every endpoint except ``/api/health``.
+#: Read from the environment at request time so runtime/test changes are
+#: honored. Unset → all endpoints stay open (backward compatible); set →
+#: callers must present ``Authorization: Bearer <token>`` or
+#: ``X-Master-Token: <token>``.
+_MASTER_API_TOKEN_ENV = "MASTER_API_TOKEN"
+
+if os.environ.get(_MASTER_API_TOKEN_ENV) is None:
+    logger.warning(
+        "MASTER_API_TOKEN is not set — the master coordination API is wide open. "
+        "Set it before exposing the API on a non-loopback interface (0.0.0.0)."
+    )
 
 
 # ── Request models ──────────────────────────────────────────────────────────
@@ -67,6 +85,29 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 app = FastAPI(title="1ai-osint Master API", version="0.1.0", lifespan=lifespan)
 
 
+def require_master_token(
+    authorization: str | None = Header(default=None),
+    x_master_token: str | None = Header(default=None),
+) -> None:
+    """Reject requests without a valid master token when one is configured.
+
+    When ``MASTER_API_TOKEN`` is unset the API stays open (backward
+    compatible). When set, every request must present either
+    ``Authorization: Bearer <token>`` or ``X-Master-Token: <token>``.
+    Constant-time comparison avoids token timing side channels.
+    """
+    expected = os.environ.get(_MASTER_API_TOKEN_ENV)
+    if expected is None:
+        return
+    provided = ""
+    if authorization and authorization.lower().startswith("bearer "):
+        provided = authorization[7:].strip()
+    elif x_master_token:
+        provided = x_master_token.strip()
+    if not provided or not secrets.compare_digest(provided, expected):
+        raise HTTPException(status_code=401, detail="Invalid or missing master token")
+
+
 # ── Endpoints ───────────────────────────────────────────────────────────────
 
 
@@ -77,7 +118,7 @@ async def health() -> dict[str, Any]:
 
 
 @app.post("/api/keys")
-async def report_keys(req: KeysRequest) -> dict[str, Any]:
+async def report_keys(req: KeysRequest, _dep: None = Depends(require_master_token)) -> dict[str, Any]:
     """Node reports found keys."""
     recorded = 0
     for key in req.keys:
@@ -93,7 +134,7 @@ async def report_keys(req: KeysRequest) -> dict[str, Any]:
 
 
 @app.get("/api/seen")
-async def get_seen() -> dict[str, Any]:
+async def get_seen(_dep: None = Depends(require_master_token)) -> dict[str, Any]:
     """Node downloads seen keys as Bloom filter."""
     bloom = await db.get_seen_keys_bloom()
     return {
@@ -104,7 +145,7 @@ async def get_seen() -> dict[str, Any]:
 
 
 @app.post("/api/locks")
-async def acquire_lock(req: LockRequest) -> dict[str, Any]:
+async def acquire_lock(req: LockRequest, _dep: None = Depends(require_master_token)) -> dict[str, Any]:
     """Node acquires sweep lock."""
     acquired = await db.acquire_sweep_lock(req.address, req.node_id, req.ttl_seconds)
     if not acquired:
@@ -113,21 +154,21 @@ async def acquire_lock(req: LockRequest) -> dict[str, Any]:
 
 
 @app.delete("/api/locks/{address}")
-async def release_lock(address: str, node_id: str) -> dict[str, Any]:
+async def release_lock(address: str, node_id: str, _dep: None = Depends(require_master_token)) -> dict[str, Any]:
     """Node releases sweep lock."""
     await db.release_sweep_lock(address, node_id)
     return {"status": "ok"}
 
 
 @app.post("/api/heartbeat")
-async def heartbeat(req: HeartbeatRequest) -> dict[str, Any]:
+async def heartbeat(req: HeartbeatRequest, _dep: None = Depends(require_master_token)) -> dict[str, Any]:
     """Node reports status. Returns actual node_id (may differ if duplicate)."""
     actual_id = await db.record_heartbeat(req.node_id, req.status)
     return {"status": "ok", "node_id": actual_id}
 
 
 @app.get("/api/sources")
-async def get_sources(node_id: str) -> dict[str, Any]:
+async def get_sources(node_id: str, _dep: None = Depends(require_master_token)) -> dict[str, Any]:
     """Node fetches assigned sources."""
     sources = await db.get_assigned_sources(node_id)
     if not sources:
@@ -144,49 +185,49 @@ async def get_sources(node_id: str) -> dict[str, Any]:
 
 
 @app.post("/api/sources")
-async def set_sources(req: ConfigRequest) -> dict[str, Any]:
+async def set_sources(req: ConfigRequest, _dep: None = Depends(require_master_token)) -> dict[str, Any]:
     """Master assigns sources to a node."""
     await db.assign_sources(req.node_id, req.sources)
     return {"status": "ok", "node_id": req.node_id, "sources": req.sources}
 
 
 @app.post("/api/sweep")
-async def report_sweep(req: SweepRequest) -> dict[str, Any]:
+async def report_sweep(req: SweepRequest, _dep: None = Depends(require_master_token)) -> dict[str, Any]:
     """Node reports sweep result."""
     await db.mark_swept(req.address, req.sweep_tx)
     return {"status": "ok", "address": req.address}
 
 
 @app.get("/api/stats")
-async def get_stats() -> dict[str, Any]:
+async def get_stats(_dep: None = Depends(require_master_token)) -> dict[str, Any]:
     """Aggregate stats."""
     stats = await db.get_stats()
     return {"status": "ok", **stats}
 
 
 @app.get("/api/audit")
-async def get_audit(limit: int = 100) -> dict[str, Any]:
+async def get_audit(limit: int = 100, _dep: None = Depends(require_master_token)) -> dict[str, Any]:
     """Full audit trail."""
     trail = await db.get_audit_trail(limit)
     return {"status": "ok", "events": trail}
 
 
 @app.get("/api/nodes")
-async def get_nodes() -> dict[str, Any]:
+async def get_nodes(_dep: None = Depends(require_master_token)) -> dict[str, Any]:
     """List all nodes and their status."""
     heartbeats = await db.get_all_heartbeats()
     return {"status": "ok", "nodes": heartbeats}
 
 
 @app.post("/api/commands")
-async def enqueue_command(req: CommandRequest) -> dict[str, Any]:
+async def enqueue_command(req: CommandRequest, _dep: None = Depends(require_master_token)) -> dict[str, Any]:
     """Enqueue a command for a node."""
     await db.enqueue_command(req.node_id, req.command, req.payload)
     return {"status": "ok", "node_id": req.node_id, "command": req.command}
 
 
 @app.get("/api/commands/{node_id}")
-async def claim_commands(node_id: str) -> dict[str, Any]:
+async def claim_commands(node_id: str, _dep: None = Depends(require_master_token)) -> dict[str, Any]:
     """Claim pending commands for a node."""
     commands = await db.claim_commands(node_id)
     return {"status": "ok", "commands": commands}

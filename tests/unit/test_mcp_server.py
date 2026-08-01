@@ -173,3 +173,58 @@ async def test_search_rejects_unknown_source_filter():
                     payload = json.loads(result.content[0].text)
                     assert payload["sources"] == {}
                     assert payload["correlation"]["graph_stats"]["node_count"] == 0
+
+
+@pytest.mark.asyncio
+async def test_sources_resource_registered():
+    """osint://sources resource lists the same catalog as the list_sources tool."""
+    async with create_client_server_memory_streams() as (client_streams, server_streams):
+        async with anyio.create_task_group() as tg:
+            tg.start_soon(_run_server_in_background, server_streams)
+
+            client_read, client_write = client_streams
+            async with ClientSession(client_read, client_write) as session:
+                await session.initialize()
+
+                resources = await session.list_resources()
+                uris = [str(r.uri) for r in resources.resources]
+                assert "osint://sources" in uris
+
+                read = await session.read_resource("osint://sources")
+                payload = json.loads(read.contents[0].text)
+                assert "sources" in payload
+                assert any(s["name"] == "hibp" for s in payload["sources"])
+                assert all("legal_basis" in s for s in payload["sources"])
+
+            tg.cancel_scope.cancel()
+
+
+@pytest.mark.asyncio
+async def test_investigate_prompt():
+    """investigate prompt returns a guided plan referencing the MCP tools."""
+    async with create_client_server_memory_streams() as (client_streams, server_streams):
+        async with anyio.create_task_group() as tg:
+            tg.start_soon(_run_server_in_background, server_streams)
+
+            client_read, client_write = client_streams
+            async with ClientSession(client_read, client_write) as session:
+                await session.initialize()
+
+                prompts = await session.list_prompts()
+                assert any(p.name == "investigate" for p in prompts.prompts)
+
+                result = await session.get_prompt(
+                    "investigate",
+                    {"target": "a@b.com", "source_filter": "hibp, nope"},
+                )
+                texts = [
+                    msg.content.text for msg in result.messages if hasattr(msg.content, "text") and msg.content.text
+                ]
+                joined = "\n".join(texts)
+                assert "a@b.com" in joined
+                assert "hibp" in joined
+                assert "nope" in joined  # flagged as unknown/unsupported
+                assert "`search`" in joined
+                assert "osint://sources" in joined
+
+            tg.cancel_scope.cancel()

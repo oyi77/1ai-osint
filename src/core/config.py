@@ -74,8 +74,8 @@ class Settings(BaseSettings):
 
     @property
     def project_root(self) -> Path:
-        """Return the project root directory."""
-        return Path(__file__).parent.parent
+        """Return the project root directory (repo root containing pyproject.toml)."""
+        return Path(__file__).resolve().parents[2]
 
     @property
     def cache_path(self) -> Path:

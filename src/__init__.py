@@ -4,5 +4,5 @@ try:
     from importlib.metadata import version as _v
 
     __version__ = _v("1ai-osint")
-except (ImportError, Exception):
+except Exception:
     __version__ = "0.1.0"

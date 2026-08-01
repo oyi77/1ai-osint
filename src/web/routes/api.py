@@ -23,7 +23,7 @@ async def auth_login(request: Request) -> dict:
     used in ``Authorization: Bearer`` for subsequent calls until it expires
     (``JWT_TTL_HOURS``, default 24h).
     """
-    from src.web.auth import issue_token, jwt_enabled
+    from src.web.auth import _jwt_ttl, issue_token, jwt_enabled
 
     if not jwt_enabled():
         raise HTTPException(status_code=410, detail="JWT login disabled (JWT_SECRET not set)")
@@ -32,6 +32,9 @@ async def auth_login(request: Request) -> dict:
         body = await request.json()
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid JSON body") from None
+
+    if not isinstance(body, dict):
+        raise HTTPException(status_code=400, detail="Invalid JSON body")
 
     token = str(body.get("token", ""))
     tokens = tiers_from_env()
@@ -44,7 +47,7 @@ async def auth_login(request: Request) -> dict:
         "access_token": access_token,
         "token_type": "bearer",
         "tier": tier.name.lower(),
-        "expires_in_hours": 24,
+        "expires_in_hours": int(_jwt_ttl().total_seconds() // 3600),
     }
 
 

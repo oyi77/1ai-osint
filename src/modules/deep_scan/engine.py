@@ -9,10 +9,11 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Awaitable
+from collections.abc import Awaitable, Callable
 from datetime import datetime, timezone
 from typing import Any
 
+from src.core.config import settings
 from src.core.models import Finding, ScanResult, Severity
 from src.modules.deep_scan import (
     DeepScanResult,
@@ -265,6 +266,8 @@ class DeepScanEngine:
             result.duration_sec,
         )
 
+        self._dedup_findings(result)
+
         # Fire the on_scan_end hook (error-isolated). Plugins may observe the
         # final result; the scan outcome is unaffected.
         try:
@@ -374,6 +377,8 @@ class DeepScanEngine:
                 if isinstance(res, ScanResult):
                     result.scan_results.append(res)
                     result.findings.extend(res.findings)
+                elif isinstance(res, Exception):
+                    logger.warning("External tool phase error: %s", res)
 
     async def _verify_profiles_phase(self, target: str, result: DeepScanResult) -> None:
         """Phase 4: Scrape social profiles and run vision-based correlation to verify identity.
@@ -395,7 +400,7 @@ class DeepScanEngine:
             "Executing Phase 4: Scraping and correlating %d social profiles...",
             len(social_findings),
         )
-        scraper = DeepScraperEngine()
+        scraper = DeepScraperEngine(cache_dir=str(settings.cache_path))
         correlator = VisionCorrelator()
 
         high_value_platforms = {
@@ -545,26 +550,89 @@ class DeepScanEngine:
 
     async def _run_module_scan(
         self,
-        scan_coro: Awaitable[ScanResult | None],
+        scan_factory: Callable[[], Awaitable[ScanResult | None]],
         error_prefix: str,
+        mod_name: str,
         target: str,
         result: DeepScanResult,
     ) -> None:
-        """Run a module scan through a common sem/timeout/error-handling pattern."""
-        try:
-            async with self._sem:
-                scan_result = await asyncio.wait_for(
-                    scan_coro,
-                    timeout=self.timeout_per_module,
-                )
-            if isinstance(scan_result, ScanResult):
-                result.scan_results.append(scan_result)
-                for finding in scan_result.findings:
-                    result.findings.append(finding)
-        except asyncio.TimeoutError:
-            result.errors.append(f"{error_prefix}({target}): timeout")
-        except Exception as exc:
-            result.errors.append(f"{error_prefix}({target}): {exc}")
+        """Run a module scan through a common sem/timeout/retry/error pattern.
+
+        ``scan_factory`` returns a fresh coroutine per attempt so retries are
+        possible. Transient failures (timeout, connection errors, HTTP 429)
+        and None results retry up to 3 times with exponential backoff; a pair
+        that still fails is dropped and marked so it is not re-proposed in
+        later iterations. Permanent failures are logged, recorded and marked
+        once.
+        """
+
+        def _is_transient(exc: BaseException) -> bool:
+            if isinstance(exc, (asyncio.TimeoutError, ConnectionError, TimeoutError)):
+                return True
+            return getattr(exc, "status", None) == 429
+
+        for attempt in range(1, 4):
+            try:
+                async with self._sem:
+                    scan_result = await asyncio.wait_for(
+                        scan_factory(),
+                        timeout=self.timeout_per_module,
+                    )
+                if scan_result is None:
+                    if attempt < 3:
+                        logger.warning(
+                            "No result for %s on %s (attempt %d/3)",
+                            error_prefix,
+                            target,
+                            attempt,
+                        )
+                        await asyncio.sleep(2 ** (attempt - 1))
+                        continue
+                    logger.warning(
+                        "Module %s on %s returned no result after 3 attempts",
+                        error_prefix,
+                        target,
+                    )
+                    result.errors.append(f"{error_prefix}({target}): no result after 3 attempts")
+                    self._mark_scanned(mod_name, target)
+                    return
+                if isinstance(scan_result, ScanResult):
+                    result.scan_results.append(scan_result)
+                    for finding in scan_result.findings:
+                        result.findings.append(finding)
+                self._mark_scanned(mod_name, target)
+                return
+            except Exception as exc:
+                if _is_transient(exc):
+                    if attempt < 3:
+                        logger.warning(
+                            "Transient failure for %s on %s (attempt %d/3): %s",
+                            error_prefix,
+                            target,
+                            attempt,
+                            exc,
+                        )
+                        await asyncio.sleep(2 ** (attempt - 1))
+                        continue
+                    # Ran out of retries — drop the pair and mark it so
+                    # seen-targets/new-target discovery don't re-propose it.
+                    logger.warning(
+                        "Module %s on %s failed after 3 attempts: %s",
+                        error_prefix,
+                        target,
+                        exc,
+                    )
+                    if isinstance(exc, asyncio.TimeoutError):
+                        result.errors.append(f"{error_prefix}({target}): timeout after 3 attempts")
+                    else:
+                        result.errors.append(f"{error_prefix}({target}): {exc}")
+                    self._mark_scanned(mod_name, target)
+                    return
+                # Permanent failure — record once and mark so we don't loop.
+                logger.warning("Module %s failed permanently for %s: %s", error_prefix, target, exc)
+                result.errors.append(f"{error_prefix}({target}): {exc}")
+                self._mark_scanned(mod_name, target)
+                return
 
     async def _scan_module(
         self,
@@ -578,7 +646,8 @@ class DeepScanEngine:
         if mod_name == "people_finder":
             scan_kwargs["timeout"] = int(self.timeout_per_module)
         await self._run_module_scan(
-            mod.scan(target, **scan_kwargs),
+            lambda: mod.scan(target, **scan_kwargs),
+            mod_name,
             mod_name,
             target,
             result,
@@ -593,8 +662,9 @@ class DeepScanEngine:
     ) -> None:
         """Run a breach/leak source via the source adapter."""
         await self._run_module_scan(
-            run_source_scan(source_name, target, source_inst, requester="deep_scan_engine"),
+            lambda: run_source_scan(source_name, target, source_inst, requester="deep_scan_engine"),
             f"source_{source_name}",
+            source_name,
             target,
             result,
         )
@@ -607,8 +677,9 @@ class DeepScanEngine:
     ) -> None:
         """Run a free intel module via the free_intel_adapter."""
         await self._run_module_scan(
-            run_free_intel_scan(mod_name, target),
+            lambda: run_free_intel_scan(mod_name, target),
             f"free_{mod_name}",
+            mod_name,
             target,
             result,
         )
@@ -677,12 +748,64 @@ class DeepScanEngine:
         return list(_MODULE_INPUTS.keys())
 
     def _should_scan(self, mod_name: str, target: str) -> bool:
-        """Skip duplicate module+target work within one scan."""
+        """Return whether this module+target pair still needs scanning.
+
+        Pure check — marking happens in ``_run_module_scan`` once the scan
+        succeeds, so transient failures are retried next iteration instead of
+        being permanently skipped.
+        """
         key = (mod_name, target.strip().lower())
-        if key in self._scanned_pairs:
-            return False
-        self._scanned_pairs.add(key)
-        return True
+        return key not in self._scanned_pairs
+
+    def _mark_scanned(self, mod_name: str, target: str) -> None:
+        """Record a successfully (or permanently) processed module+target pair."""
+        self._scanned_pairs.add((mod_name, target.strip().lower()))
+
+    @staticmethod
+    def _dedup_findings(result: DeepScanResult) -> None:
+        """Collapse duplicate findings (same module + entity type + value + location).
+
+        Keeps the first occurrence and merges severity (highest wins),
+        confidence (max) and tags.
+        """
+        severity_rank = {
+            Severity.CRITICAL: 4,
+            Severity.HIGH: 3,
+            Severity.MEDIUM: 2,
+            Severity.LOW: 1,
+            Severity.INFO: 0,
+        }
+        seen: dict[tuple[str, str, str, str], Finding] = {}
+        for finding in result.findings:
+            raw = finding.raw_data or {}
+            type_: str = "title"
+            value: str = finding.title.lower()
+            for field in ("email", "username", "phone", "nik", "domain", "ip_address", "crypto_address"):
+                v = raw.get(field)
+                if isinstance(v, str) and v:
+                    type_ = field
+                    value = v.lower()
+                    break
+            loc_parts = []
+            for loc_field in ("path", "line", "url"):
+                v = raw.get(loc_field)
+                if v is not None:
+                    loc_parts.append(str(v))
+                    break
+            loc = loc_parts[0] if loc_parts else ""
+            key = (finding.module, type_, value, loc)
+            prev = seen.get(key)
+            if prev is None:
+                seen[key] = finding
+                continue
+            if severity_rank.get(finding.severity, 0) > severity_rank.get(prev.severity, 0):
+                prev.severity = finding.severity
+            if finding.confidence and finding.confidence > (prev.confidence or 0):
+                prev.confidence = finding.confidence
+            for tag in finding.tags or []:
+                if tag not in (prev.tags or []):
+                    prev.tags.append(tag)
+        result.findings = list(seen.values())
 
     def _initial_targets(self, target: str, result: DeepScanResult) -> set[str]:
         out: set[str] = {target}

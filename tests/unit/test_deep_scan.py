@@ -136,6 +136,7 @@ class TestDeepScanProfiles:
 
         engine = DeepScanEngine(fast=True)
         assert engine._should_scan("social_osint", "user1") is True
+        engine._mark_scanned("social_osint", "user1")
         assert engine._should_scan("social_osint", "user1") is False
 
     def test_cap_targets_prefers_email(self):
@@ -781,6 +782,71 @@ class TestDeepScanEngineExtended:
         await engine._scan_module("test_mod", mod, "target", result)
         assert len(result.scan_results) == 1
         assert len(result.findings) == 1
+
+    @pytest.mark.asyncio
+    async def test_run_module_scan_none_three_attempts_marks_scanned(self):
+        engine = self._make_engine()
+        result = DeepScanResult(target="t", started_at=datetime.now(timezone.utc))
+        calls = {"n": 0}
+
+        async def none_scan(*_a, **_kw):
+            calls["n"] += 1
+            return None
+
+        with patch("src.modules.deep_scan.engine.asyncio.sleep", new_callable=AsyncMock):
+            await engine._run_module_scan(none_scan, "test_mod", "test_mod", "target", result)
+        assert calls["n"] == 3
+        assert any("no result after 3 attempts" in e for e in result.errors)
+        assert engine._should_scan("test_mod", "target") is False
+
+    @pytest.mark.asyncio
+    async def test_run_module_scan_none_then_result(self):
+        engine = self._make_engine()
+        result = DeepScanResult(target="t", started_at=datetime.now(timezone.utc))
+        sr = ScanResult(
+            scan_id="s",
+            module="test",
+            target="t",
+            status="ok",
+            findings=[Finding(id="f1", module="test", title="F", description="D", severity=Severity.INFO)],
+            started_at=datetime.now(timezone.utc),
+            completed_at=datetime.now(timezone.utc),
+        )
+        calls = {"n": 0}
+
+        async def first_none(*_a, **_kw):
+            calls["n"] += 1
+            return None if calls["n"] == 1 else sr
+
+        with patch("src.modules.deep_scan.engine.asyncio.sleep", new_callable=AsyncMock):
+            await engine._run_module_scan(first_none, "test_mod", "test_mod", "target", result)
+        assert calls["n"] == 2
+        assert result.errors == []
+        assert len(result.scan_results) == 1
+
+    def test_dedup_findings_keeps_distinct_loc(self):
+        engine = self._make_engine()
+        result = DeepScanResult(target="t", started_at=datetime.now(timezone.utc))
+        result.findings = [
+            Finding(
+                id="f1",
+                module="test",
+                title="a@b.com",
+                description="",
+                severity=Severity.INFO,
+                raw_data={"email": "a@b.com", "line": 0},
+            ),
+            Finding(
+                id="f2",
+                module="test",
+                title="a@b.com",
+                description="",
+                severity=Severity.INFO,
+                raw_data={"email": "a@b.com"},
+            ),
+        ]
+        engine._dedup_findings(result)
+        assert len(result.findings) == 2
 
     @pytest.mark.asyncio
     async def test_scan_full_with_mocked_modules(self):

@@ -6,11 +6,14 @@ import os
 import secrets
 from pathlib import Path
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from src.core.rbac import AccessTier
+load_dotenv()
+
+from src.core.rbac import AccessTier  # noqa: E402
 
 HERE = Path(__file__).parent
 

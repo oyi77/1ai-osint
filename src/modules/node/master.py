@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 from datetime import datetime, timezone
 from typing import Any
 
@@ -18,6 +19,11 @@ from src.modules.node.protocol import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _master_headers() -> dict[str, str]:
+    token = os.environ.get("MASTER_API_TOKEN")
+    return {"X-Master-Token": token} if token else {}
 
 
 class MasterBot:
@@ -35,9 +41,7 @@ class MasterBot:
         """Start the master bot polling loop."""
         self._running = True
         logger.info("Master bot starting")
-        await self._send_message(
-            "1ai-osint Master Bot started. Send /help for commands."
-        )
+        await self._send_message("1ai-osint Master Bot started. Send /help for commands.")
 
         while self._running:
             try:
@@ -89,9 +93,7 @@ class MasterBot:
 
         # Check authorization
         if self.allowed_chat_ids and chat_id not in self.allowed_chat_ids:
-            await self._send_to(
-                chat_id, "Unauthorized. Add your chat_id to allowed list."
-            )
+            await self._send_to(chat_id, "Unauthorized. Add your chat_id to allowed list.")
             return
 
         # Handle bot commands
@@ -127,9 +129,7 @@ class MasterBot:
         if handler:
             await handler(chat_id, args)
         else:
-            await self._send_to(
-                chat_id, f"Unknown command: {cmd}\nSend /help for available commands."
-            )
+            await self._send_to(chat_id, f"Unknown command: {cmd}\nSend /help for available commands.")
 
     async def _handle_node_message(self, msg: NodeMessage):
         """Handle messages from nodes."""
@@ -141,12 +141,8 @@ class MasterBot:
                 version=msg.payload.get("version", ""),
                 role=msg.payload.get("role", "worker"),
             )
-            logger.info(
-                "Node registered: %s (%s)", msg.node_id, msg.payload.get("hostname")
-            )
-            await self._send_message(
-                f"Node registered: {msg.node_id} ({msg.payload.get('hostname')})"
-            )
+            logger.info("Node registered: %s (%s)", msg.node_id, msg.payload.get("hostname"))
+            await self._send_message(f"Node registered: {msg.node_id} ({msg.payload.get('hostname')})")
 
         elif msg.msg_type == MessageType.HEARTBEAT:
             if msg.node_id in self.nodes:
@@ -171,9 +167,7 @@ class MasterBot:
             await self._send_message(summary)
 
         elif msg.msg_type == MessageType.ERROR:
-            await self._send_message(
-                f"Error from {msg.node_id}: {msg.payload.get('error', 'unknown')}"
-            )
+            await self._send_message(f"Error from {msg.node_id}: {msg.payload.get('error', 'unknown')}")
 
     # --- Bot Commands ---
 
@@ -200,15 +194,13 @@ class MasterBot:
         if not node_id:
             await self._send_to(chat_id, "Usage: /pause <node_id>")
             return
-        await self._send_command_to_node(
-            node_id, CommandType.STOP, {"graceful": True}, chat_id
-        )
+        await self._send_command_to_node(node_id, CommandType.STOP, {"graceful": True}, chat_id)
 
     async def _cmd_stats(self, chat_id: str, args: str):
         """Show global stats from master API."""
         try:
             async with httpx.AsyncClient(timeout=5) as client:
-                resp = await client.get("http://localhost:8420/api/stats")
+                resp = await client.get("http://localhost:8420/api/stats", headers=_master_headers())
                 if resp.status_code == 200:
                     data = resp.json()
                     text = f"""Global Stats:
@@ -253,9 +245,7 @@ After install, the node auto-registers with master and starts scanning."""
             uptime = self._format_uptime(node.uptime_sec)
             lines.append(f"  {status} {node_id} — {node.hostname} ({node.ip})")
             lines.append(f"     Scans: {node.scan_count} | Uptime: {uptime}")
-            lines.append(
-                f"     Mem: {node.memory_mb:.0f}MB | CPU: {node.cpu_percent:.1f}%"
-            )
+            lines.append(f"     Mem: {node.memory_mb:.0f}MB | CPU: {node.cpu_percent:.1f}%")
         await self._send_to(chat_id, "\n".join(lines))
 
     async def _cmd_status(self, chat_id: str, args: str):
@@ -329,9 +319,7 @@ After install, the node auto-registers with master and starts scanning."""
 
     # --- Helpers ---
 
-    async def _send_command_to_node(
-        self, node_id: str, command: CommandType, payload: dict, chat_id: str
-    ):
+    async def _send_command_to_node(self, node_id: str, command: CommandType, payload: dict, chat_id: str):
         """Send command to a node via HTTP API command queue."""
         if node_id not in self.nodes:
             await self._send_to(chat_id, f"Node '{node_id}' not found.")
@@ -346,15 +334,12 @@ After install, the node auto-registers with master and starts scanning."""
                         "command": command.value,
                         "payload": payload,
                     },
+                    headers=_master_headers(),
                 )
                 if resp.status_code == 200:
-                    await self._send_to(
-                        chat_id, f"Command '{command.value}' queued for {node_id}"
-                    )
+                    await self._send_to(chat_id, f"Command '{command.value}' queued for {node_id}")
                 else:
-                    await self._send_to(
-                        chat_id, f"Failed to queue command: {resp.text}"
-                    )
+                    await self._send_to(chat_id, f"Failed to queue command: {resp.text}")
         except Exception as exc:
             await self._send_to(chat_id, f"Error: {exc}")
 

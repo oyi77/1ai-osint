@@ -18,6 +18,15 @@ from src.core.rbac import AccessTier, tier_allows
 from src.core.tos_guard import reset_guard, tos_allows
 
 
+@pytest.fixture(autouse=True)
+def _isolate_rate_limit_file(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Point the ToS guard at a temp state file so these tests never read
+    or write the developer's real rate-limit state."""
+    from src.core.config import settings as core_settings
+
+    monkeypatch.setattr(core_settings, "rate_limit_file", str(tmp_path / "rate_limit.json"))
+
+
 class TestAccessTier:
     """Tier ordering and parsing."""
 
@@ -128,9 +137,10 @@ class TestToSGuard:
         assert allowed >= 1  # but the first few calls are allowed
 
     def test_high_rpm_source_allows_more(self) -> None:
-        # Public sources default to 60 rpm with burst 15 — a short burst of
-        # 10 calls always passes.
-        assert all(tos_allows("hibp") for _ in range(10))
+        # hibp is capped at 30 rpm (burst 7) — a short burst of 5 passes.
+        assert all(tos_allows("hibp") for _ in range(5))
+        # abuseipdb is capped at 120 rpm (burst 30) — 10 calls always pass.
+        assert all(tos_allows("abuseipdb") for _ in range(10))
 
     def test_reset_restores_capacity(self) -> None:
         for _ in range(50):

@@ -5,6 +5,8 @@ import './index.css';
 // Mock types
 type ScanStatus = 'idle' | 'pending' | 'running' | 'completed' | 'failed';
 
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000').replace(/\/+$/, '');
+
 interface Finding {
   id: string;
   module: string;
@@ -33,12 +35,15 @@ function App() {
     setResult(null);
 
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/scan', {
+      const res = await fetch(`${API_BASE}/api/scan`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ target, fast: true, max_iterations: 3 })
       });
       const data = await res.json();
+      if (!res.ok || !data.job_id) {
+        throw new Error(typeof data.detail === 'string' ? data.detail : 'Scan request failed');
+      }
       setJobId(data.job_id);
       setStatus('running');
     } catch (err) {
@@ -49,13 +54,16 @@ function App() {
 
   useEffect(() => {
     let interval: number;
-    
+
     if (status === 'running' && jobId) {
       interval = setInterval(async () => {
         try {
-          const res = await fetch(`http://127.0.0.1:8000/api/scan/${jobId}`);
+          const res = await fetch(`${API_BASE}/api/scan/${jobId}`);
+          if (!res.ok) {
+            throw new Error(`Poll failed: ${res.status}`);
+          }
           const data = await res.json();
-          
+
           if (data.status === 'completed') {
             setStatus('completed');
             setResult(data.result);
@@ -65,6 +73,7 @@ function App() {
             clearInterval(interval);
           }
         } catch (err) {
+          // transient poll failures just log; loop keeps going
           console.error(err);
         }
       }, 2000) as unknown as number;
@@ -92,8 +101,8 @@ function App() {
             onChange={(e) => setTarget(e.target.value)}
             disabled={status === 'running' || status === 'pending'}
           />
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             className="glass-button"
             disabled={status === 'running' || status === 'pending'}
           >
@@ -120,7 +129,7 @@ function App() {
         <main className="dashboard-grid">
           {/* Left Column: Stats & Graph */}
           <div className="dashboard-col" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            
+
             <div className="dashboard-card glass-panel">
               <div className="card-header">
                 <h3 className="card-title">
@@ -158,7 +167,7 @@ function App() {
               <h3 className="card-title">OSINT Findings</h3>
               <span className="badge badge-info">{result.findings.length} Discovered</span>
             </div>
-            
+
             <div className="findings-list">
               {result.findings.map((f, i) => (
                 <div key={i} className="finding-item">
@@ -170,7 +179,7 @@ function App() {
                   </div>
                   <div className="finding-module">{f.module.toUpperCase()}</div>
                   {f.description && <p className="finding-desc">{f.description}</p>}
-                  
+
                   {f.raw_data?.url && (
                     <a href={f.raw_data.url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', color: 'var(--accent-primary)', textDecoration: 'none', marginTop: '4px' }}>
                       <ExternalLink size={14} /> Open Link

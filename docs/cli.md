@@ -16,7 +16,7 @@ Provided by the app callback (`@app.callback(invoke_without_command=True)` in
 | Option | Default | Description |
 | --- | --- | --- |
 | `--log-format` | `text` | Log format: `text` or `json`. |
-| `--log-level` | — | Log level: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`. |
+| `--log-level` | `INFO` | Log level: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`. |
 
 ## Command reference
 
@@ -62,7 +62,7 @@ Run an OSINT scan against a target.
 | `--zkit` | off | Enable ZKIT identity tracking. |
 | `--zkit-salt` | — | ZKIT salt for privacy-preserving identity hashing. |
 | `--timeout` | `300` | Scan timeout in seconds. |
-| `--scan-mode` | auto | Crypto-balance mode: `random`, `targeted`, `leak`, or `smart`. |
+| `--scan-mode` | — | Crypto-balance mode: `random`, `targeted`, `leak`, or `smart` (auto-detected if omitted). |
 | `--workers` | `20` | Concurrent workers for random scan. |
 | `--duration` | `0` | Duration in seconds for random scan (0 = use iterations). |
 | `--account-count` | `1` | Accounts to derive per chain. |

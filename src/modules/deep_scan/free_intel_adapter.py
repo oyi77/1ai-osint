@@ -26,7 +26,7 @@ async def _run_social_dorks_intel(target: str) -> ScanResult | None:
     try:
         result = await scanner.search(target)
     except Exception as exc:
-        logger.debug("social_dorks_intel search failed: %s", exc)
+        logger.warning("social_dorks_intel search failed: %s", exc)
         return None
 
     if not result.results:
@@ -75,7 +75,7 @@ async def _run_gravatar_intel(target: str) -> ScanResult | None:
     try:
         profile = await scanner.lookup(target)
     except Exception as exc:
-        logger.debug("gravatar_intel lookup failed: %s", exc)
+        logger.warning("gravatar_intel lookup failed: %s", exc)
         return None
 
     if not profile:
@@ -141,7 +141,7 @@ async def _run_wayback_intel(target: str) -> ScanResult | None:
     try:
         snapshots = await scanner.find_snapshots(target, limit=10)
     except Exception as exc:
-        logger.debug("wayback_intel find_snapshots failed: %s", exc)
+        logger.warning("wayback_intel find_snapshots failed: %s", exc)
         return None
 
     if not snapshots:
@@ -184,7 +184,7 @@ async def _run_github_intel(target: str) -> ScanResult | None:
     try:
         profile = await scanner.extract(target)
     except Exception as exc:
-        logger.debug("github_intel extract failed: %s", exc)
+        logger.warning("github_intel extract failed: %s", exc)
         return None
 
     if not profile:
@@ -269,7 +269,7 @@ async def _run_google_dork_intel(target: str) -> ScanResult | None:
     try:
         result = await scanner.search(target)
     except Exception as exc:
-        logger.debug("google_dork_intel search failed: %s", exc)
+        logger.warning("google_dork_intel search failed: %s", exc)
         return None
 
     if not result or not result.snippets:
@@ -382,7 +382,7 @@ async def _run_hibp_free(target: str) -> ScanResult | None:
     try:
         breaches = await scanner.check_email(target)
     except Exception as exc:
-        logger.debug("hibp_free check_email failed: %s", exc)
+        logger.warning("hibp_free check_email failed: %s", exc)
         return None
 
     if not breaches:
@@ -428,7 +428,7 @@ async def _run_bts_intel(target: str) -> ScanResult | None:
     try:
         phone_info = await scanner.analyze_phone(target)
     except Exception as exc:
-        logger.debug("bts_intel analyze_phone failed: %s", exc)
+        logger.warning("bts_intel analyze_phone failed: %s", exc)
         return None
 
     if not phone_info:
@@ -479,7 +479,7 @@ async def _run_pddikti_intel(target: str) -> ScanResult | None:
     try:
         records = await scanner.search(target)
     except Exception as exc:
-        logger.debug("pddikti_intel search failed: %s", exc)
+        logger.warning("pddikti_intel search failed: %s", exc)
         return None
 
     if not records:
@@ -523,7 +523,7 @@ async def _run_pandi_whois_intel(target: str) -> ScanResult | None:
     try:
         record = await scanner.lookup(target)
     except Exception as exc:
-        logger.debug("pandi_whois_intel lookup failed: %s", exc)
+        logger.warning("pandi_whois_intel lookup failed: %s", exc)
         return None
 
     if record is None:
@@ -589,7 +589,7 @@ async def _run_data_go_id_intel(target: str) -> ScanResult | None:
     try:
         datasets = await scanner.search_datasets(target)
     except Exception as exc:
-        logger.debug("data_go_id_intel search failed: %s", exc)
+        logger.warning("data_go_id_intel search failed: %s", exc)
         return None
 
     if not datasets:
@@ -629,7 +629,7 @@ async def _run_tech_jobs_intel(target: str) -> ScanResult | None:
     try:
         profiles = await scanner.search(target)
     except Exception as exc:
-        logger.debug("tech_jobs_intel search failed: %s", exc)
+        logger.warning("tech_jobs_intel search failed: %s", exc)
         return None
 
     if not profiles:
@@ -675,7 +675,7 @@ async def _run_whatsapp_check(target: str) -> ScanResult | None:
     try:
         registered = await scanner.check_whatsapp(target)
     except Exception as exc:
-        logger.debug("whatsapp_check failed: %s", exc)
+        logger.warning("whatsapp_check failed: %s", exc)
         return None
 
     if registered is None:
@@ -712,7 +712,7 @@ async def _run_telegram_check(target: str) -> ScanResult | None:
     try:
         exists = await scanner.check_telegram(target)
     except Exception as exc:
-        logger.debug("telegram_check failed: %s", exc)
+        logger.warning("telegram_check failed: %s", exc)
         return None
 
     if exists is None:
