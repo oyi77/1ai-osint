@@ -362,9 +362,9 @@
 
 #### 5.1 Plugin/Extension System
 
-- [~] Module plugin API: `PluginRegistry().discover()` scans `src.plugins` + `1ai_osint.plugins` entry points (verified `src/plugin/registry.py`), but pyproject.toml declares no entry-point group and no third-party pip package is registered — publishable, unproven
-- [ ] Module registry: no `install` subcommand exists — `osint install socmint-twitter-pro` is NOT implemented (CLI surface: version/doctor/modules/plugins/web/leak_finder/sweep/resolve/monitor/node/master/scan/deep_scan/report/report_from_file/zkit-deep-scan)
-- [ ] Hook system: `HookDispatcher` exists (`src/plugin/hooks.py`) but is never wired into the scan lifecycle — zero `dispatcher.dispatch()` calls in `deep_scan/engine.py`/`scan_commands.py`, so hooks never fire during scans (verified audit §16)
+- [x] Module plugin API: `PluginRegistry().discover()` scans `src.plugins` + `1ai_osint.plugins` entry points (verified `src/plugin/registry.py`); pyproject.toml now declares the `[project.entry-points."1ai_osint.plugins"]` group so third-party pip packages register automatically
+- [x] Module registry: `osint install <package>` subcommand implemented — pip-installs a plugin package and re-discovers entry points (`src/cli/commands/config_commands.py::install`)
+- [x] Hook system: `HookDispatcher` wired into the scan lifecycle — `deep_scan/engine.py` fires `on_scan_start` / `on_scan_end` / `on_error` (error-isolated); built-in `ExamplePlugin` in `src/plugins/` now fires on every deep scan
 
 #### 5.2 Web UI (Optional but High Value)
 
@@ -528,6 +528,12 @@ class MyModule(BaseModule):
 - [x] Jurisdiction warning: alert if operation may violate local laws
 - [x] Audit log export for legal proceedings (tamper-evident)
 - [x] PII handling policy: no long-term storage of personal data beyond investigation scope
+- [x] **Compliance layer (blueprint Phase 0)**: legal-basis registry (78 sources incl. govt open-data), central JSONL audit log at the adapter layer, consent gate for Pasal 4.2 categories, 30-day retention purge — see [compliance.md](compliance.md)
+- [x] **MCP bridge (blueprint Phase 1 S3)**: `src/mcp_bridge/server.py` — FastMCP server exposing search / list_sources / source_compliance to any MCP client
+- [x] **Thin agent loop (blueprint Phase 1 S4)**: `deep_scan/agent_loop.py` — rule-based planner + alternate-source fallback on rate-limit/error; 6.22x vs naive batch (`scripts/benchmark_agent_vs_batch.py`)
+- [x] **Open-government adapters (blueprint Phase 2 S5)**: PANDI RDAP + data.go.id (Satu Data Indonesia) with `government_open_data` legal basis
+- [x] **RBAC per user tier (blueprint Layer 3)**: `src/core/rbac.py` — AccessTier (readonly/analyst/admin), token→tier resolution (`WEB_AUTH_TOKENS="tier:token,..."`, legacy `WEB_AUTH_TOKEN` = admin), per-source `min_tier` gate enforced in `run_source_scan` + `run_free_intel_scan` + MCP `search(requester_tier=...)`; web auth middleware resolves tier into `scope["auth_tier"]` (`/api/auth/tier`)
+- [x] **ToS guard per source (blueprint Layer 3)**: `src/core/tos_guard.py` — per-source `requests_per_minute` ceiling from the compliance registry (breach DBs capped at 10 rpm), enforced before every external query; over-limit calls are throttled and recorded as `outcome="throttled"` in the audit trail
 
 ---
 

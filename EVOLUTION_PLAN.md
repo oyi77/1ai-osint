@@ -162,7 +162,7 @@
 
 ### 11. Add Documentation Site
 
-**Ground truth:** REPO contains comprehensive docs (`CODEBASE.md`, `README.md`, `docs/ROADMAP.md`) but no hosted documentation site. The ROADMAP mentions platform maturity but not docs publishing.
+**Ground truth:** REPO contains comprehensive docs (`CODEBASE.md`, `README.md`, `docs/roadmap.md`) and a hosted documentation site — `mkdocs.yml` builds `site/`, deployed to GitHub Pages by `.github/workflows/pages.yml` (https://oyi77.github.io/1ai-osint/). The ROADMAP mentions platform maturity but not docs publishing.
 
 **Action:**
 - Add `mkdocs` or `sphinx` configuration

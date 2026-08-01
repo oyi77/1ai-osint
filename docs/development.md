@@ -12,7 +12,7 @@ Guidelines for contributing to 1ai-osint, grounded in the repository's
   phone_finder, identity_tracking, social_osint, vuln_scanner, vendor)
 - `src/vendor/` — vendored third-party integrations (e.g. chiasmodon)
 - `src/web/` — Web UI dashboard (FastAPI, `src/web/app.py`, `src/web/main.py`)
-- `docs/` — project documentation (this site, ROADMAP.md, INTEL_STANDARD.md,
+- `docs/` — project documentation (this site, roadmap.md, INTEL_STANDARD.md,
   ZKIT_PROTOCOL.md, benchmark reports)
 - `tests/` — unit test suite
 

@@ -100,7 +100,7 @@ uv run pre-commit install
 - **0 ruff errors** — with `--fix`
 - **AGI-friendly** — see [AGENTS.md](AGENTS.md) for our AI coding conventions
 
-See [docs/ROADMAP.md](docs/ROADMAP.md) for the full improvement plan to 10/10.
+See [docs/roadmap.md](docs/roadmap.md) for the full improvement plan to 10/10.
 
 Full documentation: [https://oyi77.github.io/1ai-osint/](https://oyi77.github.io/1ai-osint/)
 

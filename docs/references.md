@@ -94,7 +94,7 @@ In-repo reference documents:
 - `docs/INTEL_STANDARD.md` — intelligence collection standard (referenced by
   `deep-scan --profile`)
 - `docs/ZKIT_PROTOCOL.md` — Zero Knowledge Identity Tracking protocol
-- `docs/ROADMAP.md` — project master plan (mirrored as [Roadmap](roadmap.md))
+- `docs/roadmap.md` — project master plan (see [Roadmap](roadmap.md))
 - `docs/RESEARCH_PAPER.md`, `docs/PAPER.md`, `docs/RESEARCH.md` — background research
 - `docs/BENCHMARK.md`, `docs/BENCHMARK_RESULTS.md` — benchmark methodology and results
 - `docs/SDD.md` — software design document
