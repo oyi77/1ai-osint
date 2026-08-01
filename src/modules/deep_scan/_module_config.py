@@ -51,6 +51,11 @@ MODULE_INPUTS: dict[str, set[IdentifierType]] = {
     "mempool": {IdentifierType.CRYPTO_ADDRESS},
     "ip_api": {IdentifierType.IP},
     "pgp_keys": {IdentifierType.EMAIL},
+    "anubis": {IdentifierType.DOMAIN},
+    "bgpview": {IdentifierType.IP},
+    "certspotter": {IdentifierType.DOMAIN},
+    "rapiddns": {IdentifierType.DOMAIN},
+    "urlscan": {IdentifierType.DOMAIN},
     # Free intel modules (search engine dorking, gravatar, wayback)
     "social_dorks_intel": {IdentifierType.NAME},
     "gravatar_intel": {IdentifierType.EMAIL},
@@ -78,4 +83,9 @@ SOURCE_MODULES: set[str] = {
     "mempool",
     "ip_api",
     "pgp_keys",
+    "anubis",
+    "bgpview",
+    "certspotter",
+    "rapiddns",
+    "urlscan",
 }

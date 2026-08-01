@@ -75,6 +75,11 @@ _REGISTRY: dict[str, SourceEntry] = {
     "mempool": SourceEntry(RE),
     "ip_api": SourceEntry(RE),
     "pgp_keys": SourceEntry(RE),
+    "anubis": SourceEntry(RE),
+    "bgpview": SourceEntry(RE),
+    "certspotter": SourceEntry(RE),
+    "rapiddns": SourceEntry(RE),
+    "urlscan": SourceEntry(RE),
     # --- SCRAPE: keyless HTML / structured scraping ---
     "paste": SourceEntry(SCRAPE),
     "duckduckgo": SourceEntry(SCRAPE),

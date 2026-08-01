@@ -106,6 +106,9 @@ def _register(
 # — Public API / ToS-gated sources (blueprint §3: API resmi > scraping) —
 _PUBLIC_API_SOURCES = {
     "abuseipdb": "AbuseIPDB API — ToS-governed, API key required",
+    "anubis": "Anubis (jldc.me) subdomain index — keyless public endpoint",
+    "bgpview": "BGPView public API — open BGP/ASN data",
+    "certspotter": "Cert Spotter CT API — public certificate transparency data",
     "blockchair": "Blockchair API — public blockchain data",
     "cargo": "crates.io public registry API",
     "censys": "Censys API — paid tier, ToS-governed",
@@ -131,6 +134,7 @@ _PUBLIC_API_SOURCES = {
     "pgp_keys": "keys.openpgp.org VKS — public key directory",
     "pulsedive": "Pulsedive API — threat intel feed",
     "pypi": "PyPI JSON API",
+    "rapiddns": "RapidDNS public search — keyless subdomain lookup",
     "reddit": "Reddit via pullpush.io API",
     "rubygems": "RubyGems public API",
     "securitytrails": "SecurityTrails API — paid tier, ToS-governed",
@@ -138,6 +142,7 @@ _PUBLIC_API_SOURCES = {
     "stackoverflow": "StackExchange API — ToS-governed",
     "threatfox": "ThreatFox API (abuse.ch open feed)",
     "urlhaus": "URLhaus API (abuse.ch open feed)",
+    "urlscan": "urlscan.io public search API — keyless limited tier",
     "virustotal": "VirusTotal API — ToS-governed",
     "wayback": "Wayback Machine CDX/availability API",
     "wigle": "WiGLE API — ToS-governed; network metadata is location-sensitive",

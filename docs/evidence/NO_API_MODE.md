@@ -44,6 +44,14 @@ Reverse-engineered public endpoints, transport priority RE (0):
   leaks incl. proxy/ASN flags on `status: success`.
 - **pgp_keys** — `keys.openpgp.org` by-email SHA-1 digest lookup; emits a leak
   only when a `-----BEGIN PGP PUBLIC KEY BLOCK-----` block is returned.
+- **certspotter** — `certspotter.com/api/v0/certs` by domain (include
+  subdomains, expanded DNS names); lowercased, trailing-dot-stripped names.
+- **rapiddns** — `rapiddns.io/subdomain` HTML table by domain; keyless.
+- **anubis** — `jldc.me/anubis/subdomains` JSON subdomain index; keyless.
+- **urlscan** — `urlscan.io/api/v1/search` by `domain:` query; url/ip/asn
+  leaks, deduplicated; keyless public tier.
+- **bgpview** — `api.bgpview.io/ip/{ip}` ASN/prefix/RIR/country leaks;
+  IPv4/IPv6 only, skips non-IP input.
 
 ## Keyless-capable API sources
 
@@ -62,9 +70,9 @@ receipt, from `source_registry.no_api_metrics()`:
 
 ```json
 "transports": {
-  "total_sources": 93,
-  "keyless_capable": 79,
-  "keyless_only": 73
+  "total_sources": 98,
+  "keyless_capable": 84,
+  "keyless_only": 78
 }
 ```
 
@@ -74,5 +82,6 @@ receipt, from `source_registry.no_api_metrics()`:
 uv run pytest tests/unit/test_source_registry.py \
   tests/unit/test_shodan_internetdb.py \
   tests/unit/test_etherscan_keyless.py \
-  tests/unit/test_new_re_sources.py -q
+  tests/unit/test_new_re_sources.py \
+  tests/unit/test_breadth_re_sources.py -q
 ```
