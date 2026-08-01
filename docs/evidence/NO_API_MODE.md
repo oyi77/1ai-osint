@@ -58,15 +58,22 @@ Reverse-engineered public endpoints, transport priority RE (0):
   type/country/format leaks on `status: success` + `phone_valid`; keyless.
 - **keybase** — `keybase.io` user lookup by username; full name/bio/location/
   site/avatar leaks; keyless.
+- **huggingface** — `huggingface.co/{u}` profile lookup; HTTP 200/404
+  discriminates presence; leaks `huggingface: <u>` + `full name: X`; keyless.
+- **scratch** — `scratch.mit.edu/users/{u}/` presence leak; keyless.
+- **itchio** — `itch.io/profile/{u}`; leaks `itchio: <u>` + `profile title: X`;
+  keyless.
+- **codeforces** — `codeforces.com/api/user.info?handles={u}` JSON
+  (`status: OK`); leaks rating/rank/max-rating/registration date; keyless.
 - **whatsmyname** — keyless username presence-echo scrape (SCRAPE transport,
   not RE): queries the search page and echoes the query, so it hits almost
   always — weak signal by design; wired into deep scan as an in-process
   username source.
 
-### P4: 26 keyless sources wired into the deep scan engine
+### P4: 30 keyless sources wired into the deep scan engine
 
 `src/modules/deep_scan/_module_config.py` now wires in all keyless sources
-(`MODULE_INPUTS` 52→80, `SOURCE_MODULES` 31→57), matching the registry's
+(`MODULE_INPUTS` 52→84, `SOURCE_MODULES` 31→61), matching the registry's
 keyless set so 0-API mode and normal mode activate the same RE-first breadth:
 
 - RE/SCRAPE (keyless): threatfox, feodo, malwarebazaar, blockchair, cargo,
@@ -77,7 +84,7 @@ keyless set so 0-API mode and normal mode activate the same RE-first breadth:
 - Free-intel additions (in-process dispatch, not source modules):
   pandi_whois_intel, data_go_id_intel.
 
-0-API mode now activates **74 modules** (`DeepScanEngine(no_api=True)
+0-API mode now activates **78 modules** (`DeepScanEngine(no_api=True)
 ._get_active_modules()`), ordered RE → SCRAPE → keyless API → keyed API →
 TOOL → LOCAL.
 
@@ -117,9 +124,9 @@ receipt, from `source_registry.no_api_metrics()`:
 
 ```json
 "transports": {
-  "total_sources": 101,
-  "keyless_capable": 87,
-  "keyless_only": 81
+  "total_sources": 105,
+  "keyless_capable": 91,
+  "keyless_only": 85
 }
 ```
 
@@ -131,5 +138,6 @@ uv run pytest tests/unit/test_source_registry.py \
   tests/unit/test_etherscan_keyless.py \
   tests/unit/test_new_re_sources.py \
   tests/unit/test_breadth_re_sources.py \
-  tests/unit/test_p1_gap_sources.py -q
+  tests/unit/test_p1_gap_sources.py \
+  tests/unit/test_username_re_sources.py -q
 ```

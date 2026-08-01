@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - P4: 26 keyless sources wired into the deep scan engine module config (MODULE_INPUTS 52→80, SOURCE_MODULES 31→57): threatfox/feodo/malwarebazaar/blockchair/cargo/npm/pypi/rubygems/mastodon/reddit/stackoverflow/codeberg/social/s3/rss/twitter/telegram/paste/duckduckgo/discord/darknet/dnsdumpster (RE/SCRAPE) + etherscan/ipinfo/pulsedive/github (keyless API); free-intel additions pandi_whois_intel, data_go_id_intel; 0-API mode activates 74 modules
 - 5 new keyless RE-first sources (0-API priority): hackertarget hostsearch/reverse-IP, Google DoH DNS records, mempool.space, ip-api.com, keys.openpgp.org PGP lookup
 - 0-API mode registry now reports 101 sources / 87 keyless-capable / 81 keyless-only
+- 4 new keyless RE username sources: huggingface (profile + full-name leak), scratch (presence), itchio (profile title), codeforces (rating/rank/max-rating/registration); live probe evidence pack under `docs/evidence/live/`; registry now 105 sources / 91 keyless-capable / 85 keyless-only; 0-API mode activates 78 modules
 - AI analysis pipeline: LangGraph orchestrator with entity extraction, correlation, risk scoring
 - Behavioral profiling and anomaly detection modules
 - Continuous monitoring subsystem: watchlist, change detection, alert dispatch

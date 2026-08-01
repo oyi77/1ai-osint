@@ -83,6 +83,10 @@ _REGISTRY: dict[str, SourceEntry] = {
     "proxynova": SourceEntry(RE),
     "veriphone": SourceEntry(RE),
     "keybase": SourceEntry(RE),
+    "huggingface": SourceEntry(RE),
+    "scratch": SourceEntry(RE),
+    "itchio": SourceEntry(RE),
+    "codeforces": SourceEntry(RE),
     # --- SCRAPE: keyless HTML / structured scraping ---
     "paste": SourceEntry(SCRAPE),
     "duckduckgo": SourceEntry(SCRAPE),
