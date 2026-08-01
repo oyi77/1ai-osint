@@ -56,6 +56,9 @@ MODULE_INPUTS: dict[str, set[IdentifierType]] = {
     "certspotter": {IdentifierType.DOMAIN},
     "rapiddns": {IdentifierType.DOMAIN},
     "urlscan": {IdentifierType.DOMAIN},
+    "proxynova": {IdentifierType.EMAIL, IdentifierType.USERNAME, IdentifierType.PHONE},
+    "veriphone": {IdentifierType.PHONE},
+    "keybase": {IdentifierType.USERNAME},
     # Free intel modules (search engine dorking, gravatar, wayback)
     "social_dorks_intel": {IdentifierType.NAME},
     "gravatar_intel": {IdentifierType.EMAIL},
@@ -88,4 +91,7 @@ SOURCE_MODULES: set[str] = {
     "certspotter",
     "rapiddns",
     "urlscan",
+    "proxynova",
+    "veriphone",
+    "keybase",
 }

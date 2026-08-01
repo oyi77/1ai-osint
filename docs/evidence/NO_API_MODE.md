@@ -52,6 +52,12 @@ Reverse-engineered public endpoints, transport priority RE (0):
   leaks, deduplicated; keyless public tier.
 - **bgpview** — `api.bgpview.io/ip/{ip}` ASN/prefix/RIR/country leaks;
   IPv4/IPv6 only, skips non-IP input.
+- **proxynova** — `api.proxynova.com/combine` by email/username/phone/IP;
+  deduped `domain | line` breach/paste leaks; keyless.
+- **veriphone** — `api.veriphone.io/v2/verify` by phone; carrier/line
+  type/country/format leaks on `status: success` + `phone_valid`; keyless.
+- **keybase** — `keybase.io` user lookup by username; full name/bio/location/
+  site/avatar leaks; keyless.
 
 ## Keyless-capable API sources
 
@@ -70,9 +76,9 @@ receipt, from `source_registry.no_api_metrics()`:
 
 ```json
 "transports": {
-  "total_sources": 98,
-  "keyless_capable": 84,
-  "keyless_only": 78
+  "total_sources": 101,
+  "keyless_capable": 87,
+  "keyless_only": 81
 }
 ```
 
@@ -83,5 +89,6 @@ uv run pytest tests/unit/test_source_registry.py \
   tests/unit/test_shodan_internetdb.py \
   tests/unit/test_etherscan_keyless.py \
   tests/unit/test_new_re_sources.py \
-  tests/unit/test_breadth_re_sources.py -q
+  tests/unit/test_breadth_re_sources.py \
+  tests/unit/test_p1_gap_sources.py -q
 ```
