@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 3 new keyless RE-first sources (P1-gap closures): proxynova (breach/paste combine), veriphone (phone carrier/line-type), keybase (username profile)
 - P2: whatsmyname keyless username presence-echo scrape wired into the deep scan engine as an in-process source (weak-signal heuristic, documented)
 - P3: 11 keyless TOOL wrappers (sherlock, maigret, holehe, theharvester, subfinder, amass, bbot, nmap, httpx, phoneinfoga, h8mail) wired into the deep scan engine via the source_adapter path; absent CLI degrades to audited empty, never error
+- P4: 26 keyless sources wired into the deep scan engine module config (MODULE_INPUTS 52→80, SOURCE_MODULES 31→57): threatfox/feodo/malwarebazaar/blockchair/cargo/npm/pypi/rubygems/mastodon/reddit/stackoverflow/codeberg/social/s3/rss/twitter/telegram/paste/duckduckgo/discord/darknet/dnsdumpster (RE/SCRAPE) + etherscan/ipinfo/pulsedive/github (keyless API); free-intel additions pandi_whois_intel, data_go_id_intel; 0-API mode activates 74 modules
 - 5 new keyless RE-first sources (0-API priority): hackertarget hostsearch/reverse-IP, Google DoH DNS records, mempool.space, ip-api.com, keys.openpgp.org PGP lookup
 - 0-API mode registry now reports 101 sources / 87 keyless-capable / 81 keyless-only
 - AI analysis pipeline: LangGraph orchestrator with entity extraction, correlation, risk scoring

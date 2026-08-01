@@ -65,6 +65,15 @@ Each cell: transport kind used by 1ai-osint for that category
   TOOL counts as keyless (transport priority 4, ordered after RE/SCRAPE);
   each requires its CLI installed — absent CLI degrades to an audited empty
   result, never an error.
+- P4: 26 keyless sources wired into the deep scan engine's module config
+  (`MODULE_INPUTS` 52→80, `SOURCE_MODULES` 31→57). RE/SCRAPE transport:
+  `threatfox`, `feodo`, `malwarebazaar`, `blockchair`, `cargo`, `npm`,
+  `pypi`, `rubygems`, `mastodon`, `reddit`, `stackoverflow`, `codeberg`,
+  `social`, `s3`, `rss`, `twitter`, `telegram`, `paste`, `duckduckgo`,
+  `discord`, `darknet`, `dnsdumpster`; keyless API (key_optional):
+  `etherscan`, `ipinfo`, `pulsedive`, `github`. Free-intel additions:
+  `pandi_whois_intel`, `data_go_id_intel`. 0-API mode now activates 74
+  modules (RE precedes SCRAPE precedes keyless API).
 
 ## P1 gaps — status
 

@@ -63,6 +63,24 @@ Reverse-engineered public endpoints, transport priority RE (0):
   always — weak signal by design; wired into deep scan as an in-process
   username source.
 
+### P4: 26 keyless sources wired into the deep scan engine
+
+`src/modules/deep_scan/_module_config.py` now wires in all keyless sources
+(`MODULE_INPUTS` 52→80, `SOURCE_MODULES` 31→57), matching the registry's
+keyless set so 0-API mode and normal mode activate the same RE-first breadth:
+
+- RE/SCRAPE (keyless): threatfox, feodo, malwarebazaar, blockchair, cargo,
+  npm, pypi, rubygems, mastodon, reddit, stackoverflow, codeberg, social,
+  s3, rss, twitter, telegram, paste, duckduckgo, discord, darknet,
+  dnsdumpster.
+- Keyless API: etherscan, ipinfo, pulsedive, github.
+- Free-intel additions (in-process dispatch, not source modules):
+  pandi_whois_intel, data_go_id_intel.
+
+0-API mode now activates **74 modules** (`DeepScanEngine(no_api=True)
+._get_active_modules()`), ordered RE → SCRAPE → keyless API → keyed API →
+TOOL → LOCAL.
+
 ## Keyless TOOL adapters (require local CLI)
 
 Eleven external-tool wrappers are wired into the deep scan engine through the
