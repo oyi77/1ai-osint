@@ -20,6 +20,8 @@ def monitor(
     """Continuously monitor an identity for new connections and leaks."""
 
     async def _monitor() -> None:
+        from src.core.compliance import min_tier_for, record_audit, source_allows_tier
+        from src.core.rbac import AccessTier
         from src.modules.crypto.leak_finder.extractor import extract_keys
         from src.modules.sources import discover_sources
 
@@ -44,6 +46,11 @@ def monitor(
             for name in source_names:
                 cls = src_map.get(name)
                 if not cls:
+                    continue
+                # RBAC tier gate (Layer 3): block sources the requester may not query.
+                if not source_allows_tier(name, AccessTier.ADMIN):
+                    typer.echo(f"  [{name}] Blocked (requires tier {min_tier_for(name).name.lower()})", err=True)
+                    record_audit(source=name, target=target, requester="cli_monitor", outcome="blocked")
                     continue
                 try:
                     source = cls()

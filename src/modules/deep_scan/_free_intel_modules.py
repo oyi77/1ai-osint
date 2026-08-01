@@ -414,57 +414,6 @@ async def run_hibp_free(target: str) -> ScanResult | None:
     )
 
 
-async def run_bts_intel(target: str) -> ScanResult | None:
-    """Run BTS tower intelligence on a phone number."""
-    from src.modules.free_intel.bts_intel import BTSIntel
-
-    scanner = BTSIntel()
-    try:
-        phone_info = await scanner.analyze_phone(target)
-    except Exception as exc:
-        logger.debug("bts_intel analyze_phone failed: %s", exc)
-        return None
-
-    if not phone_info:
-        return None
-
-    findings: list[Finding] = []
-
-    if phone_info.operator:
-        findings.append(
-            Finding(
-                id=f"find-{uuid.uuid4().hex[:8]}",
-                module="free_bts",
-                title=f"Mobile operator: {phone_info.operator}",
-                description=f"Phone {target} identified as {phone_info.operator} (MCC={phone_info.mcc}, MNC={phone_info.mnc})",
-                severity=Severity.INFO,
-                raw_data={
-                    "phone": target,
-                    "operator": phone_info.operator,
-                    "mnc": phone_info.mnc,
-                    "mcc": phone_info.mcc,
-                    "country": phone_info.country,
-                },
-                confidence=0.7,
-                tags=["phone", "operator", "bts"],
-            )
-        )
-
-    if not findings:
-        return None
-
-    return ScanResult(
-        scan_id=f"free-bts-{uuid.uuid4().hex[:8]}",
-        module="free_bts",
-        target=target,
-        status="ok",
-        findings=findings,
-        metadata={
-            "operator": phone_info.operator,
-        },
-    )
-
-
 async def run_pddikti_intel(target: str) -> ScanResult | None:
     """Run PDDIKTI Indonesian student database search on a name."""
     from src.modules.free_intel.pddikti_intel import PDDIKTIIntel

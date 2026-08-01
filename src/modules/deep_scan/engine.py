@@ -15,6 +15,7 @@ from typing import Any
 
 from src.core.config import settings
 from src.core.models import Finding, ScanResult, Severity
+from src.core.rbac import AccessTier
 from src.modules.deep_scan import (
     DeepScanResult,
     Identifier,
@@ -26,6 +27,7 @@ from src.modules.deep_scan._module_config import (
 )
 from src.modules.deep_scan.deep_scraper import DeepScraperEngine
 from src.modules.deep_scan.extractor import (
+    _is_valid_nik,
     extract_identifiers,
     extract_usernames_from_profiles,
     username_from_profile_url,
@@ -72,6 +74,7 @@ class DeepScanEngine:
         budget: float = 5.0,
         max_targets_per_iteration: int = 25,
         profile_config: Any = None,
+        requester_tier: AccessTier = AccessTier.ADMIN,
     ):
         if profile_config is not None:
             # Profile supplies the defaults; explicit caller values are honored
@@ -121,6 +124,7 @@ class DeepScanEngine:
         self.max_pivot_handles = max_pivot_handles
         self.budget = budget
         self.max_targets_per_iteration = max_targets_per_iteration
+        self.requester_tier = requester_tier
         self._sem = asyncio.Semaphore(max_concurrency)
         self._scanned_pairs: set[tuple[str, str]] = set()
 
@@ -555,20 +559,30 @@ class DeepScanEngine:
         mod_name: str,
         target: str,
         result: DeepScanResult,
+        *,
+        retry_none: bool = True,
     ) -> None:
         """Run a module scan through a common sem/timeout/retry/error pattern.
 
         ``scan_factory`` returns a fresh coroutine per attempt so retries are
-        possible. Transient failures (timeout, connection errors, HTTP 429)
-        and None results retry up to 3 times with exponential backoff; a pair
+        possible. Transient failures (timeout, connection errors, HTTP 429) and None
+        results retry up to 3 times with exponential backoff; a pair
         that still fails is dropped and marked so it is not re-proposed in
         later iterations. Permanent failures are logged, recorded and marked
         once.
+
+        ``retry_none`` controls whether a ``None`` result is treated as a
+        transient failure to retry or as a definitive empty answer. Source
+        adapters and free-intel modules already return None as a stable
+        terminal state (their adapters decide what counts as empty), so they
+        pass ``retry_none=False`` — an empty result is recorded and the pair
+        is never re-proposed, without polluting the error list.
         """
 
         def _is_transient(exc: BaseException) -> bool:
             if isinstance(exc, (asyncio.TimeoutError, ConnectionError, TimeoutError)):
                 return True
+            # HTTP 429 (rate limit) is transient by nature — docstring below.
             return getattr(exc, "status", None) == 429
 
         for attempt in range(1, 4):
@@ -579,6 +593,12 @@ class DeepScanEngine:
                         timeout=self.timeout_per_module,
                     )
                 if scan_result is None:
+                    if not retry_none:
+                        # Definitive empty — mark once so later iterations do
+                        # not re-propose the pair; no error is recorded.
+                        logger.debug("Module %s on %s returned empty (definitive)", error_prefix, target)
+                        self._mark_scanned(mod_name, target)
+                        return
                     if attempt < 3:
                         logger.warning(
                             "No result for %s on %s (attempt %d/3)",
@@ -662,11 +682,18 @@ class DeepScanEngine:
     ) -> None:
         """Run a breach/leak source via the source adapter."""
         await self._run_module_scan(
-            lambda: run_source_scan(source_name, target, source_inst, requester="deep_scan_engine"),
+            lambda: run_source_scan(
+                source_name,
+                target,
+                source_inst,
+                requester="deep_scan_engine",
+                requester_tier=self.requester_tier,
+            ),
             f"source_{source_name}",
             source_name,
             target,
             result,
+            retry_none=False,
         )
 
     async def _scan_free_intel_module(
@@ -677,11 +704,14 @@ class DeepScanEngine:
     ) -> None:
         """Run a free intel module via the free_intel_adapter."""
         await self._run_module_scan(
-            lambda: run_free_intel_scan(mod_name, target),
+            lambda: run_free_intel_scan(
+                mod_name, target, requester="deep_scan_engine", requester_tier=self.requester_tier
+            ),
             f"free_{mod_name}",
             mod_name,
             target,
             result,
+            retry_none=False,
         )
 
     def _get_new_targets(self, result: DeepScanResult, seen: set[str]) -> set[str]:
@@ -751,8 +781,9 @@ class DeepScanEngine:
         """Return whether this module+target pair still needs scanning.
 
         Pure check — marking happens in ``_run_module_scan`` once the scan
-        succeeds, so transient failures are retried next iteration instead of
-        being permanently skipped.
+        succeeds or fails permanently; transient failures are retried within
+        ``_run_module_scan``'s bounded retry loop instead of being re-proposed
+        in later iterations.
         """
         key = (mod_name, target.strip().lower())
         return key not in self._scanned_pairs
@@ -872,8 +903,8 @@ class DeepScanEngine:
         if re.match(r"^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z]{2,})+$", value):
             return Identifier(value=value.lower(), id_type=IdentifierType.DOMAIN, source=source)
 
-        # NIK (16 digits)
-        if re.match(r"^\d{16}$", value):
+        # NIK (16 digits, structurally valid province/city digits)
+        if re.match(r"^\d{16}$", value) and _is_valid_nik(value):
             return Identifier(value=value, id_type=IdentifierType.NIK, source=source)
 
         # Default to username

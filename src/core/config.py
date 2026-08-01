@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     # Breach / Leak data sources
     hibp_api_key: str = ""
     shodan_api_key: str = ""
+    censys_api_key: str = ""
     virustotal_api_key: str = ""
     abuseipdb_api_key: str = ""
     whoisxml_api_key: str = ""

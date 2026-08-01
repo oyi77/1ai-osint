@@ -190,3 +190,22 @@ async def test_run_job_returns_valid_identity_graph():
     assert len(graph["edges"]) == 1
     assert graph["edges"][0]["source_id"] == "node1"
     assert graph["edges"][0]["target_id"] == "node2"
+
+
+def test_create_scan_threads_requester_tier():
+    from src.core.rbac import AccessTier
+
+    client = TestClient(app)
+    with patch("src.api.app._run_job", new_callable=AsyncMock) as mock_run:
+        resp = client.post("/v1/scan", json={"target": "fixture", "profile": "fast"})
+    assert resp.status_code == 200
+    mock_run.assert_awaited()
+    # Plain TestClient scope has no auth_tier → ADMIN fallback must be
+    # threaded through to the engine (Batch K RBAC hardening).
+    # Compare by value, not identity: test_rbac_tos.py reloads src.core.rbac
+    # (importlib.reload for env-var override tests), which creates a *new*
+    # AccessTier class in sys.modules while src.api.app still holds the old
+    # one — cross-class `is` fails even though both are the ADMIN tier.
+    tier = mock_run.await_args.kwargs["requester_tier"]
+    assert tier == AccessTier.ADMIN
+    assert int(tier) == int(AccessTier.ADMIN)  # 30 — ADMIN

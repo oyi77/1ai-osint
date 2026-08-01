@@ -1016,3 +1016,87 @@ class TestDeepScanEngineExtended:
         usernames = [i for i in ids if i.id_type == IdentifierType.USERNAME]
         assert len(usernames) == 1
         assert usernames[0].value == "fikriizzuddin"
+
+
+class TestDeepScanEngineTierAndRetry:
+    """Batch K: requester-tier threading, retry_none, and NIK checksum gating."""
+
+    def _make_engine(self, **kw):
+        from src.modules.deep_scan.engine import DeepScanEngine
+
+        defaults = dict(max_iterations=1, max_identifiers=50, timeout_per_module=5)
+        defaults.update(kw)
+        return DeepScanEngine(**defaults)
+
+    def test_default_requester_tier_is_admin(self):
+        from src.core.rbac import AccessTier
+
+        assert self._make_engine().requester_tier is AccessTier.ADMIN
+
+    def test_requester_tier_kwarg_is_honored(self):
+        from src.core.rbac import AccessTier
+
+        engine = self._make_engine(requester_tier=AccessTier.READONLY)
+        assert engine.requester_tier is AccessTier.READONLY
+
+    @pytest.mark.asyncio
+    async def test_run_module_scan_retry_none_false_single_attempt(self):
+        engine = self._make_engine()
+        result = DeepScanResult(target="t", started_at=datetime.now(timezone.utc))
+        calls = {"n": 0}
+
+        async def none_scan(*_a, **_kw):
+            calls["n"] += 1
+            return None
+
+        await engine._run_module_scan(none_scan, "test_mod", "test_mod", "target", result, retry_none=False)
+        assert calls["n"] == 1
+        assert result.errors == []
+        assert engine._should_scan("test_mod", "target") is False
+
+    @pytest.mark.asyncio
+    async def test_source_adapter_threads_requester_tier(self):
+        from src.core.rbac import AccessTier
+
+        engine = self._make_engine(requester_tier=AccessTier.READONLY)
+        result = DeepScanResult(target="t", started_at=datetime.now(timezone.utc))
+        with patch(
+            "src.modules.deep_scan.engine.run_source_scan",
+            new_callable=AsyncMock,
+            return_value=None,
+        ) as mock_rs:
+            await engine._scan_source_adapter("dehashed", object(), "victim@example.com", result)
+        assert mock_rs.await_args.kwargs["requester_tier"] is AccessTier.READONLY
+        assert mock_rs.await_args.kwargs["requester"] == "deep_scan_engine"
+
+    @pytest.mark.asyncio
+    async def test_free_intel_module_threads_requester_tier(self):
+        from src.core.rbac import AccessTier
+
+        engine = self._make_engine(requester_tier=AccessTier.ANALYST)
+        result = DeepScanResult(target="t", started_at=datetime.now(timezone.utc))
+        with patch(
+            "src.modules.deep_scan.engine.run_free_intel_scan",
+            new_callable=AsyncMock,
+            return_value=None,
+        ) as mock_fi:
+            await engine._scan_free_intel_module("pddikti_intel", "target", result)
+        assert mock_fi.await_args.kwargs["requester_tier"] is AccessTier.ANALYST
+        assert mock_fi.await_args.kwargs["requester"] == "deep_scan_engine"
+
+    def test_invalid_nik_checksum_not_classified_as_nik(self):
+        from src.modules.deep_scan.engine import DeepScanEngine
+
+        ident = DeepScanEngine._detect_identifier("0012150606950001", "test")
+        assert ident is not None
+        # Province "00" is structurally invalid (must be 11-99) → never a NIK.
+        assert ident.id_type is not IdentifierType.NIK
+        # Digit-safe username pattern catches it, not NAME.
+        assert ident.id_type is IdentifierType.USERNAME
+
+    def test_valid_nik_classified_as_nik(self):
+        from src.modules.deep_scan.engine import DeepScanEngine
+
+        ident = DeepScanEngine._detect_identifier("3502024606950001", "test")
+        assert ident is not None
+        assert ident.id_type is IdentifierType.NIK

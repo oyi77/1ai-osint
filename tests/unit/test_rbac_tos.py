@@ -11,6 +11,8 @@ Run with: python -m pytest tests/unit/test_rbac_tos.py -v --tb=short
 
 from __future__ import annotations
 
+from unittest.mock import AsyncMock, patch
+
 import pytest
 
 from src.core.compliance import min_tier_for, source_allows_tier
@@ -193,11 +195,21 @@ class TestAdapterGates:
         # pddikti_intel is READONLY tier with 60 rpm default — a loop of 200
         # calls must eventually hit the ToS ceiling and return None
         # (throttled) without raising.
+        #
+        # The handler performs a real HTTP lookup, so mock the PDDIKTIIntel
+        # client (repo convention: never call real endpoints in tests) —
+        # the ToS ceiling is enforced *before* the handler runs, so this
+        # still exercises throttling without network access.
         blocked = 0
-        for _ in range(200):
-            result = await run_free_intel_scan("pddikti_intel", "joko", requester="test")
-            if result is None:
-                blocked += 1
+        with patch(
+            "src.modules.free_intel.pddikti_intel.PDDIKTIIntel.search",
+            new_callable=AsyncMock,
+            return_value=[],
+        ):
+            for _ in range(200):
+                result = await run_free_intel_scan("pddikti_intel", "joko", requester="test")
+                if result is None:
+                    blocked += 1
         assert blocked > 0  # throttling kicked in
 
     async def test_audit_trail_records_throttle(self, tmp_path) -> None:
@@ -222,3 +234,87 @@ class TestAdapterGates:
             assert entries[0]["source"] == "dehashed"
         finally:
             compliance.settings.audit_log_path = original
+
+
+class TestAnalystTierSources:
+    """Batch K: shodan/censys hardened from READONLY to ANALYST."""
+
+    def test_shodan_and_censys_require_analyst(self) -> None:
+        assert min_tier_for("shodan") is AccessTier.ANALYST
+        assert min_tier_for("censys") is AccessTier.ANALYST
+
+    def test_analyst_tier_gate(self) -> None:
+        assert not source_allows_tier("shodan", AccessTier.READONLY)
+        assert not source_allows_tier("censys", AccessTier.READONLY)
+        assert source_allows_tier("shodan", AccessTier.ANALYST)
+        assert source_allows_tier("censys", AccessTier.ANALYST)
+        assert source_allows_tier("censys", AccessTier.ADMIN)
+
+
+class TestFreeIntelAuditTrail:
+    """Batch K: free-intel scans record ok/empty outcomes in the audit trail."""
+
+    async def _run_and_read_audit(self, tmp_path, handler) -> list[dict]:
+        from src.core import compliance
+        from src.modules.deep_scan.free_intel_adapter import (
+            _FREE_INTEL_DISPATCH,
+            run_free_intel_scan,
+        )
+
+        original = compliance.settings.audit_log_path
+        compliance.settings.audit_log_path = str(tmp_path / "audit.jsonl")
+        try:
+            with patch.dict(
+                _FREE_INTEL_DISPATCH,
+                {"audit_test_mod": ("label", "target_type", handler)},
+            ):
+                await run_free_intel_scan("audit_test_mod", "victim", requester="test")
+            return compliance.read_audit_entries(limit=1000)
+        finally:
+            compliance.settings.audit_log_path = original
+
+    async def test_empty_handler_records_empty_outcome(self, tmp_path) -> None:
+        async def empty_handler(target):  # pragma: no cover
+            return None
+
+        entries = await self._run_and_read_audit(tmp_path, empty_handler)
+        assert entries
+        assert entries[0]["outcome"] == "empty"
+        assert entries[0]["source"] == "audit_test_mod"
+        assert entries[0]["requester"] == "test"
+
+    async def test_ok_handler_records_findings_count(self, tmp_path) -> None:
+        from src.core.models import Finding, ScanResult, Severity
+
+        async def ok_handler(target):  # pragma: no cover
+            return ScanResult(
+                scan_id="s",
+                module="audit_test_mod",
+                target=target,
+                status="ok",
+                findings=[
+                    Finding(
+                        id="f1",
+                        module="audit_test_mod",
+                        title="hit",
+                        description="d",
+                        severity=Severity.INFO,
+                    )
+                ],
+            )
+
+        entries = await self._run_and_read_audit(tmp_path, ok_handler)
+        assert entries
+        assert entries[0]["outcome"] == "ok"
+        assert entries[0]["source"] == "audit_test_mod"
+        assert entries[0]["findings_count"] == 1
+
+    async def test_error_handler_records_error_outcome(self, tmp_path) -> None:
+        async def error_handler(target):  # pragma: no cover
+            raise RuntimeError("boom")
+
+        entries = await self._run_and_read_audit(tmp_path, error_handler)
+        assert entries
+        assert entries[0]["outcome"] == "error"
+        assert entries[0]["source"] == "audit_test_mod"
+        assert entries[0]["requester"] == "test"

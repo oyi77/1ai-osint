@@ -870,7 +870,36 @@ async def run_free_intel_scan(
 
     label, _, handler = entry
     logger.debug("Running free intel %s on '%s'", label, target)
-    return await handler(target)
+    try:
+        scan_result = await handler(target)
+    except Exception as exc:
+        logger.warning("Free intel %s error for '%s': %s", label, target, exc)
+        record_audit(
+            source=module_name,
+            target=target,
+            requester=requester,
+            outcome="error",
+            legal_basis=get_compliance(module_name).legal_basis.value,
+        )
+        return None
+    if scan_result is None:
+        record_audit(
+            source=module_name,
+            target=target,
+            requester=requester,
+            outcome="empty",
+            legal_basis=get_compliance(module_name).legal_basis.value,
+        )
+    else:
+        record_audit(
+            source=module_name,
+            target=target,
+            requester=requester,
+            outcome="ok",
+            findings_count=len(scan_result.findings),
+            legal_basis=get_compliance(module_name).legal_basis.value,
+        )
+    return scan_result
 
 
 def list_free_intel_modules() -> list[str]:

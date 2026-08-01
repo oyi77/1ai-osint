@@ -23,7 +23,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
@@ -31,6 +31,7 @@ from pydantic import BaseModel, Field
 load_dotenv()
 
 from src.core.config import settings  # noqa: E402
+from src.core.rbac import AccessTier  # noqa: E402
 from src.core.ssrf_guard import validate_scan_target  # noqa: E402
 
 logger = logging.getLogger(__name__)
@@ -218,11 +219,12 @@ def list_jobs() -> list[dict[str, Any]]:
 
 
 @app.post("/v1/scan", response_model=ScanResponse)
-async def create_scan(req: ScanRequest) -> ScanResponse:
+async def create_scan(request: Request, req: ScanRequest) -> ScanResponse:
     _clean_target(req)
     job_id = f"job-{uuid.uuid4().hex[:12]}"
     _create_job(job_id, target=req.target, profile=req.profile, case_id=req.case_id, budget=req.budget)
-    _track(asyncio.create_task(_run_job(job_id, req)))
+    requester_tier = request.scope.get("auth_tier", AccessTier.ADMIN)
+    _track(asyncio.create_task(_run_job(job_id, req, requester_tier=requester_tier)))
     return ScanResponse(job_id=job_id, status="queued")
 
 
@@ -234,7 +236,7 @@ def get_scan(job_id: str) -> dict[str, Any]:
     return job
 
 
-async def _run_job(job_id: str, req: ScanRequest) -> None:
+async def _run_job(job_id: str, req: ScanRequest, requester_tier: AccessTier = AccessTier.ADMIN) -> None:
     from src.investigations.case_manager import CaseManager
     from src.modules.deep_scan.engine import DeepScanEngine
     from src.modules.deep_scan.exports import export_report
@@ -251,7 +253,12 @@ async def _run_job(job_id: str, req: ScanRequest) -> None:
     _save_jobs()
     try:
         prof = resolve_scan_profile(req.profile)
-        kwargs: dict[str, Any] = {"profile_config": prof, "modules": list(prof.modules), "budget": req.budget}
+        kwargs: dict[str, Any] = {
+            "profile_config": prof,
+            "modules": list(prof.modules),
+            "budget": req.budget,
+            "requester_tier": requester_tier,
+        }
         if req.max_iterations is not None:
             kwargs["max_iterations"] = req.max_iterations
         engine = DeepScanEngine(**kwargs)
@@ -301,17 +308,18 @@ def serve_ui() -> str:
 
 
 @app.post("/api/scan", response_model=ReactJobResponse)
-async def start_scan_react(request: ReactScanRequest) -> ReactJobResponse:
-    target = request.target.strip()
+async def start_scan_react(request: Request, req: ReactScanRequest) -> ReactJobResponse:
+    target = req.target.strip()
     if not target:
         raise HTTPException(status_code=422, detail="target must not be empty")
     if not validate_scan_target(target):
         raise HTTPException(status_code=422, detail="Blocked private/internal scan target")
-    profile = "fast" if request.fast else "standard"
-    req = ScanRequest(target=target, profile=profile, max_iterations=request.max_iterations)
+    profile = "fast" if req.fast else "standard"
+    scan_req = ScanRequest(target=target, profile=profile, max_iterations=req.max_iterations)
     job_id = f"job-{uuid.uuid4().hex[:12]}"
-    _create_job(job_id, target=target, profile=profile, max_iterations=request.max_iterations)
-    _track(asyncio.create_task(_run_job(job_id, req)))
+    _create_job(job_id, target=target, profile=profile, max_iterations=req.max_iterations)
+    requester_tier = request.scope.get("auth_tier", AccessTier.ADMIN)
+    _track(asyncio.create_task(_run_job(job_id, scan_req, requester_tier=requester_tier)))
     return ReactJobResponse(job_id=job_id, status="queued", target=target)
 
 

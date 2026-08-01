@@ -146,6 +146,13 @@ for _name, _rpm in (("virustotal", 4), ("hibp", 30), ("abuseipdb", 120)):
     if _name in _COMPLIANCE_REGISTRY:
         _COMPLIANCE_REGISTRY[_name].requests_per_minute = _rpm
 
+# Tier overrides: sources whose data is sensitive enough that credentialed
+# access alone is insufficient (RBAC Layer 3). Shodan/Censys expose raw
+# service banners and CVE context — ANALYST+ only, READONLY tokens blocked.
+for _name in ("shodan", "censys"):
+    if _name in _COMPLIANCE_REGISTRY:
+        _COMPLIANCE_REGISTRY[_name].min_tier = AccessTier.ANALYST
+
 # — Legitimate-interest sources (publicly available data via OSINT tooling) —
 _LEGITIMATE_INTEREST_SOURCES = {
     "amass": "Public DNS/cert data enumeration",

@@ -23,6 +23,8 @@ def resolve(
     """Resolve an identity — find all connected entities across all sources."""
 
     async def _resolve() -> None:
+        from src.core.compliance import min_tier_for, record_audit, source_allows_tier
+        from src.core.rbac import AccessTier
         from src.modules.crypto.leak_finder.extractor import extract_keys
         from src.modules.output.pdf_export import format_pdf as _format_pdf
         from src.modules.output.sarif import format_sarif as _format_sarif
@@ -45,6 +47,11 @@ def resolve(
         for name in source_names:
             cls = src_map.get(name)
             if not cls:
+                continue
+            # RBAC tier gate (Layer 3): block sources the requester may not query.
+            if not source_allows_tier(name, AccessTier.ADMIN):
+                errors.append(f"{name}: blocked — requires tier {min_tier_for(name).name.lower()}")
+                record_audit(source=name, target=input, requester="cli", outcome="blocked")
                 continue
             try:
                 source = cls()
