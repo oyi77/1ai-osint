@@ -68,6 +68,10 @@ class Settings(BaseSettings):
     rate_limit_file: str = ".osint_rate_limit.json"
     audit_log_path: str = ".osint_audit.jsonl"
 
+    # API server
+    api_cors_origins: str = ""  # Comma-separated allowed CORS origins; empty = dev defaults
+    api_jobs_dir: str = ""  # Job persistence dir; empty = <project_root>/state/jobs
+
     @property
     def project_root(self) -> Path:
         """Return the project root directory."""

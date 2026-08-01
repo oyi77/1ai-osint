@@ -35,7 +35,7 @@ async def test_list_jobs(client: httpx.AsyncClient):
 
 
 @pytest.mark.asyncio
-@patch("src.api.app._run_deep_scan_job_react", new_callable=AsyncMock)
+@patch("src.api.app._run_job", new_callable=AsyncMock)
 async def test_create_scan(mock_bg: AsyncMock, client: httpx.AsyncClient):
     resp = await client.post(
         "/api/scan",
@@ -44,7 +44,7 @@ async def test_create_scan(mock_bg: AsyncMock, client: httpx.AsyncClient):
     assert resp.status_code == 200
     data = resp.json()
     assert "job_id" in data
-    assert data["status"] == "pending"
+    assert data["status"] == "queued"
     assert data["target"] == "example.com"
 
 

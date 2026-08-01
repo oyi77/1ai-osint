@@ -866,6 +866,61 @@ class TestDeepScanEngineExtended:
         assert result.findings[0].raw_data.get("bio") == "Full Name: John Doe"
         mock_scrape.assert_called_once_with("https://linkedin.com/in/testuser")
 
+    @pytest.mark.asyncio
+    async def test_verify_profiles_phase_none_raw_data_social_early_return(self):
+        """Guard: social findings with None raw_data must not crash Phase 4."""
+        from src.modules.deep_scan.engine import DeepScanEngine
+
+        engine = DeepScanEngine(max_iterations=1, max_identifiers=50, timeout_per_module=5)
+        result = DeepScanResult(target="t", started_at=datetime.now(timezone.utc))
+        finding = Finding(id="f1", module="social_osint", title="x")
+        finding.raw_data = None
+        result.findings = [finding]
+
+        await engine._verify_profiles_phase("t", result)
+
+        assert len(result.findings) == 1
+
+    @pytest.mark.asyncio
+    async def test_verify_profiles_phase_none_raw_data_filter_loop(self):
+        """Guard: unrelated findings with None raw_data survive the dedup loop."""
+        from src.modules.deep_scan.engine import DeepScanEngine
+
+        engine = DeepScanEngine(max_iterations=1, max_identifiers=50, timeout_per_module=5)
+        social = Finding(
+            id="f1",
+            module="social_osint",
+            title="LinkedIn Profile",
+            description="D",
+            severity=Severity.INFO,
+            raw_data={
+                "type": "social_account",
+                "platform": "linkedin",
+                "url": "https://linkedin.com/in/testuser",
+            },
+        )
+        unrelated = Finding(id="f2", module="email_osint", title="Email", description="D")
+        unrelated.raw_data = None
+        result = DeepScanResult(target="t", started_at=datetime.now(timezone.utc))
+        result.findings = [social, unrelated]
+
+        with (
+            patch(
+                "src.modules.deep_scan.deep_scraper.DeepScraperEngine.scrape_profile",
+                new_callable=AsyncMock,
+                return_value={"text_content": "Bio", "profile_picture_url": ""},
+            ),
+            patch(
+                "src.modules.deep_scan.vision_correlator.VisionCorrelator.correlate_profiles",
+                new_callable=AsyncMock,
+                return_value=0.9,
+            ),
+        ):
+            await engine._verify_profiles_phase("t", result)
+
+        assert len(result.findings) == 2
+        assert result.findings[0].raw_data["verified"] is True
+
     def test_extract_identifiers_from_findings_text(self):
         """Extractor pulls identifiers from raw finding data."""
         ids = extract_identifiers(

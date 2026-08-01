@@ -1,36 +1,178 @@
-"""FastAPI service for async deep-scan jobs."""
+"""FastAPI service for async deep-scan jobs.
+
+Serves both the legacy ``/v1`` JSON API and the ZKIT React dashboard
+(``/api``) endpoints. Both paths share a single job store (``_JOBS``) and a
+single job runner (``_run_job``) so behaviour does not drift between them.
+
+Jobs are persisted to ``<project_root>/state/jobs/jobs.json`` so a restart
+does not lose in-flight results. Persistence is skipped under pytest and is
+best-effort (atomic write, failures logged away) so it can never break a
+request.
+"""
 
 from __future__ import annotations
 
 import asyncio
+import json
+import os
 import pathlib
+import sys
 import uuid
 from datetime import datetime, timezone
 from typing import Any
 
-from fastapi import BackgroundTasks, FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
+
+from src.core.config import settings
 
 app = FastAPI(title="1ai-osint API", version="0.1.0")
 _JOBS: dict[str, dict[str, Any]] = {}
 _TEMPLATE_DIR = pathlib.Path(__file__).parent / "templates"
+
+#: Strong references to in-flight asyncio tasks. ``asyncio.create_task``
+#: returns a task that is garbage-collected mid-execution unless the caller
+#: keeps a reference, which silently cancels long scans; this set (with the
+#: done-callback below) prevents that.
+_TASKS: set[asyncio.Task] = set()
+
+_MAX_PERSISTED_JOBS = 100
 
 
 def _load_template(name: str) -> str:
     return (_TEMPLATE_DIR / name).read_text()
 
 
+def _in_pytest() -> bool:
+    return "pytest" in sys.modules
+
+
+def _jobs_dir() -> pathlib.Path:
+    env_dir = os.environ.get("AI_OSINT_JOBS_DIR")
+    if env_dir:
+        return pathlib.Path(env_dir)
+    if settings.api_jobs_dir:
+        return pathlib.Path(settings.api_jobs_dir)
+    return settings.project_root / "state" / "jobs"
+
+
+_JOBS_FILE = _jobs_dir() / "jobs.json"
+
+
+def _load_jobs() -> dict[str, dict[str, Any]]:
+    """Restore previously persisted jobs (newest first, capped)."""
+    if _in_pytest():
+        return {}
+    try:
+        if not _JOBS_FILE.exists():
+            return {}
+        raw = json.loads(_JOBS_FILE.read_text(encoding="utf-8"))
+        if not isinstance(raw, dict):
+            return {}
+        items = sorted(
+            (v for v in raw.values() if isinstance(v, dict) and v.get("job_id")),
+            key=lambda item: str(item.get("created_at") or ""),
+            reverse=True,
+        )
+        return {item["job_id"]: item for item in items[:_MAX_PERSISTED_JOBS]}
+    except Exception:
+        return {}
+
+
+def _save_jobs() -> None:
+    """Persist the job store atomically; never raises into request handlers."""
+    if _in_pytest():
+        return
+    try:
+        _JOBS_FILE.parent.mkdir(parents=True, exist_ok=True)
+        payload = json.dumps(_JOBS, indent=2, default=str)
+        tmp = _JOBS_FILE.with_suffix(".tmp")
+        tmp.write_text(payload, encoding="utf-8")
+        os.replace(tmp, _JOBS_FILE)
+    except Exception:
+        pass
+
+
+_JOBS = _load_jobs()
+
+
+def _track(task: asyncio.Task) -> asyncio.Task:
+    """Keep a strong reference so a background task is never GC'd mid-run."""
+    _TASKS.add(task)
+    task.add_done_callback(_TASKS.discard)
+    return task
+
+
+def _cors_origins() -> list[str]:
+    raw = os.environ.get("AI_OSINT_CORS_ORIGINS") or settings.api_cors_origins
+    if raw:
+        return [origin.strip() for origin in raw.split(",") if origin.strip()]
+    # Local dev: the Vite dev server. Explicit origins (never "*") so we can
+    # keep allow_credentials=True, which is invalid with a wildcard origin.
+    return ["http://localhost:5173", "http://127.0.0.1:5173"]
+
+
 class ScanRequest(BaseModel):
-    target: str
+    target: str = Field(min_length=1)
     profile: str = Field(default="standard", pattern="^(fast|standard|deep)$")
     case_id: str = ""
     budget: float = Field(default=15.0, ge=0.0)
+    max_iterations: int | None = None
 
 
 class ScanResponse(BaseModel):
     job_id: str
     status: str
+
+
+class ReactScanRequest(BaseModel):
+    target: str = Field(min_length=1)
+    fast: bool = True
+    max_iterations: int = 5
+
+
+class ReactJobResponse(BaseModel):
+    job_id: str
+    status: str
+    target: str
+
+
+def _create_job(
+    job_id: str,
+    *,
+    target: str,
+    profile: str,
+    case_id: str = "",
+    budget: float = 15.0,
+) -> dict[str, Any]:
+    job: dict[str, Any] = {
+        "job_id": job_id,
+        "status": "queued",
+        "target": target,
+        "profile": profile,
+        "case_id": case_id,
+        "budget": budget,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "started_at": None,
+        "completed_at": None,
+        "result": None,
+        "intel": None,
+        "html": None,
+        "error": None,
+    }
+    _JOBS[job_id] = job
+    _save_jobs()
+    return job
+
+
+def _clean_target(req: ScanRequest) -> None:
+    """Reject blank targets and normalise the value in place."""
+    target = req.target.strip()
+    if not target:
+        raise HTTPException(status_code=422, detail="target must not be empty")
+    req.target = target
 
 
 @app.get("/health")
@@ -40,10 +182,10 @@ def health() -> dict[str, str]:
 
 @app.get("/v1/jobs")
 def list_jobs() -> list[dict[str, Any]]:
-    return [
+    jobs = [
         {
             "job_id": job_id,
-            "status": job["status"],
+            "status": job.get("status", "unknown"),
             "target": job.get("target", "unknown"),
             "profile": job.get("profile", "unknown"),
             "budget": job.get("budget", 15.0),
@@ -52,20 +194,16 @@ def list_jobs() -> list[dict[str, Any]]:
         }
         for job_id, job in _JOBS.items()
     ]
+    jobs.sort(key=lambda job: str(job["created_at"]), reverse=True)
+    return jobs
 
 
 @app.post("/v1/scan", response_model=ScanResponse)
 async def create_scan(req: ScanRequest) -> ScanResponse:
+    _clean_target(req)
     job_id = f"job-{uuid.uuid4().hex[:12]}"
-    _JOBS[job_id] = {
-        "status": "queued",
-        "target": req.target,
-        "profile": req.profile,
-        "case_id": req.case_id,
-        "budget": req.budget,
-        "created_at": datetime.now(timezone.utc).isoformat(),
-    }
-    asyncio.create_task(_run_job(job_id, req))
+    _create_job(job_id, target=req.target, profile=req.profile, case_id=req.case_id, budget=req.budget)
+    _track(asyncio.create_task(_run_job(job_id, req)))
     return ScanResponse(job_id=job_id, status="queued")
 
 
@@ -84,22 +222,35 @@ async def _run_job(job_id: str, req: ScanRequest) -> None:
     from src.modules.deep_scan.report_generator import generate_intel_report_with_ai
     from src.modules.deep_scan.scan_profiles import resolve_scan_profile
 
-    _JOBS[job_id]["status"] = "running"
+    job = _JOBS.get(job_id)
+    if job is None:
+        # Tolerate callers (tests, restored minimal records) that only set status.
+        job = {"status": "queued", "target": req.target, "profile": req.profile}
+        _JOBS[job_id] = job
+    now = datetime.now(timezone.utc).isoformat()
+    job.update({"status": "running", "started_at": now})
+    _save_jobs()
     try:
         prof = resolve_scan_profile(req.profile)
-        engine = DeepScanEngine(profile_config=prof, modules=list(prof.modules), budget=req.budget)
+        kwargs: dict[str, Any] = {"profile_config": prof, "modules": list(prof.modules), "budget": req.budget}
+        if req.max_iterations is not None:
+            kwargs["max_iterations"] = req.max_iterations
+        engine = DeepScanEngine(**kwargs)
         result = await engine.scan(req.target)
         intel = generate_intel_report_with_ai(result, use_ai=True)
         html = export_report(intel, fmt="html")
         js = export_report(intel, fmt="json")
         pdf = export_report(intel, fmt="pdf")
-        _JOBS[job_id].update(
+        job.update(
             {
                 "status": "completed",
+                "completed_at": datetime.now(timezone.utc).isoformat(),
+                "result": result.to_dict(),
                 "intel": js if isinstance(js, str) else js.decode(),
                 "html": html if isinstance(html, str) else "",
             }
         )
+        _save_jobs()
         if req.case_id:
             CaseManager().save_run(
                 req.case_id,
@@ -111,8 +262,14 @@ async def _run_job(job_id: str, req: ScanRequest) -> None:
                 pdf_bytes=pdf if isinstance(pdf, bytes) else None,
             )
     except Exception as exc:
-        _JOBS[job_id]["status"] = "failed"
-        _JOBS[job_id]["error"] = str(exc)
+        job.update(
+            {
+                "status": "failed",
+                "error": str(exc),
+                "completed_at": datetime.now(timezone.utc).isoformat(),
+            }
+        )
+        _save_jobs()
 
 
 @app.get("/ui", response_class=HTMLResponse)
@@ -121,67 +278,59 @@ def serve_ui() -> str:
     return _load_template("dashboard.html")
 
 
-# --- ZKIT React Dashboard Endpoints (Migrated from src/api.py) ---
-from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-
-class ReactScanRequest(BaseModel):
-    target: str
-    fast: bool = True
-    max_iterations: int = 5
-
-
-class ReactJobResponse(BaseModel):
-    job_id: str
-    status: str
-    target: str
-
-
-async def _run_deep_scan_job_react(job_id: str, target: str, fast: bool, max_iterations: int):
-    from src.modules.deep_scan.engine import DeepScanEngine
-
-    _JOBS[job_id]["status"] = "running"
-    try:
-        engine = DeepScanEngine(max_iterations=max_iterations, fast=fast)
-        result = await engine.scan(target)
-        _JOBS[job_id]["status"] = "completed"
-        _JOBS[job_id]["result"] = result.to_dict()
-    except Exception as e:
-        _JOBS[job_id]["status"] = "failed"
-        _JOBS[job_id]["error"] = str(e)
-
-
 @app.post("/api/scan", response_model=ReactJobResponse)
-async def start_scan_react(request: ReactScanRequest, background_tasks: BackgroundTasks) -> ReactJobResponse:
-    job_id = str(uuid.uuid4())
-    _JOBS[job_id] = {
-        "job_id": job_id,
-        "target": request.target,
-        "status": "pending",
-        "started_at": datetime.now(timezone.utc).isoformat(),
-        "result": None,
-        "error": None,
-    }
-    background_tasks.add_task(
-        _run_deep_scan_job_react,
-        job_id,
-        request.target,
-        request.fast,
-        request.max_iterations,
-    )
-    return ReactJobResponse(job_id=job_id, status="pending", target=request.target)
+async def start_scan_react(request: ReactScanRequest) -> ReactJobResponse:
+    target = request.target.strip()
+    if not target:
+        raise HTTPException(status_code=422, detail="target must not be empty")
+    profile = "fast" if request.fast else "standard"
+    req = ScanRequest(target=target, profile=profile, max_iterations=request.max_iterations)
+    job_id = f"job-{uuid.uuid4().hex[:12]}"
+    _create_job(job_id, target=target, profile=profile)
+    _track(asyncio.create_task(_run_job(job_id, req)))
+    return ReactJobResponse(job_id=job_id, status="queued", target=target)
 
 
 @app.get("/api/scan/{job_id}")
 async def get_scan_status_react(job_id: str) -> dict[str, Any]:
-    if job_id not in _JOBS:
+    job = _JOBS.get(job_id)
+    if job is None:
         raise HTTPException(status_code=404, detail="Job not found")
-    return _JOBS[job_id]
+    return job
+
+
+# --- Optional bearer-token auth (mirrors src.web.app) ---------------------
+# Enabled only when WEB_AUTH_TOKEN / WEB_AUTH_TOKENS are configured, so the
+# default API has zero auth surface change. The UI/health paths served here
+# are exempt so the dashboard remains reachable.
+from src.core.rbac import tiers_from_env  # noqa: E402
+from src.web.app import AuthMiddleware as _BaseAuthMiddleware  # noqa: E402
+
+
+class _ApiAuthMiddleware(_BaseAuthMiddleware):
+    """Bearer-token gate that also exempts the API's own health/UI paths."""
+
+    def _is_authorized(self, scope) -> bool:
+        path = scope.get("path", "")
+        if path in ("/health", "/ui", "/") or path.startswith("/static"):
+            return True
+        return super()._is_authorized(scope)
+
+
+_tokens = tiers_from_env()
+if _tokens:
+    app.add_middleware(
+        _ApiAuthMiddleware,
+        token=os.environ.get("WEB_AUTH_TOKEN", "").strip() or None,
+        tokens=_tokens,
+    )
+
+# CORS must be added last so it ends up outermost (preflight answers before
+# auth is consulted) — Starlette wraps the stack with each new middleware.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_cors_origins(),
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)

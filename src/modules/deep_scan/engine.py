@@ -384,7 +384,9 @@ class DeepScanEngine:
         are filtered out from the final findings list.
         """
         social_findings = [
-            f for f in result.findings if f.module == "social_osint" and f.raw_data.get("type") == "social_account"
+            f
+            for f in result.findings
+            if f.module == "social_osint" and f.raw_data and f.raw_data.get("type") == "social_account"
         ]
         if not social_findings:
             return
@@ -406,7 +408,9 @@ class DeepScanEngine:
             "instagram",
             "tiktok",
         }
-        to_verify = [f for f in social_findings if f.raw_data.get("platform") in high_value_platforms][:5]
+        to_verify = [f for f in social_findings if f.raw_data and f.raw_data.get("platform") in high_value_platforms][
+            :5
+        ]
 
         async def verify_finding(finding) -> None:
             url = finding.raw_data.get("url")
@@ -445,12 +449,13 @@ class DeepScanEngine:
         seen_urls = set()
 
         for f in result.findings:
+            raw_data = f.raw_data or {}
             # If it went through verification and failed, drop it
-            if "verified" in f.raw_data and not f.raw_data["verified"]:
+            if "verified" in raw_data and not raw_data["verified"]:
                 continue
 
             # Deduplicate social profiles by URL
-            url = f.raw_data.get("url")
+            url = raw_data.get("url")
             if url:
                 if url in seen_urls:
                     continue
