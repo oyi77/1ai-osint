@@ -60,6 +60,20 @@ MODULE_INPUTS: dict[str, set[IdentifierType]] = {
     "veriphone": {IdentifierType.PHONE},
     "keybase": {IdentifierType.USERNAME},
     "whatsmyname": {IdentifierType.USERNAME},
+    # Keyless TOOL sources (local CLI wrappers, 0-key; transport_priority(4)
+    # keeps them after RE/SCRAPE in 0-API ordering, and they degrade to an
+    # empty/audited outcome when the CLI binary is not installed)
+    "sherlock": {IdentifierType.USERNAME},
+    "maigret": {IdentifierType.USERNAME},
+    "holehe": {IdentifierType.EMAIL},
+    "theharvester": {IdentifierType.DOMAIN},
+    "subfinder": {IdentifierType.DOMAIN},
+    "amass": {IdentifierType.DOMAIN},
+    "bbot": {IdentifierType.DOMAIN},
+    "nmap": {IdentifierType.IP, IdentifierType.DOMAIN},
+    "httpx": {IdentifierType.DOMAIN, IdentifierType.IP, IdentifierType.URL},
+    "phoneinfoga": {IdentifierType.PHONE},
+    "h8mail": {IdentifierType.EMAIL},
     # Free intel modules (search engine dorking, gravatar, wayback)
     "social_dorks_intel": {IdentifierType.NAME},
     "gravatar_intel": {IdentifierType.EMAIL},
@@ -96,4 +110,16 @@ SOURCE_MODULES: set[str] = {
     "veriphone",
     "keybase",
     "whatsmyname",
+    # Keyless TOOL sources (local CLI wrappers — 0-key, RE-first ordering)
+    "sherlock",
+    "maigret",
+    "holehe",
+    "theharvester",
+    "subfinder",
+    "amass",
+    "bbot",
+    "nmap",
+    "httpx",
+    "phoneinfoga",
+    "h8mail",
 }

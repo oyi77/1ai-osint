@@ -59,6 +59,12 @@ Each cell: transport kind used by 1ai-osint for that category
   (keyless phone carrier/line-type), `keybase` (keyless username profile).
 - P2: `whatsmyname` (keyless username presence-echo scrape) wired into the
   deep scan engine as an active in-process source.
+- P3: 11 keyless TOOL wrappers wired into the deep scan engine via the
+  `source_adapter` path (`sherlock`, `maigret`, `holehe`, `theharvester`,
+  `subfinder`, `amass`, `bbot`, `nmap`, `httpx`, `phoneinfoga`, `h8mail`).
+  TOOL counts as keyless (transport priority 4, ordered after RE/SCRAPE);
+  each requires its CLI installed — absent CLI degrades to an audited empty
+  result, never an error.
 
 ## P1 gaps — status
 

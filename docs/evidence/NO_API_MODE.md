@@ -63,6 +63,25 @@ Reverse-engineered public endpoints, transport priority RE (0):
   always — weak signal by design; wired into deep scan as an in-process
   username source.
 
+## Keyless TOOL adapters (require local CLI)
+
+Eleven external-tool wrappers are wired into the deep scan engine through the
+`source_adapter` path. They are keyless (no API key) but require the CLI
+binary on `PATH`; when the CLI is absent the source returns an audited empty
+result instead of raising.
+
+- **sherlock / maigret** — username presence across 481 / 3k+ sites
+  (`--print-found --json`).
+- **holehe** — email→account registration check.
+- **theharvester** — org/domain→emails/subdomains/hosts.
+- **subfinder / amass / bbot** — subdomain enumeration.
+- **nmap** — host discovery / port scan (IP or domain).
+- **httpx** — HTTP probing of domain/IP/URL targets.
+- **phoneinfoga** — phone number recon (scan/format/validate).
+- **h8mail** — email breach/leak lookup.
+
+Each is ordered after RE/SCRAPE sources in 0-API mode (transport priority 4).
+
 ## Keyless-capable API sources
 
 - **Shodan** — falls back to the keyless [Shodan InternetDB](

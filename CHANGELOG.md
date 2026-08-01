@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 5 new keyless RE-first sources: bgpview (IP→ASN/prefix/RIR), certspotter (CT-log subdomains), rapiddns (subdomain index), anubis (jldc.me subdomains), urlscan (domain search)
 - 3 new keyless RE-first sources (P1-gap closures): proxynova (breach/paste combine), veriphone (phone carrier/line-type), keybase (username profile)
 - P2: whatsmyname keyless username presence-echo scrape wired into the deep scan engine as an in-process source (weak-signal heuristic, documented)
+- P3: 11 keyless TOOL wrappers (sherlock, maigret, holehe, theharvester, subfinder, amass, bbot, nmap, httpx, phoneinfoga, h8mail) wired into the deep scan engine via the source_adapter path; absent CLI degrades to audited empty, never error
 - 5 new keyless RE-first sources (0-API priority): hackertarget hostsearch/reverse-IP, Google DoH DNS records, mempool.space, ip-api.com, keys.openpgp.org PGP lookup
 - 0-API mode registry now reports 101 sources / 87 keyless-capable / 81 keyless-only
 - AI analysis pipeline: LangGraph orchestrator with entity extraction, correlation, risk scoring
