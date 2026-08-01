@@ -58,6 +58,10 @@ Reverse-engineered public endpoints, transport priority RE (0):
   type/country/format leaks on `status: success` + `phone_valid`; keyless.
 - **keybase** — `keybase.io` user lookup by username; full name/bio/location/
   site/avatar leaks; keyless.
+- **whatsmyname** — keyless username presence-echo scrape (SCRAPE transport,
+  not RE): queries the search page and echoes the query, so it hits almost
+  always — weak signal by design; wired into deep scan as an in-process
+  username source.
 
 ## Keyless-capable API sources
 

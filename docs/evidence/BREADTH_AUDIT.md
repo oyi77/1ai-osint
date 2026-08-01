@@ -57,6 +57,8 @@ Each cell: transport kind used by 1ai-osint for that category
   — all keyless RE subdomain/ASN sources.
 - P1-gap closures: `proxynova` (keyless breach/paste combine), `veriphone`
   (keyless phone carrier/line-type), `keybase` (keyless username profile).
+- P2: `whatsmyname` (keyless username presence-echo scrape) wired into the
+  deep scan engine as an active in-process source.
 
 ## P1 gaps — status
 
@@ -65,9 +67,12 @@ Each cell: transport kind used by 1ai-osint for that category
    corpus depth still keyed (`dehashed`/`leakcheck`/`scylla`/`snusbase`/`hibp`).
 2. **Phone RE** — *addressed*: `veriphone` provides keyless carrier/line-type
    lookup; `phone_finder` (SCRAPE) and `phoneinfoga` (TOOL) remain.
-3. **Username breadth** — *improved*: `keybase` adds a profile RE source
-   (~16 listed modules now). Residual: still far below Sherlock's 481 /
-   Maigret's 3k+; wrappers exist, native RE set should keep growing.
+3. **Username breadth** — *improved*: `keybase` adds a profile RE source and
+   `whatsmyname` is now wired into the deep scan engine (~16 listed modules).
+   Caveat recorded in code/tests: `whatsmyname` is a presence-echo heuristic —
+   the search page echoes the query, so it hits almost always and is a weak
+   signal by design. Residual: still far below Sherlock's 481 / Maigret's 3k+;
+   wrappers exist, native RE set should keep growing.
 
 ## Honest verdict
 

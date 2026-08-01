@@ -59,6 +59,7 @@ MODULE_INPUTS: dict[str, set[IdentifierType]] = {
     "proxynova": {IdentifierType.EMAIL, IdentifierType.USERNAME, IdentifierType.PHONE},
     "veriphone": {IdentifierType.PHONE},
     "keybase": {IdentifierType.USERNAME},
+    "whatsmyname": {IdentifierType.USERNAME},
     # Free intel modules (search engine dorking, gravatar, wayback)
     "social_dorks_intel": {IdentifierType.NAME},
     "gravatar_intel": {IdentifierType.EMAIL},
@@ -94,4 +95,5 @@ SOURCE_MODULES: set[str] = {
     "proxynova",
     "veriphone",
     "keybase",
+    "whatsmyname",
 }
