@@ -16,6 +16,7 @@ from typing import Any
 from src.core.config import settings
 from src.core.models import Finding, ScanResult, Severity
 from src.core.rbac import AccessTier
+from src.core.source_registry import can_run_keyless, transport_priority
 from src.modules.deep_scan import (
     DeepScanResult,
     Identifier,
@@ -75,6 +76,7 @@ class DeepScanEngine:
         max_targets_per_iteration: int = 25,
         profile_config: Any = None,
         requester_tier: AccessTier = AccessTier.ADMIN,
+        no_api: bool | None = None,
     ):
         if profile_config is not None:
             # Profile supplies the defaults; explicit caller values are honored
@@ -125,6 +127,7 @@ class DeepScanEngine:
         self.budget = budget
         self.max_targets_per_iteration = max_targets_per_iteration
         self.requester_tier = requester_tier
+        self.no_api = settings.no_api if no_api is None else no_api
         self._sem = asyncio.Semaphore(max_concurrency)
         self._scanned_pairs: set[tuple[str, str]] = set()
 
@@ -327,7 +330,7 @@ class DeepScanEngine:
                 id=f"find-ai_enricher-{len(result.findings) + 1}",
                 module="ai_enricher",
                 title=f"AI dossier for {target}",
-                description=("Structured profile synthesized from search snippets " f"({len(snippets)} snippets)"),
+                description=(f"Structured profile synthesized from search snippets ({len(snippets)} snippets)"),
                 severity=Severity.INFO,
                 raw_data={
                     "dossier": serialized,
@@ -772,10 +775,17 @@ class DeepScanEngine:
             result.identifiers.append(ident)
 
     def _get_active_modules(self) -> list[str]:
-        """Get list of modules to use."""
-        if self.modules:
-            return list(self.modules)
-        return list(_MODULE_INPUTS.keys())
+        """Get list of modules to use, RE-first when 0-API mode is enabled.
+
+        In 0-API mode the list is filtered to keyless-capable transports and
+        stably sorted by transport priority so reverse-engineered/keyless
+        sources run before API-keyed ones.
+        """
+        mods = list(self.modules) if self.modules else list(_MODULE_INPUTS.keys())
+        if self.no_api:
+            mods = [m for m in mods if can_run_keyless(m)]
+            mods.sort(key=transport_priority)
+        return mods
 
     def _should_scan(self, mod_name: str, target: str) -> bool:
         """Return whether this module+target pair still needs scanning.

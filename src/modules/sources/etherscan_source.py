@@ -35,30 +35,29 @@ class EtherscanSource:
         return []
 
     async def search_for_address(self, address: str) -> list[RawLeak]:
-        """Search Etherscan for wallet transactions and token transfers."""
-        if not self.api_key:
-            logger.debug("Etherscan: no API key configured, skipping")
-            return []
+        """Search Etherscan for wallet transactions and token transfers.
 
+        Works without an API key (rate-limited public endpoint); the key is
+        attached only when configured.
+        """
         leaks: list[RawLeak] = []
         async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
             # Get normal transactions
             try:
                 await self._rate_limit()
-                resp = await client.get(
-                    self.BASE_URL,
-                    params={
-                        "module": "account",
-                        "action": "txlist",
-                        "address": address,
-                        "startblock": 0,
-                        "endblock": 99999999,
-                        "page": 1,
-                        "offset": 10,
-                        "sort": "desc",
-                        "apikey": self.api_key,
-                    },
-                )
+                params: dict[str, str | int] = {
+                    "module": "account",
+                    "action": "txlist",
+                    "address": address,
+                    "startblock": 0,
+                    "endblock": 99999999,
+                    "page": 1,
+                    "offset": 10,
+                    "sort": "desc",
+                }
+                if self.api_key:
+                    params["apikey"] = self.api_key
+                resp = await client.get(self.BASE_URL, params=params)
                 if resp.status_code == 200:
                     data = resp.json()
                     if data.get("status") == "1":
@@ -76,18 +75,17 @@ class EtherscanSource:
             # Get ERC-20 token transfers
             try:
                 await self._rate_limit()
-                resp = await client.get(
-                    self.BASE_URL,
-                    params={
-                        "module": "account",
-                        "action": "tokentx",
-                        "address": address,
-                        "page": 1,
-                        "offset": 10,
-                        "sort": "desc",
-                        "apikey": self.api_key,
-                    },
-                )
+                params = {
+                    "module": "account",
+                    "action": "tokentx",
+                    "address": address,
+                    "page": 1,
+                    "offset": 10,
+                    "sort": "desc",
+                }
+                if self.api_key:
+                    params["apikey"] = self.api_key
+                resp = await client.get(self.BASE_URL, params=params)
                 if resp.status_code == 200:
                     data = resp.json()
                     if data.get("status") == "1":

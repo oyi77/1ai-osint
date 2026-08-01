@@ -54,6 +54,9 @@ class Settings(BaseSettings):
     scanner_workers: int = 20
     scanner_mode: str = "targeted"
 
+    # 0-API mode — exclude sources that require API keys, prioritize RE transports
+    no_api: bool = False
+
     # Database
     db_type: str = "sqlite"  # "sqlite" or "postgres"
     db_path: str = "1ai-osint.db"  # SQLite path

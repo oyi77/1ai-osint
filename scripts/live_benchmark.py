@@ -408,6 +408,12 @@ def run_benchmark(
         "metrics": {"elapsed_sec": round(elapsed, 3), "tools": results},
         "verdict": verdict,
     }
+    try:
+        from src.core.source_registry import no_api_metrics
+
+        receipt["transports"] = no_api_metrics()
+    except Exception:
+        receipt["transports"] = {}
     if as_json:
         print(json.dumps(receipt, indent=2))
 

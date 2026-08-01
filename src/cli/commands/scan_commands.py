@@ -102,7 +102,7 @@ def scan(
 
             all_results.append(result)
             typer.echo(
-                f"  {mod.name}: {result.finding_count} findings " f"({result.critical_count} critical)",
+                f"  {mod.name}: {result.finding_count} findings ({result.critical_count} critical)",
                 err=True,
             )
         except Exception as e:
@@ -147,6 +147,11 @@ def deep_scan(
     use_ai: bool = typer.Option(False, "--ai", help="Enhance BLUF with AI when API key configured"),
     pdf: bool = typer.Option(False, "--pdf", help="Also write briefing PDF"),
     budget: float = typer.Option(15.0, "--budget", help="Execution budget for external APIs (0 = unlimited)"),
+    no_api: bool = typer.Option(
+        False,
+        "--no-api",
+        help="0-API mode: skip sources that require API keys, prioritize RE/keyless transports",
+    ),
 ) -> None:
     """Deep scan — recursive identity investigation across all modules."""
     import json as _json
@@ -173,6 +178,7 @@ def deep_scan(
             modules=list(prof.modules),
             profile_config=prof,
             budget=budget,
+            no_api=no_api,
         )
         typer.echo(
             f"Profile: {len(engine._get_active_modules())} modules, "
@@ -364,6 +370,11 @@ def zkit_deep_scan(
     fast: bool = typer.Option(False, "--fast", help="Use fast profile mode (lower timeouts, fewer handles)"),
     output: str = typer.Option("json", help="Output format: json, html"),
     zkit_salt: str = typer.Option("", help="Optional fixed ZKIT salt for stable output"),
+    no_api: bool = typer.Option(
+        False,
+        "--no-api",
+        help="0-API mode: skip sources that require API keys, prioritize RE/keyless transports",
+    ),
 ) -> None:
     """Run a recursive Deep Scan on an identity target, using the ZKIT Engine."""
     import json as _json
@@ -386,6 +397,7 @@ def zkit_deep_scan(
     engine = DeepScanEngine(
         max_iterations=max_iterations,
         fast=fast,
+        no_api=no_api,
     )
 
     # We run it manually inside the async loop with Rich Progress
