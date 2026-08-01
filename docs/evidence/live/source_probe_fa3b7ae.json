@@ -1,0 +1,1273 @@
+{
+  "generated_at": "2026-08-01T23:22:41.264027+00:00",
+  "git_revision": "fa3b7ae",
+  "note": "Single-shot live probe, 1 request per source, no retries. reachable-no-data does NOT mean the source is broken \u2014 the synthetic identifier may legitimately not exist there. Host 403/429 = reachable but blocked (recorded as evidence).",
+  "totals": {
+    "probed": 51,
+    "verified_live": 17,
+    "reachable_no_data": 11,
+    "failed": 12,
+    "skipped": 11
+  },
+  "results": [
+    {
+      "module": "cargo",
+      "source_class": "CargoSource",
+      "kind": "re",
+      "identifier_type": "username",
+      "identifier": "octocat",
+      "skipped_reason": null,
+      "host": {
+        "reachable": true,
+        "status_code": 403,
+        "latency_ms": 419,
+        "error": null
+      },
+      "functional": {
+        "method": "search_for_address",
+        "latency_ms": 361,
+        "leak_count": 5,
+        "samples": [
+          {
+            "text": "KODEGEN.\u1d00\u026a: Memory-efficient, Blazing-Fast, MCP tools for code generation agents.",
+            "source_url": "https://crates.io/crates/kodegen_tools_github"
+          },
+          {
+            "text": "A CLI tool to fetch, cache, and search GitHub stars with vector search",
+            "source_url": "https://crates.io/crates/gh-stars"
+          }
+        ],
+        "error": null
+      },
+      "verdict": "verified-live"
+    },
+    {
+      "module": "keybase",
+      "source_class": "KeybaseSource",
+      "kind": "re",
+      "identifier_type": "username",
+      "identifier": "octocat",
+      "skipped_reason": null,
+      "host": {
+        "reachable": true,
+        "status_code": 200,
+        "latency_ms": 1058,
+        "error": null
+      },
+      "functional": {
+        "method": "search_for_address",
+        "latency_ms": 793,
+        "leak_count": 4,
+        "samples": [
+          {
+            "text": "keybase: octocat",
+            "source_url": "https://keybase.io/_/api/1.0/user/lookup.json?usernames=octocat&fields=basics,profile,pictures"
+          },
+          {
+            "text": "bio: Cutting pure diamonds in Apple land \u00b7 Enthralled by Rubies \u00b7 Seasoned Citrine and Amethyst gemstone miner.",
+            "source_url": "https://keybase.io/_/api/1.0/user/lookup.json?usernames=octocat&fields=basics,profile,pictures"
+          }
+        ],
+        "error": null
+      },
+      "verdict": "verified-live"
+    },
+    {
+      "module": "s3",
+      "source_class": "S3Source",
+      "kind": "re",
+      "identifier_type": "domain",
+      "identifier": "example.com",
+      "skipped_reason": null,
+      "host": {
+        "reachable": null,
+        "status_code": null,
+        "latency_ms": null,
+        "error": null
+      },
+      "functional": {
+        "method": "search_for_address",
+        "latency_ms": 4779,
+        "leak_count": 0,
+        "samples": [],
+        "error": null
+      },
+      "verdict": "failed"
+    },
+    {
+      "module": "pypi",
+      "source_class": "PypiSource",
+      "kind": "re",
+      "identifier_type": "username",
+      "identifier": "octocat",
+      "skipped_reason": null,
+      "host": {
+        "reachable": true,
+        "status_code": 200,
+        "latency_ms": 95,
+        "error": null
+      },
+      "functional": {
+        "method": "search_for_address",
+        "latency_ms": 338,
+        "leak_count": 1,
+        "samples": [
+          {
+            "text": "Octocat\n#######\n\n.. _description:\n\nOctocat -- Python client for Github API.\n\n.. _badges:\n\n.. image:: https://secure.travis-ci.org/klen/octocat.png?branch=develo",
+            "source_url": "https://pypi.org/project/octocat/"
+          }
+        ],
+        "error": null
+      },
+      "verdict": "verified-live"
+    },
+    {
+      "module": "anubis",
+      "source_class": "AnubisSource",
+      "kind": "re",
+      "identifier_type": "domain",
+      "identifier": "example.com",
+      "skipped_reason": null,
+      "host": {
+        "reachable": true,
+        "status_code": 301,
+        "latency_ms": 141,
+        "error": null
+      },
+      "functional": {
+        "method": "search_for_address",
+        "latency_ms": 204,
+        "leak_count": 0,
+        "samples": [],
+        "error": null
+      },
+      "verdict": "reachable-no-data"
+    },
+    {
+      "module": "blockchair",
+      "source_class": "BlockchairSource",
+      "kind": "re",
+      "identifier_type": "crypto_address",
+      "identifier": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
+      "skipped_reason": null,
+      "host": {
+        "reachable": true,
+        "status_code": 200,
+        "latency_ms": 832,
+        "error": null
+      },
+      "functional": {
+        "method": "search_for_address",
+        "latency_ms": 6211,
+        "leak_count": 0,
+        "samples": [],
+        "error": null
+      },
+      "verdict": "reachable-no-data"
+    },
+    {
+      "module": "malwarebazaar",
+      "source_class": "MalwareBazaarSource",
+      "kind": "re",
+      "identifier_type": "hash",
+      "identifier": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "skipped_reason": null,
+      "host": {
+        "reachable": true,
+        "status_code": 301,
+        "latency_ms": 1027,
+        "error": null
+      },
+      "functional": {
+        "method": "search_for_address",
+        "latency_ms": 1911,
+        "leak_count": 0,
+        "samples": [],
+        "error": null
+      },
+      "verdict": "reachable-no-data"
+    },
+    {
+      "module": "hackertarget",
+      "source_class": "HackerTargetSource",
+      "kind": "re",
+      "identifier_type": "domain",
+      "identifier": "example.com",
+      "skipped_reason": null,
+      "host": {
+        "reachable": true,
+        "status_code": 200,
+        "latency_ms": 749,
+        "error": null
+      },
+      "functional": {
+        "method": "search_for_address",
+        "latency_ms": 751,
+        "leak_count": 0,
+        "samples": [],
+        "error": null
+      },
+      "verdict": "reachable-no-data"
+    },
+    {
+      "module": "stackoverflow",
+      "source_class": "StackOverflowSource",
+      "kind": "re",
+      "identifier_type": "username",
+      "identifier": "octocat",
+      "skipped_reason": null,
+      "host": {
+        "reachable": null,
+        "status_code": null,
+        "latency_ms": null,
+        "error": null
+      },
+      "functional": {
+        "method": "search_for_address",
+        "latency_ms": 1087,
+        "leak_count": 30,
+        "samples": [
+          {
+            "text": "After creating pull request to &quot;octocat/Spoon-Knife&quot;, what is the next step\n<p>I try to learn fork and create pull request.\nI fork the repository in <",
+            "source_url": "https://stackoverflow.com/questions/79645140/after-creating-pull-request-to-octocat-spoon-knife-what-is-the-next-step"
+          },
+          {
+            "text": "Get a Value of an Active Slide\n<p>To begin. I am not a professional coder. I am able to manipulate the code others have created, but I'm mostly not able to crea",
+            "source_url": "https://stackoverflow.com/questions/79366267/get-a-value-of-an-active-slide"
+          }
+        ],
+        "error": null
+      },
+      "verdict": "verified-live"
+    },
+    {
+      "module": "npm",
+      "source_class": "NpmSource",
+      "kind": "re",
+      "identifier_type": "username",
+      "identifier": "octocat",
+      "skipped_reason": null,
+      "host": {
+        "reachable": null,
+        "status_code": null,
+        "latency_ms": null,
+        "error": null
+      },
+      "functional": {
+        "method": "search_for_address",
+        "latency_ms": 10293,
+        "leak_count": 9,
+        "samples": [
+          {
+            "text": "# octocat-images\n[![npm version](https://badge.fury.io/js/octocat-images.svg)](https://badge.fury.io/js/octocat-images)\n[![Build Status](https://travis-ci.org/J",
+            "source_url": "https://www.npmjs.com/package/octocat-images"
+          },
+          {
+            "text": "# Octocats, everywhere! [![Support this project][donate-now]][paypal-donations]\n\n:octocat::octocat::octocat::octocat::octocat::octocat::octocat::octocat::octoca",
+            "source_url": "https://www.npmjs.com/package/i-love-octocats"
+          }
+        ],
+        "error": null
+      },
+      "verdict": "verified-live"
+    },
+    {
+      "module": "mempool",
+      "source_class": "MempoolSource",
+      "kind": "re",
+      "identifier_type": "crypto_address",
+      "identifier": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
+      "skipped_reason": null,
+      "host": {
+        "reachable": true,
+        "status_code": 308,
+        "latency_ms": 84,
+        "error": null
+      },
+      "functional": {
+        "method": "search_for_address",
+        "latency_ms": 2146,
+        "leak_count": 12,
+        "samples": [
+          {
+            "text": "Address 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa \u2014 funded 5732461664 sats, spent 0 sats, 64474 confirmed txs",
+            "source_url": "https://mempool.space/address/1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
+          },
+          {
+            "text": "Funded UTXOs: 76911",
+            "source_url": "https://mempool.space/address/1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
+          }
+        ],
+        "error": null
+      },
+      "verdict": "verified-live"
+    },
+    {
+      "module": "certspotter",
+      "source_class": "CertSpotterSource",
+      "kind": "re",
+      "identifier_type": "domain",
+      "identifier": "example.com",
+      "skipped_reason": null,
+      "host": {
+        "reachable": true,
+        "status_code": 400,
+        "latency_ms": 803,
+        "error": null
+      },
+      "functional": {
+        "method": "search_for_address",
+        "latency_ms": 760,
+        "leak_count": 9,
+        "samples": [
+          {
+            "text": "example.com",
+            "source_url": "https://api.certspotter.com/v1/issuances?domain=example.com"
+          },
+          {
+            "text": "example.edu",
+            "source_url": "https://api.certspotter.com/v1/issuances?domain=example.com"
+          }
+        ],
+        "error": null
+      },
+      "verdict": "verified-live"
+    },
+    {
+      "module": "mastodon",
+      "source_class": "MastodonSource",
+      "kind": "re",
+      "identifier_type": "username",
+      "identifier": "octocat",
+      "skipped_reason": null,
+      "host": {
+        "reachable": null,
+        "status_code": null,
+        "latency_ms": null,
+        "error": null
+      },
+      "functional": {
+        "method": "search_for_address",
+        "latency_ms": 4333,
+        "leak_count": 0,
+        "samples": [],
+        "error": null
+      },
+      "verdict": "failed"
+    },
+    {
+      "module": "codeberg",
+      "source_class": "CodebergSource",
+      "kind": "re",
+      "identifier_type": "username",
+      "identifier": "octocat",
+      "skipped_reason": null,
+      "host": {
+        "reachable": null,
+        "status_code": null,
+        "latency_ms": null,
+        "error": null
+      },
+      "functional": {
+        "method": "search_for_address",
+        "latency_ms": 5473,
+        "leak_count": 0,
+        "samples": [],
+        "error": null
+      },
+      "verdict": "failed"
+    },
+    {
+      "module": "telegram",
+      "source_class": "TelegramSource",
+      "kind": "re",
+      "identifier_type": "username",
+      "identifier": "octocat",
+      "skipped_reason": null,
+      "host": {
+        "reachable": null,
+        "status_code": null,
+        "latency_ms": null,
+        "error": null
+      },
+      "functional": {
+        "method": "search_for_address",
+        "latency_ms": 349,
+        "leak_count": 0,
+        "samples": [],
+        "error": null
+      },
+      "verdict": "failed"
+    },
+    {
+      "module": "threatfox",
+      "source_class": "ThreatFoxSource",
+      "kind": "re",
+      "identifier_type": "domain",
+      "identifier": "example.com",
+      "skipped_reason": null,
+      "host": {
+        "reachable": true,
+        "status_code": 301,
+        "latency_ms": 426,
+        "error": null
+      },
+      "functional": {
+        "method": "search_for_address",
+        "latency_ms": 1319,
+        "leak_count": 0,
+        "samples": [],
+        "error": null
+      },
+      "verdict": "reachable-no-data"
+    },
+    {
+      "module": "twitter",
+      "source_class": "TwitterSource",
+      "kind": "re",
+      "identifier_type": "username",
+      "identifier": "octocat",
+      "skipped_reason": null,
+      "host": {
+        "reachable": null,
+        "status_code": null,
+        "latency_ms": null,
+        "error": null
+      },
+      "functional": {
+        "method": "search_for_address",
+        "latency_ms": 521,
+        "leak_count": 0,
+        "samples": [],
+        "error": null
+      },
+      "verdict": "failed"
+    },
+    {
+      "module": "rubygems",
+      "source_class": "RubygemsSource",
+      "kind": "re",
+      "identifier_type": "username",
+      "identifier": "octocat",
+      "skipped_reason": null,
+      "host": {
+        "reachable": true,
+        "status_code": 404,
+        "latency_ms": 923,
+        "error": null
+      },
+      "functional": {
+        "method": "search_for_address",
+        "latency_ms": 899,
+        "leak_count": 5,
+        "samples": [
+          {
+            "text": "Command line github",
+            "source_url": "https://rubygems.org/gems/octocat"
+          },
+          {
+            "text": "This gem provides Ruby bindings to the v3 GitHub API",
+            "source_url": "https://rubygems.org/gems/octocat_herder"
+          }
+        ],
+        "error": null
+      },
+      "verdict": "verified-live"
+    },
+    {
+      "module": "rapiddns",
+      "source_class": "RapidDnsSource",
+      "kind": "re",
+      "identifier_type": "domain",
+      "identifier": "example.com",
+      "skipped_reason": null,
+      "host": {
+        "reachable": true,
+        "status_code": 200,
+        "latency_ms": 741,
+        "error": null
+      },
+      "functional": {
+        "method": "search_for_address",
+        "latency_ms": 1424,
+        "leak_count": 3,
+        "samples": [
+          {
+            "text": "example.com",
+            "source_url": "https://rapiddns.io/subdomain/example.com"
+          },
+          {
+            "text": "www.example.com",
+            "source_url": "https://rapiddns.io/subdomain/example.com"
+          }
+        ],
+        "error": null
+      },
+      "verdict": "verified-live"
+    },
+    {
+      "module": "pgp_keys",
+      "source_class": "PgpKeysSource",
+      "kind": "re",
+      "identifier_type": "email",
+      "identifier": "john.doe@example.com",
+      "skipped_reason": null,
+      "host": {
+        "reachable": true,
+        "status_code": 400,
+        "latency_ms": 636,
+        "error": null
+      },
+      "functional": {
+        "method": "search_for_address",
+        "latency_ms": 579,
+        "leak_count": 0,
+        "samples": [],
+        "error": null
+      },
+      "verdict": "reachable-no-data"
+    },
+    {
+      "module": "dns_records",
+      "source_class": "DnsRecordsSource",
+      "kind": "re",
+      "identifier_type": "domain",
+      "identifier": "example.com",
+      "skipped_reason": null,
+      "host": {
+        "reachable": true,
+        "status_code": 400,
+        "latency_ms": 103,
+        "error": null
+      },
+      "functional": {
+        "method": "search_for_address",
+        "latency_ms": 10047,
+        "leak_count": 9,
+        "samples": [
+          {
+            "text": "A 172.66.147.243 (TTL 300)",
+            "source_url": "https://dns.google/resolve?name=example.com&type=A"
+          },
+          {
+            "text": "A 104.20.23.154 (TTL 300)",
+            "source_url": "https://dns.google/resolve?name=example.com&type=A"
+          }
+        ],
+        "error": null
+      },
+      "verdict": "verified-live"
+    },
+    {
+      "module": "feodo",
+      "source_class": "FeodoSource",
+      "kind": "re",
+      "identifier_type": "ip",
+      "identifier": "8.8.8.8",
+      "skipped_reason": null,
+      "host": {
+        "reachable": true,
+        "status_code": 301,
+        "latency_ms": 338,
+        "error": null
+      },
+      "functional": {
+        "method": "search_for_address",
+        "latency_ms": 120,
+        "leak_count": 0,
+        "samples": [],
+        "error": null
+      },
+      "verdict": "reachable-no-data"
+    },
+    {
+      "module": "ip_api",
+      "source_class": "IpApiSource",
+      "kind": "re",
+      "identifier_type": "ip",
+      "identifier": "8.8.8.8",
+      "skipped_reason": null,
+      "host": {
+        "reachable": true,
+        "status_code": 200,
+        "latency_ms": 88,
+        "error": null
+      },
+      "functional": {
+        "method": "search_for_address",
+        "latency_ms": 66,
+        "leak_count": 15,
+        "samples": [
+          {
+            "text": "status: success",
+            "source_url": "http://ip-api.com/8.8.8.8"
+          },
+          {
+            "text": "country: United States",
+            "source_url": "http://ip-api.com/8.8.8.8"
+          }
+        ],
+        "error": null
+      },
+      "verdict": "verified-live"
+    },
+    {
+      "module": "reddit",
+      "source_class": "RedditSource",
+      "kind": "re",
+      "identifier_type": "username",
+      "identifier": "octocat",
+      "skipped_reason": null,
+      "host": {
+        "reachable": null,
+        "status_code": null,
+        "latency_ms": null,
+        "error": null
+      },
+      "functional": {
+        "method": "search_for_address",
+        "latency_ms": 7830,
+        "leak_count": 0,
+        "samples": [],
+        "error": null
+      },
+      "verdict": "failed"
+    },
+    {
+      "module": "bgpview",
+      "source_class": "BgpViewSource",
+      "kind": "re",
+      "identifier_type": "ip",
+      "identifier": "8.8.8.8",
+      "skipped_reason": null,
+      "host": {
+        "reachable": false,
+        "status_code": null,
+        "latency_ms": null,
+        "error": "ConnectError: [Errno -2] Name or service not known"
+      },
+      "functional": {
+        "method": "search_for_address",
+        "latency_ms": 37,
+        "leak_count": 0,
+        "samples": [],
+        "error": null
+      },
+      "verdict": "failed"
+    },
+    {
+      "module": "proxynova",
+      "source_class": "ProxynovaSource",
+      "kind": "re",
+      "identifier_type": "username",
+      "identifier": "octocat",
+      "skipped_reason": null,
+      "host": {
+        "reachable": true,
+        "status_code": 200,
+        "latency_ms": 1547,
+        "error": null
+      },
+      "functional": {
+        "method": "search_for_address",
+        "latency_ms": 859,
+        "leak_count": 0,
+        "samples": [],
+        "error": null
+      },
+      "verdict": "reachable-no-data"
+    },
+    {
+      "module": "veriphone",
+      "source_class": "VeriPhoneSource",
+      "kind": "re",
+      "identifier_type": "phone",
+      "identifier": "+14155550100",
+      "skipped_reason": null,
+      "host": {
+        "reachable": true,
+        "status_code": 200,
+        "latency_ms": 396,
+        "error": null
+      },
+      "functional": {
+        "method": "search_for_address",
+        "latency_ms": 338,
+        "leak_count": 0,
+        "samples": [],
+        "error": null
+      },
+      "verdict": "reachable-no-data"
+    },
+    {
+      "module": "social",
+      "source_class": "SocialSource",
+      "kind": "re",
+      "identifier_type": "username",
+      "identifier": "octocat",
+      "skipped_reason": null,
+      "host": {
+        "reachable": null,
+        "status_code": null,
+        "latency_ms": null,
+        "error": null
+      },
+      "functional": {
+        "method": "search_for_address",
+        "latency_ms": 7290,
+        "leak_count": 2,
+        "samples": [
+          {
+            "text": "{'login': 'octocat', 'id': 583231, 'node_id': 'MDQ6VXNlcjU4MzIzMQ==', 'avatar_url': 'https://avatars.githubusercontent.com/u/583231?v=4', 'gravatar_id': '', 'ur",
+            "source_url": "https://api.github.com/users/octocat"
+          },
+          {
+            "text": "{'status': {'code': 0, 'name': 'OK'}, 'them': {'id': 'a6658157f0df83900a6c8f3b34a7c719', 'basics': {'username': 'octocat', 'ctime': 1473417405, 'mtime': 1565618",
+            "source_url": "https://keybase.io/_/api/1.0/user/lookup.json?username=octocat"
+          }
+        ],
+        "error": null
+      },
+      "verdict": "verified-live"
+    },
+    {
+      "module": "urlscan",
+      "source_class": "UrlScanSource",
+      "kind": "re",
+      "identifier_type": "domain",
+      "identifier": "example.com",
+      "skipped_reason": null,
+      "host": {
+        "reachable": true,
+        "status_code": 404,
+        "latency_ms": 617,
+        "error": null
+      },
+      "functional": {
+        "method": "search_for_address",
+        "latency_ms": 1270,
+        "leak_count": 61,
+        "samples": [
+          {
+            "text": "url: https://example.com/",
+            "source_url": "https://urlscan.io/api/v1/search/?q=domain:example.com"
+          },
+          {
+            "text": "ip: 2606:4700:10::6814:179a (AS13335)",
+            "source_url": "https://urlscan.io/api/v1/search/?q=domain:example.com"
+          }
+        ],
+        "error": null
+      },
+      "verdict": "verified-live"
+    },
+    {
+      "module": "rss",
+      "source_class": "RSSSource",
+      "kind": "re",
+      "identifier_type": "domain",
+      "identifier": "example.com",
+      "skipped_reason": null,
+      "host": {
+        "reachable": null,
+        "status_code": null,
+        "latency_ms": null,
+        "error": null
+      },
+      "functional": {
+        "method": "search_for_address",
+        "latency_ms": 8363,
+        "leak_count": 0,
+        "samples": [],
+        "error": null
+      },
+      "verdict": "failed"
+    },
+    {
+      "module": "discord",
+      "source_class": "DiscordSource",
+      "kind": "scrape",
+      "identifier_type": "domain",
+      "identifier": "example.com",
+      "skipped_reason": null,
+      "host": {
+        "reachable": null,
+        "status_code": null,
+        "latency_ms": null,
+        "error": null
+      },
+      "functional": {
+        "method": "search_for_address",
+        "latency_ms": 181,
+        "leak_count": 0,
+        "samples": [],
+        "error": null
+      },
+      "verdict": "failed"
+    },
+    {
+      "module": "dnsdumpster",
+      "source_class": "DNSDumpsterSource",
+      "kind": "scrape",
+      "identifier_type": "domain",
+      "identifier": "example.com",
+      "skipped_reason": null,
+      "host": {
+        "reachable": true,
+        "status_code": 200,
+        "latency_ms": 146,
+        "error": null
+      },
+      "functional": {
+        "method": "search_for_address",
+        "latency_ms": 103,
+        "leak_count": 0,
+        "samples": [],
+        "error": null
+      },
+      "verdict": "reachable-no-data"
+    },
+    {
+      "module": "whatsmyname",
+      "source_class": "WhatsMyNameSource",
+      "kind": "scrape",
+      "identifier_type": "username",
+      "identifier": "octocat",
+      "skipped_reason": null,
+      "host": {
+        "reachable": true,
+        "status_code": 302,
+        "latency_ms": 1216,
+        "error": null
+      },
+      "functional": {
+        "method": "search_for_address",
+        "latency_ms": 587,
+        "leak_count": 1,
+        "samples": [
+          {
+            "text": "Username 'octocat' found on WhatsMyName results page",
+            "source_url": "https://whatsmyname.com/search?q=octocat"
+          }
+        ],
+        "error": null
+      },
+      "verdict": "verified-live"
+    },
+    {
+      "module": "darknet",
+      "source_class": "DarknetSource",
+      "kind": "scrape",
+      "identifier_type": "domain",
+      "identifier": "example.com",
+      "skipped_reason": null,
+      "host": {
+        "reachable": null,
+        "status_code": null,
+        "latency_ms": null,
+        "error": null
+      },
+      "functional": {
+        "method": "search_for_address",
+        "latency_ms": 0,
+        "leak_count": 0,
+        "samples": [],
+        "error": null
+      },
+      "verdict": "failed"
+    },
+    {
+      "module": "paste",
+      "source_class": "PasteSource",
+      "kind": "scrape",
+      "identifier_type": "username",
+      "identifier": "octocat",
+      "skipped_reason": null,
+      "host": {
+        "reachable": null,
+        "status_code": null,
+        "latency_ms": null,
+        "error": null
+      },
+      "functional": {
+        "method": "search_for_address",
+        "latency_ms": 12881,
+        "leak_count": 0,
+        "samples": [],
+        "error": null
+      },
+      "verdict": "failed"
+    },
+    {
+      "module": "duckduckgo",
+      "source_class": "DuckDuckGoSource",
+      "kind": "scrape",
+      "identifier_type": "domain",
+      "identifier": "example.com",
+      "skipped_reason": null,
+      "host": {
+        "reachable": null,
+        "status_code": null,
+        "latency_ms": null,
+        "error": null
+      },
+      "functional": {
+        "method": "search_for_address",
+        "latency_ms": 10100,
+        "leak_count": 3,
+        "samples": [
+          {
+            "text": "<!DOCTYPE html>\n<html class=\"client-nojs vector-feature-language-in-header-enabled vector-feature-language-in-main-menu-disabled vector-feature-language-in-main",
+            "source_url": "https://en.wikipedia.org/wiki/Example.com"
+          },
+          {
+            "text": "<!DOCTYPE html>\n<!--STATUS OK-->\n<html>\n<head>\n<meta http-equiv=\"X-UA-Compatible\" content=\"IE=Edge\" />\n<meta http-equiv=\"content-type\" content=\"text/html; chars",
+            "source_url": "https://zhidao.baidu.com/question/636724076405336444.html"
+          }
+        ],
+        "error": null
+      },
+      "verdict": "verified-live"
+    },
+    {
+      "module": "etherscan",
+      "source_class": "EtherscanSource",
+      "kind": "api",
+      "identifier_type": "crypto_address",
+      "identifier": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
+      "skipped_reason": null,
+      "host": {
+        "reachable": true,
+        "status_code": 200,
+        "latency_ms": 777,
+        "error": null
+      },
+      "functional": {
+        "method": "search_for_address",
+        "latency_ms": 989,
+        "leak_count": 0,
+        "samples": [],
+        "error": null
+      },
+      "verdict": "reachable-no-data"
+    },
+    {
+      "module": "pulsedive",
+      "source_class": "PulsediveSource",
+      "kind": "api",
+      "identifier_type": "domain",
+      "identifier": "example.com",
+      "skipped_reason": null,
+      "host": {
+        "reachable": true,
+        "status_code": 301,
+        "latency_ms": 815,
+        "error": null
+      },
+      "functional": {
+        "method": "search_for_address",
+        "latency_ms": 1821,
+        "leak_count": 1,
+        "samples": [
+          {
+            "text": "Indicator: example.com\nRisk: none\nThreats: [{'tid': 235, 'name': 'Adposhel', 'category': 'general', 'risk': 'unknown', 'stamp_linked': '2020-04-14 07:25:56'}, {",
+            "source_url": "https://pulsedive.com/indicator/?iid=example.com"
+          }
+        ],
+        "error": null
+      },
+      "verdict": "verified-live"
+    },
+    {
+      "module": "ipinfo",
+      "source_class": "IPInfoSource",
+      "kind": "api",
+      "identifier_type": "ip",
+      "identifier": "8.8.8.8",
+      "skipped_reason": null,
+      "host": {
+        "reachable": true,
+        "status_code": 200,
+        "latency_ms": 322,
+        "error": null
+      },
+      "functional": {
+        "method": "search_for_address",
+        "latency_ms": 304,
+        "leak_count": 1,
+        "samples": [
+          {
+            "text": "IP: 8.8.8.8\nCity: Mountain View\nRegion: California\nCountry: US\nOrg: AS15169 Google LLC",
+            "source_url": "https://ipinfo.io/8.8.8.8"
+          }
+        ],
+        "error": null
+      },
+      "verdict": "verified-live"
+    },
+    {
+      "module": "github",
+      "source_class": "GitHubLeakSource",
+      "kind": "api",
+      "identifier_type": "domain",
+      "identifier": "example.com",
+      "skipped_reason": null,
+      "host": {
+        "reachable": null,
+        "status_code": null,
+        "latency_ms": null,
+        "error": null
+      },
+      "functional": {
+        "method": "search_for_address",
+        "latency_ms": 15010,
+        "leak_count": 0,
+        "samples": [],
+        "error": "TimeoutError: exceeded 15.0s"
+      },
+      "verdict": "failed"
+    },
+    {
+      "module": "maigret",
+      "source_class": "MaigretSource",
+      "kind": "tool",
+      "identifier_type": "username",
+      "identifier": "octocat",
+      "skipped_reason": "tool/local CLI wrapper \u2014 transport is a local binary, not an endpoint",
+      "host": {
+        "reachable": null,
+        "status_code": null,
+        "latency_ms": null,
+        "error": null
+      },
+      "functional": {
+        "method": null,
+        "latency_ms": null,
+        "leak_count": null,
+        "samples": [],
+        "error": null
+      },
+      "verdict": "skipped"
+    },
+    {
+      "module": "httpx",
+      "source_class": "HttpxSource",
+      "kind": "tool",
+      "identifier_type": "domain",
+      "identifier": "example.com",
+      "skipped_reason": "tool/local CLI wrapper \u2014 transport is a local binary, not an endpoint",
+      "host": {
+        "reachable": null,
+        "status_code": null,
+        "latency_ms": null,
+        "error": null
+      },
+      "functional": {
+        "method": null,
+        "latency_ms": null,
+        "leak_count": null,
+        "samples": [],
+        "error": null
+      },
+      "verdict": "skipped"
+    },
+    {
+      "module": "nmap",
+      "source_class": "NmapSource",
+      "kind": "tool",
+      "identifier_type": "domain",
+      "identifier": "example.com",
+      "skipped_reason": "tool/local CLI wrapper \u2014 transport is a local binary, not an endpoint",
+      "host": {
+        "reachable": null,
+        "status_code": null,
+        "latency_ms": null,
+        "error": null
+      },
+      "functional": {
+        "method": null,
+        "latency_ms": null,
+        "leak_count": null,
+        "samples": [],
+        "error": null
+      },
+      "verdict": "skipped"
+    },
+    {
+      "module": "sherlock",
+      "source_class": "SherlockSource",
+      "kind": "tool",
+      "identifier_type": "username",
+      "identifier": "octocat",
+      "skipped_reason": "tool/local CLI wrapper \u2014 transport is a local binary, not an endpoint",
+      "host": {
+        "reachable": null,
+        "status_code": null,
+        "latency_ms": null,
+        "error": null
+      },
+      "functional": {
+        "method": null,
+        "latency_ms": null,
+        "leak_count": null,
+        "samples": [],
+        "error": null
+      },
+      "verdict": "skipped"
+    },
+    {
+      "module": "holehe",
+      "source_class": "HoleheSource",
+      "kind": "tool",
+      "identifier_type": "email",
+      "identifier": "john.doe@example.com",
+      "skipped_reason": "tool/local CLI wrapper \u2014 transport is a local binary, not an endpoint",
+      "host": {
+        "reachable": null,
+        "status_code": null,
+        "latency_ms": null,
+        "error": null
+      },
+      "functional": {
+        "method": null,
+        "latency_ms": null,
+        "leak_count": null,
+        "samples": [],
+        "error": null
+      },
+      "verdict": "skipped"
+    },
+    {
+      "module": "amass",
+      "source_class": "AmassSource",
+      "kind": "tool",
+      "identifier_type": "domain",
+      "identifier": "example.com",
+      "skipped_reason": "tool/local CLI wrapper \u2014 transport is a local binary, not an endpoint",
+      "host": {
+        "reachable": null,
+        "status_code": null,
+        "latency_ms": null,
+        "error": null
+      },
+      "functional": {
+        "method": null,
+        "latency_ms": null,
+        "leak_count": null,
+        "samples": [],
+        "error": null
+      },
+      "verdict": "skipped"
+    },
+    {
+      "module": "h8mail",
+      "source_class": "H8mailSource",
+      "kind": "tool",
+      "identifier_type": "email",
+      "identifier": "john.doe@example.com",
+      "skipped_reason": "tool/local CLI wrapper \u2014 transport is a local binary, not an endpoint",
+      "host": {
+        "reachable": null,
+        "status_code": null,
+        "latency_ms": null,
+        "error": null
+      },
+      "functional": {
+        "method": null,
+        "latency_ms": null,
+        "leak_count": null,
+        "samples": [],
+        "error": null
+      },
+      "verdict": "skipped"
+    },
+    {
+      "module": "bbot",
+      "source_class": "BbotSource",
+      "kind": "tool",
+      "identifier_type": "domain",
+      "identifier": "example.com",
+      "skipped_reason": "tool/local CLI wrapper \u2014 transport is a local binary, not an endpoint",
+      "host": {
+        "reachable": null,
+        "status_code": null,
+        "latency_ms": null,
+        "error": null
+      },
+      "functional": {
+        "method": null,
+        "latency_ms": null,
+        "leak_count": null,
+        "samples": [],
+        "error": null
+      },
+      "verdict": "skipped"
+    },
+    {
+      "module": "theharvester",
+      "source_class": "TheHarvesterSource",
+      "kind": "tool",
+      "identifier_type": "domain",
+      "identifier": "example.com",
+      "skipped_reason": "tool/local CLI wrapper \u2014 transport is a local binary, not an endpoint",
+      "host": {
+        "reachable": null,
+        "status_code": null,
+        "latency_ms": null,
+        "error": null
+      },
+      "functional": {
+        "method": null,
+        "latency_ms": null,
+        "leak_count": null,
+        "samples": [],
+        "error": null
+      },
+      "verdict": "skipped"
+    },
+    {
+      "module": "subfinder",
+      "source_class": "SubfinderSource",
+      "kind": "tool",
+      "identifier_type": "domain",
+      "identifier": "example.com",
+      "skipped_reason": "tool/local CLI wrapper \u2014 transport is a local binary, not an endpoint",
+      "host": {
+        "reachable": null,
+        "status_code": null,
+        "latency_ms": null,
+        "error": null
+      },
+      "functional": {
+        "method": null,
+        "latency_ms": null,
+        "leak_count": null,
+        "samples": [],
+        "error": null
+      },
+      "verdict": "skipped"
+    },
+    {
+      "module": "phoneinfoga",
+      "source_class": "PhoneInfogaSource",
+      "kind": "tool",
+      "identifier_type": "phone",
+      "identifier": "+14155550100",
+      "skipped_reason": "tool/local CLI wrapper \u2014 transport is a local binary, not an endpoint",
+      "host": {
+        "reachable": null,
+        "status_code": null,
+        "latency_ms": null,
+        "error": null
+      },
+      "functional": {
+        "method": null,
+        "latency_ms": null,
+        "leak_count": null,
+        "samples": [],
+        "error": null
+      },
+      "verdict": "skipped"
+    }
+  ]
+}
