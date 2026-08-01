@@ -1,0 +1,27 @@
+# 25 rapid POSTs /v1/scan @ AI_OSINT_API_RPM=60 AI_OSINT_API_BURST=5 (port 8765)
+# bucket: 5 tokens + 1/sec refill; observed 7x200 + 18x429
+200
+200
+200
+200
+200
+200
+429
+429
+429
+429
+429
+429
+429
+429
+429
+429
+429
+429
+429
+429
+200
+429
+429
+429
+429

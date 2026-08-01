@@ -1,0 +1,8 @@
+# Mode A: fail-open default (AI_OSINT_API_RPM=60 AI_OSINT_API_BURST=5), port 8765
+GET  /health       -> 200
+GET  /             -> 200
+GET  /ui           -> 200
+GET  /v1/jobs      -> 200   (fail-open default: unauthenticated reads allowed)
+GET  /nonexistent  -> 404
+POST /v1/scan malformed JSON -> 422 (FastAPI body validation; not 400)
+POST /v1/scan {"target": ""} -> 422 (empty target rejected)

@@ -55,10 +55,12 @@ async def auth_login(request: Request) -> dict:
 async def auth_tier(request: Request) -> dict:
     """Return the caller's resolved access tier (RBAC Layer 3).
 
-    When auth is disabled (no WEB_AUTH_TOKEN / WEB_AUTH_TOKENS) the caller
-    is treated as ADMIN — same as the engine's internal default.
+    When auth is disabled (no WEB_AUTH_TOKEN / WEB_AUTH_TOKENS and
+    REQUIRE_AUTH_TOKENS unset) the caller is treated as READONLY — the
+    least-privilege default. Only an explicitly authenticated caller (or a
+    test harness that injects ``scope["auth_tier"]``) is granted more.
     """
-    tier = request.scope.get("auth_tier", AccessTier.ADMIN)
+    tier = request.scope.get("auth_tier", AccessTier.READONLY)
     return {"tier": tier.name, "rank": int(tier)}
 
 

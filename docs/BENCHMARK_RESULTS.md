@@ -272,3 +272,80 @@ Privacy: PII detection 10/10 PASS, No PII in output PASS.
 | passphrase/checker.py | 89 | 89 | 100% |
 | passphrase/generator.py | 41 | 36 | 88% |
 | **Combined crypto** | **351** | **326** | **93%** |
+
+---
+
+## Latest Run (2026-08-01)
+
+**Date:** 2026-08-01
+**Platform:** Linux (x86_64)
+**Python:** 3.13.11 (as reported by the benchmark environment; project venv is 3.12.12)
+**Hash Algorithm:** SHA-256
+**Graph Engine:** In-memory Pydantic models
+
+### Performance Benchmark
+
+| Metric | Value |
+|--------|-------|
+| Hash throughput | 1,235,652 hashes/sec (809ns/hash, 10,000 iters) |
+| Batch 100 | 160,596 records/sec |
+| Batch 1,000 | 154,518 records/sec |
+| Batch 10,000 | 160,360 records/sec |
+
+### Graph Construction
+
+| Records | Time (s) | Nodes | Edges | ms/record |
+|---------|----------|-------|-------|-----------|
+| 100 | 0.0040 | 305 | 600 | 0.04 |
+| 500 | 0.0223 | 1,505 | 3,000 | 0.04 |
+| 1,000 | 0.0437 | 3,005 | 6,000 | 0.04 |
+| 5,000 | 0.3687 | 15,005 | 30,000 | 0.07 |
+
+### Correlation, Scoring, Memory
+
+| Metric | Value |
+|--------|-------|
+| Correlation (1,050 nodes / 1,500 edges / 50 components) | 0.0046s |
+| Scoring (20 components / 20 clusters) | 0.0017s |
+| Memory delta (5,000 records) | 60.68 MB (**PASS**, under 100 MB limit) |
+| Per-node memory | 4,241 bytes |
+| Serialized node | 221 bytes |
+| Projected 100K nodes | 21.1 MB |
+
+### End-to-End Pipeline
+
+| Records | Time (s) | Clusters | Throughput (records/sec) |
+|---------|----------|----------|--------------------------|
+| 100 | 0.0054 | 5 | 18,384 |
+| 500 | 0.0345 | 5 | 14,499 |
+| 1,000 | 0.0606 | 5 | 16,505 |
+
+### Graph Merge
+
+| Metric | Value |
+|--------|-------|
+| Graph 1 nodes | 500 |
+| Graph 2 nodes | 500 |
+| New entities | 0 |
+| Merged nodes | 1,505 |
+| Merge time | 0.0115s |
+
+**Performance: 12 passed, 0 failed** — includes the previously failing Memory Footprint benchmark, now PASS (60.68 MB < 100 MB limit).
+
+### Detection & Derivation (2026-08-01)
+
+| Metric | Value |
+|--------|-------|
+| Breach severity ground truth | **12/12 cases** (all severity re-weighting cases pass; 13 tests = 12 cases + overall-metrics) |
+| Breach TP/FP/FN/TN | 6 / 0 / 0 / 6 |
+| Breach P/R/F1 | 1.000 / 1.000 / 1.000 |
+| ZKIT clusters | 3 |
+| ZKIT P/R/F1 | 1.000 / 1.000 / 1.000 |
+| PII field detection | 10/10 |
+| PII P/R/F1 | 1.000 / 1.000 / 1.000 |
+| Single-source correlation | 1 component / 4 nodes (entity_1 has 4 unique attrs: alice@example.com, alice_dev, +15551234567, example.com) |
+| BIP-39 derivation throughput | **181.7 mnemonics/sec** (5.5ms/derivation, 0.550s for 16 addresses/run) — previous 65.8/sec, gate ≥ 100 |
+
+**Detection + Derivation: 21 passed, 0 failed.**
+
+**Overall (2026-08-01): 33 passed, 0 failed** (12 performance + 21 detection/derivation).

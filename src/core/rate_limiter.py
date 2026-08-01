@@ -1,4 +1,10 @@
-"""Rate limiter for API calls using token bucket algorithm."""
+"""Rate limiters for outbound API calls and inbound HTTP requests.
+
+``RateLimiter`` is the token-bucket limiter for *outbound* calls to external
+sources (disk-persisted so limits survive restarts). ``RequestLimiter`` is a
+separate, in-memory limiter for *inbound* HTTP requests (per-client API
+throttling); it never touches disk.
+"""
 
 import asyncio
 import json
@@ -149,3 +155,45 @@ class RateLimiter:
     def close(self) -> None:
         """Flush any pending state to disk before shutdown."""
         self._flush()
+
+
+class RequestLimiter:
+    """In-memory token bucket for inbound HTTP requests.
+
+    Unlike :class:`RateLimiter` (outbound, disk-persisted) this gate is
+    deliberately stateless across restarts: it protects the API from a
+    burst of requests from a single client and is safe to reset freely.
+    Uses ``time.monotonic`` so wall-clock changes cannot skew refills.
+    """
+
+    def __init__(self, requests_per_minute: int = 60, burst: int = 30):
+        """Args:
+        requests_per_minute: Sustained per-key rate.
+        burst: Maximum burst size above the sustained rate.
+
+        """
+        self.rate = max(requests_per_minute, 1) / 60.0  # tokens per second
+        self.burst = max(burst, 1)
+        self._buckets: dict[str, tuple[float, float]] = {}  # key -> (tokens, last_refill)
+
+    def _refill(self, key: str) -> float:
+        now = time.monotonic()
+        tokens, last = self._buckets.get(key, (float(self.burst), now))
+        tokens = min(float(self.burst), tokens + (now - last) * self.rate)
+        self._buckets[key] = (tokens, now)
+        return tokens
+
+    def allow(self, key: str = "default") -> bool:
+        """Return True if the key may make one more request right now."""
+        tokens = self._refill(key)
+        if tokens >= 1.0:
+            self._buckets[key] = (tokens - 1.0, time.monotonic())
+            return True
+        return False
+
+    def reset(self, key: str | None = None) -> None:
+        """Drop the bucket for ``key`` (or all buckets when omitted)."""
+        if key:
+            self._buckets.pop(key, None)
+        else:
+            self._buckets.clear()

@@ -21,8 +21,10 @@ HERE = Path(__file__).parent
 class AuthMiddleware:
     """Bearer-token gate with per-tier RBAC + optional JWT sessions (Layer 3).
 
-    Enabled only when ``WEB_AUTH_TOKEN`` (legacy, treated as ADMIN) or
-    ``WEB_AUTH_TOKENS`` (``tier:token,tier:token``) is set at app creation.
+    Enabled when ``WEB_AUTH_TOKEN`` (legacy, treated as ADMIN),
+    ``WEB_AUTH_TOKENS`` (``tier:token,tier:token``) is set at app creation,
+    or ``REQUIRE_AUTH_TOKENS=1`` forces auth on (fail closed — everything
+    non-exempt gets 401 when no tokens are configured).
     When enabled, every HTTP request is rejected with ``401`` unless it
     carries an ``Authorization: Bearer *** header or targets an exempt path
     (``/static/*`` static assets, ``/api/health``, and ``/api/auth/login``).
@@ -95,14 +97,15 @@ def create_app() -> FastAPI:
     app.include_router(timeline_router)
     app.include_router(api_router)
 
-    # Optional bearer-token auth — enabled when a token is configured.
-    # Legacy single token (WEB_AUTH_TOKEN) → ADMIN; multi-tier via
-    # WEB_AUTH_TOKENS = "readonly:tok1,admin:tok2". Re-read at app creation
-    # so runtime config is honored.
+    # Optional bearer-token auth — enabled when a token is configured or
+    # REQUIRE_AUTH_TOKENS=1 forces it. Legacy single token (WEB_AUTH_TOKEN)
+    # → ADMIN; multi-tier via WEB_AUTH_TOKENS = "readonly:tok1,admin:tok2".
+    # Re-read at app creation so runtime config is honored.
     from src.core.rbac import tiers_from_env
 
     tokens = tiers_from_env()
-    if tokens:
+    _require_auth = os.environ.get("REQUIRE_AUTH_TOKENS", "").strip().lower() in {"1", "true", "yes"}
+    if tokens or _require_auth:
         app.add_middleware(
             AuthMiddleware,
             token=os.environ.get("WEB_AUTH_TOKEN", "").strip() or None,

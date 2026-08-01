@@ -1,0 +1,6 @@
+# Mode B: REQUIRE_AUTH_TOKENS=1 WEB_AUTH_TOKEN=testtoken, port 8765
+GET  /health          -> 200  (health exempt from auth)
+GET  /v1/jobs no token -> 401
+GET  /v1/jobs Bearer testtoken -> 200
+POST /v1/scan no token -> 401
+POST /v1/scan Bearer testtoken -> 200

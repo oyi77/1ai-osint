@@ -8,6 +8,7 @@ from __future__ import annotations
 import logging
 import re
 from dataclasses import dataclass
+from functools import lru_cache
 
 from bip_utils import (
     Bip39MnemonicValidator,
@@ -35,6 +36,44 @@ from src.modules.crypto.balance.chains import (
 from src.modules.crypto.balance.provider_profiles import ProviderProfile
 
 logger = logging.getLogger(__name__)
+
+
+# --- PBKDF2 seed memoization ---
+# Advisory: the two caches below key on plaintext mnemonics and derived BIP
+# nodes (key material). Both are bounded (128/512 entries), process-local,
+# and cleared on restart — acceptable for forensics/CLI use, but a long-lived
+# process should not hold untrusted key material in memory indefinitely.
+@lru_cache(maxsize=128)
+def _seed_for_mnemonic(mnemonic: str) -> bytes:
+    """Cache the BIP-39 seed (PBKDF2 key stretching) for a mnemonic.
+
+    Address derivation is a pure function of the seed, so memoizing the
+    expensive key-stretching step makes repeated derivation for the same
+    mnemonic (e.g. batch/benchmark scans) orders of magnitude faster.
+    """
+    return Bip39SeedGenerator(mnemonic).Generate()
+
+
+@lru_cache(maxsize=512)
+def _account_ctx(seed: bytes, purpose: int, coin: Bip44Coins, account: int):
+    """Cache the account-level BIP node for a (seed, purpose, coin, account).
+
+    The prefix ``FromSeed(...).Purpose().Coin().Account(account)`` is an
+    invariant across every address index and change level of a derivation
+    path, so building it once per call (instead of per address) removes the
+    dominant cost of the inner derivation loop. bip_utils nodes are
+    effectively immutable: ``Change()``/``AddressIndex()`` return new
+    objects and never mutate the parent, so caching the account node is
+    safe.
+    """
+    if purpose == 49 and _HAS_BIP84:
+        return Bip49.FromSeed(seed, coin).Purpose().Coin().Account(account)
+    if purpose == 84 and _HAS_BIP84:
+        return Bip84.FromSeed(seed, coin).Purpose().Coin().Account(account)
+    if purpose == 86 and _HAS_BIP84:
+        return Bip86.FromSeed(seed, coin).Purpose().Coin().Account(account)
+    return Bip44.FromSeed(seed, coin).Purpose().Coin().Account(account)
+
 
 # --- Base58 encoding/decoding for Solana keys ---
 _BASE58_ALPHABET = b"123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
@@ -160,7 +199,7 @@ def derive_from_mnemonic(
     if chains is None:
         chains = list(ALL_CHAINS)
 
-    seed_bytes = Bip39SeedGenerator(mnemonic.strip()).Generate()
+    seed_bytes = _seed_for_mnemonic(mnemonic.strip())
     results: list[DerivedAddress] = []
 
     for chain in chains:
@@ -174,24 +213,20 @@ def derive_from_mnemonic(
             changes.append(Bip44Changes.CHAIN_INT)
 
         for path in chain.derivation_paths:
+            purpose = _get_purpose_from_path(path)
+            try:
+                # Invariant across every address index/change level — build once
+                base = _account_ctx(seed_bytes, purpose, coin_enum, account)
+            except Exception:
+                continue
             for change in changes:
+                try:
+                    change_node = base.Change(change)
+                except Exception:
+                    continue
                 for addr_idx in range(count):
                     try:
-                        # Select the correct BIP class based on the path's purpose level
-                        purpose = _get_purpose_from_path(path)
-                        if purpose == 49 and _HAS_BIP84:
-                            ctx = Bip49.FromSeed(seed_bytes, coin_enum)
-                        elif purpose == 84 and _HAS_BIP84:
-                            ctx = Bip84.FromSeed(seed_bytes, coin_enum)
-                        elif purpose == 86 and _HAS_BIP84:
-                            ctx = Bip86.FromSeed(seed_bytes, coin_enum)
-                        else:
-                            ctx = Bip44.FromSeed(seed_bytes, coin_enum)
-
-                        node = ctx.Purpose().Coin()
-                        node = node.Account(account)
-                        node = node.Change(change)
-                        node = node.AddressIndex(addr_idx)
+                        node = change_node.AddressIndex(addr_idx)
 
                         address = node.PublicKey().ToAddress()
                         privkey = node.PrivateKey().Raw().ToHex()
@@ -244,7 +279,7 @@ def derive_from_mnemonic_provider(
 
     chain_map = {c.name.lower(): c for c in chains}
 
-    seed_bytes = Bip39SeedGenerator(mnemonic.strip()).Generate()
+    seed_bytes = _seed_for_mnemonic(mnemonic.strip())
     results: list[DerivedAddress] = []
 
     # EVM paths (ETH, BSC, Polygon share same derivation)
@@ -444,7 +479,7 @@ def derive_with_raw_path(
         return None
 
     try:
-        seed_bytes = Bip39SeedGenerator(mnemonic.strip()).Generate()
+        seed_bytes = _seed_for_mnemonic(mnemonic.strip())
         # Parse path and replace last component with address_idx
         parts = derivation_path.strip("m/").split("/")
         if parts:

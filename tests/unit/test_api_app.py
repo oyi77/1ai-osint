@@ -200,12 +200,12 @@ def test_create_scan_threads_requester_tier():
         resp = client.post("/v1/scan", json={"target": "fixture", "profile": "fast"})
     assert resp.status_code == 200
     mock_run.assert_awaited()
-    # Plain TestClient scope has no auth_tier → ADMIN fallback must be
-    # threaded through to the engine (Batch K RBAC hardening).
+    # Plain TestClient scope has no auth_tier → READONLY least-privilege
+    # fallback must be threaded through to the engine (auth hardening).
     # Compare by value, not identity: test_rbac_tos.py reloads src.core.rbac
     # (importlib.reload for env-var override tests), which creates a *new*
     # AccessTier class in sys.modules while src.api.app still holds the old
-    # one — cross-class `is` fails even though both are the ADMIN tier.
+    # one — cross-class `is` fails even though both are the same tier.
     tier = mock_run.await_args.kwargs["requester_tier"]
-    assert tier == AccessTier.ADMIN
-    assert int(tier) == int(AccessTier.ADMIN)  # 30 — ADMIN
+    assert tier == AccessTier.READONLY
+    assert int(tier) == int(AccessTier.READONLY)  # 10 — READONLY

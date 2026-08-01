@@ -1,0 +1,16 @@
+====================================================================
+  Head-to-head: S4 agent loop vs naive batch scan
+====================================================================
+  Scenario: email target — 2 breach sources rate-limit, 1 errors,
+  free intel alternates available. 19 simulated sources total.
+====================================================================
+
+  Naive batch        : attempted=19 ok=16 errors= 3 elapsed=  2.01s
+  Agent loop (S4)    : attempted= 6 ok= 3 failed= 3 deferred= 2 elapsed=  0.32s
+
+  Wall-clock speedup : 6.22x
+  Sources touched    : 6 vs 19 (13 unnecessary calls avoided)
+  Failed sources     : 3 (agent pivoted to alternates; naive accumulated 3 raw errors)
+  Note: 'deferred' steps are alternates the planner never needed to
+  run because enough primary/alternate sources already succeeded.
+====================================================================

@@ -193,3 +193,44 @@ class TestPhoneFinderLookup:
             result = await lookup.scan("+447911123456")
 
         assert result.module == "phone_finder"
+
+    @pytest.mark.asyncio
+    async def test_search_id_fallback_carrier_when_provider_empty(self, lookup):
+        # Provider returns no carrier metadata → offline prefix registry kicks in.
+        mock_provider = MagicMock()
+        mock_provider.search.return_value = {
+            "country_name": "Indonesia",
+            "line_type": "mobile",
+        }
+
+        with patch.object(lookup, "_get_provider", return_value=mock_provider):
+            result = await lookup.search("+6281234567890")
+
+        assert result.status == "ok"
+        phone_info = result.metadata["phone_info"]
+        assert phone_info["carrier"] == "Telkomsel"
+        titles = [f.title for f in result.findings]
+        assert any("Telkomsel" in t for t in titles)
+
+    @pytest.mark.asyncio
+    async def test_search_no_id_fallback_for_non_indonesian(self, lookup):
+        mock_provider = MagicMock()
+        mock_provider.search.return_value = {}
+
+        with patch.object(lookup, "_get_provider", return_value=mock_provider):
+            result = await lookup.search("+14155552671")
+
+        phone_info = result.metadata["phone_info"]
+        assert phone_info.get("carrier") is None
+        assert not any("Carrier" in f.title for f in result.findings)
+
+    @pytest.mark.asyncio
+    async def test_search_provider_carrier_wins_over_fallback(self, lookup):
+        mock_provider = MagicMock()
+        mock_provider.search.return_value = {"carrier": "Indosat Ooredoo"}
+
+        with patch.object(lookup, "_get_provider", return_value=mock_provider):
+            result = await lookup.search("+6281234567890")
+
+        phone_info = result.metadata["phone_info"]
+        assert phone_info["carrier"] == "Indosat Ooredoo"

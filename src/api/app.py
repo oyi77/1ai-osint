@@ -15,6 +15,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import math
 import os
 import pathlib
 import sys
@@ -31,6 +32,7 @@ from pydantic import BaseModel, Field
 load_dotenv()
 
 from src.core.config import settings  # noqa: E402
+from src.core.rate_limiter import RequestLimiter  # noqa: E402
 from src.core.rbac import AccessTier  # noqa: E402
 from src.core.ssrf_guard import validate_scan_target  # noqa: E402
 
@@ -47,6 +49,39 @@ _TEMPLATE_DIR = pathlib.Path(__file__).parent / "templates"
 _TASKS: set[asyncio.Task] = set()
 
 _MAX_PERSISTED_JOBS = 100
+
+
+def _env_int(name: str, default: int) -> int:
+    """Parse an env var as a positive int, falling back to ``default``."""
+    raw = os.environ.get(name, "").strip()
+    try:
+        return max(int(raw), 1)
+    except (TypeError, ValueError):
+        return default
+
+
+#: Inbound per-client gate for scan-creation endpoints. Deliberately separate
+#: from the outbound ``RateLimiter`` (per-source token bucket): this throttles
+#: who can *queue* work, the other throttles external calls. In-memory only —
+#: a restart resets it, which is fine for abuse protection.
+_api_limiter = RequestLimiter(
+    requests_per_minute=_env_int("AI_OSINT_API_RPM", 60),
+    burst=_env_int("AI_OSINT_API_BURST", 30),
+)
+
+
+def _rate_limit_or_429(request: Request) -> None:
+    """Reject a scan-creation request when the client is over its quota."""
+    client = request.client.host if request.client else "unknown"
+    if not _api_limiter.allow(client):
+        # Time until the bucket refills one token: 1/rate seconds, rounded up.
+        retry_after = max(1, math.ceil(1.0 / _api_limiter.rate))
+        plural = "s" if retry_after != 1 else ""
+        raise HTTPException(
+            status_code=429,
+            detail=f"Rate limit exceeded. Retry after {retry_after} second{plural}.",
+            headers={"Retry-After": str(retry_after)},
+        )
 
 
 def _load_template(name: str) -> str:
@@ -220,10 +255,11 @@ def list_jobs() -> list[dict[str, Any]]:
 
 @app.post("/v1/scan", response_model=ScanResponse)
 async def create_scan(request: Request, req: ScanRequest) -> ScanResponse:
+    _rate_limit_or_429(request)
     _clean_target(req)
     job_id = f"job-{uuid.uuid4().hex[:12]}"
     _create_job(job_id, target=req.target, profile=req.profile, case_id=req.case_id, budget=req.budget)
-    requester_tier = request.scope.get("auth_tier", AccessTier.ADMIN)
+    requester_tier = request.scope.get("auth_tier", AccessTier.READONLY)
     _track(asyncio.create_task(_run_job(job_id, req, requester_tier=requester_tier)))
     return ScanResponse(job_id=job_id, status="queued")
 
@@ -236,7 +272,7 @@ def get_scan(job_id: str) -> dict[str, Any]:
     return job
 
 
-async def _run_job(job_id: str, req: ScanRequest, requester_tier: AccessTier = AccessTier.ADMIN) -> None:
+async def _run_job(job_id: str, req: ScanRequest, requester_tier: AccessTier = AccessTier.READONLY) -> None:
     from src.investigations.case_manager import CaseManager
     from src.modules.deep_scan.engine import DeepScanEngine
     from src.modules.deep_scan.exports import export_report
@@ -309,6 +345,7 @@ def serve_ui() -> str:
 
 @app.post("/api/scan", response_model=ReactJobResponse)
 async def start_scan_react(request: Request, req: ReactScanRequest) -> ReactJobResponse:
+    _rate_limit_or_429(request)
     target = req.target.strip()
     if not target:
         raise HTTPException(status_code=422, detail="target must not be empty")
@@ -318,7 +355,7 @@ async def start_scan_react(request: Request, req: ReactScanRequest) -> ReactJobR
     scan_req = ScanRequest(target=target, profile=profile, max_iterations=req.max_iterations)
     job_id = f"job-{uuid.uuid4().hex[:12]}"
     _create_job(job_id, target=target, profile=profile, max_iterations=req.max_iterations)
-    requester_tier = request.scope.get("auth_tier", AccessTier.ADMIN)
+    requester_tier = request.scope.get("auth_tier", AccessTier.READONLY)
     _track(asyncio.create_task(_run_job(job_id, scan_req, requester_tier=requester_tier)))
     return ReactJobResponse(job_id=job_id, status="queued", target=target)
 
@@ -332,9 +369,13 @@ async def get_scan_status_react(job_id: str) -> dict[str, Any]:
 
 
 # --- Optional bearer-token auth (mirrors src.web.app) ---------------------
-# Enabled only when WEB_AUTH_TOKEN / WEB_AUTH_TOKENS are configured, so the
-# default API has zero auth surface change. The UI/health paths served here
-# are exempt so the dashboard remains reachable.
+# Fail-open default: with no tokens configured the API stays open but every
+# request is treated as READONLY tier (least privilege) — see the handler
+# default in ``_run_job`` and the ``request.scope.get("auth_tier", ...)``
+# lookups. Set REQUIRE_AUTH_TOKENS=1 (with no tokens) to fail closed instead:
+# every non-exempt request is then rejected with 401. When
+# WEB_AUTH_TOKEN / WEB_AUTH_TOKENS are configured, auth is on regardless.
+# The UI/health paths served here are exempt so the dashboard stays reachable.
 from src.core.rbac import tiers_from_env  # noqa: E402
 from src.web.app import AuthMiddleware as _BaseAuthMiddleware  # noqa: E402
 
@@ -350,7 +391,8 @@ class _ApiAuthMiddleware(_BaseAuthMiddleware):
 
 
 _tokens = tiers_from_env()
-if _tokens:
+_require_auth = os.environ.get("REQUIRE_AUTH_TOKENS", "").strip().lower() in {"1", "true", "yes"}
+if _tokens or _require_auth:
     app.add_middleware(
         _ApiAuthMiddleware,
         token=os.environ.get("WEB_AUTH_TOKEN", "").strip() or None,

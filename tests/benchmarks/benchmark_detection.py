@@ -223,12 +223,12 @@ class TestCorrelationDetectionAccuracy:
         clusters = self.engine.score_components(components)  # noqa: F841
 
         # All entity_1 records share attributes, so they should be in one component
-        assert len(components) >= 1, "Should produce at least one component"
+        assert len(components) == 1, "Single source should produce exactly one component"
 
-        # Check that all hashed attributes are in the graph
-        total_hashes = sum(len(entry) - 1 for entry in hashed)  # subtract _source
+        # Graph nodes are deduplicated attribute values, not raw record fields
+        expected_nodes = len({self.engine.graph.hash_attribute(v) for rec in records for v in rec.values()})
         graph_nodes = self.engine.graph.node_count
-        assert graph_nodes == total_hashes, f"Expected {total_hashes} nodes, got {graph_nodes}"
+        assert graph_nodes == expected_nodes, f"Expected {expected_nodes} nodes, got {graph_nodes}"
 
     def test_multi_entity_separation(self) -> None:
         """Different entities should produce separate clusters (no cross-linking)."""

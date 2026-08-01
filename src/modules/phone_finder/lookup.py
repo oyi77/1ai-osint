@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 
 from src.core.models import Finding, ScanResult, Severity
 from src.modules.base.base import BaseOSINTTool
+from src.utils.phone_normalize import lookup_id_carrier
 
 # E.164 phone number pattern: +[country code][subscriber number]
 _E164_PATTERN = re.compile(r"^\+[1-9]\d{1,14}$")
@@ -116,6 +117,11 @@ class PhoneFinderLookup(BaseOSINTTool):
 
         # Parse into structured PhoneInfo
         phone_info = self._parse_result(query, e164, is_valid, raw_result)
+
+        # Offline-safe fallback: when the provider returns no carrier, derive
+        # it from the Indonesian mobile prefix registry (deterministic, no I/O).
+        if phone_info.carrier is None and e164 and e164.startswith("+62"):
+            phone_info.carrier = lookup_id_carrier(e164)
 
         # Build findings
         findings = []

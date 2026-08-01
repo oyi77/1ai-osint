@@ -86,6 +86,8 @@ cp .env.example .env
 | `AUDIT_LOG_PATH` | `.osint_audit.jsonl` | Compliance audit log — every adapter query is recorded here (tamper-evident, blueprint Layer 3). |
 | `API_JOBS_DIR` | `state/jobs` | Directory where the API server persists running/finished scan jobs (empty = `<project_root>/state/jobs`). |
 | `API_CORS_ORIGINS` | dev defaults | Comma-separated CORS origins allowed by the API server (empty = `http://localhost:5173`, `http://127.0.0.1:5173`). |
+| `AI_OSINT_API_RPM` | `60` | Inbound per-client sustained rate (requests/minute) for the scan-creation endpoints (`POST /v1/scan`, `POST /api/scan`). Values below 1 are clamped to 1. |
+| `AI_OSINT_API_BURST` | `30` | Inbound per-client burst before the API returns `429` + `Retry-After: 1` on scan-creation. Separate from the outbound per-source `RateLimiter` (`RATE_LIMIT_FILE`). |
 
 > The API app also reads `AI_OSINT_JOBS_DIR` and `AI_OSINT_CORS_ORIGINS`
 > directly from the environment; when set, those override
@@ -107,8 +109,9 @@ cp .env.example .env
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `WEB_AUTH_TOKEN` | — | Optional bearer token protecting the web dashboard. When set, every route except `/api/health`, `/static`, and `/api/auth/login` requires `Authorization: Bearer <WEB_AUTH_TOKEN>`. When empty/unset, the web UI runs unauthenticated (local dev default). |
+| `WEB_AUTH_TOKEN` | — | Optional bearer token protecting the web dashboard. When set, every route except `/api/health`, `/static`, and `/api/auth/login` requires `Authorization: Bearer <WEB_AUTH_TOKEN>`. When empty/unset, the web UI runs unauthenticated (local dev default) and unauthenticated callers are treated as `READONLY` tier (least privilege). |
 | `WEB_AUTH_TOKENS` | — | Multi-tier bearer tokens as `tier:token,tier:token` (e.g. `readonly:tok1,admin:tok2`). Overrides the legacy `WEB_AUTH_TOKEN` for per-tier RBAC (tiers: `readonly`, `analyst`, `admin`). |
+| `REQUIRE_AUTH_TOKENS` | — | Fail-closed auth switch (`1`, `true`, or `yes`). Forces authentication even when no tokens are configured — every non-exempt route is then rejected with 401. Without it, an unauthenticated deployment stays open (local dev default) but runs at `READONLY` tier. |
 
 See [Web UI](web-ui.md) for the authentication behavior in detail.
 
