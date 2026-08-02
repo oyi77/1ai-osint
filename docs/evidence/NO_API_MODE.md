@@ -65,6 +65,29 @@ Reverse-engineered public endpoints, transport priority RE (0):
   keyless.
 - **codeforces** — `codeforces.com/api/user.info?handles={u}` JSON
   (`status: OK`); leaks rating/rank/max-rating/registration date; keyless.
+- **devto** — `dev.to/{u}` profile page (JSON-LD `sameAs`); leaks
+  `devto: <u>`, profile title, description, joined date, social links; keyless.
+- **steam** — `steamcommunity.com/id/{u}/?xml=1` XML feed; leaks steam ID,
+  display name, steam64 ID, member-since, real name, location, summary;
+  unknown users also return 200 — an `<error>` body is treated as a miss;
+  keyless.
+- **chess** — `chess.com/member/{u}` profile page; title, full name,
+  location, joined leaks; ToS restricts automated scraping — rate-limited
+  (`request_delay`), public profile page only; keyless.
+- **letterboxd** — `letterboxd.com/{u}/` profile page; profile title,
+  description, external links, member-since leaks; 404 = miss; keyless.
+- **medium** — `{u}.medium.com/` profile subdomain (the `@username` path is
+  Cloudflare-challenged for non-browser clients); title/description leaks;
+  soft-404 and CF challenges treated as misses; keyless.
+- **pastebin** — `pastebin.com/u/{u}` user page; profile name + latest paste
+  dates; **case-preserving** (no lowercase of input); ToS restricts automated
+  scraping — rate-limited; keyless.
+- **youtube** — `youtube.com/@{u}/about?hl=en&gl=US` channel about page
+  (follows the 303 canonical redirect); title, description, join date, country
+  leaks; keyless.
+- **fandom** — `community.fandom.com/api.php` MediaWiki `action=query`
+  list=users JSON; user id, registration, edit count, groups, gender leaks;
+  `missing` entry = miss; keyless.
 - **whatsmyname** — keyless username presence-echo scrape (SCRAPE transport,
   not RE): queries the search page and echoes the query, so it hits almost
   always — weak signal by design; wired into deep scan as an in-process
@@ -73,18 +96,19 @@ Reverse-engineered public endpoints, transport priority RE (0):
 ### P4: 30 keyless sources wired into the deep scan engine
 
 `src/modules/deep_scan/_module_config.py` now wires in all keyless sources
-(`MODULE_INPUTS` 52→84, `SOURCE_MODULES` 31→61), matching the registry's
+(`MODULE_INPUTS` 52→92, `SOURCE_MODULES` 31→69), matching the registry's
 keyless set so 0-API mode and normal mode activate the same RE-first breadth:
 
 - RE/SCRAPE (keyless): threatfox, feodo, malwarebazaar, blockchair, cargo,
   npm, pypi, rubygems, mastodon, reddit, stackoverflow, codeberg, social,
   s3, rss, twitter, telegram, paste, duckduckgo, discord, darknet,
-  dnsdumpster.
+  dnsdumpster, huggingface, scratch, itchio, codeforces, devto, steam,
+  chess, letterboxd, medium, pastebin, youtube, fandom.
 - Keyless API: etherscan, ipinfo, pulsedive, github.
 - Free-intel additions (in-process dispatch, not source modules):
   pandi_whois_intel, data_go_id_intel.
 
-0-API mode now activates **78 modules** (`DeepScanEngine(no_api=True)
+0-API mode now activates **86 modules** (`DeepScanEngine(no_api=True)
 ._get_active_modules()`), ordered RE → SCRAPE → keyless API → keyed API →
 TOOL → LOCAL.
 
@@ -124,9 +148,9 @@ receipt, from `source_registry.no_api_metrics()`:
 
 ```json
 "transports": {
-  "total_sources": 105,
-  "keyless_capable": 91,
-  "keyless_only": 85
+  "total_sources": 113,
+  "keyless_capable": 99,
+  "keyless_only": 93
 }
 ```
 

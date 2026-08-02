@@ -4,7 +4,7 @@ Measured against the de-facto open-source benchmark tools, focused on the
 platform's stated priority: **0-API — keyless reverse-engineered (RE)
 collection before vendor APIs**.
 
-> Method: registry inventory (`src/core/source_registry.py`, 105 sources at the
+> Method: registry inventory (`src/core/source_registry.py`, 113 sources at the
 > time of this audit), per-source transport classification (RE / SCRAPE /
 > API / TOOL / LOCAL). Tool wrappers count as *available* but only effective
 > when the CLI binary is installed. No claim of live-verified network results
@@ -31,7 +31,7 @@ Each cell: transport kind used by 1ai-osint for that category
 
 | Category | Competitor best | 1ai-osint | Verdict |
 |---|---|---|---|
-| username → presence | Sherlock 481, Maigret 3k+ keyless | `whatsmyname`, `social_osint`, `social_dorks_intel` (SCRAPE); `mastodon`, `reddit`, `stackoverflow`, `github`, `gitlab`, `codeberg`, `npm`, `pypi`, `rubygems`, `twitter`, `telegram`, `discord`, `keybase`, `huggingface`, `scratch`, `itchio`, `codeforces` (RE/SCRAPE); `sherlock`, `maigret` (TOOL) | In-process keyless breadth ~20 listed modules (600+ via `whatsmyname` scrape); Sherlock/Maigret wrappers add 481/3k+ when installed. **Gap: native keyless breadth still thin vs 481** |
+| username → presence | Sherlock 481, Maigret 3k+ keyless | `whatsmyname`, `social_osint`, `social_dorks_intel` (SCRAPE); `mastodon`, `reddit`, `stackoverflow`, `github`, `gitlab`, `codeberg`, `npm`, `pypi`, `rubygems`, `twitter`, `telegram`, `discord`, `keybase`, `huggingface`, `scratch`, `itchio`, `codeforces`, `devto`, `steam`, `chess`, `letterboxd`, `medium`, `pastebin`, `youtube`, `fandom` (RE/SCRAPE); `sherlock`, `maigret` (TOOL) | In-process keyless breadth ~28 listed modules (600+ via `whatsmyname` scrape); Sherlock/Maigret wrappers add 481/3k+ when installed. **Gap: native keyless breadth still thin vs 481** |
 | email → account | Holehe 123 keyless | `email_osint`, `gravatar_intel`, `whatsapp_check`, `telegram_check`, `hibp_free` (SCRAPE); `holehe` (TOOL) | Good; Holehe wrapper is the depth play |
 | email → breach | HIBP + commercial APIs | `dehashed`, `leakcheck`, `scylla`, `snusbase`, `hibp` (API, keyed); `data_leaks`, `hibp_free` (SCRAPE); `proxynova` (RE); `h8mail` (TOOL) | Keyless breach signal now present (`proxynova` combine); depth vs HIBP still keyed |
 | domain → subdomains | certspotter/rapiddns/anubis/urlscan/crt.sh/commoncrawl | `certspotter`, `rapiddns`, `anubis`, `crtsh`, `urlscan`, `wayback`, `hackertarget`, `dns_records` (RE); `dnsdumpster` (SCRAPE); `subfinder`, `amass`, `bbot` (TOOL) | **Strong — competitive keyless set** |
@@ -49,10 +49,10 @@ Each cell: transport kind used by 1ai-osint for that category
 ## 0-API posture (measured)
 
 ```json
-{"total_sources": 105, "keyless_capable": 91, "keyless_only": 85}
+{"total_sources": 113, "keyless_capable": 99, "keyless_only": 93}
 ```
 
-- 91/105 sources run with zero API keys; 85 are keyless by construction.
+- 99/113 sources run with zero API keys; 93 are keyless by construction.
 - New in this audit: `bgpview`, `certspotter`, `rapiddns`, `anubis`, `urlscan`
   — all keyless RE subdomain/ASN sources.
 - P1-gap closures: `proxynova` (keyless breach/paste combine), `veriphone`
@@ -65,15 +65,16 @@ Each cell: transport kind used by 1ai-osint for that category
   TOOL counts as keyless (transport priority 4, ordered after RE/SCRAPE);
   each requires its CLI installed — absent CLI degrades to an audited empty
   result, never an error.
-- P4: 30 keyless sources wired into the deep scan engine's module config
-  (`MODULE_INPUTS` 52→84, `SOURCE_MODULES` 31→61). RE/SCRAPE transport:
+- P4: 38 keyless sources wired into the deep scan engine's module config
+  (`MODULE_INPUTS` 52→92, `SOURCE_MODULES` 31→69). RE/SCRAPE transport:
   `threatfox`, `feodo`, `malwarebazaar`, `blockchair`, `cargo`, `npm`,
   `pypi`, `rubygems`, `mastodon`, `reddit`, `stackoverflow`, `codeberg`,
   `social`, `s3`, `rss`, `twitter`, `telegram`, `paste`, `duckduckgo`,
   `discord`, `darknet`, `dnsdumpster`, `huggingface`, `scratch`, `itchio`,
-  `codeforces`; keyless API (key_optional):
+  `codeforces`, `devto`, `steam`, `chess`, `letterboxd`, `medium`,
+  `pastebin`, `youtube`, `fandom`; keyless API (key_optional):
   `etherscan`, `ipinfo`, `pulsedive`, `github`. Free-intel additions:
-  `pandi_whois_intel`, `data_go_id_intel`. 0-API mode now activates 78
+  `pandi_whois_intel`, `data_go_id_intel`. 0-API mode now activates 86
   modules (RE precedes SCRAPE precedes keyless API).
 
 ## P1 gaps — status
@@ -83,8 +84,10 @@ Each cell: transport kind used by 1ai-osint for that category
    corpus depth still keyed (`dehashed`/`leakcheck`/`scylla`/`snusbase`/`hibp`).
 2. **Phone RE** — *addressed*: `veriphone` provides keyless carrier/line-type
    lookup; `phone_finder` (SCRAPE) and `phoneinfoga` (TOOL) remain.
-3. **Username breadth** — *improved*: `keybase` adds a profile RE source and
-   `whatsmyname` is now wired into the deep scan engine (~20 listed modules).
+3. **Username breadth** — *improved*: `keybase` adds a profile RE source,
+   `whatsmyname` is wired into the deep scan engine (~28 listed modules), and
+   eight new keyless RE sources (`devto`, `steam`, `chess`, `letterboxd`,
+   `medium`, `pastebin`, `youtube`, `fandom`) join the set.
    Caveat recorded in code/tests: `whatsmyname` is a presence-echo heuristic —
    the search page echoes the query, so it hits almost always and is a weak
    signal by design. Residual: still far below Sherlock's 481 / Maigret's 3k+;
@@ -95,7 +98,7 @@ Each cell: transport kind used by 1ai-osint for that category
 Measurable strengths: the keyless subdomain set (7 RE sources + 2 tools) and
 crypto/threat-feed coverage match or beat open-source baselines while running
 with zero keys. Structural gaps remain — breach corpus depth (keyed APIs still
-out-depth the keyless combine) and username breadth (~20 native modules vs
+out-depth the keyless combine) and username breadth (~28 native modules vs
 Sherlock's 481) — which no single-tool comparison can close without either
 more keyless endpoints or vendor keys. "Best in the world" is not claimed
 here; this is the measured baseline that subsequent phases improve against.

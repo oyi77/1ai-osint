@@ -1,7 +1,14 @@
+---
+scope: monitoring
+depends_on:
+  - src/core
+status: complete
+---
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-07-28 -->
 
 # monitoring
+
+> Last updated: correct stale multi-channel alert claim — only Console/File alerters exist (commit 8fa2bbf)
 
 ## Purpose
 Target watchlist and monitoring — continuous tracking of entities, change detection, and alerting.
@@ -9,18 +16,19 @@ Target watchlist and monitoring — continuous tracking of entities, change dete
 ## Key Files
 | File | Description |
 |------|-------------|
-| `watchlist.py` | Target watchlist management — add, remove, list targets |
-| `change_detector.py` | Detects changes in tracked entities across sources |
-| `alerter.py` | Alert dispatch — Telegram, Slack, email, webhook |
-| `models.py` | Monitoring-specific data models |
-| `__init__.py` | Package initializer |
+| `watchlist.py` | `WatchlistManager` (line 17) — target watchlist management, add/remove/list targets |
+| `change_detector.py` | `ChangeDetector` (line 22) — detects changes in tracked entities across sources |
+| `alerter.py` | `BaseAlerter` ABC (line 20), `ConsoleAlerter` (line 86), `FileAlerter` (line 94, JSONL under `investigations/watchlist/alerts`), `AlertDispatcher` (line 128) |
+| `models.py` | `ChangeType`, `ChangeSeverity`, `WatchlistTarget`, `ChangeEvent`, `AlertRule` |
+| `__init__.py` | Exports the 10 public symbols listed in `__all__` (line 24) |
 
 ## For AI Agents
 
 ### Working In This Directory
 - Watchlist supports persons, domains, IPs, usernames, emails
 - Alerts support severity levels: CRITICAL, HIGH, MEDIUM, LOW, INFO
-- Change detection runs on scheduled intervals
+- Only Console + File alerters are implemented today; "multi-channel" is pluggable via `AlertDispatcher.register_channel` (Telegram/Slack/email/webhook adapters are not present)
+- Change detection runs on scheduled intervals; `ChangeDetector` keys on `_RISK_TRIGGER_FIELDS`
 
 ## Dependencies
 

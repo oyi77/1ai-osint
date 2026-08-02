@@ -6,6 +6,13 @@
 ## Purpose
 ZKIT module for crypto-focused OSINT — leak finding across sources, multi-chain balance checking, wallet sweeping, key derivation, and mnemonic/privatekey randomization. One of several modules feeding findings into the ZKIT identity correlation engine.
 
+## Key Files
+| File | Description |
+|------|-------------|
+| `tx_tracer.py` | Blockchain transaction tracing — `BlockchainTxTracer`, registered as `crypto_tracer` |
+
+> **Known limitation:** `tx_tracer.py` matches addresses against placeholder `KNOWN_EXCHANGES`/`KNOWN_MIXERS` entries (not real addresses) and its BTC trace self-queries (`from`/`to` = scanned address), so exchange/mixer attribution and risk scoring from it are unreliable. It also bypasses `rate_limiter.py`.
+
 ## Subdirectories
 | Directory | Purpose |
 |-----------|---------|
@@ -34,5 +41,7 @@ ZKIT module for crypto-focused OSINT — leak finding across sources, multi-chai
 - solders — Solana
 - bit — Bitcoin
 - httpx — async HTTP
+
+> Last updated: added `tx_tracer.py` and its known attribution limitation (commit 8fa2bbf)
 
 <!-- MANUAL: -->

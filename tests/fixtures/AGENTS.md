@@ -1,5 +1,5 @@
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-05-31 -->
+<!-- Generated: 2026-08-02 -->
 
 # fixtures
 
@@ -18,5 +18,7 @@ Shared test data and mock API responses for unit tests.
 ### Working In This Directory
 - Add new mock responses here when testing new API integrations
 - Keep fixtures minimal — only include data needed for specific test cases
+- `tests/conftest.py` exposes `sample_secrets.json` / `test_identities.json` via the `sample_secrets_path` / `sample_identities_path` fixtures
 
 <!-- MANUAL: -->
+> Last updated: documented conftest sample_secrets_path/sample_identities_path fixtures (commit 8fa2bbf)

@@ -14,6 +14,7 @@ Export formatters for deep scan results — HTML dossiers, JSON data exports, PD
 | `json_export.py` | JSON data serialization |
 | `pdf_briefing.py` | PDF intelligence briefing generation |
 | `stix_export.py` | STIX 2.1 threat intelligence export |
+| `__init__.py` | `export_report(report, fmt="html")` — format dispatcher for all exporters |
 
 ## For AI Agents
 
@@ -26,5 +27,7 @@ Export formatters for deep scan results — HTML dossiers, JSON data exports, PD
 ### Internal
 - `src/modules/deep_scan/` — scan result models
 - `src/core/models.py` — shared data models
+
+> Last updated: added `__init__.py` `export_report()` dispatcher (commit 8fa2bbf)
 
 <!-- MANUAL: -->

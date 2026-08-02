@@ -1,5 +1,5 @@
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-05-31 -->
+<!-- Generated: 2026-08-02 -->
 
 # benchmarks
 
@@ -17,8 +17,9 @@ Performance benchmarks for key operations — derivation speed, detection accura
 ## For AI Agents
 
 ### Working In This Directory
-- Benchmarks are not part of the standard test suite
-- Run manually: `python -m pytest tests/benchmarks/`
-- Results documented in `docs/BENCHMARK_RESULTS.md`
+- Benchmarks are not part of the standard test suite (`testpaths = ["tests"]` in pyproject runs them anyway if executed from the root — use explicit paths)
+- Run manually: `uv run pytest tests/benchmarks/` (all four files are pytest-style; `-k` filters work)
+- Methodology in `docs/BENCHMARK.md`; results in `docs/BENCHMARK_RESULTS.md`
 
 <!-- MANUAL: -->
+> Last updated: uv-based run command, pytest-style note, docs/BENCHMARK.md pointer (commit 8fa2bbf)

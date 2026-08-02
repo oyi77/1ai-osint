@@ -1,5 +1,5 @@
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-05-31 -->
+<!-- Generated: 2026-08-02 -->
 
 # notebooks
 
@@ -15,7 +15,8 @@ Jupyter notebooks for data analysis, experimental results, and ZKIT protocol ana
 ## For AI Agents
 
 ### Working In This Directory
-- Notebooks use standard data science stack (pandas, matplotlib)
+- Notebooks use `numpy` + `matplotlib` (no pandas dependency — verified imports)
 - Results feed into `docs/` documentation
 
 <!-- MANUAL: -->
+> Last updated: corrected stack to numpy+matplotlib (no pandas) (commit 8fa2bbf)

@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 5 new keyless RE-first sources (0-API priority): hackertarget hostsearch/reverse-IP, Google DoH DNS records, mempool.space, ip-api.com, keys.openpgp.org PGP lookup
 - 0-API mode registry now reports 101 sources / 87 keyless-capable / 81 keyless-only
 - 4 new keyless RE username sources: huggingface (profile + full-name leak), scratch (presence), itchio (profile title), codeforces (rating/rank/max-rating/registration); live probe evidence pack under `docs/evidence/live/`; registry now 105 sources / 91 keyless-capable / 85 keyless-only; 0-API mode activates 78 modules
+- 8 new keyless RE username sources: devto (profile bio/joined/name), steam (profile/level/country), chess (player rating/title), letterboxd (profile film activity), medium (profile/following/followers), pastebin (user pastes), youtube (channel/about), fandom (wiki contributor); registry now 113 sources / 99 keyless-capable / 93 keyless-only; 0-API mode activates 86 modules (MODULE_INPUTS 92, SOURCE_MODULES 69)
 - AI analysis pipeline: LangGraph orchestrator with entity extraction, correlation, risk scoring
 - Behavioral profiling and anomaly detection modules
 - Continuous monitoring subsystem: watchlist, change detection, alert dispatch

@@ -24,9 +24,13 @@ Multi-source leak discovery engine. Coordinates scanning across 13 sources: GitH
 - Sources are pluggable — each implements a common interface
 - Don't use `pushed:>date` GitHub filter (reduces key extraction from 39 to 4-5)
 - Telegram: 30s timeout on client.start(), disconnect on failure, clean session lock files
+- `run_once()` in `coordinator.py` inits its own sweeper (does not rely on `start()`)
+- `extractor.py` skips test mnemonics (`_TEST_MNEMONICS`) and dedups via `KeyType`/bloom
 
 ### Testing Requirements
 - Test each source independently
 - Mock external APIs
+
+> Last updated: documented coordinator/extractor behavior and `sources/` scrapers (commit 8fa2bbf)
 
 <!-- MANUAL: -->

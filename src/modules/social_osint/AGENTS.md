@@ -1,28 +1,37 @@
+---
+scope: social_osint
+depends_on:
+  - src/core
+status: complete
+---
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-07-28 -->
 
 # social_osint
 
+> Last updated: correct line count (233) and stale "100+ platforms" claim (commit 8fa2bbf)
+
 ## Purpose
-Social media OSINT — username enumeration, profile scraping, and cross-platform identity correlation.
+Social media OSINT — username search and availability checks across a fixed set of platforms, plus cross-platform identity correlation.
 
 ## Key Files
 | File | Description |
-||------|-------------|
-|| `__init__.py` | Full `SocialOSINTTool` implementation (231 lines) — username enumeration, profile scraping, cross-platform identity correlation |
+|------|-------------|
+| `__init__.py` | Full `SocialOSINTTool` implementation (233 lines) — platform search + username availability checks |
 
 ## For AI Agents
 
 ### Working In This Directory
-|- **Full implementation** — `SocialOSINTTool` class with username search, profile scraping, and cross-platform identity correlation
-|- Username search across 100+ platforms (social networks, forums, developer platforms)
-|- Profile data aggregation and correlation
-|- All results feed into ZKIT identity correlation engine|
+- `PLATFORMS` covers 6 platforms: github, gitlab, reddit, twitter (via nitter.net), instagram, linkedin
+- Direct httpx scrapes (no sherlock/whatsmyname/maigret delegation)
+- `scan()` pivots a multi-word query through `src.modules.deep_scan.name_pivots.primary_username_for_name`
+- Rate-limited: 60 RPM, burst 10
+- All results feed into ZKIT identity correlation engine
 
 ## Dependencies
 
 ### Internal
 - `src/core/` — models and config
+- `src/modules/deep_scan/` — name-pivot to username helper
 - `src/modules/identity_tracking/` — identity correlation
 
 <!-- MANUAL: -->

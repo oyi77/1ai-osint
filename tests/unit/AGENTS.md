@@ -1,5 +1,5 @@
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-05-31 -->
+<!-- Generated: 2026-08-02 -->
 
 # unit
 
@@ -47,7 +47,7 @@ Unit tests mirroring the `src/` module structure. Each test file covers a specif
 ## For AI Agents
 
 ### Working In This Directory
-- **Most-edited test files**: `test_crypto_balance.py` (93x), `test_leak_finder.py`
+- **Most-edited test files**: `test_crypto_balance.py`, `test_leak_finder.py`
 - Always `rm -f .coverage` before full pytest runs
 - Patch source module for locally-imported functions, not calling module
 - For EVM: mock `multicall.batch_check_balances`, not `check_balance`
@@ -55,9 +55,16 @@ Unit tests mirroring the `src/` module structure. Each test file covers a specif
 - Grep for existing test class names before adding new ones — avoid shadowing
 - Mock ERC-20 tests: pass `MagicMock` client with `AsyncMock` post(), don't patch httpx globally
 
+### Coverage Areas Added Since 2026-05-31 (sample, not exhaustive)
+- Web API/UI: `test_web_routes.py`, `test_web_routes_internal.py`, `test_web_auth.py`, `test_web_main.py`, `test_api_app.py`, `test_api_rate_limit.py`, `test_cors.py`
+- AI/LLM: `test_ai_briefing.py`, `test_ai_prompts.py`, `test_ai_prompts_schemas.py`, `test_omniroute_client.py`, `test_delta_briefing.py`, `test_briefing_builder.py`
+- Deep-scan/keyless: `test_deep_scan.py`, `test_deep_scraper.py`, `test_keyless_sources_deepscan.py`, `test_tool_sources_deepscan.py`, `test_whatsmyname_deepscan.py`, `test_hibp_free.py`, `test_etherscan_keyless.py`, `test_source_registry.py`
+- Platform/infra + CLI/model: `test_mcp_server.py`, `test_plugin_system.py`, `test_job_persistence.py`, `test_scan_profiles.py`, `test_monitoring_watchlist.py`, `test_monitoring_change_detector.py`, `test_monitoring_alerter.py`, `test_rbac_tos.py`, `test_ssrf_guard.py`, `test_neo4j_export.py`, `test_cli_commands.py`, `test_cli_extra.py`, `test_models_extra.py`, `test_compliance.py`, `test_threat_model.py`
+
 ### Testing Requirements
 - `pytest tests/unit/` — run all unit tests
 - Tests must be independent and idempotent
 - Mock all external API calls
 
 <!-- MANUAL: -->
+> Last updated: dropped unverifiable (93x) edit count, added post-2026-05-31 coverage areas (commit 8fa2bbf)

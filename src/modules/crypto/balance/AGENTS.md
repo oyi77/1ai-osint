@@ -57,7 +57,7 @@ Core crypto engine — multi-chain balance checking, address derivation, smart g
 ## Dependencies
 
 ### Internal
-- `src/models.py` — Finding, ScanResult models
+- `src/core/models.py` — Finding, ScanResult models
 - `src/config.py` — configuration
 
 ### External
@@ -66,5 +66,7 @@ Core crypto engine — multi-chain balance checking, address derivation, smart g
 - bit — Bitcoin transactions
 - httpx — async HTTP
 - python-nacl — signing for Solana
+
+> Last updated: fixed stale `src/models.py` reference → `src/core/models.py` (commit 8fa2bbf)
 
 <!-- MANUAL: -->

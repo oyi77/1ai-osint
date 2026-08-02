@@ -64,6 +64,14 @@ MODULE_INPUTS: dict[str, set[IdentifierType]] = {
     "scratch": {IdentifierType.USERNAME},
     "itchio": {IdentifierType.USERNAME},
     "codeforces": {IdentifierType.USERNAME},
+    "devto": {IdentifierType.USERNAME},
+    "steam": {IdentifierType.USERNAME},
+    "chess": {IdentifierType.USERNAME},
+    "letterboxd": {IdentifierType.USERNAME},
+    "medium": {IdentifierType.USERNAME},
+    "pastebin": {IdentifierType.USERNAME},
+    "youtube": {IdentifierType.USERNAME},
+    "fandom": {IdentifierType.USERNAME},
     # Keyless TOOL sources (local CLI wrappers, 0-key; transport_priority(4)
     # keeps them after RE/SCRAPE in 0-API ordering, and they degrade to an
     # empty/audited outcome when the CLI binary is not installed)
@@ -149,6 +157,14 @@ SOURCE_MODULES: set[str] = {
     "scratch",
     "itchio",
     "codeforces",
+    "devto",
+    "steam",
+    "chess",
+    "letterboxd",
+    "medium",
+    "pastebin",
+    "youtube",
+    "fandom",
     # Keyless RE/SCRAPE/API sources (0-API priority-0/1/2 tiers)
     "threatfox",
     "feodo",

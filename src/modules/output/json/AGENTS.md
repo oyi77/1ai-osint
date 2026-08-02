@@ -10,6 +10,8 @@ JSON output format specifics and schema definitions.
 
 ### Working In This Directory
 - JSON output is the primary structured format
-- Schema defined by Pydantic models in `src/models.py`
+- Schema defined by Pydantic models in `src/core/models.py`
+
+> Last updated: fixed stale `src/models.py` reference → `src/core/models.py` (commit 8fa2bbf)
 
 <!-- MANUAL: -->

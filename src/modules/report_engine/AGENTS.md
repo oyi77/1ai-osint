@@ -1,21 +1,30 @@
+---
+scope: report_engine
+depends_on:
+  - src/core
+status: complete
+---
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-07-28 -->
 
 # report_engine
 
+> Last updated: document full ReportEngine implementation (was "package initializer"), note SARIF/PDF status (commit 8fa2bbf)
+
 ## Purpose
-Report engine — generates formatted intelligence reports from scan findings with HTML templates.
+Report engine — generates formatted intelligence reports from scan findings, with HTML rendering.
 
 ## Key Files
 | File | Description |
 |------|-------------|
-| `html_template.py` | HTML report template rendering |
-| `__init__.py` | Package initializer |
+| `__init__.py` | Full implementation: `ReportFormat` enum (HTML/JSON/SARIF/PDF), `ReportSection`, `ReportData`, `ReportEngine` (line 96) |
+| `html_template.py` | `render_html(report)` (line 10) — HTML report template rendering |
 
 ## For AI Agents
 
 ### Working In This Directory
-- Produces human-readable HTML intelligence reports
+- `ReportEngine.from_scan_results` extracts identifiers (email, @username, phone, domain, IP, hex addresses) via regex and builds sections
+- `parse_report_json` / `extract_identifiers_for_scan` support JSON round-trip and identifier reuse
+- `ReportFormat.SARIF` and `ReportFormat.PDF` are declared in the enum but no renderer exists yet — only `render_html` is implemented
 - Findings aggregated from multiple scan modules
 
 ## Dependencies

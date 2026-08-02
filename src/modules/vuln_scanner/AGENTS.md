@@ -1,28 +1,36 @@
+---
+scope: vuln_scanner
+depends_on:
+  - src/core
+status: complete
+---
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-05-31 -->
 
 # vuln_scanner
 
+> Last updated: correct stale NVD API / CVE database / httpx claims — actual backend is a scan4all subprocess wrapper (commit 8fa2bbf)
+
 ## Purpose
-Vulnerability scanning module — CVE lookup, service fingerprinting, and known vulnerability correlation.
+Vulnerability scanning module — wraps the scan4all binary to run PoC / port-scan / fingerprint checks on targets and maps results into findings.
 
 ## Key Files
 | File | Description |
 |------|-------------|
-| `__init__.py` | Full `VulnScannerTool` implementation (207 lines) — CVE database, NVD integration, service discovery |
+| `__init__.py` | Full `VulnScannerTool` implementation (207 lines) — scan4all subprocess wrapper, output parsing, severity mapping |
 
 ## For AI Agents
 
 ### Working In This Directory
-|- **Full implementation** — `VulnScannerTool` class with CVE lookup, NVD API integration, and service vulnerability correlation
-|- Scans discovered services and technologies against known CVEs
-|- Integrates with NVD API for CVE details and severity scoring
-|- Results feed into deep scan pipeline for risk assessment
+- Runs the `scan4all` CLI via subprocess (installed with `go install github.com/GhostTroops/scan4all@latest`); no NVD API / CVE database integration
+- `SUPPORTED_MODES = ("quick", "full", "fingerprint")`; command built in `_build_command` (e.g. quick → `-scan pocv2 -fingerprinthash true`)
+- `_parse_output` reads JSON lines into findings (confidence 0.8) with severity via `_map_severity`
+- Requires `scan4all` on PATH (or pass `binary_path`); `_validate_binary` checks availability
+- Results feed into the deep scan pipeline for risk assessment
 
 ## Dependencies
 
 ### External
-- httpx — async HTTP for CVE/NVD API calls
+- `scan4all` binary (Go; GhostTroops/scan4all) on PATH
 
 ### Internal
 - `src/core/` — models and config

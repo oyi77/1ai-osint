@@ -15,7 +15,11 @@ BIP-39 mnemonic passphrase generation and validation.
 ## For AI Agents
 
 ### Working In This Directory
-- Uses standard BIP-39 wordlist
+- Uses standard BIP-39 wordlist (via `bip_utils`)
+- `generate_mnemonic()` defaults to 24 words; `validate_mnemonic()` and `mnemonic_to_seed()` are the other core entry points
+- `checker.py` scores strength via `check_passphrase_strength()` (Shannon entropy + dictionary check)
 - Generator produces mnemonics for wallet derivation
+
+> Last updated: documented verified generator/checker entry points (commit 8fa2bbf)
 
 <!-- MANUAL: -->

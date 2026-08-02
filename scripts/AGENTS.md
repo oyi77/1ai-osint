@@ -1,5 +1,5 @@
 <!-- Parent: ../AGENTS.md -->
-<!-- Generated: 2026-08-01 -->
+<!-- Generated: 2026-08-02 -->
 
 # scripts
 
@@ -9,10 +9,13 @@ Utility scripts for benchmarking, demonstrations, and infrastructure soak testin
 ## Key Files
 | File | Description |
 |------|-------------|
-| `benchmark.py` | Performance benchmarking script |
+| `benchmark.py` | Crypto balance scanner throughput benchmark; `--json` emits a machine-readable receipt |
+| `benchmark_agent_vs_batch.py` | Head-to-head S4 agent loop vs naive batch scan (blueprint Phase 3) — deterministic, all external calls mocked, no network |
 | `demo.sh` | Demo/shell script |
-| `soak.py` | Network-free soak test of `RateLimiter` + `Cache` (receipt schema `1ai-osint.soak.receipt.v1`) |
+| `install-node.sh` | Distributed compute node installer (`--master <url> --id <id>`) |
 | `live_benchmark.py` | Live side-by-side OSINT tool benchmark (receipt schema `1ai-osint.live-benchmark.receipt.v1`) |
+| `soak.py` | Network-free soak test of `RateLimiter` + `Cache` (receipt schema `1ai-osint.soak.receipt.v1`) |
+| `source_baseline.py` | Per-source live baseline probe for keyless deep-scan sources — deliberately hits real public endpoints (NOT pytest, by policy); writes `docs/evidence/live/source_probe_<hash>.{json,md}` |
 
 ## For AI Agents
 
@@ -23,3 +26,4 @@ Utility scripts for benchmarking, demonstrations, and infrastructure soak testin
 - Detect which external OSINT tools are installed with `uv run python scripts/live_benchmark.py --target testuser --json > receipt.json 2> report.txt` (network-free); add `--mode live` (network + API keys) to actually run the tools against an authorized target, and `--scorecard <path>` to write a markdown comparison
 
 <!-- MANUAL: -->
+> Last updated: added benchmark_agent_vs_batch.py, install-node.sh, source_baseline.py (commit 8fa2bbf)
