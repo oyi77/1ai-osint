@@ -1,5 +1,5 @@
 {
-  "generated_utc": "2026-08-02T01:32:12.755813+00:00",
+  "generated_utc": "2026-08-02T01:53:14.350935+00:00",
   "engine": "1ai-osint internal adversarial gate",
   "summary": {
     "checks": 24,
@@ -12,145 +12,145 @@
       "name": "ssrf_block:127.0.0.1:8080",
       "passed": true,
       "detail": "'127.0.0.1:8080' is loopback IP literal \u2014 must be rejected",
-      "ts": "2026-08-02T01:32:12.522904+00:00"
+      "ts": "2026-08-02T01:53:14.115890+00:00"
     },
     {
       "name": "ssrf_block:http://127.0.0.1/",
       "passed": true,
       "detail": "'http://127.0.0.1/' is loopback inside URL \u2014 must be rejected",
-      "ts": "2026-08-02T01:32:12.522940+00:00"
+      "ts": "2026-08-02T01:53:14.115927+00:00"
     },
     {
       "name": "ssrf_block:169.254.169.254",
       "passed": true,
       "detail": "'169.254.169.254' is AWS/GCP metadata link-local \u2014 must be rejected",
-      "ts": "2026-08-02T01:32:12.522955+00:00"
+      "ts": "2026-08-02T01:53:14.115944+00:00"
     },
     {
       "name": "ssrf_block:10.0.0.1",
       "passed": true,
       "detail": "'10.0.0.1' is RFC1918 private \u2014 must be rejected",
-      "ts": "2026-08-02T01:32:12.522981+00:00"
+      "ts": "2026-08-02T01:53:14.115970+00:00"
     },
     {
       "name": "ssrf_block:192.168.1.1",
       "passed": true,
       "detail": "'192.168.1.1' is RFC1918 private \u2014 must be rejected",
-      "ts": "2026-08-02T01:32:12.523002+00:00"
+      "ts": "2026-08-02T01:53:14.115993+00:00"
     },
     {
       "name": "ssrf_block:172.16.0.1",
       "passed": true,
       "detail": "'172.16.0.1' is RFC1918 private \u2014 must be rejected",
-      "ts": "2026-08-02T01:32:12.523017+00:00"
+      "ts": "2026-08-02T01:53:14.116007+00:00"
     },
     {
       "name": "ssrf_block:0.0.0.0",
       "passed": true,
       "detail": "'0.0.0.0' is unspecified \u2014 must be rejected",
-      "ts": "2026-08-02T01:32:12.523027+00:00"
+      "ts": "2026-08-02T01:53:14.116018+00:00"
     },
     {
       "name": "ssrf_block:2130706433",
       "passed": true,
       "detail": "'2130706433' is decimal loopback alias (inet_aton) \u2014 must be rejected",
-      "ts": "2026-08-02T01:32:12.523052+00:00"
+      "ts": "2026-08-02T01:53:14.116044+00:00"
     },
     {
       "name": "ssrf_block:0x7f000001",
       "passed": true,
       "detail": "'0x7f000001' is hex loopback alias \u2014 must be rejected",
-      "ts": "2026-08-02T01:32:12.523068+00:00"
+      "ts": "2026-08-02T01:53:14.116059+00:00"
     },
     {
       "name": "ssrf_block:localhost",
       "passed": true,
       "detail": "'localhost' is blocked hostname \u2014 must be rejected",
-      "ts": "2026-08-02T01:32:12.523208+00:00"
+      "ts": "2026-08-02T01:53:14.116209+00:00"
     },
     {
       "name": "ssrf_block:metadata.google.internal",
       "passed": true,
       "detail": "'metadata.google.internal' is cloud metadata hostname \u2014 must be rejected",
-      "ts": "2026-08-02T01:32:12.523256+00:00"
+      "ts": "2026-08-02T01:53:14.116261+00:00"
     },
     {
       "name": "ssrf_block:[::1]:8080",
       "passed": true,
       "detail": "'[::1]:8080' is IPv6 loopback \u2014 must be rejected",
-      "ts": "2026-08-02T01:32:12.523280+00:00"
+      "ts": "2026-08-02T01:53:14.116287+00:00"
     },
     {
       "name": "ssrf_allow:https://8.8.8.8/x",
       "passed": true,
       "detail": "'https://8.8.8.8/x' (public IP) \u2014 must be allowed",
-      "ts": "2026-08-02T01:32:12.523307+00:00"
+      "ts": "2026-08-02T01:53:14.116322+00:00"
     },
     {
       "name": "ssrf_allow:example.com",
       "passed": true,
       "detail": "'example.com' (public hostname (DNS-resolvable)) \u2014 must be allowed",
-      "ts": "2026-08-02T01:32:12.526377+00:00"
+      "ts": "2026-08-02T01:53:14.125968+00:00"
     },
     {
       "name": "ssrf_allow:john_doe",
       "passed": true,
       "detail": "'john_doe' (plain username \u2014 not host-like) \u2014 must be allowed",
-      "ts": "2026-08-02T01:32:12.526408+00:00"
+      "ts": "2026-08-02T01:53:14.126010+00:00"
     },
     {
       "name": "ssrf_allow:0xdeadbeef@example.org",
       "passed": true,
       "detail": "'0xdeadbeef@example.org' (email \u2192 public domain) \u2014 must be allowed",
-      "ts": "2026-08-02T01:32:12.555978+00:00"
+      "ts": "2026-08-02T01:53:14.157776+00:00"
     },
     {
       "name": "ssrf_allow:+6281234567890",
       "passed": true,
       "detail": "'+6281234567890' (phone number) \u2014 must be allowed",
-      "ts": "2026-08-02T01:32:12.556021+00:00"
+      "ts": "2026-08-02T01:53:14.157817+00:00"
     },
     {
       "name": "ssrf_allow:bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
       "passed": true,
       "detail": "'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh' (crypto address) \u2014 must be allowed",
-      "ts": "2026-08-02T01:32:12.556042+00:00"
+      "ts": "2026-08-02T01:53:14.157848+00:00"
     },
     {
       "name": "ident_accept:../etc",
       "passed": true,
       "detail": "hostile-looking identifier '../etc' accepted as scan subject",
-      "ts": "2026-08-02T01:32:12.556050+00:00"
+      "ts": "2026-08-02T01:53:14.157857+00:00"
     },
     {
       "name": "ident_accept:<script>alert(1)</script",
       "passed": true,
       "detail": "hostile-looking identifier '<script>alert(1)</script>' accepted as scan subject",
-      "ts": "2026-08-02T01:32:12.556061+00:00"
+      "ts": "2026-08-02T01:53:14.157873+00:00"
     },
     {
       "name": "ident_accept:foo' OR '1'='1",
       "passed": true,
       "detail": "hostile-looking identifier \"foo' OR '1'='1\" accepted as scan subject",
-      "ts": "2026-08-02T01:32:12.556073+00:00"
+      "ts": "2026-08-02T01:53:14.157887+00:00"
     },
     {
       "name": "ident_accept:evil\"@example.com",
       "passed": true,
       "detail": "hostile-looking identifier 'evil\"@example.com' accepted as scan subject",
-      "ts": "2026-08-02T01:32:12.558124+00:00"
+      "ts": "2026-08-02T01:53:14.159957+00:00"
     },
     {
       "name": "ident_accept:..%2f..%2fetc/passwd",
       "passed": true,
       "detail": "hostile-looking identifier '..%2f..%2fetc/passwd' accepted as scan subject",
-      "ts": "2026-08-02T01:32:12.558180+00:00"
+      "ts": "2026-08-02T01:53:14.160014+00:00"
     },
     {
       "name": "auth_fail_closed",
       "passed": true,
       "detail": "require_tier(ADMIN) with no resolved tier \u2192 403, expected 403 (fail closed)",
-      "ts": "2026-08-02T01:32:12.755723+00:00"
+      "ts": "2026-08-02T01:53:14.350834+00:00"
     }
   ]
 }

@@ -11,6 +11,15 @@ with the soak verdict serialized as JSON on stdout.
 - Verdict: **PASS** (exit 0) — 170,674 calls, 0 errors, p95 0.20 ms (≤ 50 ms),
   uptime 100%, 60.4 s elapsed.
 
+## Completed run (PASS, networked)
+
+- Receipt: `soak_2026-08-02T015014Z.json`
+- Command: `uv run python scripts/soak.py --duration 60 --network --json`
+- Verdict: **PASS** (exit 0) — 173,722 operations (687 rate-limiter + 173,035 cache),
+  0 errors, p95 0.25 ms (≤ 50 ms), uptime 100%, 78.6 s elapsed.
+- Live probes: 6 keyless sources hit live (anubis, bgpview, blockchair, cargo,
+  certspotter, chess), 0 errors — live findings: cargo 5, chess 3.
+
 ## Interrupted sustained run (1 h, networked)
 
 An attempted 1-hour networked soak (`--duration 3600 --network --long-run`) was

@@ -66,7 +66,10 @@ unaccounted for; adversarial tests all pass; verdict stored as
 runs lint → typecheck → scripts lint/typecheck → bandit (fail on HIGH) → full
 pytest → 30 s soak → adversarial suite, all green, receipts regenerated under
 `docs/evidence/audit/` (summary_2026-08-02.txt, bandit_2026-08-02.json,
-adversarial_2026-08-02.json, soak_2026-08-02.json). The independent
+adversarial_2026-08-02.json, soak_2026-08-02.json). Gate re-ran green on this
+machine 2026-08-02T01:50:14–01:53Z (8/8 steps OK — lint, typecheck, scripts
+lint/typecheck, bandit, pytest, 30 s soak 121,053 ops / 0 errors / p95 0.16 ms,
+adversarial 24/24), regenerating the receipts above. The independent
 third-party pass itself is **NOT STARTED** — blocked on engaging an auditor.
 
 ---
@@ -93,10 +96,17 @@ baselines in `docs/VERIFIED.md` §1), receipts stored under
 **Who runs it:** repo maintainer on a machine with real keys + network (or CI cron).
 **Effort:** 1–2 days setup + runtime.
 **Status:** **IN PROGRESS** — harness shipped 2026-08-02: `scripts/soak.py`
-extended with `--long-run --network --json`, a 1 h live soak is/was running from
-this session (receipt under `docs/evidence/soak/live/`), and a nightly soak cron
-(`.github/workflows/soak.yml`) accumulates receipts. The ≥24 h keyed continuous
-run is **open** — blocked on real API keys on a sustained networked host.
+extended with `--long-run --network --json`. A 1 h networked attempt
+(`--duration 3600 --network --long-run`) completed two clean 10-minute epochs
+(21,747 rate-limiter calls, 0 errors) before the host OOM-killed an unrelated
+`chrome-headless` process under exhausted swap — see the interrupted-run note in
+`docs/evidence/soak/live/README.md` (the 0-byte receipt was deleted). A fresh
+60 s networked soak re-ran green from this session: `soak_2026-08-02T015014Z.json`,
+exit 0 — 173,722 ops (687 rate-limiter + 173,035 cache), 0 errors, p95 0.25 ms,
+uptime 100%, 78.6 s elapsed, 6 live keyless sources probed with 0 errors. A
+nightly soak cron (`.github/workflows/soak.yml`) accumulates receipts. The ≥24 h
+keyed continuous run is **open** — blocked on real API keys on a sustained
+networked host.
 
 ---
 
@@ -121,13 +131,18 @@ degraded in the registry or removed; receipt under `docs/evidence/live/` updated
 **Who runs it:** repo maintainer or CI cron on a networked host.
 **Effort:** 1 day setup + 1 week runtime.
 **Status:** **IN PROGRESS** — harness + corpus seed shipped 2026-08-02:
-`scripts/source_baseline.py` now appends probe history and computes uptime;
-first runs on 2026-08-01/02 probed 63 sources (latest `f73d4f2` run: 27
-verified-live / 12 reachable-no-data / 13 failed / 11 tool-skipped; overall
-uptime 75.0%; hit rates api 50.0% / re 54.8% / scrape 33.3%; receipts under
-`docs/evidence/live/` incl. `uptime_report.md` and `history.json`); a nightly
-live-probe cron (`.github/workflows/live-probe.yml`) is scheduled. The ≥7 day
-consecutive corpus is **open** — only a single day of data exists so far.
+`scripts/source_baseline.py` now appends probe history and computes uptime.
+Two full keyless sweeps are recorded: `f73d4f2` (27 verified-live / 12
+reachable-no-data / 13 failed / 11 tool-skipped) and a fresh `5467b0a` sweep run
+from this session on 2026-08-02 (27 verified-live / 13 reachable-no-data / 12
+failed / 11 tool-skipped; receipts `source_probe_5467b0a.json/.md`).
+`history.json` grew 63 → 126 rows and `uptime_report.md` was regenerated
+(2026-08-02T01:54:39Z): overall uptime 76.0% of non-skipped probes, 13 degraded
+sources (≥2 probes, uptime < 100%), failure classes other 22 / connection 3,
+hit rates api 50.0% (4/8) / re 54.8% (46/84) / scrape 33.3% (4/12), tool
+skipped. A nightly live-probe cron (`.github/workflows/live-probe.yml`) is
+scheduled. The ≥7 day consecutive corpus is **open** — two full sweeps (126
+probe-rows) so far, all within 2026-08-02 UTC.
 
 ---
 
@@ -161,8 +176,9 @@ keyless `octocat` (120 findings / 0 critical / 57.9 s), sherlock (114 hits /
 70.0 s), maigret (237 markers / 196.1 s), holehe (1 used / 11.4 s), theHarvester
 (timeout / 0 / 120.0 s), plus per-tool scorecards and a README that documents
 the honest methodology (different targets per tool, tool-dependent counts,
-non-head-to-head). The identical-target, cross-vendor **race is not asserted** —
-it needs the methodology items listed as still open.
+non-head-to-head). Those receipts and the README were re-verified coherent on
+this pass (2026-08-02). The identical-target, cross-vendor **race is not
+asserted** — it needs the methodology items listed as still open.
 
 ---
 
