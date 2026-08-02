@@ -216,18 +216,50 @@ def _create_job(
         "error": None,
     }
     _JOBS[job_id] = job
+    # Enforce the persisted-store cap on every create, not just at load: evict
+    # the oldest jobs (by created_at) until the store fits the bound. The job
+    # just inserted is the newest, so it always survives.
+    if len(_JOBS) > _MAX_PERSISTED_JOBS:
+        ordered = sorted(_JOBS.items(), key=lambda item: str(item[1].get("created_at") or ""))
+        for stale_id, _ in ordered[: len(_JOBS) - _MAX_PERSISTED_JOBS]:
+            _JOBS.pop(stale_id, None)
     _save_jobs()
     return job
 
 
+def _clean_target_str(target: str) -> str:
+    """Reject blank / internal targets and return the normalised value."""
+    cleaned = target.strip()
+    if not cleaned:
+        raise HTTPException(status_code=422, detail="target must not be empty")
+    if not validate_scan_target(cleaned):
+        raise HTTPException(status_code=422, detail="Blocked private/internal scan target")
+    return cleaned
+
+
 def _clean_target(req: ScanRequest) -> None:
     """Reject blank / internal targets and normalise the value in place."""
-    target = req.target.strip()
-    if not target:
-        raise HTTPException(status_code=422, detail="target must not be empty")
-    if not validate_scan_target(target):
-        raise HTTPException(status_code=422, detail="Blocked private/internal scan target")
-    req.target = target
+    req.target = _clean_target_str(req.target)
+
+
+#: Fields a stored job may expose through the public GET endpoints. Deliberately
+#: excludes the ``intel``/``html`` blobs and raw exception strings (``error``,
+#: ``last_error``) so responses never leak scan artifacts or internal details.
+_JOB_PUBLIC_FIELDS = (
+    "job_id",
+    "status",
+    "target",
+    "profile",
+    "created_at",
+    "started_at",
+    "completed_at",
+    "result",
+)
+
+
+def _job_public(job: dict[str, Any]) -> dict[str, Any]:
+    """Project a stored job to the public GET payload (polling-safe subset)."""
+    return {field: job.get(field) for field in _JOB_PUBLIC_FIELDS}
 
 
 @app.get("/health")
@@ -257,7 +289,7 @@ def list_jobs() -> list[dict[str, Any]]:
 async def create_scan(request: Request, req: ScanRequest) -> ScanResponse:
     _rate_limit_or_429(request)
     _clean_target(req)
-    job_id = f"job-{uuid.uuid4().hex[:12]}"
+    job_id = f"job-{uuid.uuid4().hex}"
     _create_job(job_id, target=req.target, profile=req.profile, case_id=req.case_id, budget=req.budget)
     requester_tier = request.scope.get("auth_tier", AccessTier.READONLY)
     _track(asyncio.create_task(_run_job(job_id, req, requester_tier=requester_tier)))
@@ -265,11 +297,12 @@ async def create_scan(request: Request, req: ScanRequest) -> ScanResponse:
 
 
 @app.get("/v1/scan/{job_id}")
-def get_scan(job_id: str) -> dict[str, Any]:
+def get_scan(request: Request, job_id: str) -> dict[str, Any]:
+    _rate_limit_or_429(request)
     job = _JOBS.get(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
-    return job
+    return _job_public(job)
 
 
 async def _run_job(job_id: str, req: ScanRequest, requester_tier: AccessTier = AccessTier.READONLY) -> None:
@@ -302,7 +335,6 @@ async def _run_job(job_id: str, req: ScanRequest, requester_tier: AccessTier = A
         intel = generate_intel_report_with_ai(result, use_ai=True)
         html = export_report(intel, fmt="html")
         js = export_report(intel, fmt="json")
-        pdf = export_report(intel, fmt="pdf")
         job.update(
             {
                 "status": "completed",
@@ -314,6 +346,7 @@ async def _run_job(job_id: str, req: ScanRequest, requester_tier: AccessTier = A
         )
         _save_jobs()
         if req.case_id:
+            pdf = export_report(intel, fmt="pdf")
             CaseManager().save_run(
                 req.case_id,
                 req.target,
@@ -346,14 +379,10 @@ def serve_ui() -> str:
 @app.post("/api/scan", response_model=ReactJobResponse)
 async def start_scan_react(request: Request, req: ReactScanRequest) -> ReactJobResponse:
     _rate_limit_or_429(request)
-    target = req.target.strip()
-    if not target:
-        raise HTTPException(status_code=422, detail="target must not be empty")
-    if not validate_scan_target(target):
-        raise HTTPException(status_code=422, detail="Blocked private/internal scan target")
+    target = _clean_target_str(req.target)
     profile = "fast" if req.fast else "standard"
     scan_req = ScanRequest(target=target, profile=profile, max_iterations=req.max_iterations)
-    job_id = f"job-{uuid.uuid4().hex[:12]}"
+    job_id = f"job-{uuid.uuid4().hex}"
     _create_job(job_id, target=target, profile=profile, max_iterations=req.max_iterations)
     requester_tier = request.scope.get("auth_tier", AccessTier.READONLY)
     _track(asyncio.create_task(_run_job(job_id, scan_req, requester_tier=requester_tier)))
@@ -361,11 +390,12 @@ async def start_scan_react(request: Request, req: ReactScanRequest) -> ReactJobR
 
 
 @app.get("/api/scan/{job_id}")
-async def get_scan_status_react(job_id: str) -> dict[str, Any]:
+async def get_scan_status_react(request: Request, job_id: str) -> dict[str, Any]:
+    _rate_limit_or_429(request)
     job = _JOBS.get(job_id)
     if job is None:
         raise HTTPException(status_code=404, detail="Job not found")
-    return job
+    return _job_public(job)
 
 
 # --- Optional bearer-token auth (mirrors src.web.app) ---------------------

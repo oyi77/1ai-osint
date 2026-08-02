@@ -1,7 +1,7 @@
 ---
 scope: root
 tech_stack: [python, typescript, react]
-last_reviewed_commit: 8fa2bbf85bc3bd4ef41c6c1de525c016f68bc70b
+last_reviewed_commit: f73d4f2
 status: complete
 ---
 
@@ -102,18 +102,20 @@ CLI (typer, `src/cli`) dan FastAPI (`src/api`, `src/web`) plus MCP server (`src/
 
 ## Global Constraints
 
-- **Env vars wajib** (lihat `.env.example`): API keys untuk source berbayar, `NEO4J_PASSWORD` (default `"password"` di `src/modules/identity_tracking/_neo4j_helpers.py:22` — ganti untuk produksi), OpenAI key untuk AI orchestration.
+- **Env vars wajib** (lihat `.env.example`): API keys untuk source berbayar, `NEO4J_PASSWORD` (dev fallback `secrets.token_urlsafe(32)` di `src/modules/identity_tracking/_neo4j_helpers.py:22` — wajib set untuk produksi), OpenAI key untuk AI orchestration.
 - Semua panggilan eksternal WAJIB lewat `rate_limiter.py`; hasil API WAJIB di-cache via `cache.py`.
 - Semua data shapes Pydantic — selalu `id` + `scan_id` pada Finding/ScanResult.
 - Secret handling: AGENTS.md mencatat secret hanya dalam bentuk redacted (jenis + file:line + maks 8 karakter akhir).
 
 ## Prioritas Improvement (Top 5)
 
-1. [High] Web UI fail-open ADMIN (auth default allow) + bind `0.0.0.0` — `src/web/auth.py:116`, `src/web/main.py:13`, `src/cli/commands/config_commands.py:122`
-2. [High] MCP server default `requester_tier="admin"` membuat RBAC gate tak pernah memblokir — `src/mcp_bridge/server.py:142`, `src/mcp_bridge/source_adapter.py:122`
-3. [High] `tx_tracer.py` memakai placeholder KNOWN_EXCHANGES/KNOWN_MIXERS palsu + `_trace_btc()` self-query → attribution/risk BTC selalu salah — `src/modules/crypto/tx_tracer.py:19-33,246-276`
-4. [High] PII leak: `output/pdf_export.py:32` menulis raw target unhashed ke PDF legacy (path render di `output/pdf_generator.py:153`)
-5. [Medium] Frontend polling job tanpa timeout/abort — `frontend/src/App.tsx:58-79`
+1. [RESOLVED-High] Web UI fail-open ADMIN (auth default allow) + bind `0.0.0.0` — `src/web/auth.py:116` → fail-closed 403; bind default `127.0.0.1` di `src/web/main.py:15` / `src/cli/commands/config_commands.py:122` (override via env `WEB_HOST` / `--host`)
+2. [RESOLVED-High] MCP server default `requester_tier="admin"` membuat RBAC gate tak pernah memblokir — `src/mcp_bridge/server.py:147` → default `"readonly"`; caller harus pass `requester_tier="analyst"/"admin"` eksplisit (5 source ADMIN-tier: dehashed, leakcheck, snylla, snusbase, intelx kini tertutup di default)
+3. [RESOLVED-High] `tx_tracer.py` memakai placeholder KNOWN_EXCHANGES/KNOWN_MIXERS palsu + `_trace_btc()` self-query → attribution/risk BTC selalu salah — `src/modules/crypto/tx_tracer.py` → output ditandai `attribution_unverified=True` / `attribution_verified=False`, risk_reasoning prefix `UNVERIFIED:`, KNOWN lists diberi label PLACEHOLDER (list placeholder sengaja dipertahankan, tidak ditulis ulang)
+4. [RESOLVED-High] PII leak: `output/pdf_export.py:32` menulis raw target unhashed ke PDF legacy — target kini di-hash (`sha256(salt:value)`) sesuai `PDFGenerator._hash_value`; docstring menandai deprecated
+5. [RESOLVED-Medium] Frontend polling job tanpa timeout/abort — `frontend/src/App.tsx` → `MAX_POLL_ATTEMPTS=90`, `MAX_CONSECUTIVE_POLL_FAILURES=5`, pesan stuck-job
+
+Catatan: seluruh item di atas sudah diterapkan ke working tree dan diverifikasi (pytest 2643 passed/8 skipped, lint & typecheck clean, frontend build clean). Temuan lain severity Medium/Low yang difix: `src/api/app.py` (job store eviction, PDF export dalam `if req.case_id:`, proyeksi `_job_public()`, rate limit status endpoint, SSRF dedup target), `src/cli` (PeopleFinder `"social"` → SocialOSINTTool, sweep pakai `getpass` no-echo, timeout sentinel, makedirs output, monitor dedup sha1), `src/plugin` (contract hook fires, dispatch_ordered), vendor (leak_telegram event loop 3.10-compatible, chiasmodon error dict saat token hilang, leak_github lazy token, `_neo4j_helpers.py` dev fallback + mypy), `src/web/routes/_loader.py` baru (shared cached JSON loader), `timeline.py:110` event id sha1, `api.py` health tanpa `data_directories`, `report_engine/__init__.py` enum `ReportFormat` mati dihapus, `people_finder/keyless.py` baru (provider keyless 0-API fallback) + `people_finder/search.py`, `phone_finder` (no fabricated findings untuk non-phone), `scripts/live_benchmark.py` (hitung findings dari nested list).
 
 ## Excluded Paths
 
@@ -135,4 +137,4 @@ graph TD
   F[Frontend React] --> C
 ```
 
-> Last updated: onboarding pass — verifikasi/update 52 AGENTS.md, buat 4 baru (frontend/, frontend/src/, src/utils/, src/mcp_bridge/); total 62 termasuk root, commit 8fa2bbf
+> Last updated: fix pass — 9 area fix diterapkan & diverifikasi (pytest 2643 passed/8 skipped, lint+typecheck clean, frontend build clean); top-5 improvement ditandai RESOLVED, front-matter commit → f73d4f2, catatan NEO4J dev fallback diperbarui

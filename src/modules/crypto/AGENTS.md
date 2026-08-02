@@ -11,7 +11,7 @@ ZKIT module for crypto-focused OSINT — leak finding across sources, multi-chai
 |------|-------------|
 | `tx_tracer.py` | Blockchain transaction tracing — `BlockchainTxTracer`, registered as `crypto_tracer` |
 
-> **Known limitation:** `tx_tracer.py` matches addresses against placeholder `KNOWN_EXCHANGES`/`KNOWN_MIXERS` entries (not real addresses) and its BTC trace self-queries (`from`/`to` = scanned address), so exchange/mixer attribution and risk scoring from it are unreliable. It also bypasses `rate_limiter.py`.
+> **Known limitation:** `tx_tracer.py` matches addresses against placeholder `KNOWN_EXCHANGES`/`KNOWN_MIXERS` entries (not real addresses) and its BTC trace self-queries (`from`/`to` = scanned address), so exchange/mixer attribution and risk scoring from it are unreliable. Findings now carry `attribution_unverified=True` / `attribution_verified=False` (`tx_tracer.py:115`/`:189`), `risk_reasoning` is prefixed `UNVERIFIED:` (`tx_tracer.py:162`/`:169`), and calls go through `RateLimiter` (30 rpm, burst 5, `tx_tracer.py:67`). The placeholder lists are intentionally kept.
 
 ## Subdirectories
 | Directory | Purpose |
@@ -45,3 +45,4 @@ ZKIT module for crypto-focused OSINT — leak finding across sources, multi-chai
 > Last updated: added `tx_tracer.py` and its known attribution limitation (commit 8fa2bbf)
 
 <!-- MANUAL: -->
+> Last updated: fix pass — tx_tracer output flagged UNVERIFIED/attribution_unverified (tx_tracer.py:115/162/169/189), RateLimiter(30 rpm, burst 5) wired (tx_tracer.py:67), placeholder lists kept

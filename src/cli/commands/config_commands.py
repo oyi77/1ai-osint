@@ -119,7 +119,7 @@ def install(
 @app.command()
 def web(
     port: int = typer.Option(8080, "--port", "-p", help="Port to bind the web server to"),
-    host: str = typer.Option("0.0.0.0", "--host", "-H", help="Host address to bind to"),
+    host: str = typer.Option("127.0.0.1", "--host", "-H", help="Host address to bind to"),
 ) -> None:
     """Start the 1ai-osint Web UI dashboard server.
 

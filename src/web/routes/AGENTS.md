@@ -26,7 +26,7 @@ Web dashboard route handlers — HTTP endpoints for the investigation UI plus th
 ### Working In This Directory
 - Routers are registered in `src/web/app.py:create_app()` (`include_router`, `app.py:94-98`)
 - HTML routes render Jinja2 templates from `src/web/templates/`
-- Data layer: each module re-parses `*.json` scan files from CWD + `~/.1ai-osint` (no shared cache)
+- Data layer: each module re-parses `*.json` scan files from CWD + `~/.1ai-osint` via shared cached loader (`_loader.py`, 30s TTL)
 - `require_tier(AccessTier.ANALYST)` gates `/api/search`
 
 ## Dependencies
@@ -38,7 +38,8 @@ Web dashboard route handlers — HTTP endpoints for the investigation UI plus th
 - `src/web/templates/` — Jinja2 templates
 
 ## Findings
-- [Medium] Repeated full-filesystem JSON scans — `_load_all_entities`, `_load_reports`, `_load_all_events`, `_load_scan_history` independently glob and parse the same files per request with duplicated skip-pattern lists (`entities.py:23-30`, `reports.py:22-23`, `timeline.py:22-23`, `dashboard.py:22-25`) — extract a shared cached loader.
-- [Low] `timeline.py:123` fallback event id uses built-in `hash(str(ev))` — salted per process, so ids differ between renders; use a stable hash if ids must be stable.
+- [RESOLVED-Medium] Repeated full-filesystem JSON scans — `_load_all_entities`, `_load_reports`, `_load_all_events`, `_load_scan_history` independently glob and parse the same files per request with duplicated skip-pattern lists; now centralized in shared cached loader `_loader.py` (30s TTL, `_TTL_SECONDS = 30.0`).
+- [RESOLVED-Low] `timeline.py:110` fallback event id — was built-in `hash(str(ev))` (salted per process, ids differed between renders); now a stable sha1 hash.
 
 > Last updated: added frontmatter, added missing `api.py` (JWT login/stats/search) to file list, corrected descriptions (search lives in api.py, not entities.py), added shared-loader + unstable-hash findings (commit 8fa2bbf)
+> Last updated: fix pass — shared 30s TTL cached JSON loader (_loader.py) for entity/report/timeline/dashboard, stable sha1 fallback event id (timeline.py:110)

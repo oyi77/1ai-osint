@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import importlib.util
-from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
@@ -90,11 +89,6 @@ async def health_check() -> dict:
     # Check deep scan
     deep_scan_available = importlib.util.find_spec("src.modules.deep_scan.engine") is not None
     statuses["deep_scan_available"] = deep_scan_available
-
-    # Check data directories
-    data_dirs = [Path.cwd(), Path.home() / ".1ai-osint"]
-    writable_dirs = [str(d) for d in data_dirs if d.exists() and d.is_dir()]
-    statuses["data_directories"] = "; ".join(writable_dirs) if writable_dirs else "none"
 
     return statuses
 

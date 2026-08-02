@@ -2,17 +2,26 @@ import React, { useState, useEffect } from 'react';
 import { Search, Loader2, ShieldCheck, ExternalLink, Activity, Network } from 'lucide-react';
 import './index.css';
 
+// Polling bounds for the job-status loop: stop after ~3 minutes or after
+// several consecutive network/HTTP failures, then surface a message instead
+// of polling forever against a stuck job.
+const POLL_INTERVAL_MS = 2000;
+const MAX_POLL_ATTEMPTS = 90;
+const MAX_CONSECUTIVE_POLL_FAILURES = 5;
+
 // Mock types
 type ScanStatus = 'idle' | 'pending' | 'running' | 'completed' | 'failed';
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000').replace(/\/+$/, '');
+// Empty base = same-origin: the Vite dev server proxies /api to the backend.
+// Override with VITE_API_BASE_URL for production or a remote backend.
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '');
 
 interface Finding {
   id: string;
   module: string;
   title: string;
   description: string;
-  raw_data: any;
+  raw_data: Record<string, unknown>;
 }
 
 interface ScanResult {
@@ -21,11 +30,23 @@ interface ScanResult {
   findings: Finding[];
 }
 
+/** Allow only absolute http(s) links coming from finding raw_data. */
+function isSafeHttpUrl(value: unknown): value is string {
+  if (typeof value !== 'string') return false;
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 function App() {
   const [target, setTarget] = useState('');
   const [status, setStatus] = useState<ScanStatus>('idle');
   const [jobId, setJobId] = useState<string | null>(null);
   const [result, setResult] = useState<ScanResult | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const startScan = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,6 +54,8 @@ function App() {
 
     setStatus('pending');
     setResult(null);
+    setJobId(null);
+    setErrorMessage(null);
 
     try {
       const res = await fetch(`${API_BASE}/api/scan`, {
@@ -49,37 +72,74 @@ function App() {
     } catch (err) {
       console.error(err);
       setStatus('failed');
+      setErrorMessage(err instanceof Error ? err.message : 'Scan request failed');
     }
   };
 
   useEffect(() => {
-    let interval: number;
+    if (status !== 'running' || !jobId) return;
 
-    if (status === 'running' && jobId) {
-      interval = setInterval(async () => {
-        try {
-          const res = await fetch(`${API_BASE}/api/scan/${jobId}`);
-          if (!res.ok) {
-            throw new Error(`Poll failed: ${res.status}`);
-          }
-          const data = await res.json();
+    let attempts = 0;
+    let consecutiveFailures = 0;
+    let stopped = false;
+    let timeout: number | undefined;
 
-          if (data.status === 'completed') {
-            setStatus('completed');
-            setResult(data.result);
-            clearInterval(interval);
-          } else if (data.status === 'failed') {
-            setStatus('failed');
-            clearInterval(interval);
-          }
-        } catch (err) {
-          // transient poll failures just log; loop keeps going
-          console.error(err);
+    const poll = async () => {
+      if (stopped) return;
+      attempts += 1;
+      try {
+        const res = await fetch(`${API_BASE}/api/scan/${jobId}`);
+        if (!res.ok) {
+          throw new Error(`Poll failed: ${res.status}`);
         }
-      }, 2000) as unknown as number;
-    }
+        const data = await res.json();
+        consecutiveFailures = 0;
 
-    return () => clearInterval(interval);
+        if (data.status === 'completed') {
+          stopped = true;
+          setStatus('completed');
+          setResult(data.result);
+          return;
+        }
+        if (data.status === 'failed') {
+          stopped = true;
+          setStatus('failed');
+          setErrorMessage(
+            typeof data.error === 'string' ? data.error : 'Backend reported a scan failure'
+          );
+          return;
+        }
+      } catch (err) {
+        // Transient network/HTTP errors are retried, up to a bound.
+        consecutiveFailures += 1;
+        console.error(err);
+      }
+
+      if (stopped) return;
+      if (consecutiveFailures >= MAX_CONSECUTIVE_POLL_FAILURES) {
+        stopped = true;
+        setStatus('failed');
+        setErrorMessage(
+          'Lost connection to the backend while polling. The scan may still be running on the server.'
+        );
+        return;
+      }
+      if (attempts >= MAX_POLL_ATTEMPTS) {
+        stopped = true;
+        setStatus('failed');
+        setErrorMessage(
+          'Scan is taking too long; the job may be stuck. Please try scanning again.'
+        );
+        return;
+      }
+      timeout = window.setTimeout(poll, POLL_INTERVAL_MS);
+    };
+
+    timeout = window.setTimeout(poll, POLL_INTERVAL_MS);
+    return () => {
+      stopped = true;
+      clearTimeout(timeout);
+    };
   }, [status, jobId]);
 
   return (
@@ -169,24 +229,30 @@ function App() {
             </div>
 
             <div className="findings-list">
-              {result.findings.map((f, i) => (
-                <div key={i} className="finding-item">
-                  <div className="finding-header">
-                    <span className="finding-title">{f.title}</span>
-                    {f.raw_data?.verified && (
-                      <span className="badge badge-success">Verified</span>
+              {result.findings.map((f, i) => {
+                const raw = f.raw_data ?? {};
+                const verified = raw.verified === true;
+                const sourceUrl =
+                  typeof raw.url === 'string' && isSafeHttpUrl(raw.url) ? raw.url : null;
+                return (
+                  <div key={f.id || `${f.module}-${i}`} className="finding-item">
+                    <div className="finding-header">
+                      <span className="finding-title">{f.title}</span>
+                      {verified && (
+                        <span className="badge badge-success">Verified</span>
+                      )}
+                    </div>
+                    <div className="finding-module">{f.module.toUpperCase()}</div>
+                    {f.description && <p className="finding-desc">{f.description}</p>}
+
+                    {sourceUrl && (
+                      <a href={sourceUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', color: 'var(--accent-primary)', textDecoration: 'none', marginTop: '4px' }}>
+                        <ExternalLink size={14} /> Open Link
+                      </a>
                     )}
                   </div>
-                  <div className="finding-module">{f.module.toUpperCase()}</div>
-                  {f.description && <p className="finding-desc">{f.description}</p>}
-
-                  {f.raw_data?.url && (
-                    <a href={f.raw_data.url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', color: 'var(--accent-primary)', textDecoration: 'none', marginTop: '4px' }}>
-                      <ExternalLink size={14} /> Open Link
-                    </a>
-                  )}
-                </div>
-              ))}
+                );
+              })}
               {result.findings.length === 0 && (
                 <p className="text-muted text-center" style={{ padding: '40px 0' }}>No findings discovered.</p>
               )}
@@ -198,7 +264,11 @@ function App() {
       {status === 'failed' && (
         <div className="dashboard-card glass-panel" style={{ borderColor: 'var(--danger)', textAlign: 'center', padding: '40px' }}>
           <h3 style={{ color: 'var(--danger)', marginBottom: '8px' }}>Scan Failed</h3>
-          <p className="text-muted">An error occurred while processing the deep scan. Check backend logs.</p>
+          {errorMessage ? (
+            <p className="text-muted">{errorMessage}</p>
+          ) : (
+            <p className="text-muted">An error occurred while processing the deep scan. Check backend logs.</p>
+          )}
         </div>
       )}
 

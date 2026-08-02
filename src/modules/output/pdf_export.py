@@ -1,11 +1,26 @@
-"""PDF report generation for CLI scan results."""
+"""PDF report generation for CLI scan results.
 
+Deprecated: prefer the wired `src.modules.output.pdf_generator.PDFGenerator`.
+Kept for legacy CLI output paths; PII targets are hashed like PDFGenerator.
+"""
+
+import hashlib
 from datetime import datetime, timezone
 from io import BytesIO
 
 
-def format_pdf(results: list) -> bytes:
-    """Format scan results as a PDF report."""
+def _hash_value(value: str, salt: str = "") -> str:
+    """SHA-256 hash of a value, matching `PDFGenerator._hash_value`."""
+    preimage = f"{salt}:{value}".encode()
+    return hashlib.sha256(preimage).hexdigest()
+
+
+def format_pdf(results: list, salt: str = "") -> bytes:
+    """Format scan results as a PDF report.
+
+    Deprecated: prefer `PDFGenerator.generate`.
+    PII (`scan_result.target`) is exported hashed (SHA-256, salted).
+    """
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import letter
     from reportlab.lib.styles import getSampleStyleSheet
@@ -29,7 +44,7 @@ def format_pdf(results: list) -> bytes:
 
     for scan_result in results:
         elements.append(Paragraph(f"Module: {scan_result.module}", styles["Heading2"]))
-        elements.append(Paragraph(f"Target: {scan_result.target}", styles["Normal"]))
+        elements.append(Paragraph(f"Target (hashed): {_hash_value(scan_result.target, salt)}", styles["Normal"]))
         elements.append(Paragraph(f"Status: {scan_result.status}", styles["Normal"]))
         elements.append(Paragraph(f"Findings: {scan_result.finding_count}", styles["Normal"]))
         elements.append(Spacer(1, 12))

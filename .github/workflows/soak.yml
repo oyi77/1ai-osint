@@ -4,6 +4,9 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
+  schedule:
+    # Nightly sustained-run receipt (03:17 UTC avoids :00 herd)
+    - cron: "17 3 * * *"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

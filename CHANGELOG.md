@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Internal audit gate: `scripts/audit_runner.sh` (lint → typecheck → scripts lint/typecheck → bandit → full pytest → 30 s soak → adversarial suite, all green); receipts regenerated under `docs/evidence/audit/` (summary, bandit, adversarial 24/24, soak) — Gap 1 internal half
+- Live soak harness: `scripts/soak.py --long-run --network --json` + nightly soak cron (`.github/workflows/soak.yml`) accumulating receipts under `docs/evidence/soak/live/` — Gap 2 internal half
+- Live-source probe: `scripts/source_baseline.py` now appends probe history + computes per-source uptime/hit rates; nightly live-probe cron (`.github/workflows/live-probe.yml`); receipts + `uptime_report.md` + `history.json` under `docs/evidence/live/` — Gap 3 internal half
+- Comparative benchmark receipts: `scripts/live_benchmark.py` runs + per-tool scorecards + honest-methodology README under `docs/evidence/comparative/` (1ai keyless octocat 120 findings/0 critical/57.9 s; sherlock 114 hits; maigret 237 markers; holehe 1 used; theHarvester timeout) — Gap 4 internal half
+- `docs/evidence/VERIFIED-GAP-ANALYSIS.md` updated 2026-08-02: statuses now PARTIAL / IN PROGRESS / IN PROGRESS / IN PROGRESS with explicit open blockers (third-party engagement, ≥24 h keyed run, ≥7-day corpus, identical-target race)
 - Breadth audit: `docs/evidence/BREADTH_AUDIT.md` — category coverage matrix vs Sherlock/Maigret/Holehe/theHarvester/SpiderFoot baselines; P1 gaps (keyless breach corpus, phone RE, username breadth)
 - 5 new keyless RE-first sources: bgpview (IP→ASN/prefix/RIR), certspotter (CT-log subdomains), rapiddns (subdomain index), anubis (jldc.me subdomains), urlscan (domain search)
 - 3 new keyless RE-first sources (P1-gap closures): proxynova (breach/paste combine), veriphone (phone carrier/line-type), keybase (username profile)

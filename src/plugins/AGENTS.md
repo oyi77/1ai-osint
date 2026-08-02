@@ -31,6 +31,7 @@ Built-in plugin implementations — example plugins and default hook handlers. E
 - `src/plugin/registry.py` — plugin discovery/registration
 
 ## Issues
-- [Low] `example_plugin.py:27,37` uses `print()` alongside `logger` — output leaks to stdout in server contexts; cosmetic for an example.
+- [RESOLVED-Low] `example_plugin.py:27,37` uses `print()` alongside `logger` — output leaks to stdout in server contexts; cosmetic for an example. Removed — `example_plugin.py` now logs exclusively via `logger`; no `print()` calls remain.
 
 > Last updated: documented the module-level `plugin` discovery contract and current plugin metadata (commit 8fa2bbf)
+> Last updated: fix pass — example_plugin.py no longer uses print() (logger only)

@@ -7,24 +7,23 @@ from src.vendor.chiasmodon.base import OSINTTool
 
 class GithubDorkTool(OSINTTool):
     name = "githubdork"
-    API_TOKEN = os.environ.get("GITHUB_TOKEN")
     SEARCH_URL = "https://api.github.com/search/code"
 
     def search(self, query, **kwargs):
-        if not self.API_TOKEN:
+        # Read lazily at call time so a token set after import is picked up.
+        token = os.environ.get("GITHUB_TOKEN")
+        if not token:
             return {
                 "status": "error",
                 "tool": self.name,
                 "error": "Missing GITHUB_TOKEN",
             }
         headers = {
-            "Authorization": f"token {self.API_TOKEN}",
+            "Authorization": f"token {token}",
             "Accept": "application/vnd.github.v3+json",
         }
         try:
-            resp = requests.get(
-                self.SEARCH_URL, headers=headers, params={"q": query}, timeout=30
-            )
+            resp = requests.get(self.SEARCH_URL, headers=headers, params={"q": query}, timeout=30)
             if resp.status_code != 200:
                 return {
                     "status": "error",

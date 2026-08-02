@@ -24,7 +24,7 @@ The heart of ZKIT (Zero Knowledge Identity Tracking). Privacy-preserving identit
 | `neo4j_export.py` | `Neo4jClient` (line 84) — Neo4j import/export; `__all__` at line 410 |
 | `_zkit_types.py` | Shared types: `CorrelationConfidence`, `IngestedRecord`, `CorrelatedCluster`, `ZKITOutput`; `PII_FIELDS` (line 27), `normalize_attribute` (line 49) |
 | `_graph_models.py` | `NodeType`, `GraphNode`, `GraphEdge` |
-| `_neo4j_helpers.py` | `collect_nodes` / `collect_edges`, `export_neo4j_json` / `load_neo4j_json`; reads `NEO4J_PASSWORD` from env (line 22) |
+| `_neo4j_helpers.py` | `collect_nodes` / `collect_edges`, `export_neo4j_json` / `load_neo4j_json`; reads `NEO4J_PASSWORD` from env (line 26) |
 | `__init__.py` | Exports the 16 public symbols listed in `__all__` (line 32) |
 
 ## For AI Agents
@@ -33,7 +33,7 @@ The heart of ZKIT (Zero Knowledge Identity Tracking). Privacy-preserving identit
 - Correlation engine links entities by email, wallet, phone, name
 - Identity graph stores relationships for traversal
 - ZKIT engine implements the ZKIT protocol (see `docs/ZKIT_PROTOCOL.md`)
-- Security posture: `_neo4j_helpers.py:22` falls back to a hardcoded default password when `NEO4J_PASSWORD` is unset — set it in production; no secret values are committed anywhere in this module
+- Security posture: when `NEO4J_PASSWORD` is unset, `_neo4j_helpers.py:26` falls back to a *random* dev-only password (`secrets.token_urlsafe(32)`) and logs a warning (`_neo4j_helpers.py:27-33`) — never a hardcoded/static value — but you must still set `NEO4J_PASSWORD` in production; no secret values are committed anywhere in this module
 
 ## Dependencies
 
@@ -41,3 +41,4 @@ The heart of ZKIT (Zero Knowledge Identity Tracking). Privacy-preserving identit
 - `src/core/` — models, cache, rate limiting
 
 <!-- MANUAL: -->
+> Last updated: fix pass — NEO4J_PASSWORD dev fallback is now a random `secrets.token_urlsafe(32)` with a warning when unset (_neo4j_helpers.py:26-33); doc refs corrected to line 26

@@ -30,10 +30,11 @@ Report generation — formats findings into JSON, PDF, and SARIF output formats.
 - All formatters produce output from standardized Finding/ScanResult models (`src/core/models.py`)
 - `ReportGenerator` is the orchestrator — it uses `json_formatter.py`, `sarif_formatter.py`, and `pdf_generator.py` only
 - PII is hashed (SHA-256, salted) in the wired formatters — `json_formatter.py`, `sarif_formatter.py`, `pdf_generator.py`
-- **Legacy paths:** `pdf_export.py` (prints raw `scan_result.target` unhashed) and `sarif.py` (no PII hashing) are NOT used by `ReportGenerator` — prefer the wired formatters
+- **Legacy paths:** `pdf_export.py` (deprecated; now hashes target via sha256(`f"{salt}:{value}"`) — `pdf_export.py:12-15,47`) and `sarif.py` (no PII hashing) are NOT used by `ReportGenerator` — prefer the wired formatters
 - PDF generation uses reportlab
 - SARIF is the standard for security tool interoperability
 
 > Last updated: added PII-hashing note and legacy formatter warnings (`pdf_export.py`, `sarif.py`) (commit 8fa2bbf)
 
 <!-- MANUAL: -->
+> Last updated: fix pass — pdf_export.py deprecated but now hashes target (sha256(f"{salt}:{value}"), pdf_export.py:12-15,47)

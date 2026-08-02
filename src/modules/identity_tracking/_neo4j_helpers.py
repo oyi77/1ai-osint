@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import secrets
 from pathlib import Path
 from typing import Any
 
@@ -19,7 +20,17 @@ logger = logging.getLogger(__name__)
 
 NEO4J_URI = os.environ.get("NEO4J_URI", "bolt://localhost:7687")
 NEO4J_USER = os.environ.get("NEO4J_USER", "neo4j")
-NEO4J_PASSWORD = os.environ.get("NEO4J_PASSWORD", "password")
+
+_NEO4J_PASSWORD_ENV = "NEO4J_PASSWORD"
+_NEO4J_ENV_PASSWORD = os.environ.get(_NEO4J_PASSWORD_ENV)
+NEO4J_PASSWORD: str = _NEO4J_ENV_PASSWORD or secrets.token_urlsafe(32)
+if not _NEO4J_ENV_PASSWORD:
+    # Dev-only fallback: never a static known value. Set NEO4J_PASSWORD in production.
+    logger.warning(
+        "%s not set — using a generated dev-only Neo4j password. Set %s in production.",
+        _NEO4J_PASSWORD_ENV,
+        _NEO4J_PASSWORD_ENV,
+    )
 
 
 # ---------------------------------------------------------------------------

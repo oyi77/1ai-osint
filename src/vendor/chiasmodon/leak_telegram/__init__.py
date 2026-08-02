@@ -48,15 +48,20 @@ class TelegramLeakTool(OSINTTool):
                 channel_ids=channel_ids,
             )
 
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                # Already in an async context — use a new thread
+            async def _run_scan(scanner: TelegramLeakScanner, max_messages: int) -> list[Any]:
+                return await asyncio.wait_for(scanner.scan(max_messages=max_messages), timeout=120)
+
+            try:
+                asyncio.get_running_loop()
+            except RuntimeError:
+                # No running loop — run the coroutine directly.
+                findings = asyncio.run(_run_scan(scanner, max_messages))
+            else:
+                # Already in an async context — run it in a new thread.
                 import concurrent.futures
 
                 with concurrent.futures.ThreadPoolExecutor() as pool:
-                    findings = pool.submit(asyncio.run, scanner.scan(max_messages=max_messages)).result(timeout=120)
-            else:
-                findings = loop.run_until_complete(scanner.scan(max_messages=max_messages))
+                    findings = pool.submit(lambda: asyncio.run(_run_scan(scanner, max_messages))).result(timeout=120)
 
             return {
                 "status": "ok",

@@ -1,4 +1,4 @@
-"""Gitleaks/secret scanning module using GitHound subprocess wrapper."""
+"""Secret scanning module using the gitleaks CLI subprocess."""
 
 import json
 import subprocess

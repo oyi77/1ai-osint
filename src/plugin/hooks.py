@@ -29,18 +29,20 @@ class HookDispatcher:
     async def dispatch(self, hook_name: str, **kwargs: Any) -> list[Any]:
         """Execute *hook_name* on every plugin that implements it.
 
-        Hooks are run concurrently  via ``asyncio.gather`` with
-        ``return_exceptions=True`` so a single misbehaving plugin never
-        crashes the chain.
+        Hooks are run concurrently via ``asyncio.as_completed``, so a
+        single misbehaving plugin never crashes the chain.  Because
+        completion order is not deterministic, results are returned in
+        **completion order**, not registration order.
 
         Args:
             hook_name: E.g. ``"on_scan_start"``, ``"on_report"``.
             **kwargs:  Passed verbatim to the hook method.
 
         Returns:
-            List of return values (one per matching plugin, in plugin
-            registration order).  Exceptions are logged and **not**
-            included in the returned list.
+            List of return values (one per matching plugin, in
+            completion order).  Exceptions are logged and **not**
+            included in the returned list.  For registration order,
+            use :meth:`dispatch_ordered`.
 
         """
         plugins = self._registry.get_hooks(hook_name)

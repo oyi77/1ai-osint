@@ -1,0 +1,18 @@
+[audit] audit gate started: 2026-08-02T01:29:48+00:00
+[audit] == lint: uv run make lint
+[audit]    lint: OK
+[audit] == typecheck: uv run make typecheck
+[audit]    typecheck: OK
+[audit] == lint-scripts: uv run ruff check scripts/
+[audit]    lint-scripts: OK
+[audit] == type-scripts: uv run mypy scripts/
+[audit]    type-scripts: OK
+[audit] == secrets: bandit src/ -lll (fail on HIGH)
+[audit]    secrets: OK
+[audit] == tests: uv run pytest -q --tb=short
+[audit]    tests: OK
+[audit] == soak: uv run python scripts/soak.py --duration 30 --json
+[audit]    soak: OK
+[audit] == adversarial: uv run python scripts/adversarial_check.py --out docs/evidence/audit
+[audit]    adversarial: OK
+[audit] ALL CHECKS PASSED — receipts in docs/evidence/audit

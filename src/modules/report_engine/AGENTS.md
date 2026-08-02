@@ -16,7 +16,7 @@ Report engine — generates formatted intelligence reports from scan findings, w
 ## Key Files
 | File | Description |
 |------|-------------|
-| `__init__.py` | Full implementation: `ReportFormat` enum (HTML/JSON/SARIF/PDF), `ReportSection`, `ReportData`, `ReportEngine` (line 96) |
+| `__init__.py` | Full implementation: `ReportEngine` (line 96), `ReportSection`, `ReportData` |
 | `html_template.py` | `render_html(report)` (line 10) — HTML report template rendering |
 
 ## For AI Agents
@@ -24,7 +24,7 @@ Report engine — generates formatted intelligence reports from scan findings, w
 ### Working In This Directory
 - `ReportEngine.from_scan_results` extracts identifiers (email, @username, phone, domain, IP, hex addresses) via regex and builds sections
 - `parse_report_json` / `extract_identifiers_for_scan` support JSON round-trip and identifier reuse
-- `ReportFormat.SARIF` and `ReportFormat.PDF` are declared in the enum but no renderer exists yet — only `render_html` is implemented
+- The `ReportFormat` enum (dead code) was removed — only `render_html` is implemented; SARIF/PDF have no renderer here
 - Findings aggregated from multiple scan modules
 
 ## Dependencies
@@ -34,3 +34,4 @@ Report engine — generates formatted intelligence reports from scan findings, w
 - `src/modules/deep_scan/` — dossier compilation
 
 <!-- MANUAL: -->
+> Last updated: fix pass — removed dead ReportFormat enum; only render_html implemented

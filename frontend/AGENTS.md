@@ -20,12 +20,13 @@ React 19 + Vite 8 + TypeScript SPA untuk UX deep-scan (identity correlation / OS
 - Depended by: none — frontend adalah leaf consumer, dijalankan standalone via Vite dev/preview (backend `src/api/app.py` juga punya UI sendiri via `/` dan `/ui`)
 
 ## Issue Spesifik
-- [Low] `<title>frontend</title>` masih default template — `index.html:7`
-- [Low] Aset tak terpakai: `public/icons.svg`, `src/assets/react.svg`, `src/assets/vite.svg`, `src/assets/hero.png` (tidak dirujuk di source; hanya `public/favicon.svg` dipakai — `index.html:5`)
-- [Info] Tidak ada Vite proxy (`vite.config.ts` hanya plugin react) — dev memerlukan `VITE_API_BASE_URL` (`src/App.tsx:8`, lihat `.env.example`) atau backend harus mengizinkan origin dev via CORS (`src/api/app.py:28`)
-- [Info] `frontend/README.md` masih template Vite default; belum mendokumentasikan kontrak API frontend↔backend
+- [RESOLVED-Low] `<title>frontend</title>` masih default template — `index.html:7`. Sudah diganti `<title>1ai-osint</title>` (`index.html:7`).
+- [RESOLVED-Low] Aset tak terpakai: `public/icons.svg`, `src/assets/react.svg`, `src/assets/vite.svg`, `src/assets/hero.png` (tidak dirujuk di source; hanya `public/favicon.svg` dipakai — `index.html:5`). Semua aset tak terpakai sudah dihapus — `public/` hanya berisi `favicon.svg`, `src/assets/` tidak ada lagi.
+- [RESOLVED-Info] Tidak ada Vite proxy (`vite.config.ts` hanya plugin react) — dev memerlukan `VITE_API_BASE_URL` (`src/App.tsx:8`, lihat `.env.example`) atau backend harus mengizinkan origin dev via CORS (`src/api/app.py:28`). Proxy sudah ada: `server.proxy['/api'] → http://127.0.0.1:8000` (`vite.config.ts:11-16`); `VITE_API_BASE_URL` terdokumentasi di `.env.example:6` dan `README.md:26` (opsional, untuk backend lain).
+- [RESOLVED-Info] `frontend/README.md` masih template Vite default; belum mendokumentasikan kontrak API frontend↔backend. README sudah ditulis ulang — kontrak API didokumentasikan di section `## API contract` (`frontend/README.md:30`).
 
 ## Rekomendasi Perbaikan Scoped
 - Kosmetik/opsional; bug-bug kode spesifik ada di `src/AGENTS.md`.
 
 > Last updated: onboarding docs — AGENTS.md pertama untuk folder frontend (commit 8fa2bbf)
+> Last updated: fix pass — title `1ai-osint` (index.html:7), aset tak terpakai dihapus (public/ hanya favicon.svg), Vite proxy /api → 127.0.0.1:8000 (vite.config.ts:11-16), README mendokumentasikan API contract (README.md:30)

@@ -1,0 +1,35 @@
+{
+    "_comment": "Synthetic live-benchmark targets for scripts/live_benchmark.py. No real PII. Mirrors the synthetic identifiers used by scripts/source_baseline.py so Gap 3 (source probes) and Gap 4 (cross-vendor live benchmark) share one target set.",
+    "targets": [
+        {
+            "type": "username",
+            "value": "octocat",
+            "tools": ["sherlock", "maigret"]
+        },
+        {
+            "type": "email",
+            "value": "john.doe@example.com",
+            "tools": ["holehe"]
+        },
+        {
+            "type": "domain",
+            "value": "example.com",
+            "tools": ["theHarvester"]
+        },
+        {
+            "type": "ip",
+            "value": "8.8.8.8",
+            "tools": ["theHarvester"]
+        },
+        {
+            "type": "btc",
+            "value": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
+            "tools": []
+        },
+        {
+            "type": "hash",
+            "value": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "tools": []
+        }
+    ]
+}

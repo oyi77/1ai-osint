@@ -50,6 +50,7 @@ def resolve(
             if not cls:
                 continue
             # RBAC tier gate (Layer 3): block sources the requester may not query.
+            # Local CLI = trusted operator: always run at ADMIN tier (no interactive auth flow).
             if not source_allows_tier(name, AccessTier.ADMIN):
                 errors.append(f"{name}: blocked — requires tier {min_tier_for(name).name.lower()}")
                 record_audit(source=name, target=input, requester="cli", outcome="blocked")

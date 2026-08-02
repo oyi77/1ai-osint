@@ -34,7 +34,8 @@ Plugin system — hook-based extensibility for scan lifecycle events and custom 
 - Consumed by: engine/CLI/web layers via `src.plugin.get_dispatcher()`
 
 ## Issues
-- [Medium] `PluginRegistry.get_hooks()` filters on the `hooks` class attribute — implementing an `on_*` method without listing it in `hooks` silently never fires (`base.py:28`, `registry.py:108-118`). Contract fragility: the list must be manually kept in sync.
-- [Low] `dispatch()` uses `asyncio.as_completed`, so results arrive in *completion* order, not the "plugin registration order" claimed in its docstring — only `dispatch_ordered()` guarantees registration order (`hooks.py:41-62` vs `hooks.py:64-82`).
+- [RESOLVED-Medium] `PluginRegistry.get_hooks()` filters on the `hooks` class attribute — implementing an `on_*` method without listing it in `hooks` silently never fires (`base.py:28`, `registry.py:108-118`). Contract fragility: the list must be manually kept in sync. The contract is now documented on `get_hooks` itself (`registry.py:108-123` — "a hook is only dispatched if it is explicitly listed in the plugin's `hooks` class attribute", `registry.py:111-114`), so the behavior is explicit rather than a silent surprise.
+- [RESOLVED-Low] `dispatch()` uses `asyncio.as_completed`, so results arrive in *completion* order, not the "plugin registration order" claimed in its docstring — only `dispatch_ordered()` guarantees registration order (`hooks.py:41-62` vs `hooks.py:64-82`). Docstring corrected to state the contract: results are returned in completion order (not deterministic), and `dispatch_ordered()` (`hooks.py:66-68`) is the registration-order guarantee.
 
 > Last updated: added `get_dispatcher`/`reset_plugins` to exports, corrected hook list (4 events incl. `on_report`), fixed stale `src/core/models.py` dependency claim (commit 8fa2bbf)
+> Last updated: fix pass — get_hooks contract documented in docstring (registry.py:108-123), dispatch completion-vs-registration order documented (hooks.py:34-35/66-68)

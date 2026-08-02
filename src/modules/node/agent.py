@@ -352,6 +352,10 @@ class NodeAgent:
             cpu_percent=psutil.cpu_percent(interval=0.1),
         )
 
+    def get_status(self) -> NodeStatus:
+        """Get current node status (public accessor)."""
+        return self._get_status()
+
     async def _send_to_master(self, msg: NodeMessage):
         """Send a message to master via Telegram."""
         try:

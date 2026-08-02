@@ -31,6 +31,7 @@ import subprocess
 import sys
 import time
 from datetime import datetime, timezone
+from typing import Any
 
 # Ensure project root is on path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -87,7 +88,7 @@ async def run_benchmark(workers: int = 20, duration: int = 60, as_json: bool = F
 
     # In --json mode the human report is routed to stderr so stdout carries
     # only the machine-readable receipt (pure JSON, safe for `> file` redirection).
-    def _report(*args: object, **kwargs: object) -> None:
+    def _report(*args: Any, **kwargs: Any) -> None:
         print(*args, **kwargs, file=sys.stderr if as_json else sys.stdout)
 
     _report("=" * 60)

@@ -33,15 +33,12 @@ from mcp.server.fastmcp import FastMCP
 
 from src.core.compliance import get_compliance
 from src.core.rbac import AccessTier
+from src.modules.deep_scan._module_config import SOURCE_MODULES
 from src.modules.deep_scan.source_adapter import run_source_scan
 from src.modules.identity_tracking.correlation import CrossModuleCorrelator
 from src.modules.sources import discover_sources
 
 logger = logging.getLogger(__name__)
-
-# Deep-scan breach/leak sources that route through the source adapter
-# (mirrors src/modules/deep_scan/_module_config.py:SOURCE_MODULES).
-SOURCE_MODULES: set[str] = {"dehashed", "leakcheck", "snylla", "snusbase", "hibp", "intelx"}
 
 server = FastMCP(
     "1ai-osint",
@@ -57,8 +54,14 @@ async def _run_sources(
     source_filter: list[str] | None,
     requester: str,
     requester_tier: AccessTier,
-) -> dict[str, dict[str, Any]]:
-    """Run each requested source adapter and return module_name → ScanResult."""
+) -> tuple[dict[str, dict[str, Any]], dict[str, str]]:
+    """Run each requested source adapter.
+
+    Returns ``(results, errors)``: ``results`` maps module_name → ScanResult
+    dump for sources that succeeded; ``errors`` maps module_name → reason for
+    sources that failed init or returned no result (blocked/empty/errored),
+    so callers see per-source failures instead of silent drops.
+    """
     sources_map = discover_sources()
     if source_filter:
         requested = [s for s in source_filter if s in SOURCE_MODULES and s in sources_map]
@@ -69,12 +72,13 @@ async def _run_sources(
         requested = sorted(SOURCE_MODULES & set(sources_map))
 
     results: dict[str, dict[str, Any]] = {}
+    errors: dict[str, str] = {}
     for source_name in requested:
         try:
             source_inst = sources_map[source_name]()
         except Exception as exc:
             logger.debug("Source %s init failed: %s", source_name, exc)
-            results[source_name] = {"error": f"init failed: {exc}"}
+            errors[source_name] = f"init failed: {exc}"
             continue
         scan_result = await run_source_scan(
             source_name,
@@ -84,9 +88,12 @@ async def _run_sources(
             requester_tier=requester_tier,
         )
         if scan_result is None:
+            # The adapter returns None for blocked (consent/RBAC/ToS),
+            # empty, or errored scans — surface instead of dropping.
+            errors[source_name] = "skipped: blocked by RBAC/consent/ToS, empty result, or source error"
             continue
         results[source_name] = scan_result.model_dump(mode="json")
-    return results
+    return results, errors
 
 
 def _correlate_results(
@@ -105,12 +112,10 @@ def _correlate_results(
 
     correlator = CrossModuleCorrelator(
         salt=f"mcp-{uuid.uuid4().hex[:16]}",
-        investigation_id=f"mcp-{target[:32]}",
+        investigation_id=f"mcp-{target[:32]}-{uuid.uuid4().hex[:8]}",
     )
     module_results: dict[str, ScanResult] = {}
     for name, dumped in results.items():
-        if dumped.get("error") is not None:
-            continue
         try:
             module_results[name] = ScanResult.model_validate(dumped)
         except Exception as exc:
@@ -139,7 +144,7 @@ def _correlate_results(
 async def search(
     target: str,
     source_filter: list[str] | None = None,
-    requester_tier: str = "admin",
+    requester_tier: str = "readonly",
 ) -> dict[str, Any]:
     """Run breach/leak source lookup on a target and correlate findings.
 
@@ -152,15 +157,17 @@ async def search(
             Sources above the tier are blocked by the RBAC gate.
 
     Returns:
-        {"target": ..., "sources": {name: ScanResult}, "correlation": {...}}
+        {"target": ..., "sources": {name: ScanResult}, "correlation": {...},
+         "errors": {name: reason for sources that failed or were skipped}}
     """
     tier = AccessTier.from_str(requester_tier)
-    results = await _run_sources(target, source_filter, requester="mcp", requester_tier=tier)
+    results, errors = await _run_sources(target, source_filter, requester="mcp", requester_tier=tier)
     correlation = _correlate_results(results, target)
     return {
         "target": target,
         "sources": results,
         "correlation": correlation,
+        "errors": errors,
     }
 
 
@@ -247,7 +254,7 @@ async def investigate(
         "- Step 1: call `search` to run the breach/leak sources and get cross-source correlation.\n"
         "- Step 2: call `source_compliance` for any source whose legal basis or retention needs review.\n"
         "- Step 3: call `list_sources` (or read resource `osint://sources`) to refresh the source catalog.\n"
-        f"- RBAC: sources gated above the caller's tier are skipped; default tier is `admin`.\n"
+        f"- RBAC: sources gated above the caller's tier are skipped; default tier is `readonly`.\n"
     )
     if unknown:
         plan += f"- Note: unknown/unsupported sources ignored: {', '.join(unknown)}\n"

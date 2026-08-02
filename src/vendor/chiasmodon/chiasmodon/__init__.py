@@ -14,10 +14,16 @@ class ChiasmodonTool(OSINTTool):
         self.token = token or os.environ.get("CHIASMODON_TOKEN")
 
     def search(self, query: str, **kwargs) -> dict[str, Any]:
+        if not self.token:
+            return {
+                "status": "error",
+                "tool": self.name,
+                "error": "CHIASMODON_TOKEN not set",
+            }
         try:
             from src.vendor.chiasmodon.chiasmodon.pychiasmodon import Chiasmodon
 
-            client = Chiasmodon(token=self.token, check_token=False, debug=False)
+            client = Chiasmodon(token=self.token, check_token=kwargs.get("check_token", True), debug=False)
             result = client.search(
                 query=query,
                 method=kwargs.get("method", "domain"),

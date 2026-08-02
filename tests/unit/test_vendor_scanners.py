@@ -67,12 +67,9 @@ class TestVendorScannerNoApiKey:
         tool = _make_tool(scanner, has_api_key=False)
         result = tool.search("test@example.com")
         assert result["tool"] == scanner["name"]
-        # ChiasmodonTool doesn't check API key internally
-        if scanner["name"] == "chiasmodon":
-            assert result["status"] == "ok"
-        else:
-            assert result["status"] == "error"
-            assert "error" in result
+        # ChiasmodonTool fails fast without CHIASMODON_TOKEN (no API call)
+        assert result["status"] == "error"
+        assert "error" in result
 
 
 class TestVendorScannerApiError:

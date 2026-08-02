@@ -38,7 +38,7 @@ def get_module(name: str, zkit_salt: str = "") -> Any:
         from src.modules.data_leaks.aggregator import DataLeaksAggregator
 
         return DataLeaksAggregator(zkit_salt=zkit_salt)
-    elif name in ("people", "people_finder", "social"):
+    elif name in ("people", "people_finder"):
         from src.modules.people_finder.search import PeopleFinderSearch
 
         return PeopleFinderSearch(zkit_salt=zkit_salt)

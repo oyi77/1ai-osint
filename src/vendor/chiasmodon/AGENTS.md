@@ -46,8 +46,9 @@ Chiasmodon-based leak aggregation framework — wraps multiple breach/leak data 
 ## Known Issues
 
 ### Issues
-- **[Low]** `ChiasmodonTool` passes `check_token=False` to `Chiasmodon` (`chiasmodon/__init__.py:20`) — an invalid/missing `CHIASMODON_TOKEN` is never validated before queries
-- **[Low]** `leak_github/__init__.py:10` reads `GITHUB_TOKEN` at class-definition (import) time, so missing credentials are only discovered on first use
-- **[Medium]** `leak_telegram/__init__.py:51-59` uses deprecated `asyncio.get_event_loop()` and falls back to a `ThreadPoolExecutor` whose `pool.submit(...).result(timeout=120)` can block the caller for up to 120s
+- **[RESOLVED-Low]** `ChiasmodonTool` passes `check_token=False` to `Chiasmodon` (`chiasmodon/__init__.py:20`) — `check_token` now defaults to `True` (`chiasmodon/__init__.py:26`), and a missing `CHIASMODON_TOKEN` returns an explicit error dict (`chiasmodon/__init__.py:17-22`) before any query
+- **[RESOLVED-Low]** `leak_github/__init__.py:10` reads `GITHUB_TOKEN` at class-definition (import) time — token is now read lazily via `os.environ.get("GITHUB_TOKEN")` at call time (`leak_github/__init__.py:14`), with a missing token returning an explicit error dict
+- **[RESOLVED-Medium]** `leak_telegram/__init__.py:51-59` uses deprecated `asyncio.get_event_loop()` and falls back to a `ThreadPoolExecutor` whose `pool.submit(...).result(timeout=120)` can block the caller for up to 120s — now loop-safe: `get_running_loop()` try/except (`leak_telegram/__init__.py:54-58`), `asyncio.run` fallback when no loop is running (`:58`), and `asyncio.wait_for(..., timeout=120)` bounds the scan (`:52`)
 
 > Last updated: added frontmatter; corrected "Free APIs only" claim (DeHashed/Snusbase are commercial); added missing `chiasmodon/` subdirectory row; documented verified exports, env-based credentials, and per-source issues (commit 8fa2bbf)
+> Last updated: fix pass — ChiasmodonTool `check_token` defaults True (`chiasmodon/__init__.py:26`) + missing-token error dict (`:17-22`), leak_github lazy `GITHUB_TOKEN` read (`:14`), leak_telegram loop-safe (`get_running_loop` + `asyncio.run`, `:54-58`)

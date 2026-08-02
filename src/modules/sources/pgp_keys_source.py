@@ -44,7 +44,8 @@ class PgpKeysSource:
         email = address.strip().lower()
         if not email or "@" not in email:
             return []
-        digest = hashlib.sha1(email.encode("utf-8")).hexdigest()
+        # VKS protocol mandates SHA-1 of the lowercase address as lookup key.
+        digest = hashlib.sha1(email.encode("utf-8"), usedforsecurity=False).hexdigest()
         async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
             try:
                 await self._rate_limit()

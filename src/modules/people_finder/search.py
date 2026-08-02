@@ -48,8 +48,19 @@ class PeopleFinderSearch(BaseOSINTTool):
         self._requested_providers = providers
 
     def _get_providers(self) -> dict[str, Any]:
-        """Get available social media search providers."""
+        """Get available social media search providers.
+
+        0-API-priority: the keyless RE probe always runs as the baseline
+        (cheap public endpoints, no keys required); Sherlock/Maigret/
+        WhatsMyName are added as extras when their CLIs are installed.
+        """
         available: dict[str, Any] = {}
+        try:
+            from src.modules.people_finder.keyless import KeylessSocialProvider
+
+            available["keyless"] = KeylessSocialProvider()
+        except ImportError:
+            pass
         if shutil.which("sherlock"):
             try:
                 from src.vendor.chiasmodon.providers.sherlock import SherlockProvider

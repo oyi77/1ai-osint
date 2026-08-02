@@ -41,7 +41,8 @@ class PhoneFinderTool(BaseOSINTTool):
         # Clean phone number
         from src.utils.phone_normalize import normalize_phone_e164
 
-        phone = normalize_phone_e164(target, default_region="ID") or target
+        normalized = normalize_phone_e164(target, default_region="ID")
+        phone = normalized or target
 
         # Try PhoneInfoga API
         try:
@@ -94,7 +95,26 @@ class PhoneFinderTool(BaseOSINTTool):
         except (httpx.RequestError, httpx.TimeoutException):
             pass  # Fall through to basic validation
 
-        # Fallback: basic number validation via NumVerify or similar
+        # Fallback: basic number validation via NumVerify or similar.
+        # Only emit a record when the target actually normalizes as a phone
+        # number; otherwise this would fabricate findings for arbitrary input
+        # (e.g. a username) whenever PhoneInfoga is unreachable.
+        if not normalized:
+            return ScanResult(
+                scan_id=scan_id,
+                module=self.name,
+                target=target,
+                status="partial",
+                findings=[],
+                metadata={
+                    "phone": None,
+                    "tool": "basic",
+                    "note": "Target is not a valid phone number; PhoneInfoga unreachable",
+                },
+                started_at=started_at,
+                completed_at=datetime.now(timezone.utc),
+            )
+
         findings.append(
             Finding(
                 id=self._make_finding_id(),

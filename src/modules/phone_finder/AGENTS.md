@@ -23,7 +23,7 @@ Phone number lookup and enrichment — carrier, location, and linked-account OSI
 
 ### Working In This Directory
 - Both entry points normalize numbers with `normalize_phone_e164(default_region="ID")`; `PhoneFinderLookup.validate_e164` is a static helper
-- `PhoneFinderTool` needs a reachable PhoneInfoga instance; without one it degrades to a basic INFO record
+- `PhoneFinderTool` needs a reachable PhoneInfoga instance; tanpa itu ia jatuh ke validasi dasar — hanya bila target ternormalisasi sebagai nomor valid ia mengeluarkan INFO record (`__init__.py:118-129`); bila target bukan nomor valid, ia return lebih awal dengan `status="partial"`, `findings=[]`, dan metadata note "Target is not a valid phone number; PhoneInfoga unreachable" (`__init__.py:102-116`) — tidak ada finding fabrikasi untuk input non-phone
 - Tests: `tests/unit/test_phone_finder.py`, `tests/unit/test_phone_finder_tool.py`
 
 ## Dependencies
@@ -34,3 +34,4 @@ Phone number lookup and enrichment — carrier, location, and linked-account OSI
 - `src/vendor/chiasmodon/` — PhoneInfoga provider (via `lookup.py`)
 
 <!-- MANUAL: -->
+> Last updated: fix pass — tidak ada finding fabrikasi untuk input non-phone; return awal `status="partial"` + `findings=[]` + metadata note bila target bukan nomor valid (`__init__.py:102-116`); INFO record dasar hanya untuk nomor valid saat PhoneInfoga unreachable (`:118-129`)

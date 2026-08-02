@@ -22,12 +22,12 @@ Semua source React/TypeScript SPA: komponen utama (`App.tsx`), entry (`main.tsx`
 - Depended by: `index.html` (memuat `/src/main.tsx`)
 
 ## Issue Spesifik
-- [Medium] Polling tanpa timeout/batas — `App.tsx:58-79`; jika job stuck di `queued`/`running` (backend), interval 2 s berjalan tanpa batas selama komponen mounted; trace: `App.tsx:61` fetch → `src/api/app.py:363` (job dict tanpa TTL/expiry yang terlihat di jalur API ini)
-- [Low] `Finding.raw_data: any` — `App.tsx:15`; `raw_data?.verified` dan `raw_data?.url` (`App.tsx:176,183`) dibaca tanpa validasi schema
-- [Low] Error detail dibuang — catch hanya `console.error` (`App.tsx:45-52,75-78`); UI kegagalan generik "Check backend logs" (`App.tsx:198-203`), padahal backend menyediakan `detail` (mis. 422) dan job `error`/`last_error`
-- [Low] `key={i}` untuk daftar findings — `App.tsx:173` (aman selama list statis; debt jika list direorder/difilter)
-- [Low] `raw_data.url` dirender langsung sebagai `href` (`App.tsx:183-187`) — React 19 memblokir `javascript:` scheme; skema URL lain tidak divalidasi di frontend [hipotesis — perlu verifikasi manual bahwa modul backend menjamin isi `raw_data.url`]
-- [Low] `as unknown as number` cast pada `setInterval` — `App.tsx:79` (kosmetik workaround tipe)
+- [RESOLVED-Medium] Polling tanpa timeout/batas — `App.tsx:58-79`; jika job stuck di `queued`/`running` (backend), interval 2 s berjalan tanpa batas selama komponen mounted; trace: `App.tsx:61` fetch → `src/api/app.py:363` (job dict tanpa TTL/expiry yang terlihat di jalur API ini). Sudah dibatasi: `MAX_POLL_ATTEMPTS=90` (~3 menit pada 2 s) dan `MAX_CONSECUTIVE_POLL_FAILURES=5` (`App.tsx:8-10`); saat batas terlampaui, status `failed` + pesan job mungkin stuck (`App.tsx:119-133`).
+- [RESOLVED-Low] `Finding.raw_data: any` — dulu `App.tsx:15`; kini `raw_data: Record<string, unknown>` (`App.tsx:24`), dan akses `raw_data.verified`/`raw_data.url` dilakukan lewat guard tipe di render (`App.tsx:233-236`)
+- [RESOLVED-Low] Error detail dibuang — kini state `errorMessage` (`App.tsx:49`) menampung `data.detail` dari respon non-OK (`App.tsx:68`) dan `data.error` dari job gagal (`App.tsx:107-109`); dirender di UI (`App.tsx:267-268`) dengan fallback generik hanya bila kosong (`App.tsx:270`)
+- [RESOLVED-Low] `key={i}` untuk daftar findings — dulu `App.tsx:173`; kini `key={f.id || \`${f.module}-${i}\`}` (`App.tsx:238`) — id finding dipakai sebagai key stabil, fallback index hanya jika id kosong
+- [RESOLVED-Low] `raw_data.url` dirender langsung sebagai `href` — kini lewat guard `isSafeHttpUrl` (`App.tsx:34-42`): hanya URL absolut http/https yang dipakai (`App.tsx:235-236`) dan dirender sebagai link (`App.tsx:248-252`); skema lain (mis. `javascript:`) difilter
+- [RESOLVED-Low] `as unknown as number` cast pada `setInterval` — dulu `App.tsx:79`; polling kini pakai `setTimeout` rekursif dengan `let timeout: number | undefined` (`App.tsx:85`) + `window.setTimeout` (`App.tsx:135,138`), jadi cast tidak diperlukan lagi
 
 ## Rekomendasi Perbaikan Scoped
 ```tsx
@@ -60,3 +60,4 @@ raw_data?: { verified?: boolean; url?: string } & Record<string, unknown>;
 ```
 
 > Last updated: onboarding docs — AGENTS.md pertama untuk folder src (commit 8fa2bbf)
+> Last updated: fix pass — polling dibatasi (MAX_POLL_ATTEMPTS=90, MAX_CONSECUTIVE_POLL_FAILURES=5, App.tsx:8-10), raw_data: Record<string, unknown> (:24), errorMessage disurface (:49/:267-268), key stabil (:238), isSafeHttpUrl untuk URL (:34-42), cast setInterval dihapus

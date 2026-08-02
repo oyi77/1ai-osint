@@ -100,8 +100,8 @@ def require_tier(min_tier: AccessTier):
     """FastAPI dependency factory: reject callers below *min_tier*.
 
     Reads the tier the AuthMiddleware resolved into ``request.scope``.
-    When auth is disabled entirely the middleware never runs, so the scope
-    has no tier — treat that as ADMIN (trusted local deployment).
+    When auth is disabled entirely the middleware never runs and the scope
+    has no tier — fail closed with 403 rather than trusting the caller.
 
     Usage::
 
@@ -113,7 +113,10 @@ def require_tier(min_tier: AccessTier):
     async def _dependency(request: Request) -> None:
         tier: AccessTier | None = request.scope.get("auth_tier")
         if tier is None:
-            tier = AccessTier.ADMIN  # no auth middleware = trusted local
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Authentication required",
+            )
         if tier < min_tier:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

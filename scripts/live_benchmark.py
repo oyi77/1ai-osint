@@ -46,9 +46,12 @@ import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 # Ensure project root is on path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from src.core.models import Severity  # noqa: E402
 
 RECEIPT_SCHEMA = "1ai-osint.live-benchmark.receipt.v1"
 
@@ -147,14 +150,22 @@ def _run_cmd(cmd: list[str], timeout: int, report) -> tuple[int, str, str, float
         return proc.returncode, proc.stdout, proc.stderr, time.perf_counter() - t0
     except subprocess.TimeoutExpired as exc:
         report(f"    ! timed out after {timeout}s: {' '.join(cmd[:3])} ...")
-        return -1, exc.stdout or "", exc.stderr or "", time.perf_counter() - t0
+        out = exc.stdout.decode(errors="replace") if isinstance(exc.stdout, bytes) else (exc.stdout or "")
+        err = exc.stderr.decode(errors="replace") if isinstance(exc.stderr, bytes) else (exc.stderr or "")
+        return -1, out, err, time.perf_counter() - t0
     except OSError as exc:
         report(f"    ! failed to launch: {exc}")
         return -2, "", str(exc), time.perf_counter() - t0
 
 
 def _parse_1ai_osint(stdout: str) -> tuple[int, int, str | None]:
-    """Parse our scan's JSON array output into (findings, critical, note)."""
+    """Parse our scan's JSON array output into (findings, critical, note).
+
+    ``scan --output json`` emits a list of ``ScanResult.model_dump()``
+    objects. ``finding_count``/``critical_count`` are model *properties*, so
+    they never appear in the dump — count them from the nested ``findings``
+    list and the per-result ``module`` field instead.
+    """
     text = stdout.strip()
     if not text:
         return 0, 0, "no stdout"
@@ -162,10 +173,17 @@ def _parse_1ai_osint(stdout: str) -> tuple[int, int, str | None]:
         data = json.loads(text)
         if not isinstance(data, list):
             return 0, 0, "unexpected JSON shape (expected list)"
-        findings = sum(int(r.get("finding_count") or 0) for r in data)
-        critical = sum(int(r.get("critical_count") or 0) for r in data)
-        names = [r.get("name") for r in data]
-        return findings, critical, f"modules: {', '.join(str(n) for n in names)}"
+        findings = 0
+        critical = 0
+        names: list[str] = []
+        for r in data:
+            if not isinstance(r, dict):
+                continue
+            names.append(str(r.get("module")))
+            fs = r.get("findings") or []
+            findings += len(fs)
+            critical += sum(1 for f in fs if isinstance(f, dict) and f.get("severity") == Severity.CRITICAL)
+        return findings, critical, f"modules: {', '.join(names)}"
     except (ValueError, TypeError):
         # Fall back to grepping the human output for counts.
         m = re.findall(r"(\d+) findings?", text)
@@ -175,8 +193,8 @@ def _parse_1ai_osint(stdout: str) -> tuple[int, int, str | None]:
 def _parse_generic_counts(tool: str, stdout: str) -> tuple[int, str | None]:
     """Best-effort finding count per tool. Returns (count, note)."""
     if tool == "sherlock":
-        hits = [ln for ln in stdout.splitlines() if ln.startswith("[+]")]
-        return len(hits), f"{len(hits)} '[+]' hit lines"
+        hit_lines = [ln for ln in stdout.splitlines() if ln.startswith("[+]")]
+        return len(hit_lines), f"{len(hit_lines)} '[+]' hit lines"
     if tool == "maigret":
         m = re.search(r"Total found:\s*(\d+)", stdout, re.IGNORECASE)
         if m:
@@ -202,17 +220,17 @@ def _parse_generic_counts(tool: str, stdout: str) -> tuple[int, str | None]:
 def _tool_args(tool: str, target: str, recon_script: str | None) -> list[str] | None:
     """Build argv for an external tool; None when the tool can't run headless."""
     if tool == "sherlock":
-        return [shutil.which("sherlock"), target]
+        return [shutil.which("sherlock") or "sherlock", target]
     if tool == "maigret":
-        return [shutil.which("maigret"), target]
+        return [shutil.which("maigret") or "maigret", target]
     if tool == "theharvester":
-        return [shutil.which("theHarvester"), "-d", target, "-b", "all"]
+        return [shutil.which("theHarvester") or "theHarvester", "-d", target, "-b", "all"]
     if tool == "holehe":
-        return [shutil.which("holehe"), target]
+        return [shutil.which("holehe") or "holehe", target]
     if tool == "spiderfoot":
-        return [shutil.which("spiderfoot"), "-s", target, "-m", "all", "-q"]
+        return [shutil.which("spiderfoot") or "spiderfoot", "-s", target, "-m", "all", "-q"]
     if tool == "recon-ng":
-        return [shutil.which("recon-ng"), "-r", recon_script] if recon_script else None
+        return [shutil.which("recon-ng") or "recon-ng", "-r", recon_script] if recon_script else None
     return None  # maltego: GUI only
 
 
@@ -328,7 +346,7 @@ def run_benchmark(
     """Run the benchmark and emit the report + receipt."""
     out = sys.stderr if as_json else sys.stdout
 
-    def _report(*a: object, **kw: object) -> None:
+    def _report(*a: Any, **kw: Any) -> None:
         print(*a, **kw, file=out)
 
     _report("=" * 62)

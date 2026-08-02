@@ -12,7 +12,7 @@ Expose 1ai-osint's deep-scan + ZKIT correlation pipeline as an MCP server (`Fast
 
 ## Ekspor / Interface Utama
 - `server` (`server.py:46`) — FastMCP instance; tools, resources, and prompts registered on it:
-  - Tool `search(target, source_filter=None, requester_tier="admin")` (`server.py:138-164`) — runs source adapters + correlation
+  - Tool `search(target, source_filter=None, requester_tier="readonly")` (`server.py:138-164`) — runs source adapters + correlation
   - Tool `list_sources()` (`server.py:184-187`) — sources with compliance metadata
   - Tool `source_compliance(source)` (`server.py:190-209`) — per-source legal basis/retention/consent
   - Resource `osint://sources` (`sources_resource()`, `server.py:215-218`) — JSON catalog
@@ -30,17 +30,18 @@ Expose 1ai-osint's deep-scan + ZKIT correlation pipeline as an MCP server (`Fast
 - Tests: `tests/unit/test_mcp_server.py`
 
 ## Issue Spesifik
-- **[High]** Default `requester_tier="admin"` (`server.py:142`) — a client that omits the parameter always gets the highest tier, so the RBAC gate at `source_adapter.py:122` never blocks: `search` (`server.py:142`) → `_run_sources` (`server.py:79-85`) → `run_source_scan` (`source_adapter.py:122`)
-- **[Medium]** `investigation_id=f"mcp-{target[:32]}"` (`server.py:108`) — deterministic per target, not per run; repeated scans of the same target share one investigation id
-- **[Medium]** Failed sources are recorded as `{"error": ...}` (`server.py:74-88`) then silently skipped in correlation at debug level (`server.py:112-117`) — the caller sees no error in the response
+- **[RESOLVED-High]** Default `requester_tier="admin"` (`server.py:142`) — kini default `"readonly"` (`server.py:147`), sehingga RBAC gate di `source_adapter.py:122` tetap mengeblok pemanggil yang mengabaikan parameter; tier lebih tinggi harus di-opt-in eksplisit
+- **[RESOLVED-Medium]** `investigation_id=f"mcp-{target[:32]}"` (`server.py:108`) — kini `f"mcp-{target[:32]}-{uuid.uuid4().hex[:8]}"` (`server.py:115`), unik per run
+- **[RESOLVED-Medium]** Failed sources are recorded as `{"error": ...}` (`server.py:74-88`) — kini `_run_sources` mengembalikan `(results, errors)` dan error dimunculkan di level atas response (`server.py:164-171`)
 - **[Low]** `SOURCE_MODULES` (`server.py:43-44`) is a hand-maintained duplicate that can drift from `_module_config.py:SOURCE_MODULES`
 
 ## Rekomendasi Perbaikan Scoped
-- **(High)** Change the tool default to fail closed — `requester_tier: str = "admin"` → `"readonly"` at `server.py:142`, so callers must explicitly request a higher tier:
+- **(High — applied)** Change the tool default to fail closed — `requester_tier: str = "admin"` → `"readonly"` at `server.py:142`, so callers must explicitly request a higher tier:
   - Before: `requester_tier: str = "admin"` — omitted param bypasses all RBAC gates
   - After: `requester_tier: str = "readonly"` — omitted param is gated, explicit opt-in required for higher tiers
-- **(Medium)** Include a run-specific salt in `investigation_id` (e.g. `mcp-{uuid4().hex[:8]}-{target[:24]}`) at `server.py:108`
-- **(Medium)** Surface per-source errors in the tool response instead of skipping at debug level (`server.py:112-117`)
+- **(Medium — applied)** Include a run-specific salt in `investigation_id` (e.g. `mcp-{uuid4().hex[:8]}-{target[:24]}`) at `server.py:108`
+- **(Medium — applied)** Surface per-source errors in the tool response instead of skipping at debug level (`server.py:112-117`)
 - **(Low)** Derive `SOURCE_MODULES` from `_module_config.py` instead of duplicating (`server.py:43-44`)
 
 > Last updated: created — documented MCP surface (tools/resources/prompts), verified internal dependencies, and flagged fail-open RBAC default as High (commit 8fa2bbf)
+> Last updated: fix pass — default requester_tier "readonly" (server.py:147), investigation_id unik per run (server.py:115), error sumber dimunculkan di response (server.py:164-171)

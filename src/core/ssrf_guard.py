@@ -160,10 +160,16 @@ def _host_is_safe(host: str) -> bool:
 
 
 def _resolve(host: str) -> list[ipaddress.IPv4Address | ipaddress.IPv6Address] | None:
-    """Resolve *host* to unique IPs; None on resolution failure."""
+    """Resolve *host* to unique IPs; None on resolution failure.
+
+    Any failure — OSError, or a Unicode/idna error for malformed labels
+    (e.g. ``..%2f..%2fetc``) — means the name cannot be resolved, which is
+    semantically "unresolvable → allow". The resolver must never crash
+    validation, so exceptions are scoped tightly to the lookup.
+    """
     try:
         infos = socket.getaddrinfo(host, None)
-    except OSError:
+    except Exception:  # noqa: BLE001 — DNS lookup failure is a verdict, not a bug
         return None
     ips: list[ipaddress.IPv4Address | ipaddress.IPv6Address] = []
     seen: set[ipaddress.IPv4Address | ipaddress.IPv6Address] = set()

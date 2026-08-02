@@ -41,7 +41,7 @@ def node(
             typer.echo(f"Starting node '{node_id}'...", err=True)
             await agent.start()
         elif action == "status":
-            status = agent._get_status()
+            status = agent.get_status()
             typer.echo(json.dumps(status.to_dict(), indent=2))
         else:
             typer.echo(f"Unknown action: {action}", err=True)

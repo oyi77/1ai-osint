@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import os
 
 import typer
@@ -33,7 +34,7 @@ def monitor(
         else:
             source_names = [s.strip() for s in sources.split(",")]
 
-        seen_leaks: set[int] = set()
+        seen_leaks: set[str] = set()
         iteration = 0
 
         while True:
@@ -48,6 +49,7 @@ def monitor(
                 if not cls:
                     continue
                 # RBAC tier gate (Layer 3): block sources the requester may not query.
+                # Local CLI = trusted operator: always run at ADMIN tier (no interactive auth flow).
                 if not source_allows_tier(name, AccessTier.ADMIN):
                     typer.echo(f"  [{name}] Blocked (requires tier {min_tier_for(name).name.lower()})", err=True)
                     record_audit(source=name, target=target, requester="cli_monitor", outcome="blocked")
@@ -66,7 +68,10 @@ def monitor(
                         )
 
                     for leak in leaks:
-                        leak_hash = hash(leak.text[:500])
+                        # Dedup fingerprint only — not a security hash.
+                        leak_hash = hashlib.sha1(
+                            leak.text[:500].encode("utf-8", errors="replace"), usedforsecurity=False
+                        ).hexdigest()
                         if leak_hash not in seen_leaks:
                             seen_leaks.add(leak_hash)
                             new_leaks += 1

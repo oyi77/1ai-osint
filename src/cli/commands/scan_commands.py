@@ -29,11 +29,17 @@ SCAN_MODULES = (
 )
 OUTPUT_FORMATS = ("json", "sarif", "pdf")
 
+# Modules run by 'scan --module all' (curated subset — other modules need
+# target-specific or network-heavy semantics and are excluded).
+ALL_SCAN_MODULES = ("gitleaks", "data_leaks", "people", "phone", "crypto_privatekey")
+
 
 @app.command()
 def scan(
     target: str = typer.Argument("random", help="Target: URL, path, email, mnemonic, or 'random' for random scan"),
-    module: str = typer.Option("all", help=f"Module to use ({', '.join(SCAN_MODULES)})"),
+    module: str = typer.Option(
+        "all", help=f"Module to use ({', '.join(SCAN_MODULES)}); 'all' runs: {', '.join(ALL_SCAN_MODULES)}"
+    ),
     output: str = typer.Option("json", help=f"Output format ({', '.join(OUTPUT_FORMATS)})"),
     ai: bool = typer.Option(False, "--ai", help="Enable AI analysis via orchestrator"),
     zkit: bool = typer.Option(False, "--zkit", help="Enable ZKIT identity tracking"),
@@ -67,7 +73,7 @@ def scan(
 
     modules_to_run = []
     if module == "all":
-        for name in ("gitleaks", "data_leaks", "people", "phone", "crypto_privatekey"):
+        for name in ALL_SCAN_MODULES:
             mod = get_module(name, effective_salt)
             if mod:
                 modules_to_run.append(mod)
@@ -131,7 +137,7 @@ def deep_scan(
     report_format: str = typer.Option("html", "--format", "-f", help="Output format: html, json, stix"),
     output_file: str = typer.Option("", "--output", "-o", help="Output file path"),
     max_iterations: int = typer.Option(5, help="Max recursive scan iterations"),
-    timeout: int = typer.Option(30, help="Timeout per module in seconds"),
+    timeout: int = typer.Option(None, help="Override timeout per module in seconds (default: profile setting)"),
     fast: bool = typer.Option(
         False,
         "--fast",
@@ -171,7 +177,7 @@ def deep_scan(
             raise typer.Exit(code=1) from exc
 
         typer.echo(f"Deep scanning [profile={prof.name}]: {target}", err=True)
-        eff_timeout = float(timeout) if timeout != 30 else prof.timeout_per_module
+        eff_timeout = float(timeout) if timeout is not None else prof.timeout_per_module
         engine = DeepScanEngine(
             max_iterations=min(max_iterations, prof.max_iterations),
             timeout_per_module=eff_timeout,
@@ -211,8 +217,8 @@ def deep_scan(
                     err=True,
                 )
 
-        os.makedirs("output", exist_ok=True)
         base = output_file or f"output/deep_scan_{target.replace(' ', '_').replace('@', '_at_')}"
+        os.makedirs(os.path.dirname(base) or ".", exist_ok=True)
         for ext in (".html", ".json", ".stix"):
             if base.lower().endswith(ext):
                 base = base[: -len(ext)]

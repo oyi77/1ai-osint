@@ -1,4 +1,13 @@
-"""Blockchain transaction tracer and attribution engine."""
+"""Blockchain transaction tracer.
+
+ATTRIBUTION DISCLAIMER: exchange/mixer attribution from this module is
+UNVERIFIED. ``KNOWN_EXCHANGES`` / ``KNOWN_MIXERS`` are placeholder sample
+addresses, not maintained entity lists, and ``_trace_btc`` records both
+transaction endpoints as the queried address (Blockchair dashboard data lacks
+per-transaction from/to). Every traced finding is therefore marked
+``attribution_unverified: true`` — placeholder matches must not be reported as
+confirmed attribution.
+"""
 
 from __future__ import annotations
 
@@ -10,12 +19,16 @@ from typing import Any
 import httpx
 
 from src.core.models import Finding, ScanResult, Severity
+from src.core.rate_limiter import RateLimiter
 from src.modules.base.base import BaseOSINTTool
 from src.modules.crypto.balance.deriver import detect_input_type
 
 logger = logging.getLogger(__name__)
 
-# Known entities for attribution
+# PLACEHOLDER entity lists for development/demo only — NOT verified exchange or
+# mixer addresses. Matches against these must not be treated as real
+# attribution; traced findings carry attribution_unverified: true so downstream
+# consumers can detect placeholder-derived signals.
 KNOWN_MIXERS = {
     "0x777777c9898d384f785ee44acfe945efdff5f3e0": "Tornado Cash (EVM)",
     "0xd487858c454e1529decab240cfc677f596396556": "Tornado Cash (EVM)",
@@ -34,16 +47,24 @@ KNOWN_EXCHANGES = {
 
 
 class BlockchainTxTracer(BaseOSINTTool):
-    """Traces transaction history and attributes entity flows (Mixers/Exchanges/Unknown)."""
+    """Trace transaction history and label entity flows (Mixers/Exchanges/Unknown).
+
+    Attribution from this module is UNVERIFIED: entity matching runs against
+    placeholder sample lists (see module docstring) and BTC traces record both
+    endpoints as the queried address, so mixer/exchange flags are indicative
+    only and must not be reported as confirmed attribution.
+    """
 
     name = "crypto_tracer"
-    description = "Traces flow-of-funds across blockchains and attributes risk scores"
+    description = "Traces flow-of-funds across blockchains (attribution unverified)"
     version = "0.1.0"
 
     def __init__(self, zkit_salt: str | None = None):
         super().__init__(zkit_salt=zkit_salt)
         self.etherscan_key = os.getenv("ETHERSCAN_API_KEY", "")
         self.blockchair_key = os.getenv("BLOCKCHAIR_API_KEY", "")
+        # Project-wide outbound rate limiter (src/core/rate_limiter.py).
+        self._rate_limiter = RateLimiter(requests_per_minute=30, burst=5)
 
     async def search(self, query: str, **kwargs) -> ScanResult:
         """Alias for scan."""
@@ -89,6 +110,9 @@ class BlockchainTxTracer(BaseOSINTTool):
             from_addr = tx.get("from", "").lower()
             to_addr = tx.get("to", "").lower()
 
+            # Labels are derived from PLACEHOLDER lists and BTC traces
+            # self-query (from/to = scanned address): never claim reliability.
+            tx["attribution_verified"] = False
             tx["from_entity"] = KNOWN_MIXERS.get(from_addr) or KNOWN_EXCHANGES.get(from_addr) or "Unknown Wallet"
             tx["to_entity"] = KNOWN_MIXERS.get(to_addr) or KNOWN_EXCHANGES.get(to_addr) or "Unknown Wallet"
 
@@ -133,11 +157,17 @@ class BlockchainTxTracer(BaseOSINTTool):
 
             if mix_count > 0:
                 risk_score = min(1.0, 0.7 + (mix_count * 0.1))
-                reasoning = f"Direct interaction with mixer entities detected ({mix_count} times)."
+                reasoning = (
+                    f"Direct interaction with mixer entities detected ({mix_count} times). "
+                    "UNVERIFIED: matches use placeholder entity lists, not confirmed attribution."
+                )
                 severity = Severity.CRITICAL
             elif exchange_count > 0:
                 risk_score = 0.3
-                reasoning = f"Direct interaction with exchange deposit/hot wallets " f"({exchange_count} times)."
+                reasoning = (
+                    f"Direct interaction with exchange deposit/hot wallets ({exchange_count} times). "
+                    "UNVERIFIED: matches use placeholder entity lists, not confirmed attribution."
+                )
                 severity = Severity.MEDIUM
 
             # Convert to finding
@@ -156,6 +186,7 @@ class BlockchainTxTracer(BaseOSINTTool):
                     tags=["crypto", "tracer", chain.lower(), f"risk-{severity.value}"],
                     raw_data={
                         "traced": True,
+                        "attribution_unverified": True,
                         "address": target,
                         "chain": chain,
                         "total_transactions_traced": total_tx,
@@ -206,8 +237,11 @@ class BlockchainTxTracer(BaseOSINTTool):
         if not self.etherscan_key:
             return []
 
-        # Actual API query
+        # Actual API query (project rate limiter: src/core/rate_limiter.py)
         try:
+            wait = await self._rate_limiter.acquire_async(key="etherscan")
+            if wait > 0:
+                logger.debug("Rate-limited Etherscan for %.2fs", wait)
             async with httpx.AsyncClient(timeout=15.0) as client:
                 resp = await client.get(
                     "https://api.etherscan.io/api",
@@ -249,6 +283,9 @@ class BlockchainTxTracer(BaseOSINTTool):
             return []
 
         try:
+            wait = await self._rate_limiter.acquire_async(key="blockchair")
+            if wait > 0:
+                logger.debug("Rate-limited Blockchair for %.2fs", wait)
             async with httpx.AsyncClient(timeout=15.0) as client:
                 resp = await client.get(
                     f"https://api.blockchair.com/bitcoin/dashboards/address/{address}",
@@ -261,8 +298,10 @@ class BlockchainTxTracer(BaseOSINTTool):
                     return [
                         {
                             "hash": tx.get("hash"),
-                            # Blockchair dashboards do not expose per-tx from/to here,
-                            # so both endpoints are the queried address.
+                            # Blockchair dashboard data does not expose per-tx from/to,
+                            # so both endpoints are the queried address. This makes
+                            # mixer/exchange attribution for BTC traces meaningless;
+                            # findings are marked attribution_unverified accordingly.
                             "from": address,
                             "to": address,
                             "value": tx.get("output_value", 0),
@@ -282,6 +321,9 @@ class BlockchainTxTracer(BaseOSINTTool):
             return []
 
         try:
+            wait = await self._rate_limiter.acquire_async(key="solana_rpc")
+            if wait > 0:
+                logger.debug("Rate-limited Solana RPC for %.2fs", wait)
             async with httpx.AsyncClient(timeout=15.0) as client:
                 sig_resp = await client.post(
                     rpc_url,
@@ -301,6 +343,9 @@ class BlockchainTxTracer(BaseOSINTTool):
                     sig = entry.get("signature") if isinstance(entry, dict) else entry
                     if not sig:
                         continue
+                    tx_wait = await self._rate_limiter.acquire_async(key="solana_rpc")
+                    if tx_wait > 0:
+                        logger.debug("Rate-limited Solana RPC for %.2fs", tx_wait)
                     tx_resp = await client.post(
                         rpc_url,
                         json={

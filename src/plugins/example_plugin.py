@@ -24,7 +24,6 @@ class ExampleLoggingPlugin(BasePlugin):
 
     async def on_scan_start(self, target: str, module: str) -> None:
         logger.info("[ExamplePlugin] Scan started — target=%r module=%r", target, module)
-        print(f"[ExamplePlugin] Scan STARTED: target={target!r}, module={module!r}")
 
     async def on_scan_end(self, result: Any) -> None:
         module_name = getattr(result, "module", "?")
@@ -33,10 +32,6 @@ class ExampleLoggingPlugin(BasePlugin):
             "[ExamplePlugin] Scan ended — module=%r findings=%d",
             module_name,
             finding_count,
-        )
-        print(
-            f"[ExamplePlugin] Scan ENDED: module={module_name!r}, "
-            f"findings={finding_count}"
         )
 
 

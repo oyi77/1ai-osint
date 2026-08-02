@@ -9,6 +9,8 @@ from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
+from src.web.routes._loader import load_scan_items
+
 HERE = Path(__file__).resolve().parent.parent
 TEMPLATES = Jinja2Templates(directory=str(HERE / "templates"))
 
@@ -19,40 +21,10 @@ def _load_scan_history() -> list[dict]:
     """Load all scan result JSON files from known locations."""
     results: list[dict] = []
 
-    search_dirs: list[Path] = [
-        Path.cwd(),
-        Path.home() / ".1ai-osint",
-    ]
-
-    for search_dir in search_dirs:
-        if not search_dir.exists():
-            continue
-        for f in sorted(search_dir.glob("*.json")):
-            # Skip known non-scan files
-            skip_patterns = (
-                ".osint_rate_limit",
-                "package-lock",
-                "package",
-                "tsconfig",
-                "cov",
-            )
-            if any(p in f.name for p in skip_patterns):
-                continue
-            try:
-                import json
-
-                data = json.loads(f.read_text())
-                # Accept files that look like scan results
-                if isinstance(data, dict) and (
-                    "scan_id" in data or "report_id" in data or "findings" in data or "modules_run" in data
-                ):
-                    results.append(data)
-                elif isinstance(data, list):
-                    for item in data:
-                        if isinstance(item, dict) and ("scan_id" in item or "findings" in item):
-                            results.append(item)
-            except (json.JSONDecodeError, OSError):
-                continue
+    for _f, item in load_scan_items():
+        # Accept items that look like scan results
+        if "scan_id" in item or "report_id" in item or "findings" in item or "modules_run" in item:
+            results.append(item)
 
     return results
 

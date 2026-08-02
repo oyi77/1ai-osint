@@ -1,0 +1,62 @@
+name: live-source-probe
+
+# Nightly live probe of every keyless/API source registered in
+# scripts/source_baseline.py. Writes docs/evidence/live/{history.json,
+# source_probe_*.{json,md}, uptime_report.md} so per-source reachability and
+# uptime accumulate over time instead of being a one-shot snapshot.
+#
+# NOTE: runs on the standard GitHub-hosted runner (public network). Some
+# sources rate-limit or block datacenter egress — a non-zero probe result
+# for a given source is recorded as evidence, not as a hard failure. The
+# commit is skipped when the probe produced no diff (e.g. no sources
+# changed state).
+
+on:
+  schedule:
+    # 04:23 UTC daily — off the :00/:30 marks to avoid herd collisions.
+    - cron: "23 4 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: live-source-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          python-version: "3.13"
+          enable-cache: true
+
+      - name: Sync dependencies
+        run: uv sync --group dev --frozen
+
+      - name: Run live source probe
+        run: |
+          uv run python scripts/source_baseline.py
+          uv run python scripts/source_baseline.py --history
+
+      - name: Commit probe results
+        env:
+          GIT_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git config user.name "1ai-osint-bot"
+          git config user.email "bot@1ai-osint.invalid"
+          git add docs/evidence/live/
+          if git diff --cached --quiet; then
+            echo "No probe diff — skipping commit."
+          else
+            git commit -m "chore(evidence): nightly live-source probe"
+            git remote set-url origin "https://x-access-token:${GIT_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+            git push origin HEAD:main || { echo "push failed (branch protection?) — commit is local"; exit 0; }
+          fi

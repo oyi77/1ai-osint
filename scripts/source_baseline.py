@@ -28,6 +28,12 @@ live call produced):
 Outputs (keyed by git commit so results are reproducible per revision):
 - docs/evidence/live/source_probe_<git-short-hash>.json
 - docs/evidence/live/source_probe_<git-short-hash>.md
+- docs/evidence/live/history.json   (appended per sweep — one row per source)
+- docs/evidence/live/uptime_report.md  (via ``--history`` mode)
+
+``--history`` mode: no network calls. Reads the accumulated history.json and
+renders the uptime report (per-source uptime %, failure-class breakdown
+404/429/403/connection/parse/other, hit rates by category, degraded flags).
 
 This script does not call ``run_source_scan``: the consent/RBAC/ToS gates and
 the audit log live in the source adapter, and a verification sweep should not
@@ -41,8 +47,10 @@ import json
 import subprocess
 import sys
 import time
+from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any, cast
 
 import httpx
 
@@ -97,6 +105,8 @@ IDENTIFIER_PRIORITY = [
 TOOL_KINDS = frozenset({"tool", "local"})
 
 BASE_ATTRS = ("BASE_URL", "BASE")
+
+HISTORY_PATH = REPO_ROOT / "docs" / "evidence" / "live" / "history.json"
 
 
 def git_short_hash() -> str:
@@ -174,9 +184,9 @@ async def func_probe(inst: object, identifier: str | None) -> dict:
     started = time.monotonic()
     try:
         if method == "search_for_address":
-            leaks = await asyncio.wait_for(inst.search_for_address(identifier), FUNC_TIMEOUT)
+            leaks = await asyncio.wait_for(cast(Any, inst).search_for_address(identifier), FUNC_TIMEOUT)
         elif method == "fetch_raw_leaks":
-            leaks = await asyncio.wait_for(inst.fetch_raw_leaks(), FUNC_TIMEOUT)
+            leaks = await asyncio.wait_for(cast(Any, inst).fetch_raw_leaks(), FUNC_TIMEOUT)
         else:
             return {
                 "method": method,
@@ -237,7 +247,7 @@ async def probe_one(module: str, cls: type, kind: str) -> dict:
     elif id_type is None:
         skipped_reason = "no safe synthetic identifier (NAME/NIK/SOCIAL/PASSWORD-only module)"
 
-    row = {
+    row: dict[str, Any] = {
         "module": module,
         "source_class": cls.__name__,
         "kind": kind,
@@ -273,6 +283,17 @@ async def probe_one(module: str, cls: type, kind: str) -> dict:
 
 
 async def main() -> int:
+    if "--history" in sys.argv:
+        history = load_history()
+        report = render_uptime_report(history)
+        out_dir = REPO_ROOT / "docs" / "evidence" / "live"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        md_path = out_dir / "uptime_report.md"
+        md_path.write_text(report)
+        print(report)
+        print(f"\nWrote {md_path}")
+        return 0
+
     engine = DeepScanEngine(no_api=True)
     active_modules = engine._get_active_modules()
     sources = discover_sources()
@@ -296,8 +317,9 @@ async def main() -> int:
             await asyncio.sleep(SLEEP_BETWEEN)
 
     revision = git_short_hash()
+    generated_at = datetime.now(timezone.utc).isoformat()
     payload = {
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": generated_at,
         "git_revision": revision,
         "note": (
             "Single-shot live probe, 1 request per source, no retries. "
@@ -324,6 +346,9 @@ async def main() -> int:
 
     print(f"\nWrote {json_path}")
     print(f"Wrote {md_path}")
+
+    total = append_history(results, generated_at, revision)
+    print(f"Appended {len(results)} history rows (total {total}) to {HISTORY_PATH}")
     return 0
 
 
@@ -364,6 +389,180 @@ def render_markdown(payload: dict) -> str:
             f"| {r['module']} | {r['kind']} | {r['identifier_type'] or '-'} | "
             f"{r['verdict']} | {host} | {r['functional']['leak_count']} | "
             f"{lat if lat is not None else '-'} | {note[:100]} |"
+        )
+    lines.append("")
+    return "\n".join(lines)
+
+
+def load_history() -> list[dict]:
+    if not HISTORY_PATH.exists():
+        return []
+    try:
+        data = json.loads(HISTORY_PATH.read_text())
+        return data if isinstance(data, list) else []
+    except Exception:
+        # Never let a corrupt history file block a sweep.
+        return []
+
+
+def append_history(results: list[dict], probed_at: str, revision: str) -> int:
+    """Append one history row per probed source, keyed like probe_one + verdict."""
+    history = load_history()
+    for row in results:
+        entry: dict[str, Any] = {"probed_at": probed_at, "git_revision": revision}
+        for key in (
+            "module",
+            "source_class",
+            "kind",
+            "identifier_type",
+            "identifier",
+            "skipped_reason",
+            "host",
+            "functional",
+            "verdict",
+        ):
+            entry[key] = row.get(key)
+        history.append(entry)
+    HISTORY_PATH.parent.mkdir(parents=True, exist_ok=True)
+    HISTORY_PATH.write_text(json.dumps(history, indent=2))
+    return len(history)
+
+
+def failure_class(row: dict) -> str | None:
+    """Classify a failed probe: http-404 / http-429 / http-403 / connection / parse / other."""
+    if row.get("verdict") != "failed":
+        return None
+    host = row.get("host") or {}
+    code = host.get("status_code")
+    if code in (404, 429, 403):
+        return f"http-{code}"
+    err = host.get("error") or ""
+    if not err:
+        err = (row.get("functional") or {}).get("error") or ""
+    low = err.lower()
+    if "connect" in low:
+        return "connection"
+    if "parse" in low:
+        return "parse"
+    return "other"
+
+
+def module_stats(rows: list[dict]) -> dict[str, Any]:
+    probes = len(rows)
+    skipped = sum(r.get("verdict") == "skipped" for r in rows)
+    ns = probes - skipped
+    verified = sum(r.get("verdict") == "verified-live" for r in rows)
+    reachable = sum(r.get("verdict") == "reachable-no-data" for r in rows)
+    failed = sum(r.get("verdict") == "failed" for r in rows)
+    uptime = round(100.0 * (verified + reachable) / ns, 1) if ns else None
+    classes = sorted({c for r in rows if (c := failure_class(r)) is not None})
+    latest = rows[-1].get("verdict")
+    if ns == 0:
+        status = "skipped-only"
+    elif uptime == 100:
+        status = "ok"
+    elif probes >= 2:
+        status = "degraded"
+    else:
+        status = "insufficient-data"
+    return {
+        "probes": probes,
+        "skipped": skipped,
+        "verified": verified,
+        "reachable": reachable,
+        "failed": failed,
+        "uptime": uptime,
+        "classes": classes,
+        "latest": latest,
+        "status": status,
+    }
+
+
+def _span_str(history: list[dict]) -> str:
+    times = sorted(p for p in (r.get("probed_at") for r in history) if p)
+    if not times:
+        return "?"
+    return f"{str(times[0])[:19]}Z → {str(times[-1])[:19]}Z"
+
+
+def render_uptime_report(history: list[dict]) -> str:
+    if not history:
+        return (
+            "# Keyless source uptime report\n\n"
+            "No history yet — run `python scripts/source_baseline.py` to collect "
+            "the first live probe sweep.\n"
+        )
+
+    by_module: dict[str, list[dict]] = {}
+    by_kind: dict[str, list[dict]] = {}
+    for row in history:
+        by_module.setdefault(str(row.get("module")), []).append(row)
+        by_kind.setdefault(str(row.get("kind") or "unknown"), []).append(row)
+
+    class_totals: Counter[str] = Counter()
+    for r in history:
+        c = failure_class(r)
+        if c:
+            class_totals[c] += 1
+
+    non_skipped = [r for r in history if r.get("verdict") != "skipped"]
+    up = [r for r in non_skipped if r.get("verdict") != "failed"]
+    overall = round(100.0 * len(up) / len(non_skipped), 1) if non_skipped else None
+    stats = {m: module_stats(rows) for m, rows in by_module.items()}
+    degraded = sorted(m for m, s in stats.items() if s["status"] == "degraded")
+
+    lines = [
+        "# Keyless source uptime report",
+        "",
+        f"Generated `{datetime.now(timezone.utc).isoformat()}`",
+        "",
+        f"- History rows: **{len(history)}**",
+        f"- Runs span: {_span_str(history)}",
+        f"- Overall uptime (non-skipped probes): **{overall if overall is not None else '-'}%**",
+        f"- Degraded sources (≥2 probes, uptime < 100%): **{len(degraded)}**"
+        + (f" — {', '.join(degraded)}" if degraded else ""),
+        "",
+        "Definitions: uptime = share of non-skipped probes where the source answered",
+        "(verdict `verified-live` or `reachable-no-data`, i.e. not `failed`).",
+        "`insufficient-data` = a single non-skipped probe failed (likely a flake).",
+        "",
+        "## Failure-class breakdown (all failed probes)",
+        "",
+        "| failure class | count |",
+        "|---|---|",
+    ]
+    for cls, cnt in class_totals.most_common():
+        lines.append(f"| {cls} | {cnt} |")
+
+    lines += [
+        "",
+        "## Hit rates by category",
+        "",
+        "| kind | probes | verified-live | hit rate % |",
+        "|---|---|---|---|",
+    ]
+    for kind in sorted(by_kind):
+        rows = by_kind[kind]
+        verified = sum(r.get("verdict") == "verified-live" for r in rows)
+        ns = sum(r.get("verdict") != "skipped" for r in rows)
+        rate = round(100.0 * verified / ns, 1) if ns else None
+        lines.append(f"| {kind} | {len(rows)} | {verified} | {rate if rate is not None else '-'} |")
+
+    lines += [
+        "",
+        "## Per-source",
+        "",
+        "| source | probes | verified | reachable | failed | skipped | uptime % | failure classes | latest | status |",
+        "|---|---|---|---|---|---|---|---|---|---|",
+    ]
+    for module in sorted(by_module):
+        s = stats[module]
+        uptime = f"{s['uptime']}" if s["uptime"] is not None else "-"
+        classes = ", ".join(s["classes"]) or "-"
+        lines.append(
+            f"| {module} | {s['probes']} | {s['verified']} | {s['reachable']} | "
+            f"{s['failed']} | {s['skipped']} | {uptime} | {classes} | "
+            f"{s['latest']} | {s['status']} |"
         )
     lines.append("")
     return "\n".join(lines)

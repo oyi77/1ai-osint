@@ -6,23 +6,40 @@ from unittest.mock import MagicMock, patch
 class TestCLIProviders:
     """Test CLI-wrapping providers with mocked subprocess."""
 
-    @patch("os.unlink")
+    @patch(
+        "src.vendor.chiasmodon.providers.sherlock.SherlockProvider._parse_csv",
+        return_value={"twitter": {"status": "Claimed", "url": "https://twitter.com/user"}},
+    )
     @patch("os.path.getsize", return_value=64)
     @patch("os.path.isfile", return_value=True)
-    @patch("builtins.open", create=True)
-    @patch("tempfile.NamedTemporaryFile")
     @patch("subprocess.run")
-    def test_sherlock_success(self, mock_run, mock_tmp, mock_open, _isfile, _size, _unlink):
+    def test_sherlock_success(self, mock_run, _isfile, _size, mock_parse):
         from src.vendor.chiasmodon.providers.sherlock import SherlockProvider
 
-        mock_tmp.return_value.__enter__.return_value.name = "/tmp/out.json"
-        mock_open.return_value.__enter__.return_value.read.return_value = (
-            '{"twitter": {"status": "Claimed", "url": "https://twitter.com/user"}}'
-        )
         mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
         result = SherlockProvider().search("user")
         assert isinstance(result, dict)
         assert "twitter" in result
+        mock_parse.assert_called_once()
+
+    def test_parse_csv_real_file(self):
+        import csv
+        import os
+        import tempfile
+
+        from src.vendor.chiasmodon.providers.sherlock import SherlockProvider
+
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, "user.csv")
+            with open(path, "w", encoding="utf-8", newline="") as f:
+                w = csv.writer(f)
+                w.writerow(["name", "exists", "url_user", "url_main", "username", "http_status", "response_time_s"])
+                w.writerow(["twitter", "Claimed", "https://twitter.com/user", "", "user", "200", "0.5"])
+                w.writerow(["", "Claimed", "", "", "", "", ""])
+            sites = SherlockProvider._parse_csv(path)
+            assert "twitter" in sites
+            assert sites["twitter"]["status"] == "claimed"
+            assert sites["twitter"]["url"] == "https://twitter.com/user"
 
     @patch("subprocess.run")
     def test_maigret_success(self, mock_run):

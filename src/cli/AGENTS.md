@@ -42,7 +42,8 @@ Command-line interface entry point — Typer app, argument parsing, module resol
 - `src/doctor.py` — `run_doctor`/`format_doctor_report` (used by `config_commands.doctor`)
 
 ## Findings
-- [Medium] `get_module` alias shadowing (`helpers.py:41` vs `helpers.py:73`) — `"social"` matches the first branch `("people", "people_finder", "social")` and resolves to `PeopleFinderSearch`; the later `("social", "social_osint")` → `SocialOSINTTool` branch is unreachable via `social`. `--module social` runs the wrong tool.
-- [Medium] `scan --module all` (`commands/scan_commands.py:70`) runs only gitleaks, data_leaks, people, phone, crypto_privatekey — not the full `SCAN_MODULES` list; `all` is misleading.
+- [RESOLVED-Medium] `get_module` alias shadowing (`helpers.py:41` vs `helpers.py:73`) — the first branch is now `("people", "people_finder")` (no `"social"` alias); `"social"` resolves to `SocialOSINTTool` via `("social", "social_osint")` (`helpers.py:73`).
+- [RESOLVED-Medium] `scan --module all` (`commands/scan_commands.py:70`) runs only gitleaks, data_leaks, people, phone, crypto_privatekey — not the full `SCAN_MODULES` list; `all` is misleading. Now driven by the explicit `ALL_SCAN_MODULES` tuple (`scan_commands.py:34`) and the `--module` help text states exactly which modules `all` runs (`scan_commands.py:40`).
 
 > Last updated: added frontmatter, corrected command-registration model (shared app, not per-file sub-apps), added helpers/entry-point details + alias-shadowing and `all`-module findings (commit 8fa2bbf)
+> Last updated: fix pass — get_module alias fixed (helpers.py:41/73, "social" → SocialOSINTTool), scan --module all uses ALL_SCAN_MODULES + honest help (scan_commands.py:34/40)

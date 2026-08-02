@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from pathlib import Path
 
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+
+from src.web.routes._loader import load_scan_items
 
 HERE = Path(__file__).resolve().parent.parent
 TEMPLATES = Jinja2Templates(directory=str(HERE / "templates"))
@@ -16,70 +20,53 @@ router = APIRouter(tags=["timeline"])
 
 def _load_all_events() -> list[dict]:
     """Load all timeline events from scan results."""
-    import json
-
     events: list[dict] = []
-    search_dirs = [Path.cwd(), Path.home() / ".1ai-osint"]
-    skip_patterns = (".osint_rate_limit", "package-lock", "package", "tsconfig", "cov")
 
-    for search_dir in search_dirs:
-        if not search_dir.exists():
-            continue
-        for f in sorted(search_dir.glob("*.json")):
-            if any(p in f.name for p in skip_patterns):
-                continue
-            try:
-                data = json.loads(f.read_text())
-                items = [data] if isinstance(data, dict) else data if isinstance(data, list) else []
-                for item in items:
-                    if not isinstance(item, dict):
-                        continue
-                    scan_id = item.get("scan_id", "") or item.get("report_id", "")
-                    target = item.get("target", "")
-                    module = item.get("module", "")
-                    ts = item.get("started_at", "") or item.get("completed_at", "")
+    for _f, item in load_scan_items():
+        scan_id = item.get("scan_id", "") or item.get("report_id", "")
+        target = item.get("target", "")
+        module = item.get("module", "")
+        ts = item.get("started_at", "") or item.get("completed_at", "")
 
-                    # Scan-level event
-                    if scan_id:
-                        finding_count = len(item.get("findings", [])) if isinstance(item.get("findings"), list) else 0
-                        events.append(
-                            {
-                                "event_type": "scan",
-                                "entity_id": target or scan_id,
-                                "timestamp": ts or "",
-                                "source": module,
-                                "title": f"Scan: {target or scan_id}",
-                                "context": {
-                                    "scan_id": scan_id,
-                                    "target": target,
-                                    "finding_count": finding_count,
-                                    "status": item.get("status", ""),
-                                },
-                            }
-                        )
+        # Scan-level event
+        if scan_id:
+            finding_count = len(item.get("findings", [])) if isinstance(item.get("findings"), list) else 0
+            events.append(
+                {
+                    "event_type": "scan",
+                    "entity_id": target or scan_id,
+                    "timestamp": ts or "",
+                    "source": module,
+                    "title": f"Scan: {target or scan_id}",
+                    "context": {
+                        "scan_id": scan_id,
+                        "target": target,
+                        "finding_count": finding_count,
+                        "status": item.get("status", ""),
+                    },
+                }
+            )
 
-                    # Individual findings as events
-                    findings = item.get("findings", [])
-                    if isinstance(findings, list):
-                        for finding in findings:
-                            if isinstance(finding, dict):
-                                events.append(
-                                    {
-                                        "event_type": "finding",
-                                        "entity_id": target or finding.get("id", ""),
-                                        "timestamp": str(finding.get("timestamp", ts or "")),
-                                        "source": finding.get("module", module),
-                                        "title": finding.get("title", ""),
-                                        "context": {
-                                            "finding_id": finding.get("id", ""),
-                                            "severity": finding.get("severity", "info"),
-                                            "confidence": finding.get("confidence", 0),
-                                            "scan_id": scan_id,
-                                        },
-                                    }
-                                )
-            except (json.JSONDecodeError, OSError):
-                continue
+        # Individual findings as events
+        findings = item.get("findings", [])
+        if isinstance(findings, list):
+            for finding in findings:
+                if isinstance(finding, dict):
+                    events.append(
+                        {
+                            "event_type": "finding",
+                            "entity_id": target or finding.get("id", ""),
+                            "timestamp": str(finding.get("timestamp", ts or "")),
+                            "source": finding.get("module", module),
+                            "title": finding.get("title", ""),
+                            "context": {
+                                "finding_id": finding.get("id", ""),
+                                "severity": finding.get("severity", "info"),
+                                "confidence": finding.get("confidence", 0),
+                                "scan_id": scan_id,
+                            },
+                        }
+                    )
 
     # Sort reverse chronological
     events.sort(key=lambda e: str(e.get("timestamp", "")), reverse=True)
@@ -120,7 +107,8 @@ def _build_graph_data(entity_id: str) -> dict:
         source = ev.get("source", "unknown")
         event_id = f"{ev.get('context', {}).get('scan_id', '')}-{ev.get('context', {}).get('finding_id', '')}"
         if not event_id:
-            event_id = f"evt-{hash(str(ev)) % 100000}"
+            # Stable synthetic id — not a security hash.
+            event_id = f"evt-{hashlib.sha1(json.dumps(ev, sort_keys=True, default=str).encode(), usedforsecurity=False).hexdigest()[:8]}"
 
         label = ev.get("title", ev.get("event_type", "event"))[:30]
         group = ev.get("event_type", "event")

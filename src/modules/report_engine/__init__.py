@@ -11,19 +11,11 @@ import logging
 import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from enum import Enum
 from typing import Any
 
 from src.core.models import Finding, ScanResult, Severity
 
 logger = logging.getLogger(__name__)
-
-
-class ReportFormat(str, Enum):
-    HTML = "html"
-    JSON = "json"
-    SARIF = "sarif"
-    PDF = "pdf"
 
 
 @dataclass

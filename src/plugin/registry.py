@@ -108,6 +108,11 @@ class PluginRegistry:
     def get_hooks(self, hook_name: str) -> builtins.list[BasePlugin]:
         """Return plugins that implement a specific hook.
 
+        Contract: a hook is only dispatched if it is explicitly listed
+        in the plugin's ``hooks`` class attribute.  Merely defining an
+        ``on_*`` method is not enough — plugin authors must list every
+        hook they want fired (see ``BasePlugin.hooks``).
+
         Args:
             hook_name: e.g. ``"on_scan_start"``, ``"on_report"``.
 
