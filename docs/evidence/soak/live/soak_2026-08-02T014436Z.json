@@ -1,0 +1,63 @@
+{
+  "schema": "1ai-osint.soak.receipt.v1",
+  "tool": "scripts/soak.py",
+  "commit": "16a183860ab4a51cb452bc1d2b7e1fecc729f484",
+  "timestamp_utc": "2026-08-02T01:45:36.659031+00:00",
+  "machine": {
+    "machine": "x86_64",
+    "cpu_count": 12,
+    "cpu_model": "12th Gen Intel(R) Core(TM) i5-12400F",
+    "platform": "Linux-7.0.12+kali-amd64-x86_64-with-glibc2.42",
+    "python": "3.12.12",
+    "uv": "uv 0.11.19 (x86_64-unknown-linux-gnu)"
+  },
+  "params": {
+    "duration_sec": 60,
+    "cycles": null,
+    "modules": [
+      "rate_limiter",
+      "cache"
+    ],
+    "network": "none",
+    "long_run_epochs_sec": null,
+    "keyless_only": true
+  },
+  "targets": {
+    "error_count": 0,
+    "latency_p95_ms_max": 50.0
+  },
+  "metrics": {
+    "elapsed_sec": 60.398,
+    "uptime_pct": 100.0,
+    "period_start_utc": "2026-08-02T01:44:36.237005+00:00",
+    "period_end_utc": "2026-08-02T01:45:36.634690+00:00",
+    "total_calls": 170674,
+    "total_errors": 0,
+    "latency_avg_ms": 21.918,
+    "latency_p95_ms": 0.203,
+    "modules": {
+      "rate_limiter": {
+        "calls": 687,
+        "ok": 687,
+        "errors": 0,
+        "latency_avg_ms": 43.668,
+        "latency_p95_ms": 0.011,
+        "latency_max_ms": 1002.982,
+        "disk_flushes": 2,
+        "disk_reloads": 0
+      },
+      "cache": {
+        "calls": 169987,
+        "ok": 169987,
+        "errors": 0,
+        "latency_avg_ms": 0.168,
+        "latency_p95_ms": 0.203,
+        "latency_max_ms": 98.048,
+        "prune_passes": 339
+      }
+    },
+    "network": null,
+    "epoch_log": []
+  },
+  "verdict": "PASS"
+}
