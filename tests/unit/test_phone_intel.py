@@ -38,7 +38,13 @@ class TestPhoneIntelTool:
                     }
                     with patch.object(tool, "_fetch_truecaller", new_callable=AsyncMock) as tc_mock:
                         tc_mock.return_value = {"data": [{"name": "Fikri Izzudin"}]}
-                        result = await tool.search("+6281347241993")
+                        with patch.object(tool, "_fetch_whatsapp", new_callable=AsyncMock) as wa_mock:
+                            wa_mock.return_value = {
+                                "phone": "+6281347241993",
+                                "presence": True,
+                                "profile": {"about": "dev"},
+                            }
+                            result = await tool.search("+6281347241993")
 
         assert result.status == "ok"
         titles = {f.title for f in result.findings}
@@ -46,8 +52,42 @@ class TestPhoneIntelTool:
         assert "Public pages mentioning this number" in titles
         assert "Carrier and line type" in titles
         assert "Truecaller entry" in titles
+        assert "WhatsApp OSINT" in titles
 
         # All sources persisted to the shared DB.
+
+    async def test_hudson_correlation_when_email_present(self, db_path: str):
+        from src.modules.phone_intel import db as phone_db
+
+        # GetContact profile with an email triggers Hudson Rock correlation.
+        phone_db.save_lookup(
+            db_path,
+            "+6281347241993",
+            "getcontact",
+            {"profile": {"name": "Fikri", "email": "fikri@example.com"}, "tags": []},
+            ttl_seconds=7 * 24 * 3600,
+        )
+        tool = PhoneIntelTool(db_path=db_path)
+        with patch.object(tool, "_fetch_web", new_callable=AsyncMock) as web_mock:
+            web_mock.return_value = {"pages": [], "count": 0}
+            with patch.object(tool, "_fetch_carrier", new_callable=AsyncMock) as car_mock:
+                car_mock.return_value = None
+                with patch.object(tool, "_fetch_truecaller", new_callable=AsyncMock) as tc_mock:
+                    tc_mock.return_value = None
+                    with patch.object(tool, "_fetch_whatsapp", new_callable=AsyncMock) as wa_mock:
+                        wa_mock.return_value = {"phone": "+6281347241993", "presence": True, "profile": {}}
+                        with patch(
+                            "src.modules.data_leaks.hudson_rock.HudsonRockIntel.search",
+                            new_callable=AsyncMock,
+                        ) as hr_mock:
+                            hr_mock.return_value = {"stealers": [{"id": 1, "malware": "redline"}]}
+                            result = await tool.search("+6281347241993")
+
+        hr_mock.assert_awaited_once_with("email", "fikri@example.com")
+        titles = {f.title for f in result.findings}
+        assert "Hudson Rock infostealer hits" in titles
+        # persisted
+        assert phone_db.get_lookup(db_path, "+6281347241993", "hudson") is not None
 
     async def test_non_phone_partial(self, db_path: str):
         tool = PhoneIntelTool(db_path=db_path)
@@ -74,7 +114,9 @@ class TestPhoneIntelTool:
                     car_mock.return_value = None
                     with patch.object(tool, "_fetch_truecaller", new_callable=AsyncMock) as tc_mock:
                         tc_mock.return_value = None
-                        result = await tool.search("+6281347241993")
+                        with patch.object(tool, "_fetch_whatsapp", new_callable=AsyncMock) as wa_mock:
+                            wa_mock.return_value = {"phone": "+6281347241993", "presence": True, "profile": {}}
+                            result = await tool.search("+6281347241993")
 
         gc_mock.assert_not_awaited()  # served from DB
         assert result.status == "ok"
