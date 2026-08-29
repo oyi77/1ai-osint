@@ -16,10 +16,10 @@ def fake_binary(tmp_path: Path) -> str:
 #!/usr/bin/env python3
 import json, sys
 args = sys.argv[1:]
-if args == ["search", "--source", "profile", "+628123456789"]:
+if args[1:3] == ["--source", "profile"] and args[-1] == "+628123456789":
     json.dump({"name": "Test User", "phone": "+628123456789"}, sys.stdout)
     sys.exit(0)
-elif args == ["search", "--source", "tags", "+628123456789"]:
+elif args[1:3] == ["--source", "tags"] and args[-1] == "+628123456789":
     json.dump([{"name": "telegram", "value": "tguser"}], sys.stdout)
     sys.exit(0)
 elif args == ["search", "--source", "profile", "+628111111111"]:
@@ -94,6 +94,21 @@ class TestGCLookupTool:
         result = await tool.scan("+628123456789")
         assert result.status == "ok"
         assert len(result.findings) == 2
+
+    async def test_rotate_passes_flag(self, tool: GCLookupTool):
+        """rotate=True should pass --rotate to the binary."""
+        rotate_tool = GCLookupTool(binary=tool.binary, rotate=True)
+        result = await rotate_tool.search("+628123456789")
+        assert result.status == "ok"
+        assert len(result.findings) == 2
+        profile = [f for f in result.findings if f.title == "GetContact profile"][0]
+        assert profile.raw_data.get("name") == "Test User"
+
+    async def test_rotate_true_with_non_phone(self, tool: GCLookupTool):
+        rotate_tool = GCLookupTool(binary=tool.binary, rotate=True)
+        result = await rotate_tool.search("not-a-phone")
+        assert result.status == "partial"
+        assert "not a valid phone number" in (result.metadata.get("note") or "")
 
     async def test_analyze_and_learn(self, tool: GCLookupTool):
         analysis = await tool.analyze({})

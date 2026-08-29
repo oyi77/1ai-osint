@@ -35,12 +35,22 @@ class GCLookupTool(BaseOSINTTool):
         binary: str = "gc-lookup",
         config_dir: str | None = None,
         timeout: float = 30.0,
+        rotate: bool = False,
         zkit_salt: str | None = None,
     ):
         super().__init__(zkit_salt=zkit_salt)
         self.binary = shutil.which(binary) or binary
         self.config_dir = config_dir or os.environ.get("GTC_CONFIG_DIR")
         self.timeout = timeout
+        self.rotate = rotate
+
+    def _search_args(self, source: str, phone: str) -> list[str]:
+        """Build the gc-lookup search argv (--rotate rotates across accounts)."""
+        args = ["search", "--source", source]
+        if self.rotate:
+            args.append("--rotate")
+        args.append(phone)
+        return args
 
     def _env(self) -> dict[str, str]:
         env = dict(os.environ)
@@ -126,7 +136,7 @@ class GCLookupTool(BaseOSINTTool):
                 note="Target is not a valid phone number; gc-lookup not invoked",
             )
 
-        profile_code, profile_out, profile_err = await self._run(["search", "--source", "profile", phone])
+        profile_code, profile_out, profile_err = await self._run(self._search_args("profile", phone))
         if profile_code == 127:
             return self._fail(
                 scan_id,
@@ -143,7 +153,7 @@ class GCLookupTool(BaseOSINTTool):
                 f"gc-lookup search (profile) failed: {profile_err.strip()}",
             )
 
-        tags_code, tags_out, tags_err = await self._run(["search", "--source", "tags", phone])
+        tags_code, tags_out, tags_err = await self._run(self._search_args("tags", phone))
 
         if profile_out.strip():
             try:
