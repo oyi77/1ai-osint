@@ -49,3 +49,7 @@ state/
 
 # Other projects (have their own repos)
 1ai-trade-bot/
+# Runtime / one-off artifacts (autoresearch needs a clean baseline)
+output/e2e_*
+clients.txt
+run_wf20.sh
