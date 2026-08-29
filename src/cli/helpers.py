@@ -50,6 +50,10 @@ def get_module(name: str, zkit_salt: str = "") -> Any:
         from src.modules.phone_finder.gc_lookup import GCLookupTool
 
         return GCLookupTool(zkit_salt=zkit_salt)
+    elif name in ("phone_intel", "phoneintel"):
+        from src.modules.phone_intel import PhoneIntelTool
+
+        return PhoneIntelTool(zkit_salt=zkit_salt)
     elif name in ("crypto_passphrase", "passphrase"):
         from src.modules.crypto.passphrase.generator import generate_with_details
 

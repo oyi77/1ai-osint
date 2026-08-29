@@ -36,6 +36,7 @@ def _register_builtins():
         ("people_finder", "src.modules.people_finder", "PeopleFinderTool"),
         ("phone_finder", "src.modules.phone_finder", "PhoneFinderTool"),
         ("gc_lookup", "src.modules.phone_finder.gc_lookup", "GCLookupTool"),
+        ("phone_intel", "src.modules.phone_intel", "PhoneIntelTool"),
         (
             "crypto_privatekey",
             "src.modules.crypto.privatekey.scanner",

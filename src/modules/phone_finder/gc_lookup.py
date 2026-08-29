@@ -36,6 +36,7 @@ class GCLookupTool(BaseOSINTTool):
         config_dir: str | None = None,
         timeout: float = 30.0,
         rotate: bool = False,
+        db_path: str | None = None,
         zkit_salt: str | None = None,
     ):
         super().__init__(zkit_salt=zkit_salt)
@@ -43,6 +44,7 @@ class GCLookupTool(BaseOSINTTool):
         self.config_dir = config_dir or os.environ.get("GTC_CONFIG_DIR")
         self.timeout = timeout
         self.rotate = rotate
+        self.db_path = db_path  # None = do not persist to the phone-intel DB
 
     def _search_args(self, source: str, phone: str) -> list[str]:
         """Build the gc-lookup search argv (--rotate rotates across accounts)."""
@@ -196,7 +198,31 @@ class GCLookupTool(BaseOSINTTool):
                 )
 
         status = "ok" if findings else "partial"
+        if status == "ok" and self.db_path:
+            self._save_to_db(phone, findings)
         return self._done(scan_id, query, started_at, findings, phone, status=status)
+
+    def _save_to_db(self, phone: str, findings: list[Finding]) -> None:
+        """Persist profile+tags to the shared phone-intel DB (best-effort)."""
+        try:
+            from src.modules.phone_intel import db as phone_db
+
+            profile = None
+            tags: list[Any] = []
+            for f in findings:
+                if f.title == "GetContact profile":
+                    profile = f.raw_data
+                elif f.title == "GetContact tags":
+                    tags = (f.raw_data or {}).get("tags") or []
+            phone_db.save_lookup(
+                self.db_path,
+                phone,
+                "getcontact",
+                {"profile": profile, "tags": tags},
+                ttl_seconds=7 * 24 * 3600,
+            )
+        except Exception as e:  # noqa: BLE001 — DB persistence must not break the search
+            logger.warning("gc_lookup: failed to persist %s to DB: %s", phone, e)
 
     async def scan(self, target: str, **kwargs) -> ScanResult:
         """Alias for search."""
