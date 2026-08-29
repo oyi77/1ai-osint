@@ -18,9 +18,7 @@ def register_module(name: str, cls: type) -> None:
 def get_module(name: str) -> type:
     """Get a registered module class by name."""
     if name not in _MODULE_REGISTRY:
-        raise KeyError(
-            f"Module '{name}' not registered. Available: {list(_MODULE_REGISTRY.keys())}"
-        )
+        raise KeyError(f"Module '{name}' not registered. Available: {list(_MODULE_REGISTRY.keys())}")
     return _MODULE_REGISTRY[name]
 
 
@@ -37,6 +35,7 @@ def _register_builtins():
         ("data_leaks", "src.modules.data_leaks.aggregator", "DataLeaksAggregator"),
         ("people_finder", "src.modules.people_finder", "PeopleFinderTool"),
         ("phone_finder", "src.modules.phone_finder", "PhoneFinderTool"),
+        ("gc_lookup", "src.modules.phone_finder.gc_lookup", "GCLookupTool"),
         (
             "crypto_privatekey",
             "src.modules.crypto.privatekey.scanner",

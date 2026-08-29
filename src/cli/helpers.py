@@ -46,6 +46,10 @@ def get_module(name: str, zkit_salt: str = "") -> Any:
         from src.modules.phone_finder import PhoneFinderTool
 
         return PhoneFinderTool(zkit_salt=zkit_salt)
+    elif name in ("gc_lookup", "getcontact"):
+        from src.modules.phone_finder.gc_lookup import GCLookupTool
+
+        return GCLookupTool(zkit_salt=zkit_salt)
     elif name in ("crypto_passphrase", "passphrase"):
         from src.modules.crypto.passphrase.generator import generate_with_details
 
